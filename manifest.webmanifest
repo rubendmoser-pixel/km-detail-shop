@@ -1,0 +1,21 @@
+{
+  "name": "KM Detail Line Compras",
+  "short_name": "KM Compras",
+  "description": "Catalogo, promociones y pedidos KM Detail Line 2026.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fbfcfd",
+  "theme_color": "#111318",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
