@@ -145,6 +145,14 @@ function init() {
 }
 
 function bindEvents() {
+  document.querySelectorAll("[data-category-link]").forEach((link) => {
+    link.addEventListener("click", () => {
+      state.category = link.dataset.categoryLink;
+      renderCategoryFilters();
+      renderProducts();
+    });
+  });
+
   els.searchInput.addEventListener("input", (event) => {
     state.search = event.target.value.trim().toLowerCase();
     renderProducts();

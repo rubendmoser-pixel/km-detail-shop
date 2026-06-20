@@ -13,21 +13,24 @@
     <link rel="canonical" href="https://km-detail.com/" />
     <title>KM Detail Line | Compras y Promociones</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=3" />
   </head>
   <body>
     <header class="app-header">
-      <a class="brand" href="#catalogo" aria-label="KM Detail Line">
+      <a class="brand" href="#inicio" aria-label="KM Detail Line">
         <span class="brand-mark">KM</span>
+        <span class="brand-divider" aria-hidden="true"></span>
         <span>
           <strong>Detail Line</strong>
-          <small>Catalogo 2026</small>
         </span>
       </a>
       <nav class="top-nav" aria-label="Principal">
-        <a href="#promos">Promos</a>
-        <a href="#catalogo">Catalogo</a>
-        <a href="#pedido">Pedido</a>
+        <a href="#inicio">Inicio</a>
+        <a href="#catalogo">Productos</a>
+        <a href="#catalogo">Catalogo 2026</a>
+        <a href="#sistema">Diferenciales</a>
+        <a href="#pedido">Distribuidores</a>
+        <a href="#pedido">Contacto</a>
       </nav>
       <button class="cart-pill" id="openCart" type="button" aria-label="Abrir carrito">
         <span class="cart-icon" aria-hidden="true"></span>
@@ -37,38 +40,48 @@
 
     <main>
       <section class="shop-hero" id="inicio">
-        <img src="./assets/catalog/catalog-page-1.png" alt="Portada catalogo KM Detail Line 2026" />
         <div class="hero-copy">
-          <p class="eyebrow">Consumibles profesionales</p>
-          <h1>Compras rapidas para talleres de pulido, chapa y pintura.</h1>
+          <p class="eyebrow">Calidad profesional. Resultados superiores.</p>
+          <h1>Insumos profesionales para pulido automotriz, chapa y pintura y detailing</h1>
           <p>
-            Catalogo tecnico KM Detail Line 2026 con pedido por carrito,
-            promociones y kits listos para cotizar.
+            Soluciones tecnicas para talleres, pinturerias y distribuidores
+            especializados.
           </p>
           <div class="hero-actions">
-            <a class="primary-link" href="#catalogo">Ver productos</a>
-            <a class="secondary-link" href="#promos">Ver promociones</a>
+            <a class="primary-link" href="#catalogo">Ver catalogo 2026 <span aria-hidden="true">&#8594;</span></a>
+            <a class="secondary-link" href="#pedido">Solicitar informacion comercial <span aria-hidden="true">&#8594;</span></a>
           </div>
+        </div>
+        <div class="hero-media">
+          <img src="./assets/catalog/catalog-page-1.png" alt="KM Detail Line sobre vehiculo de detailing" />
+          <p>Desarrollado para profesionales, pensado para resultados.</p>
         </div>
       </section>
 
+      <section class="category-strip" aria-label="Familias principales">
+        <a href="#catalogo" data-category-link="Lana">
+          <span class="category-symbol hybrid" aria-hidden="true"></span>
+          <strong>Panos hibridos</strong>
+        </a>
+        <a href="#catalogo" data-category-link="Lana">
+          <span class="category-symbol wool" aria-hidden="true"></span>
+          <strong>Linea PA</strong>
+        </a>
+        <a href="#catalogo" data-category-link="Poliespuma">
+          <span class="category-symbol foam" aria-hidden="true"></span>
+          <strong>Poliespumas</strong>
+        </a>
+        <a href="#catalogo" data-category-link="Accesorios">
+          <span class="category-symbol backing" aria-hidden="true"></span>
+          <strong>Backings</strong>
+        </a>
+      </section>
+
       <section class="stats-band" aria-label="Resumen del catalogo">
-        <div>
-          <strong id="productTotal">0</strong>
-          <span>productos cargados</span>
-        </div>
-        <div>
-          <strong>2026</strong>
-          <span>catalogo vigente</span>
-        </div>
-        <div>
-          <strong>14 x 2</strong>
-          <span>rosca estandar</span>
-        </div>
-        <div>
-          <strong>+5.000</strong>
-          <span>reposiciones en velcro</span>
-        </div>
+        <div><strong id="productTotal">0</strong><span>productos tecnicos</span></div>
+        <div><strong>2026</strong><span>catalogo vigente</span></div>
+        <div><strong>14 x 2</strong><span>rosca estandar</span></div>
+        <div><strong>+5.000</strong><span>reposiciones en velcro</span></div>
       </section>
 
       <section class="section" id="promos">
@@ -195,6 +208,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js" defer></script>
+    <script src="./app.js?v=3" defer></script>
   </body>
 </html>
