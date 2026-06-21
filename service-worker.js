@@ -1,9 +1,11 @@
-const CACHE_NAME = "km-detail-shop-v3";
+const CACHE_NAME = "km-detail-shop-v7";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=3",
-  "./app.js?v=3",
+  "./styles.css?v=7",
+  "./app.js?v=7",
+  "./reset.html",
+  "./reset.js?v=1",
   "./manifest.webmanifest",
   "./assets/icon-192.png",
   "./assets/icon-512.png",
@@ -29,5 +31,16 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  event.respondWith(
+    fetch(event.request).then((response) => {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+      return response;
+    }).catch(() => caches.match(event.request))
+  );
 });

@@ -1,143 +1,32 @@
-const WHATSAPP_NUMBER = "5490000000000";
 const SITE_URL = "https://km-detail.com";
-
-const products = [
-  { code: "CP171K", ean: "0781100144695", name: "Pad 100% lana corte 95 - 7,5 IN", category: "Lana", family: "Panos hibridos", size: "7,5 IN", cut: 95, color: "Natural", system: "Sin backing" },
-  { code: "CP172K", ean: "0781100144701", name: "Pad lana y acrilico corte 80 - 7,5 IN", category: "Lana", family: "Panos hibridos", size: "7,5 IN", cut: 80, color: "Mixto", system: "Sin backing" },
-  { code: "CP671K", ean: "0764451541467", name: "Pad 100% lana corte 95 - 7,5 IN con backing", category: "Lana", family: "Panos hibridos", size: "7,5 IN", cut: 95, color: "Natural", system: "Con backing" },
-  { code: "CP672K", ean: "0764451541450", name: "Pad lana y acrilico corte 80 - 7,5 IN con backing", category: "Lana", family: "Panos hibridos", size: "7,5 IN", cut: 80, color: "Mixto", system: "Con backing" },
-  { code: "CP271K", ean: "0781100144718", name: "Pad poliespuma blanca corte 85 - 7,5 IN", category: "Poliespuma", family: "Panos hibridos", size: "7,5 IN", cut: 85, color: "Blanco", system: "Sin backing" },
-  { code: "CP272K", ean: "0781100144725", name: "Pad poliespuma violeta corte 65 - 7,5 IN", category: "Poliespuma", family: "Panos hibridos", size: "7,5 IN", cut: 65, color: "Violeta", system: "Sin backing" },
-
-  { code: "PA166K", ean: "0734191447008", name: "Pad con backing 100% lana corte 90", category: "Lana", family: "Linea PA", size: "6,5 IN", cut: 90, color: "Natural", system: "Rosca 14 x 2" },
-  { code: "PA165K", ean: "0734191447015", name: "Pad con backing 100% lana corte 90", category: "Lana", family: "Linea PA", size: "6 IN", cut: 90, color: "Natural", system: "Rosca 14 x 2" },
-  { code: "PA164K", ean: "0734191447022", name: "Pad con backing 100% lana corte 90", category: "Lana", family: "Linea PA", size: "5 IN", cut: 90, color: "Natural", system: "Rosca 14 x 2" },
-  { code: "PA163K", ean: "0734191447039", name: "Pad con backing 100% lana corte 90", category: "Lana", family: "Linea PA", size: "4 IN", cut: 90, color: "Natural", system: "Rosca 14 x 2" },
-  { code: "PA162K", ean: "0734191447046", name: "Pad con backing 100% lana corte 90", category: "Lana", family: "Linea PA", size: "3 IN", cut: 90, color: "Natural", system: "Rosca 14 x 2" },
-  { code: "PA161K", ean: "0736372495204", name: "Pad con backing 100% lana corte 90", category: "Lana", family: "Linea PA", size: "2 IN", cut: 90, color: "Natural", system: "Rosca 14 x 2" },
-  { code: "PA160K", ean: "0736372495211", name: "Pad con backing 100% lana corte 90", category: "Lana", family: "Linea PA", size: "1 IN", cut: 90, color: "Natural", system: "Rosca 14 x 2" },
-  { code: "PX866K", ean: "0764451541542", name: "Pad con backing 100% lana corte 98", category: "Lana", family: "Linea PA", size: "6 IN", cut: 98, color: "Natural", system: "Rosca 14 x 2" },
-
-  { code: "DC152K", ean: "0764451541344", name: "Pad 100% lana prelavada - 5 IN 130mm", category: "Lana", family: "Lana prelavada", size: "5 IN", cut: 98, color: "Violeta", system: "Rotativa" },
-  { code: "DC154K", ean: "0764451541368", name: "Pad 100% lana prelavada - 5 IN 130mm", category: "Lana", family: "Lana prelavada", size: "5 IN", cut: 90, color: "Naranja", system: "Rotativa" },
-  { code: "DC156K", ean: "0764451541375", name: "Pad 100% lana prelavada - 5 IN 130mm", category: "Lana", family: "Lana prelavada", size: "5 IN", cut: 95, color: "Verde", system: "Rotativa" },
-  { code: "DC151K", ean: "0764451541337", name: "Pad 100% lana prelavada - 5 IN 130/25", category: "Lana", family: "Lana prelavada", size: "5 IN", cut: 98, color: "Violeta", system: "Roto orbital" },
-  { code: "DC153K", ean: "0764451541351", name: "Pad 100% lana prelavada - 5 IN 130/30", category: "Lana", family: "Lana prelavada", size: "5 IN", cut: 90, color: "Naranja", system: "Roto orbital" },
-  { code: "DC155K", ean: "0764451541382", name: "Pad 100% lana prelavada - 5 IN 130/25", category: "Lana", family: "Lana prelavada", size: "5 IN", cut: 95, color: "Verde", system: "Roto orbital" },
-  { code: "DC132K", ean: "0764451541399", name: "Pad 100% lana prelavada - 3 IN 75mm", category: "Lana", family: "Lana prelavada", size: "3 IN", cut: 98, color: "Violeta", system: "Rotativa / roto orbital" },
-  { code: "DC134K", ean: "0764451541405", name: "Pad 100% lana prelavada - 3 IN 75mm", category: "Lana", family: "Lana prelavada", size: "3 IN", cut: 90, color: "Naranja", system: "Rotativa / roto orbital" },
-  { code: "DC136K", ean: "0764451541412", name: "Pad 100% lana prelavada - 3 IN 75mm", category: "Lana", family: "Lana prelavada", size: "3 IN", cut: 95, color: "Verde", system: "Rotativa / roto orbital" },
-
-  { code: "PB171K", ean: "0736372495273", name: "Pad poliespuma blanco corte 85 - 6,5 IN", category: "Poliespuma", family: "Con backing", size: "6,5 IN", cut: 85, color: "Blanco", system: "Rosca 14 x 2" },
-  { code: "PB172K", ean: "0736372495280", name: "Pad poliespuma celeste corte 60 - 6,5 IN", category: "Poliespuma", family: "Con backing", size: "6,5 IN", cut: 60, color: "Celeste", system: "Rosca 14 x 2" },
-  { code: "PB173K", ean: "0736372495440", name: "Pad poliespuma negro corte 40 - 6,5 IN", category: "Poliespuma", family: "Con backing", size: "6,5 IN", cut: 40, color: "Negro", system: "Rosca 14 x 2" },
-  { code: "PB161K", ean: "0736372495389", name: "Pad poliespuma blanco corte 85 - 6 IN", category: "Poliespuma", family: "Con backing", size: "6 IN", cut: 85, color: "Blanco", system: "Rosca 14 x 2" },
-  { code: "PB162K", ean: "0736372495396", name: "Pad poliespuma celeste corte 60 - 6 IN", category: "Poliespuma", family: "Con backing", size: "6 IN", cut: 60, color: "Celeste", system: "Rosca 14 x 2" },
-  { code: "PB163K", ean: "0736372495402", name: "Pad poliespuma negro corte 40 - 6 IN", category: "Poliespuma", family: "Con backing", size: "6 IN", cut: 40, color: "Negro", system: "Rosca 14 x 2" },
-  { code: "PB151K", ean: "0736372495358", name: "Pad poliespuma blanco corte 85 - 5 IN", category: "Poliespuma", family: "Con backing", size: "5 IN", cut: 85, color: "Blanco", system: "Rosca 14 x 2" },
-  { code: "PB152K", ean: "0736372495365", name: "Pad poliespuma celeste corte 60 - 5 IN", category: "Poliespuma", family: "Con backing", size: "5 IN", cut: 60, color: "Celeste", system: "Rosca 14 x 2" },
-  { code: "PB153K", ean: "0736372495372", name: "Pad poliespuma negro corte 40 - 5 IN", category: "Poliespuma", family: "Con backing", size: "5 IN", cut: 40, color: "Negro", system: "Rosca 14 x 2" },
-  { code: "DL267K", ean: "0734191446810", name: "Pad poliespuma blanco corte 85 - 6,5 IN", category: "Poliespuma", family: "Sin backing", size: "6,5 IN", cut: 85, color: "Blanco", system: "Velcro" },
-  { code: "DL268K", ean: "0734191446827", name: "Pad poliespuma celeste corte 60 - 6,5 IN", category: "Poliespuma", family: "Sin backing", size: "6,5 IN", cut: 60, color: "Celeste", system: "Velcro" },
-  { code: "DL269K", ean: "0734191446834", name: "Pad poliespuma negro corte 40 - 6,5 IN", category: "Poliespuma", family: "Sin backing", size: "6,5 IN", cut: 40, color: "Negro", system: "Velcro" },
-  { code: "DL251K", ean: "0788115794068", name: "Pad poliespuma blanco corte 85 - 5 IN", category: "Poliespuma", family: "Sin backing", size: "5 IN", cut: 85, color: "Blanco", system: "Velcro" },
-  { code: "DL252K", ean: "0788115794075", name: "Pad poliespuma celeste corte 60 - 5 IN", category: "Poliespuma", family: "Sin backing", size: "5 IN", cut: 60, color: "Celeste", system: "Velcro" },
-  { code: "DL253K", ean: "0788115794082", name: "Pad poliespuma negro corte 40 - 5 IN", category: "Poliespuma", family: "Sin backing", size: "5 IN", cut: 40, color: "Negro", system: "Velcro" },
-  { code: "DL221K", ean: "0734191446674", name: "Pad poliespuma blanco corte 85 - 2 IN x 3 UN", category: "Poliespuma", family: "Sin backing", size: "2 IN", cut: 85, color: "Blanco", system: "Velcro" },
-  { code: "DL222K", ean: "0734191446681", name: "Pad poliespuma celeste corte 60 - 2 IN x 3 UN", category: "Poliespuma", family: "Sin backing", size: "2 IN", cut: 60, color: "Celeste", system: "Velcro" },
-  { code: "DL223K", ean: "0734191446698", name: "Pad poliespuma negro corte 40 - 2 IN x 3 UN", category: "Poliespuma", family: "Sin backing", size: "2 IN", cut: 40, color: "Negro", system: "Velcro" },
-  { code: "DL201K", ean: "0734191446711", name: "Pad poliespuma blanco corte 85 - 1 IN x 10 UN", category: "Poliespuma", family: "Sin backing", size: "1 IN", cut: 85, color: "Blanco", system: "Velcro" },
-  { code: "DL202K", ean: "0734191446728", name: "Pad poliespuma celeste corte 60 - 1 IN x 10 UN", category: "Poliespuma", family: "Sin backing", size: "1 IN", cut: 60, color: "Celeste", system: "Velcro" },
-  { code: "DL203K", ean: "0734191446735", name: "Pad poliespuma negro corte 40 - 1 IN x 10 UN", category: "Poliespuma", family: "Sin backing", size: "1 IN", cut: 40, color: "Negro", system: "Velcro" },
-
-  { code: "DL166K", ean: "0734191446803", name: "Pad respaldo poliespuma 100% lana corte 90", category: "Lana", family: "Respaldo poliespuma", size: "6,5 IN", cut: 90, color: "Natural", system: "Velcro rotativa" },
-  { code: "DL151K", ean: "0788115794099", name: "Pad respaldo poliespuma 100% lana corte 90", category: "Lana", family: "Respaldo poliespuma", size: "5 IN", cut: 90, color: "Natural", system: "Velcro rotativa" },
-  { code: "DN251K", ean: "0736372495235", name: "Pad 100% lana corte 90 - 5 IN roto orbital", category: "Lana", family: "Respaldo poliespuma", size: "5 IN", cut: 90, color: "Natural", system: "Roto orbital" },
-  { code: "DN252K", ean: "0736372495228", name: "Pad 100% lana corte 90 - 3 IN roto orbital", category: "Lana", family: "Respaldo poliespuma", size: "3 IN", cut: 90, color: "Natural", system: "Roto orbital" },
-
-  { code: "SI614A", ean: "0788115794105", name: "Interfaz de espuma con velcro 6 IN x 12mm", category: "Accesorios", family: "Interfaces", size: "6 IN", cut: null, color: "Espuma", system: "Velcro" },
-  { code: "SI514A", ean: "0734191446902", name: "Interfaz de espuma con velcro 5 IN x 12mm", category: "Accesorios", family: "Interfaces", size: "5 IN", cut: null, color: "Espuma", system: "Velcro" },
-  { code: "SI314A", ean: "0734191446919", name: "Interfaz de espuma con velcro 3 IN x 12mm", category: "Accesorios", family: "Interfaces", size: "3 IN", cut: null, color: "Espuma", system: "Velcro" },
-  { code: "DB011K", ean: "0734191446742", name: "Backing estandar rosca 14 x 2 mm", category: "Accesorios", family: "Backings", size: "1 IN", cut: null, color: "Negro", system: "Rosca 14 x 2" },
-  { code: "DB031K", ean: "0734191446766", name: "Backing estandar rosca 14 x 2 mm", category: "Accesorios", family: "Backings", size: "3 IN", cut: null, color: "Negro", system: "Rosca 14 x 2" },
-  { code: "DB051K", ean: "0734191446780", name: "Backing estandar rosca 14 x 2 mm", category: "Accesorios", family: "Backings", size: "5 IN", cut: null, color: "Negro", system: "Rosca 14 x 2" },
-  { code: "DB061K", ean: "0734191446797", name: "Backing estandar rosca 14 x 2 mm", category: "Accesorios", family: "Backings", size: "6 IN", cut: null, color: "Negro", system: "Rosca 14 x 2" },
-  { code: "DB151K", ean: "0764451541313", name: "Backing Flex rosca 14 x 2 mm", category: "Accesorios", family: "Backings", size: "5 IN", cut: null, color: "Negro", system: "Flex" },
-  { code: "DB251K", ean: "0764451541320", name: "Backing Ultra Flex rosca 14 x 2 mm", category: "Accesorios", family: "Backings", size: "5 IN", cut: null, color: "Negro", system: "Ultra Flex" },
-  { code: "DB131K", ean: "0764451541306", name: "Backing Ultra Flex rosca 14 x 2 mm", category: "Accesorios", family: "Backings", size: "3 IN", cut: null, color: "Negro", system: "Ultra Flex" },
-  { code: "DL045H", ean: "0734191446872", name: "Aplicador poliespuma para cera con velcro 95 x 30mm", category: "Accesorios", family: "Aplicadores", size: "95 x 30mm", cut: null, color: "Espuma", system: "Velcro" },
-  { code: "DL046H", ean: "0734191446889", name: "Kit 3 aplicadores + 1 soporte", category: "Accesorios", family: "Aplicadores", size: "Kit", cut: null, color: "Mixto", system: "Velcro" },
-  { code: "DL112K", ean: "0764451541474", name: "Pad aplicador 100 x 12 verde uso general", category: "Accesorios", family: "Aplicadores", size: "100 x 12", cut: null, color: "Verde", system: "Manual" },
-  { code: "DL114K", ean: "0764451541481", name: "Pad aplicador 100 x 20 celeste", category: "Accesorios", family: "Aplicadores", size: "100 x 20", cut: null, color: "Celeste", system: "Manual" },
-  { code: "DL116K", ean: "0764451541498", name: "Pad aplicador 100 x 20 negro", category: "Accesorios", family: "Aplicadores", size: "100 x 20", cut: null, color: "Negro", system: "Manual" },
-
-  { code: "AA131K", ean: "0734191446926", name: "Taco de lijado N1 con velcro", category: "Tacos", family: "Tacos azules", size: "70 x 70mm", cut: null, color: "Azul", system: "Velcro" },
-  { code: "AA132K", ean: "0734191446933", name: "Taco de lijado N2 con velcro", category: "Tacos", family: "Tacos azules", size: "140 x 70mm", cut: null, color: "Azul", system: "Velcro" },
-  { code: "AA133K", ean: "0734191446940", name: "Taco de lijado N3 con velcro", category: "Tacos", family: "Tacos azules", size: "210 x 70mm", cut: null, color: "Azul", system: "Velcro" },
-  { code: "AA134K", ean: "0734191446957", name: "Taco de lijado N4 con velcro", category: "Tacos", family: "Tacos azules", size: "280 x 70mm", cut: null, color: "Azul", system: "Velcro" },
-  { code: "AA135K", ean: "0734191446964", name: "Taco de lijado N5 con velcro", category: "Tacos", family: "Tacos azules", size: "350 x 70mm", cut: null, color: "Azul", system: "Velcro" },
-  { code: "AA136K", ean: "0734191446971", name: "Taco de lijado N6 con velcro", category: "Tacos", family: "Tacos azules", size: "420 x 70mm", cut: null, color: "Azul", system: "Velcro" },
-  { code: "AB132K", ean: "0736372495242", name: "Taco de lijado N2 base goma", category: "Tacos", family: "Tacos amarillos", size: "140 x 70mm", cut: null, color: "Amarillo", system: "Adhesivo" },
-  { code: "AB133K", ean: "0736372495259", name: "Taco de lijado N3 base goma", category: "Tacos", family: "Tacos amarillos", size: "210 x 70mm", cut: null, color: "Amarillo", system: "Adhesivo" },
-  { code: "AB136K", ean: "0736372495266", name: "Taco de lijado N6 base goma", category: "Tacos", family: "Tacos amarillos", size: "420 x 70mm", cut: null, color: "Amarillo", system: "Adhesivo" }
-];
-
-const promos = [
-  {
-    title: "Kit corte intenso",
-    subtitle: "Para correccion inicial en repintado y marcas de lijado.",
-    badge: "Taller chapa y pintura",
-    products: ["PX866K", "PA165K", "DB061K"]
-  },
-  {
-    title: "Kit terminacion completa",
-    subtitle: "Blanco, celeste y negro para pasar de correccion a brillo final.",
-    badge: "Pulido profesional",
-    products: ["PB151K", "PB152K", "PB153K"]
-  },
-  {
-    title: "Kit detailing y accesorios",
-    subtitle: "Soporte, aplicadores e interfaz para trabajos de acabado.",
-    badge: "Detalle y mantenimiento",
-    products: ["DL046H", "SI514A", "DB251K"]
-  }
-];
+const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 const state = {
+  products: [],
+  user: null,
+  settings: { vatBps: 2100, whatsappNumber: "" },
   category: "Todos",
   search: "",
   cut: "",
   size: "",
   sort: "featured",
-  cart: JSON.parse(localStorage.getItem("kmCart") || "{}")
+  cart: readCart()
 };
 
-const els = {
-  categoryFilters: document.querySelector("#categoryFilters"),
-  cutFilter: document.querySelector("#cutFilter"),
-  sizeFilter: document.querySelector("#sizeFilter"),
-  searchInput: document.querySelector("#searchInput"),
-  sortSelect: document.querySelector("#sortSelect"),
-  productGrid: document.querySelector("#productGrid"),
-  promoGrid: document.querySelector("#promoGrid"),
-  resultCount: document.querySelector("#resultCount"),
-  productTotal: document.querySelector("#productTotal"),
-  cartCount: document.querySelector("#cartCount"),
-  cartDrawer: document.querySelector("#cartDrawer"),
-  cartItems: document.querySelector("#cartItems"),
-  cartEmpty: document.querySelector("#cartEmpty"),
-  whatsAppLink: document.querySelector("#whatsAppLink"),
-  toast: document.querySelector("#toast")
-};
+const els = Object.fromEntries([
+  "categoryFilters", "cutFilter", "sizeFilter", "searchInput", "sortSelect", "productGrid",
+  "resultCount", "productTotal", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
+  "cartEmpty", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
+  "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "openAccount",
+  "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
+  "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus"
+].map((id) => [id, document.querySelector(`#${id}`)]));
 
-function init() {
-  els.productTotal.textContent = products.length;
-  renderCategoryFilters();
-  renderSelectOptions();
-  renderPromos();
-  renderProducts();
-  renderCart();
+async function init() {
   bindEvents();
+  await Promise.all([loadSession(), loadSettings()]);
+  await loadProducts();
+  renderAll();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js").catch(() => {});
@@ -147,65 +36,103 @@ function init() {
 function bindEvents() {
   document.querySelectorAll("[data-category-link]").forEach((link) => {
     link.addEventListener("click", () => {
-      state.category = link.dataset.categoryLink;
+      const match = state.products.find((product) => product.family.name.toLowerCase().includes(link.dataset.categoryLink.toLowerCase()));
+      state.category = match?.family.name || "Todos";
       renderCategoryFilters();
       renderProducts();
     });
   });
-
   els.searchInput.addEventListener("input", (event) => {
     state.search = event.target.value.trim().toLowerCase();
     renderProducts();
   });
-
   els.cutFilter.addEventListener("change", (event) => {
     state.cut = event.target.value;
     renderProducts();
   });
-
   els.sizeFilter.addEventListener("change", (event) => {
     state.size = event.target.value;
     renderProducts();
   });
-
   els.sortSelect.addEventListener("change", (event) => {
     state.sort = event.target.value;
     renderProducts();
   });
-
-  document.querySelector("#clearFilters").addEventListener("click", () => {
-    state.category = "Todos";
-    state.search = "";
-    state.cut = "";
-    state.size = "";
-    state.sort = "featured";
-    els.searchInput.value = "";
-    els.cutFilter.value = "";
-    els.sizeFilter.value = "";
-    els.sortSelect.value = "featured";
-    renderCategoryFilters();
-    renderProducts();
-  });
-
+  document.querySelector("#clearFilters").addEventListener("click", clearFilters);
   document.querySelector("#openCart").addEventListener("click", openCart);
   document.querySelector("#closeCart").addEventListener("click", closeCart);
   els.cartDrawer.addEventListener("click", (event) => {
     if (event.target === els.cartDrawer) closeCart();
   });
-  document.querySelector("#clearCart").addEventListener("click", () => {
-    state.cart = {};
-    saveCart();
-    renderCart();
-  });
+  document.querySelector("#clearCart").addEventListener("click", clearCart);
+  els.goToOrder.addEventListener("click", closeCart);
   document.querySelector("#copyOrder").addEventListener("click", copyOrderSummary);
-  document.querySelector("#orderForm").addEventListener("submit", submitOrder);
+  els.orderForm.addEventListener("submit", submitOrder);
+
+  [els.openAccount, document.querySelector("#openAccountHero"), document.querySelector("#orderLogin")]
+    .forEach((button) => button.addEventListener("click", () => openAccount(button.id !== "openAccount")));
+  document.querySelector("#closeAccount").addEventListener("click", () => els.accountDialog.close());
+  els.showLogin.addEventListener("click", () => setAccountMode("login"));
+  els.showRegister.addEventListener("click", () => setAccountMode("register"));
+  els.loginForm.addEventListener("submit", submitLogin);
+  els.registerForm.addEventListener("submit", submitRegistration);
+  document.querySelector("#logoutButton").addEventListener("click", logout);
+}
+
+async function loadSession() {
+  try {
+    state.user = (await api("/api/me")).user;
+  } catch (error) {
+    if (error.status !== 401) showToast(error.message);
+    state.user = null;
+  }
+}
+
+async function loadSettings() {
+  try {
+    state.settings = (await api("/api/public-settings")).settings;
+  } catch {
+    state.settings = { vatBps: 2100, whatsappNumber: "" };
+  }
+}
+
+async function loadProducts() {
+  try {
+    state.products = (await api("/api/products")).products;
+    pruneCart();
+  } catch (error) {
+    state.products = [];
+    showToast(error.message);
+  }
+}
+
+function renderAll() {
+  els.productTotal.textContent = state.products.length;
+  renderAccountState();
+  renderCategoryFilters();
+  renderSelectOptions();
+  renderProducts();
+  renderCart();
+}
+
+function renderAccountState() {
+  const approved = isApprovedCustomer();
+  els.openAccount.textContent = state.user ? state.user.businessName || state.user.email : "Ingresar";
+  els.catalogNotice.textContent = approved
+    ? "Precios netos personalizados. IVA no incluido."
+    : state.user?.approvalStatus === "pending"
+      ? "Tu cuenta comercial esta pendiente de aprobacion."
+      : "Inicia sesion para consultar precios comerciales.";
+  els.orderAccess.hidden = approved;
+  els.orderForm.hidden = !approved;
 }
 
 function renderCategoryFilters() {
-  const categories = ["Todos", ...new Set(products.map((product) => product.category))];
-  els.categoryFilters.innerHTML = categories
-    .map((category) => `<button type="button" class="${category === state.category ? "active" : ""}" data-category="${category}">${category}</button>`)
-    .join("");
+  const categories = ["Todos", ...new Set(state.products.map((product) => product.family.name))];
+  if (!categories.includes(state.category)) state.category = "Todos";
+  els.categoryFilters.innerHTML = categories.map((category) => `
+    <button type="button" class="${category === state.category ? "active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>
+  `).join("");
   els.categoryFilters.querySelectorAll("button").forEach((button) => {
     button.addEventListener("click", () => {
       state.category = button.dataset.category;
@@ -216,204 +143,350 @@ function renderCategoryFilters() {
 }
 
 function renderSelectOptions() {
-  const cuts = [...new Set(products.map((product) => product.cut).filter(Boolean))].sort((a, b) => b - a);
-  const sizes = [...new Set(products.map((product) => product.size))].sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
-
-  els.cutFilter.innerHTML = `<option value="">Todos</option>${cuts.map((cut) => `<option value="${cut}">${cut}</option>`).join("")}`;
-  els.sizeFilter.innerHTML = `<option value="">Todas</option>${sizes.map((size) => `<option value="${size}">${size}</option>`).join("")}`;
-}
-
-function renderPromos() {
-  els.promoGrid.innerHTML = promos
-    .map((promo) => {
-      const items = promo.products.map(findProduct).filter(Boolean);
-      return `
-        <article class="promo-card">
-          <div>
-            <strong>${promo.badge}</strong>
-            <h3>${promo.title}</h3>
-            <p>${promo.subtitle}</p>
-          </div>
-          <div class="promo-products">
-            ${items.map((item) => `<span class="tag ${tagClass(item)}">${item.code}</span>`).join("")}
-          </div>
-          <button class="add-button" type="button" data-promo="${promo.title}">Agregar kit</button>
-        </article>
-      `;
-    })
-    .join("");
-
-  els.promoGrid.querySelectorAll("[data-promo]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const promo = promos.find((item) => item.title === button.dataset.promo);
-      promo.products.forEach((code) => addToCart(code, 1));
-      openCart();
-      showToast("Kit agregado al pedido.");
-    });
-  });
+  const cuts = [...new Set(state.products.map((product) => product.cutLevel).filter(Boolean))]
+    .sort((a, b) => Number(b) - Number(a));
+  const sizes = [...new Set(state.products.map((product) => product.measure).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
+  els.cutFilter.innerHTML = `<option value="">Todos</option>${cuts.map((cut) => `<option value="${escapeHtml(cut)}">${escapeHtml(cut)}</option>`).join("")}`;
+  els.sizeFilter.innerHTML = `<option value="">Todas</option>${sizes.map((size) => `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`).join("")}`;
 }
 
 function renderProducts() {
-  let filtered = products.filter((product) => {
-    const haystack = `${product.code} ${product.ean} ${product.name} ${product.family} ${product.category} ${product.color} ${product.system}`.toLowerCase();
-    const categoryMatch = state.category === "Todos" || product.category === state.category;
-    const searchMatch = !state.search || haystack.includes(state.search);
-    const cutMatch = !state.cut || String(product.cut) === state.cut;
-    const sizeMatch = !state.size || product.size === state.size;
-    return categoryMatch && searchMatch && cutMatch && sizeMatch;
+  let filtered = state.products.filter((product) => {
+    const haystack = [product.kmCode, product.ean13, product.name, product.family.name, product.subfamily,
+      product.material, product.color, product.attachmentSystem].join(" ").toLowerCase();
+    return (state.category === "Todos" || product.family.name === state.category)
+      && (!state.search || haystack.includes(state.search))
+      && (!state.cut || product.cutLevel === state.cut)
+      && (!state.size || product.measure === state.size);
   });
-
   filtered = sortProducts(filtered);
   els.resultCount.textContent = `${filtered.length} producto${filtered.length === 1 ? "" : "s"}`;
+  els.productGrid.innerHTML = filtered.length
+    ? filtered.map(renderProductCard).join("")
+    : `<article class="product-card empty-card"><div class="product-body"><h3>Sin resultados</h3><p>Proba cambiar la busqueda o limpiar los filtros.</p></div></article>`;
 
-  if (!filtered.length) {
-    els.productGrid.innerHTML = `<article class="product-card"><div class="product-body"><h3>Sin resultados</h3><p>Proba cambiar la busqueda o limpiar los filtros.</p></div></article>`;
-    return;
-  }
-
-  els.productGrid.innerHTML = filtered.map(renderProductCard).join("");
   els.productGrid.querySelectorAll("[data-add]").forEach((button) => {
     button.addEventListener("click", () => {
-      const code = button.dataset.add;
-      const input = document.querySelector(`[data-qty="${code}"]`);
-      addToCart(code, Number(input.value || 1));
-      showToast(`${code} agregado al pedido.`);
+      const id = Number(button.dataset.add);
+      const input = els.productGrid.querySelector(`[data-qty="${id}"]`);
+      addToCart(id, Number(input.value || 1));
     });
   });
   els.productGrid.querySelectorAll("[data-step]").forEach((button) => {
     button.addEventListener("click", () => {
-      const input = document.querySelector(`[data-qty="${button.dataset.code}"]`);
-      const next = Math.max(1, Number(input.value || 1) + Number(button.dataset.step));
-      input.value = next;
+      const input = els.productGrid.querySelector(`[data-qty="${button.dataset.productId}"]`);
+      input.value = Math.max(1, Number(input.value || 1) + Number(button.dataset.step));
     });
+  });
+  els.productGrid.querySelectorAll("[data-account]").forEach((button) => {
+    button.addEventListener("click", () => openAccount(true));
   });
 }
 
 function renderProductCard(product) {
-  const cut = product.cut ? `<span class="tag yellow">Corte ${product.cut}</span>` : "";
+  const approved = isApprovedCustomer();
+  const cut = product.cutLevel ? `<span class="tag yellow">Corte ${escapeHtml(product.cutLevel)}</span>` : "";
+  const pricing = approved ? `
+    <div class="price-block">
+      <span>Lista neta <s>${money.format(product.basePriceCents / 100)}</s></span>
+      <strong>${money.format(product.finalPriceCents / 100)}</strong>
+      <small>${discountText(product.discountsBps)} Precio neto. IVA no incluido.</small>
+    </div>
+    <div class="product-actions">
+      <div class="qty-control">
+        <button type="button" data-step="-1" data-product-id="${product.id}" aria-label="Restar cantidad">-</button>
+        <input data-qty="${product.id}" value="1" inputmode="numeric" aria-label="Cantidad para ${escapeHtml(product.kmCode)}" />
+        <button type="button" data-step="1" data-product-id="${product.id}" aria-label="Sumar cantidad">+</button>
+      </div>
+      <button class="add-button" type="button" data-add="${product.id}">Agregar</button>
+    </div>` : `
+    <div class="private-price">
+      <span>${state.user ? "Precio disponible al aprobar la cuenta" : "Inicia sesion para ver precios"}</span>
+      <button class="text-button" type="button" data-account>Acceso comercial</button>
+    </div>`;
   return `
     <article class="product-card">
-      <div class="product-visual ${product.category.toLowerCase()}">
-        <span class="product-code">${product.code}</span>
-      </div>
+      <div class="product-visual ${tagClass(product)}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>
       <div class="product-body">
-        <h3>${product.name}</h3>
-        <p>${product.family} - ${product.system}. EAN ${product.ean}.</p>
+        <h3>${escapeHtml(product.name)}</h3>
+        <p>${escapeHtml(product.family.name)} · ${escapeHtml(product.attachmentSystem || "Sin especificar")} · EAN ${escapeHtml(product.ean13)}</p>
         <div class="meta-line">
-          <span class="tag ${tagClass(product)}">${product.category}</span>
-          <span class="tag">${product.size}</span>
+          <span class="tag ${tagClass(product)}">${escapeHtml(product.material || product.family.name)}</span>
+          ${product.measure ? `<span class="tag">${escapeHtml(product.measure)}</span>` : ""}
           ${cut}
-          <span class="tag">${product.color}</span>
+          ${product.color ? `<span class="tag">${escapeHtml(product.color)}</span>` : ""}
         </div>
+        ${pricing}
       </div>
-      <div class="product-actions">
-        <div class="qty-control">
-          <button type="button" data-step="-1" data-code="${product.code}" aria-label="Restar cantidad">-</button>
-          <input data-qty="${product.code}" value="1" inputmode="numeric" aria-label="Cantidad para ${product.code}" />
-          <button type="button" data-step="1" data-code="${product.code}" aria-label="Sumar cantidad">+</button>
-        </div>
-        <button class="add-button" type="button" data-add="${product.code}">Agregar</button>
-      </div>
-    </article>
-  `;
-}
-
-function sortProducts(items) {
-  const sorted = [...items];
-  if (state.sort === "code") sorted.sort((a, b) => a.code.localeCompare(b.code));
-  if (state.sort === "cut-desc") sorted.sort((a, b) => (b.cut || 0) - (a.cut || 0));
-  if (state.sort === "cut-asc") sorted.sort((a, b) => (a.cut || 0) - (b.cut || 0));
-  return sorted;
-}
-
-function addToCart(code, qty = 1) {
-  state.cart[code] = (state.cart[code] || 0) + Math.max(1, qty);
-  saveCart();
-  renderCart();
-}
-
-function removeFromCart(code) {
-  delete state.cart[code];
-  saveCart();
-  renderCart();
-}
-
-function saveCart() {
-  localStorage.setItem("kmCart", JSON.stringify(state.cart));
+    </article>`;
 }
 
 function renderCart() {
-  const lines = Object.entries(state.cart)
-    .map(([code, qty]) => ({ ...findProduct(code), qty }))
-    .filter((item) => item.code);
-
-  const totalQty = lines.reduce((sum, item) => sum + item.qty, 0);
-  els.cartCount.textContent = totalQty;
+  const lines = cartLines();
+  const totalQuantity = lines.reduce((sum, line) => sum + line.quantity, 0);
+  els.cartCount.textContent = totalQuantity;
   els.cartEmpty.hidden = lines.length > 0;
-
-  els.cartItems.innerHTML = lines
-    .map((item) => `
-      <div class="cart-line">
-        <div>
-          <strong>${item.qty} x ${item.code}</strong>
-          <span>${item.name}</span>
-        </div>
-        <button type="button" data-remove="${item.code}" aria-label="Quitar ${item.code}">x</button>
-      </div>
-    `)
-    .join("");
-
+  els.cartItems.innerHTML = lines.map(({ product, quantity }) => `
+    <div class="cart-line">
+      <div><strong>${quantity} x ${escapeHtml(product.kmCode)}</strong><span>${escapeHtml(product.name)}</span>
+      <b>${money.format(product.finalPriceCents * quantity / 100)}</b></div>
+      <button type="button" data-remove="${product.id}" aria-label="Quitar ${escapeHtml(product.kmCode)}">x</button>
+    </div>`).join("");
   els.cartItems.querySelectorAll("[data-remove]").forEach((button) => {
-    button.addEventListener("click", () => removeFromCart(button.dataset.remove));
+    button.addEventListener("click", () => removeFromCart(Number(button.dataset.remove)));
   });
 
-  const summary = buildOrderSummary();
-  els.whatsAppLink.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(summary)}`;
-  els.whatsAppLink.classList.toggle("disabled", !lines.length);
+  const subtotal = lines.reduce((sum, line) => sum + line.product.finalPriceCents * line.quantity, 0);
+  const vat = Math.round(subtotal * state.settings.vatBps / 10_000);
+  els.cartTotals.hidden = lines.length === 0;
+  els.cartSubtotal.textContent = money.format(subtotal / 100);
+  els.cartVatLabel.textContent = `IVA ${formatPercent(state.settings.vatBps)}`;
+  els.cartVat.textContent = money.format(vat / 100);
+  els.cartTotal.textContent = money.format((subtotal + vat) / 100);
+  els.goToOrder.classList.toggle("disabled", lines.length === 0 || !isApprovedCustomer());
 }
 
-function buildOrderSummary() {
-  const lines = Object.entries(state.cart)
-    .map(([code, qty]) => {
-      const product = findProduct(code);
-      return product ? `- ${qty} x ${product.code} | ${product.name}` : "";
-    })
-    .filter(Boolean);
+function openAccount(preferRegister = false) {
+  els.accountMessage.textContent = "";
+  if (state.user) {
+    els.accountTitle.textContent = "Mi cuenta";
+    document.querySelector(".account-tabs").hidden = true;
+    els.loginForm.hidden = true;
+    els.registerForm.hidden = true;
+    els.sessionPanel.hidden = false;
+    els.sessionBusiness.textContent = state.user.businessName || state.user.email;
+    els.sessionStatus.textContent = accountStatusText(state.user);
+    document.querySelector("#adminPanelLink").hidden = state.user.role !== "admin";
+  } else {
+    document.querySelector(".account-tabs").hidden = false;
+    els.sessionPanel.hidden = true;
+    setAccountMode(preferRegister ? "register" : "login");
+  }
+  els.accountDialog.showModal();
+}
 
-  const name = document.querySelector("#customerName")?.value?.trim();
-  const phone = document.querySelector("#customerPhone")?.value?.trim();
-  const area = document.querySelector("#customerArea")?.value?.trim();
-  const notes = document.querySelector("#customerNotes")?.value?.trim();
+function setAccountMode(mode) {
+  const register = mode === "register";
+  els.accountTitle.textContent = register ? "Solicitar alta" : "Ingresar";
+  els.loginForm.hidden = register;
+  els.registerForm.hidden = !register;
+  els.showLogin.classList.toggle("active", !register);
+  els.showRegister.classList.toggle("active", register);
+  els.accountMessage.textContent = "";
+}
 
-  return [
-    "Pedido KM Detail Line",
-    `Web: ${SITE_URL}`,
-    name ? `Cliente: ${name}` : "",
-    phone ? `Telefono: ${phone}` : "",
-    area ? `Zona: ${area}` : "",
-    "",
-    ...lines,
-    "",
-    notes ? `Observaciones: ${notes}` : "Solicito cotizacion y disponibilidad."
-  ].filter((line, index, arr) => line || arr[index - 1]).join("\n");
+async function submitLogin(event) {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(els.loginForm));
+  setFormBusy(els.loginForm, true);
+  try {
+    state.user = (await api("/api/auth/login", { method: "POST", body: values })).user;
+    await loadProducts();
+    els.accountDialog.close();
+    renderAll();
+    showToast(`Bienvenido, ${state.user.businessName || state.user.email}.`);
+  } catch (error) {
+    els.accountMessage.textContent = error.message;
+  } finally {
+    setFormBusy(els.loginForm, false);
+  }
+}
+
+async function submitRegistration(event) {
+  event.preventDefault();
+  const formData = new FormData(els.registerForm);
+  const values = Object.fromEntries(formData);
+  values.acceptTerms = formData.has("acceptTerms");
+  values.acceptPrivacy = formData.has("acceptPrivacy");
+  setFormBusy(els.registerForm, true);
+  try {
+    await api("/api/auth/register", { method: "POST", body: values });
+    state.user = (await api("/api/auth/login", { method: "POST", body: { email: values.email, password: values.password } })).user;
+    await loadProducts();
+    els.registerForm.reset();
+    els.accountDialog.close();
+    renderAll();
+    showToast("Solicitud recibida. La cuenta quedo pendiente de aprobacion.");
+  } catch (error) {
+    els.accountMessage.textContent = error.message;
+  } finally {
+    setFormBusy(els.registerForm, false);
+  }
+}
+
+async function logout() {
+  await api("/api/auth/logout", { method: "POST" });
+  state.user = null;
+  clearCart();
+  await loadProducts();
+  els.accountDialog.close();
+  renderAll();
+  showToast("Sesion cerrada.");
+}
+
+async function submitOrder(event) {
+  event.preventDefault();
+  const lines = cartLines();
+  if (!lines.length) return showToast("Agrega productos antes de confirmar el pedido.");
+  const shipping = Object.fromEntries(new FormData(els.orderForm));
+  setFormBusy(els.orderForm, true);
+  try {
+    const result = await api("/api/orders", {
+      method: "POST",
+      body: { items: lines.map(({ product, quantity }) => ({ productId: product.id, quantity })), shipping }
+    });
+    state.cart = {};
+    saveCart();
+    renderCart();
+    renderOrderResult(result.order);
+    showToast(`Pedido ${result.order.orderNumber} confirmado.`);
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    setFormBusy(els.orderForm, false);
+  }
+}
+
+function renderOrderResult(order) {
+  const whatsapp = state.settings.whatsappNumber
+    ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${state.settings.whatsappNumber}?text=${encodeURIComponent(orderSummary(order))}">Enviar a WhatsApp KM</a>`
+    : "";
+  els.orderResult.hidden = false;
+  els.orderResult.innerHTML = `
+    <h3>Pedido ${escapeHtml(order.orderNumber)}</h3>
+    <p>Precio reservado. Pedido sujeto a confirmacion de disponibilidad.</p>
+    <dl>
+      <div><dt>Subtotal neto</dt><dd>${money.format(order.subtotalNetCents / 100)}</dd></div>
+      <div><dt>IVA ${formatPercent(order.vatBps)}</dt><dd>${money.format(order.vatCents / 100)}</dd></div>
+      <div><dt>Total</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
+    </dl>
+    ${order.bank.alias ? `<p>Transferencia: <strong>${escapeHtml(order.bank.alias)}</strong></p>` : ""}
+    ${whatsapp}`;
 }
 
 function copyOrderSummary() {
-  const summary = buildOrderSummary();
-  navigator.clipboard.writeText(summary).then(
+  const text = cartSummary();
+  if (!text) return showToast("Agrega productos para copiar el resumen.");
+  navigator.clipboard.writeText(text).then(
     () => showToast("Resumen copiado."),
     () => showToast("No se pudo copiar automaticamente.")
   );
 }
 
-function submitOrder(event) {
-  event.preventDefault();
-  const summary = buildOrderSummary();
-  if (!Object.keys(state.cart).length) {
-    showToast("Agrega productos antes de preparar el pedido.");
-    return;
+function cartSummary() {
+  const lines = cartLines();
+  if (!lines.length) return "";
+  const subtotal = lines.reduce((sum, line) => sum + line.product.finalPriceCents * line.quantity, 0);
+  const vat = Math.round(subtotal * state.settings.vatBps / 10_000);
+  return ["Pedido KM Detail Line", `Web: ${SITE_URL}`, `Cliente: ${state.user?.businessName || ""}`, "",
+    ...lines.map(({ product, quantity }) => `- ${quantity} x ${product.kmCode} | ${product.name} | ${money.format(product.finalPriceCents * quantity / 100)}`),
+    "", `Subtotal neto: ${money.format(subtotal / 100)}`, `IVA ${formatPercent(state.settings.vatBps)}: ${money.format(vat / 100)}`,
+    `Total: ${money.format((subtotal + vat) / 100)}`].join("\n");
+}
+
+function orderSummary(order) {
+  return [`Pedido ${order.orderNumber}`, `Cliente: ${order.businessName}`,
+    ...order.items.map((item) => `- ${item.quantity} x ${item.kmCode} | ${item.productName}`),
+    `Total: ${money.format(order.totalCents / 100)}`].join("\n");
+}
+
+function addToCart(productId, quantity) {
+  if (!isApprovedCustomer()) return openAccount(false);
+  state.cart[productId] = (state.cart[productId] || 0) + Math.max(1, Math.floor(quantity));
+  saveCart();
+  renderCart();
+  showToast("Producto agregado al pedido.");
+}
+
+function removeFromCart(productId) {
+  delete state.cart[productId];
+  saveCart();
+  renderCart();
+}
+
+function clearCart() {
+  state.cart = {};
+  saveCart();
+  renderCart();
+}
+
+function cartLines() {
+  if (!isApprovedCustomer()) return [];
+  return Object.entries(state.cart).map(([id, quantity]) => ({
+    product: state.products.find((product) => product.id === Number(id)),
+    quantity: Number(quantity)
+  })).filter((line) => line.product && line.quantity > 0);
+}
+
+function pruneCart() {
+  const ids = new Set(state.products.map((product) => product.id));
+  state.cart = Object.fromEntries(Object.entries(state.cart).filter(([id, quantity]) => ids.has(Number(id)) && Number(quantity) > 0));
+  saveCart();
+}
+
+function clearFilters() {
+  Object.assign(state, { category: "Todos", search: "", cut: "", size: "", sort: "featured" });
+  els.searchInput.value = "";
+  els.cutFilter.value = "";
+  els.sizeFilter.value = "";
+  els.sortSelect.value = "featured";
+  renderCategoryFilters();
+  renderProducts();
+}
+
+function sortProducts(products) {
+  const sorted = [...products];
+  if (state.sort === "code") sorted.sort((a, b) => a.kmCode.localeCompare(b.kmCode));
+  if (state.sort === "cut-desc") sorted.sort((a, b) => Number(b.cutLevel || 0) - Number(a.cutLevel || 0));
+  if (state.sort === "cut-asc") sorted.sort((a, b) => Number(a.cutLevel || 0) - Number(b.cutLevel || 0));
+  return sorted;
+}
+
+async function api(url, { method = "GET", body } = {}) {
+  const response = await fetch(url, {
+    method,
+    headers: body ? { "content-type": "application/json" } : {},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || "No se pudo completar la operacion.");
+    error.status = response.status;
+    throw error;
   }
-  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(summary)}`, "_blank", "noopener,noreferrer");
+  return payload;
+}
+
+function setFormBusy(form, busy) {
+  form.querySelectorAll("button, input, select, textarea").forEach((control) => { control.disabled = busy; });
+}
+
+function isApprovedCustomer() {
+  return state.user?.role === "customer" && state.user.approvalStatus === "approved";
+}
+
+function accountStatusText(user) {
+  if (user.role === "admin") return "Administrador";
+  const labels = { pending: "Pendiente de aprobacion", approved: "Cliente aprobado", rejected: "Solicitud rechazada", suspended: "Cuenta suspendida", inactive: "Cuenta inactiva" };
+  return labels[user.approvalStatus] || user.approvalStatus;
+}
+
+function discountText(discounts = []) {
+  const active = discounts.filter(Boolean).map(formatPercent);
+  return active.length ? `Descuentos en cascada: ${active.join(" · ")}.` : "Sin descuentos.";
+}
+
+function formatPercent(bps) {
+  return `${Number(bps) / 100}%`;
+}
+
+function tagClass(product) {
+  const text = `${product.family.name} ${product.material}`.toLowerCase();
+  if (text.includes("poliespuma")) return "poliespuma";
+  if (text.includes("lana")) return "lana";
+  if (text.includes("taco")) return "tacos";
+  return "accesorios";
 }
 
 function openCart() {
@@ -430,19 +503,19 @@ function showToast(message) {
   els.toast.textContent = message;
   els.toast.classList.add("show");
   window.clearTimeout(showToast.timer);
-  showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2200);
+  showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2600);
 }
 
-function findProduct(code) {
-  return products.find((product) => product.code === code);
+function readCart() {
+  try { return JSON.parse(localStorage.getItem("kmCartV2") || "{}"); } catch { return {}; }
 }
 
-function tagClass(product) {
-  if (product.category === "Poliespuma") return "blue";
-  if (product.category === "Lana") return "green";
-  if (product.category === "Accesorios") return "violet";
-  if (product.category === "Tacos") return "yellow";
-  return "";
+function saveCart() {
+  localStorage.setItem("kmCartV2", JSON.stringify(state.cart));
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 }
 
 init();

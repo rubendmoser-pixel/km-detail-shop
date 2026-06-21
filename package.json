@@ -1,0 +1,23 @@
+{
+  "name": "km-detail-b2b",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch server/index.js",
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "start:production": "node server/scripts/import-catalog.js && node server/index.js",
+    "test": "node --test",
+    "db:check": "node server/scripts/check-database.js",
+    "catalog:import": "node --env-file-if-exists=.env server/scripts/import-catalog.js",
+    "customers:pending": "node --env-file-if-exists=.env server/scripts/list-pending-customers.js",
+    "email:check": "node --env-file-if-exists=.env server/scripts/check-email.js",
+    "email:test": "node --env-file-if-exists=.env server/scripts/send-test-email.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "nodemailer": "^9.0.1"
+  }
+}

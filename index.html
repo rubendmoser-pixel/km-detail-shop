@@ -4,16 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#111318" />
-    <meta name="description" content="Catalogo, promociones y pedidos de consumibles profesionales KM Detail Line." />
-    <meta property="og:title" content="KM Detail Line | Compras y Promociones" />
+    <meta name="description" content="Catalogo y pedidos B2B de consumibles profesionales KM Detail Line." />
+    <meta property="og:title" content="KM Detail Line | Plataforma comercial" />
     <meta property="og:description" content="Consumibles profesionales para pulido automotriz, chapa, pintura y detailing." />
     <meta property="og:url" content="https://km-detail.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://km-detail.com/assets/catalog/catalog-page-1.png" />
     <link rel="canonical" href="https://km-detail.com/" />
-    <title>KM Detail Line | Compras y Promociones</title>
+    <title>KM Detail Line | Plataforma comercial</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=3" />
+    <link rel="stylesheet" href="./styles.css?v=7" />
   </head>
   <body>
     <header class="app-header">
@@ -32,10 +32,13 @@
         <a href="#pedido">Distribuidores</a>
         <a href="#pedido">Contacto</a>
       </nav>
-      <button class="cart-pill" id="openCart" type="button" aria-label="Abrir carrito">
-        <span class="cart-icon" aria-hidden="true"></span>
-        <span id="cartCount">0</span>
-      </button>
+      <div class="header-actions">
+        <button class="account-button" id="openAccount" type="button">Ingresar</button>
+        <button class="cart-pill" id="openCart" type="button" aria-label="Abrir carrito">
+          <span class="cart-icon" aria-hidden="true"></span>
+          <span id="cartCount">0</span>
+        </button>
+      </div>
     </header>
 
     <main>
@@ -49,7 +52,7 @@
           </p>
           <div class="hero-actions">
             <a class="primary-link" href="#catalogo">Ver catalogo 2026 <span aria-hidden="true">&#8594;</span></a>
-            <a class="secondary-link" href="#pedido">Solicitar informacion comercial <span aria-hidden="true">&#8594;</span></a>
+            <button class="secondary-link" id="openAccountHero" type="button">Solicitar alta comercial <span aria-hidden="true">&#8594;</span></button>
           </div>
         </div>
         <div class="hero-media">
@@ -59,11 +62,11 @@
       </section>
 
       <section class="category-strip" aria-label="Familias principales">
-        <a href="#catalogo" data-category-link="Lana">
+        <a href="#catalogo" data-category-link="Pads 7,5">
           <span class="category-symbol hybrid" aria-hidden="true"></span>
           <strong>Panos hibridos</strong>
         </a>
-        <a href="#catalogo" data-category-link="Lana">
+        <a href="#catalogo" data-category-link="lana con backing">
           <span class="category-symbol wool" aria-hidden="true"></span>
           <strong>Linea PA</strong>
         </a>
@@ -71,7 +74,7 @@
           <span class="category-symbol foam" aria-hidden="true"></span>
           <strong>Poliespumas</strong>
         </a>
-        <a href="#catalogo" data-category-link="Accesorios">
+        <a href="#catalogo" data-category-link="Backing">
           <span class="category-symbol backing" aria-hidden="true"></span>
           <strong>Backings</strong>
         </a>
@@ -82,14 +85,6 @@
         <div><strong>2026</strong><span>catalogo vigente</span></div>
         <div><strong>14 x 2</strong><span>rosca estandar</span></div>
         <div><strong>+5.000</strong><span>reposiciones en velcro</span></div>
-      </section>
-
-      <section class="section" id="promos">
-        <div class="section-title">
-          <p class="eyebrow">Promociones</p>
-          <h2>Kits comerciales destacados</h2>
-        </div>
-        <div class="promo-grid" id="promoGrid"></div>
       </section>
 
       <section class="section catalog-layout" id="catalogo">
@@ -128,7 +123,7 @@
           <div class="catalog-toolbar">
             <div>
               <strong id="resultCount">0 productos</strong>
-              <span>Selecciona cantidades y agrega al pedido.</span>
+              <span id="catalogNotice">Inicia sesion para consultar precios comerciales.</span>
             </div>
             <select id="sortSelect" aria-label="Ordenar productos">
               <option value="featured">Orden recomendado</option>
@@ -161,30 +156,51 @@
       <section class="section order-section" id="pedido">
         <div class="section-title">
           <p class="eyebrow">Pedido</p>
-          <h2>Enviar solicitud comercial</h2>
+          <h2>Confirmar datos de entrega</h2>
         </div>
-        <form class="order-form" id="orderForm">
+        <div class="order-access" id="orderAccess">
+          <strong>Acceso para clientes aprobados</strong>
+          <button class="primary-button" id="orderLogin" type="button">Ingresar o solicitar alta</button>
+        </div>
+        <form class="order-form" id="orderForm" hidden>
           <label>
-            <span>Nombre o taller</span>
-            <input id="customerName" name="customerName" required placeholder="Ej: Taller Los Andes" />
+            <span>Destinatario</span>
+            <input name="recipient" required autocomplete="name" />
           </label>
           <label>
-            <span>Telefono</span>
-            <input id="customerPhone" name="customerPhone" required placeholder="Ej: +54 9 ..." />
+            <span>Telefono de contacto</span>
+            <input name="contactPhone" required autocomplete="tel" />
           </label>
           <label>
-            <span>Zona</span>
-            <input id="customerArea" name="customerArea" placeholder="Ciudad / provincia" />
+            <span>Direccion</span>
+            <input name="address" required autocomplete="street-address" />
+          </label>
+          <label>
+            <span>Localidad</span>
+            <input name="city" required autocomplete="address-level2" />
+          </label>
+          <label>
+            <span>Provincia</span>
+            <input name="province" required autocomplete="address-level1" />
+          </label>
+          <label>
+            <span>Codigo postal</span>
+            <input name="postalCode" required autocomplete="postal-code" />
+          </label>
+          <label>
+            <span>Transporte preferido</span>
+            <input name="preferredTransport" />
           </label>
           <label class="full">
-            <span>Observaciones</span>
-            <textarea id="customerNotes" rows="4" placeholder="Medios de pago, retiro/envio, productos a consultar..."></textarea>
+            <span>Observaciones de entrega</span>
+            <textarea name="notes" rows="3"></textarea>
           </label>
           <div class="form-actions">
-            <button class="primary-button" type="submit">Preparar pedido</button>
+            <button class="primary-button" type="submit">Confirmar pedido</button>
             <button class="ghost-button" id="copyOrder" type="button">Copiar resumen</button>
           </div>
         </form>
+        <div class="order-result" id="orderResult" hidden></div>
       </section>
     </main>
 
@@ -199,15 +215,68 @@
         </div>
         <div class="cart-items" id="cartItems"></div>
         <div class="cart-empty" id="cartEmpty">Todavia no agregaste productos.</div>
+        <dl class="cart-totals" id="cartTotals" hidden>
+          <div><dt>Subtotal neto</dt><dd id="cartSubtotal">$ 0,00</dd></div>
+          <div><dt id="cartVatLabel">IVA 21%</dt><dd id="cartVat">$ 0,00</dd></div>
+          <div class="grand-total"><dt>Total</dt><dd id="cartTotal">$ 0,00</dd></div>
+        </dl>
         <div class="cart-actions">
-          <a class="primary-link disabled" id="whatsAppLink" href="#" target="_blank" rel="noreferrer">Enviar por WhatsApp</a>
+          <a class="primary-link disabled" id="goToOrder" href="#pedido">Continuar pedido</a>
           <button class="text-button" id="clearCart" type="button">Vaciar carrito</button>
         </div>
       </div>
     </aside>
 
+    <dialog class="account-dialog" id="accountDialog">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Cuenta comercial</p>
+          <h2 id="accountTitle">Ingresar</h2>
+        </div>
+        <button class="icon-button" id="closeAccount" type="button" aria-label="Cerrar">x</button>
+      </div>
+      <div class="account-tabs" role="tablist">
+        <button class="active" id="showLogin" type="button">Ingresar</button>
+        <button id="showRegister" type="button">Solicitar alta</button>
+      </div>
+      <div class="session-panel" id="sessionPanel" hidden>
+        <strong id="sessionBusiness"></strong>
+        <span id="sessionStatus"></span>
+        <a class="primary-link" id="adminPanelLink" href="/admin.html" hidden>Panel administrativo</a>
+        <button class="ghost-button" id="logoutButton" type="button">Cerrar sesion</button>
+      </div>
+      <form class="account-form" id="loginForm">
+        <label><span>Email</span><input name="email" type="email" required autocomplete="email" /></label>
+        <label><span>Contrasena</span><input name="password" type="password" required autocomplete="current-password" /></label>
+        <button class="primary-button" type="submit">Ingresar</button>
+        <a class="recovery-link" href="/reset.html">Olvide mi contrasena</a>
+      </form>
+      <form class="account-form registration-form" id="registerForm" hidden>
+        <label><span>Nombre</span><input name="firstName" required autocomplete="given-name" /></label>
+        <label><span>Apellido</span><input name="lastName" required autocomplete="family-name" /></label>
+        <label><span>Razon social o comercio</span><input name="businessName" required autocomplete="organization" /></label>
+        <label><span>CUIT</span><input name="taxId" required /></label>
+        <label><span>Condicion fiscal</span><input name="taxCondition" required /></label>
+        <label><span>Tipo de cliente</span><select name="customerType" required><option value="">Seleccionar</option><option>Pintureria</option><option>Distribuidor</option><option>Taller</option><option>Comercio especializado</option></select></label>
+        <label><span>Rubro</span><input name="industry" required /></label>
+        <label><span>Ciudad</span><input name="city" required autocomplete="address-level2" /></label>
+        <label><span>Provincia</span><input name="province" required autocomplete="address-level1" /></label>
+        <label class="wide"><span>Direccion</span><input name="address" required autocomplete="street-address" /></label>
+        <label><span>Telefono</span><input name="phone" required autocomplete="tel" /></label>
+        <label><span>WhatsApp</span><input name="whatsapp" required /></label>
+        <label><span>Persona de contacto</span><input name="contactPerson" required /></label>
+        <label><span>Email</span><input name="email" type="email" required autocomplete="email" /></label>
+        <label class="wide"><span>Contrasena</span><input name="password" type="password" minlength="12" required autocomplete="new-password" /></label>
+        <label class="wide"><span>Observaciones</span><textarea name="notes" rows="3"></textarea></label>
+        <label class="check-field wide"><input name="acceptTerms" type="checkbox" required /><span>Acepto los terminos comerciales.</span></label>
+        <label class="check-field wide"><input name="acceptPrivacy" type="checkbox" required /><span>Acepto la politica de privacidad.</span></label>
+        <button class="primary-button wide" type="submit">Enviar solicitud</button>
+      </form>
+      <p class="form-message" id="accountMessage" role="status"></p>
+    </dialog>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=3" defer></script>
+    <script src="./app.js?v=7" defer></script>
   </body>
 </html>

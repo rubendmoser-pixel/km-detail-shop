@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#09090a" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Administracion | KM Detail Line</title>
+    <link rel="stylesheet" href="./styles.css?v=7" />
+    <link rel="stylesheet" href="./admin.css?v=1" />
+  </head>
+  <body class="admin-body">
+    <header class="admin-header">
+      <a class="brand" href="/"><span class="brand-mark">KM</span><span class="brand-divider"></span><strong>Administracion</strong></a>
+      <div class="admin-session" id="adminSession" hidden>
+        <span id="adminEmail"></span>
+        <button class="text-button" id="adminLogout" type="button">Cerrar sesion</button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <section class="admin-login" id="adminLoginPanel">
+        <form id="adminLoginForm">
+          <p class="eyebrow">Acceso restringido</p>
+          <h1>Panel administrativo</h1>
+          <label><span>Email</span><input name="email" type="email" required autocomplete="username" /></label>
+          <label><span>Contrasena</span><input name="password" type="password" required autocomplete="current-password" /></label>
+          <button class="primary-button" type="submit">Ingresar</button>
+          <p class="form-message" id="adminLoginMessage" role="status"></p>
+        </form>
+      </section>
+
+      <div id="adminWorkspace" hidden>
+        <nav class="admin-tabs" aria-label="Secciones administrativas">
+          <button class="active" type="button" data-admin-view="customers">Clientes</button>
+          <button type="button" data-admin-view="orders">Pedidos</button>
+          <button type="button" data-admin-view="settings">Configuracion</button>
+        </nav>
+
+        <section class="admin-view" id="customersView">
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Clientes comerciales</p><h1>Solicitudes y condiciones</h1></div>
+            <div class="admin-toolbar">
+              <select id="customerStatusFilter" aria-label="Filtrar por estado">
+                <option value="">Todos</option><option value="pending">Pendientes</option><option value="approved">Aprobados</option>
+                <option value="rejected">Rechazados</option><option value="suspended">Suspendidos</option><option value="inactive">Inactivos</option>
+              </select>
+              <button class="ghost-button" id="reloadCustomers" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="admin-stats" id="customerStats"></div>
+          <div class="customer-list" id="customerList"></div>
+        </section>
+
+        <section class="admin-view" id="ordersView" hidden>
+          <div class="admin-titlebar"><div><p class="eyebrow">Operacion</p><h1>Pedidos</h1></div><button class="ghost-button" id="reloadOrders" type="button">Actualizar</button></div>
+          <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Pago</th><th>Total</th><th>Fecha</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
+        </section>
+
+        <section class="admin-view" id="settingsView" hidden>
+          <div class="admin-titlebar"><div><p class="eyebrow">Condiciones globales</p><h1>Configuracion comercial</h1></div></div>
+          <form class="settings-form" id="settingsForm">
+            <fieldset><legend>Venta</legend>
+              <label><span>IVA (%)</span><input name="vatPercent" type="number" min="0" max="100" step="0.01" required /></label>
+              <label><span>WhatsApp general</span><input name="whatsappNumber" inputmode="tel" /></label>
+            </fieldset>
+            <fieldset><legend>Transferencia bancaria</legend>
+              <label><span>Banco</span><input name="bankName" /></label><label><span>Titular</span><input name="accountHolder" /></label>
+              <label><span>CUIT</span><input name="taxId" /></label><label><span>CBU</span><input name="cbu" /></label>
+              <label><span>Alias</span><input name="alias" /></label><label><span>Tipo de cuenta</span><input name="accountType" /></label>
+              <label class="wide"><span>Instrucciones</span><textarea name="instructions" rows="3"></textarea></label>
+            </fieldset>
+            <button class="primary-button" type="submit">Guardar configuracion</button>
+            <p class="form-message" id="settingsMessage" role="status"></p>
+          </form>
+        </section>
+      </div>
+    </main>
+    <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
+    <script src="./admin.js?v=1" defer></script>
+  </body>
+</html>
