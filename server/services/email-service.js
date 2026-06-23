@@ -166,6 +166,47 @@ export function createEmailService({ db, config }) {
     ].join("\n"));
   }
 
+  function queueOrderStatusUpdated(orderId, reason = "") {
+    const order = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.id = ?
+    `).get(orderId);
+    if (!order) return;
+    const statusLabels = {
+      order_created: "pedido creado",
+      confirmed: "confirmado",
+      in_preparation: "en preparacion",
+      ready: "listo",
+      delivered: "entregado",
+      cancelled: "cancelado"
+    };
+    const paymentLabels = {
+      pending_payment: "pago pendiente",
+      receipt_uploaded: "comprobante cargado",
+      paid: "pagado",
+      rejected: "pago rechazado",
+      refunded: "reintegrado"
+    };
+    const status = statusLabels[order.status] || order.status;
+    const paymentStatus = paymentLabels[order.payment_status] || order.payment_status;
+    queue("order_status_customer", order.email, `Actualizacion de pedido ${order.order_number} | KM Detail Line`, [
+      `Hola ${order.contact_person},`,
+      "",
+      `Actualizamos el estado de tu pedido ${order.order_number}.`,
+      "",
+      `Estado del pedido: ${status}`,
+      `Estado del pago: ${paymentStatus}`,
+      `Total: ${money.format(order.total_cents / 100)}`,
+      reason ? `Nota: ${reason}` : "",
+      "",
+      "Si necesitas consultar algo, podes responder este correo o comunicarte por WhatsApp.",
+      "",
+      "KM Detail Line",
+      config.publicBaseUrl
+    ].filter(Boolean).join("\n"));
+  }
+
   function queue(eventType, recipient, subject, textBody) {
     if (!recipient) return;
     db.prepare(`
@@ -291,6 +332,7 @@ export function createEmailService({ db, config }) {
     queueCustomerStatus,
     queuePasswordReset,
     queueOrderCreated,
+    queueOrderStatusUpdated,
     flush,
     verify,
     sendTest,

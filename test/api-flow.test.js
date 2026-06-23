@@ -182,6 +182,14 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const updatedOrder = (await updatedOrderResponse.json()).order;
   assert.equal(updatedOrder.status, "confirmed");
   assert.equal(updatedOrder.paymentStatus, "paid");
+  const statusEmail = db.prepare(`
+    SELECT recipient, subject, text_body
+    FROM email_outbox
+    WHERE event_type = 'order_status_customer'
+  `).get();
+  assert.equal(statusEmail.recipient, "cliente-api@example.com");
+  assert.equal(statusEmail.subject.includes(orderPayload.order.orderNumber), true);
+  assert.match(statusEmail.text_body, /confirmado/);
 });
 
 test("customer welcome email does not depend on internal notification email", async (t) => {

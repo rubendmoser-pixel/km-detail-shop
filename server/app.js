@@ -149,7 +149,9 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         return sendJson(response, 200, { order: getOrder(db, Number(match[1]), null, true) });
       }
       if (request.method === "PATCH" && match) {
-        const order = updateOrderStatus(db, Number(match[1]), await readJson(request), currentUser.id);
+        const body = await readJson(request);
+        const order = updateOrderStatus(db, Number(match[1]), body, currentUser.id);
+        emailService.queueOrderStatusUpdated(order.id, body.reason);
         return sendJson(response, 200, { order });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/settings") {
