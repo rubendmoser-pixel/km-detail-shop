@@ -302,6 +302,89 @@
   border-color: #55585e;
 }
 
+.order-detail-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 18px;
+  background: #111214;
+  border: 1px solid #34363b;
+}
+
+.order-detail-panel[hidden] {
+  display: none;
+}
+
+.order-detail-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.order-detail-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: #34363b;
+  border: 1px solid #34363b;
+}
+
+.order-detail-grid div {
+  min-width: 0;
+  padding: 12px;
+  background: #17181b;
+}
+
+.order-detail-grid span,
+.order-detail-grid strong {
+  display: block;
+}
+
+.order-detail-grid span {
+  color: #8f9298;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.order-detail-grid strong {
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+
+.order-status-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #3b3d42;
+}
+
+.order-status-form label {
+  display: grid;
+  gap: 6px;
+  color: #a7a9ae;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.order-status-form .wide,
+.order-status-form .primary-button,
+.order-status-form .form-message {
+  grid-column: 1 / -1;
+}
+
+.order-status-form .primary-button {
+  justify-self: start;
+}
+
 .product-admin-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -534,7 +617,9 @@
   }
 
   .customer-data,
-  .discount-form {
+  .discount-form,
+  .order-detail-grid,
+  .order-status-form {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -549,6 +634,10 @@
 
   .product-form fieldset {
     grid-template-columns: 1fr;
+  }
+
+  .order-detail-header {
+    flex-direction: column;
   }
 
   .product-image-grid {

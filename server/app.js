@@ -144,6 +144,9 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         return sendJson(response, 200, { orders: listAdminOrders(db, url.searchParams.get("status") || "") });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { order: getOrder(db, Number(match[1]), null, true) });
+      }
       if (request.method === "PATCH" && match) {
         const order = updateOrderStatus(db, Number(match[1]), await readJson(request), currentUser.id);
         return sendJson(response, 200, { order });

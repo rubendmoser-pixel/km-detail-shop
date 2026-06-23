@@ -124,7 +124,35 @@
 
         <section class="admin-view" id="ordersView" hidden>
           <div class="admin-titlebar"><div><p class="eyebrow">Operacion</p><h1>Pedidos</h1></div><button class="ghost-button" id="reloadOrders" type="button">Actualizar</button></div>
-          <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Pago</th><th>Total</th><th>Fecha</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
+          <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Pago</th><th>Total</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
+          <section class="order-detail-panel" id="orderDetailPanel" hidden>
+            <div class="order-detail-header">
+              <div><p class="eyebrow">Detalle de pedido</p><h2 id="orderDetailTitle"></h2></div>
+              <button class="ghost-button" id="closeOrderDetail" type="button">Cerrar</button>
+            </div>
+            <div class="order-detail-grid" id="orderDetailSummary"></div>
+            <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>KM</th><th>Producto</th><th>Cantidad</th><th>Precio final</th><th>Subtotal</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
+            <form class="order-status-form" id="orderStatusForm">
+              <label><span>Estado pedido</span><select name="status">
+                <option value="order_created">Pedido creado</option>
+                <option value="confirmed">Confirmado</option>
+                <option value="in_preparation">En preparacion</option>
+                <option value="ready">Listo</option>
+                <option value="delivered">Entregado</option>
+                <option value="cancelled">Cancelado</option>
+              </select></label>
+              <label><span>Estado pago</span><select name="paymentStatus">
+                <option value="pending_payment">Pendiente</option>
+                <option value="receipt_uploaded">Comprobante cargado</option>
+                <option value="paid">Pagado</option>
+                <option value="rejected">Rechazado</option>
+                <option value="refunded">Reintegrado</option>
+              </select></label>
+              <label class="wide"><span>Motivo / nota interna</span><textarea name="reason" rows="2" required placeholder="Ej: pedido confirmado por administracion"></textarea></label>
+              <button class="primary-button" type="submit">Actualizar pedido</button>
+              <p class="form-message" id="orderStatusMessage" role="status"></p>
+            </form>
+          </section>
         </section>
 
         <section class="admin-view" id="settingsView" hidden>
@@ -160,6 +188,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=5" defer></script>
+    <script src="./admin.js?v=6" defer></script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
-  orders: [], settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: ""
+  orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: ""
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const statusLabels = {
@@ -11,6 +11,8 @@ const statusLabels = {
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
+  "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderItemsBody", "orderStatusForm",
+  "orderStatusMessage",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
@@ -44,6 +46,8 @@ function bindAdminEvents() {
   adminEls.productForm.addEventListener("submit", saveProduct);
   adminEls.productImageInput.addEventListener("change", uploadProductImages);
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
+  document.querySelector("#closeOrderDetail").addEventListener("click", closeOrderDetail);
+  adminEls.orderStatusForm.addEventListener("submit", saveOrderStatus);
   document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
@@ -412,8 +416,81 @@ async function loadOrders() {
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
     <tr><td><strong>${escapeAdmin(order.order_number)}</strong></td><td>${escapeAdmin(order.business_name)}</td>
       <td>${escapeAdmin(order.status)}</td><td>${escapeAdmin(order.payment_status)}</td>
-      <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td></tr>
-  `).join("") : `<tr><td colspan="6">Todavia no hay pedidos.</td></tr>`;
+      <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
+      <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
+  `).join("") : `<tr><td colspan="7">Todavia no hay pedidos.</td></tr>`;
+  adminEls.ordersTableBody.querySelectorAll("[data-view-order]").forEach((button) => button.addEventListener("click", openOrderDetail));
+}
+
+async function openOrderDetail(event) {
+  const orderId = Number(event.currentTarget.dataset.viewOrder);
+  event.currentTarget.disabled = true;
+  try {
+    const { order } = await adminApi(`/api/admin/orders/${orderId}`);
+    adminState.selectedOrder = order;
+    renderOrderDetail();
+    adminEls.orderDetailPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    event.currentTarget.disabled = false;
+  }
+}
+
+function renderOrderDetail() {
+  const order = adminState.selectedOrder;
+  if (!order) return closeOrderDetail();
+  adminEls.orderDetailPanel.hidden = false;
+  adminEls.orderDetailTitle.textContent = `${order.orderNumber} - ${order.businessName}`;
+  adminEls.orderDetailSummary.innerHTML = [
+    ["Cliente", `${order.businessName} (${order.email})`],
+    ["Estado", `${order.status} / ${order.paymentStatus}`],
+    ["Descuentos", discountText(order.discountsBps)],
+    ["Subtotal neto", adminMoney.format(order.subtotalNetCents / 100)],
+    ["IVA", `${(order.vatBps / 100).toFixed(2)}% - ${adminMoney.format(order.vatCents / 100)}`],
+    ["Total", adminMoney.format(order.totalCents / 100)],
+    ["Precio reservado", formatDate(order.priceReservedAt)],
+    ["Envio", shippingText(order.shipping)]
+  ].map(([label, value]) => `<div><span>${label}</span><strong>${escapeAdmin(value)}</strong></div>`).join("");
+  adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
+    <tr>
+      <td><strong>${escapeAdmin(item.kmCode)}</strong><br><span>EAN ${escapeAdmin(item.ean13)}</span></td>
+      <td>${escapeAdmin(item.productName)}</td>
+      <td>${item.quantity}</td>
+      <td>${adminMoney.format(item.finalUnitPriceCents / 100)}</td>
+      <td>${adminMoney.format(item.subtotalNetCents / 100)}</td>
+    </tr>
+  `).join("");
+  adminEls.orderStatusForm.elements.status.value = order.status;
+  adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
+  adminEls.orderStatusForm.elements.reason.value = "";
+  adminEls.orderStatusMessage.textContent = "";
+}
+
+function closeOrderDetail() {
+  adminState.selectedOrder = null;
+  adminEls.orderDetailPanel.hidden = true;
+}
+
+async function saveOrderStatus(event) {
+  event.preventDefault();
+  if (!adminState.selectedOrder) return;
+  const values = Object.fromEntries(new FormData(adminEls.orderStatusForm));
+  setBusy(adminEls.orderStatusForm, true);
+  try {
+    const { order } = await adminApi(`/api/admin/orders/${adminState.selectedOrder.id}`, {
+      method: "PATCH",
+      body: { status: values.status, paymentStatus: values.paymentStatus, reason: values.reason }
+    });
+    adminState.selectedOrder = order;
+    adminEls.orderStatusMessage.textContent = "Pedido actualizado.";
+    await loadOrders();
+    renderOrderDetail();
+  } catch (error) {
+    adminEls.orderStatusMessage.textContent = error.message;
+  } finally {
+    setBusy(adminEls.orderStatusForm, false);
+  }
 }
 
 async function loadSettings() {
@@ -517,7 +594,26 @@ function showAdminToast(message) {
 }
 
 function formatDate(value) {
-  return new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(`${value}Z`));
+  if (!value) return "";
+  const normalized = /z$/i.test(String(value)) ? String(value) : `${value}Z`;
+  return new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(normalized));
+}
+
+function discountText(discountsBps = []) {
+  const labels = discountsBps.filter(Boolean).map((value) => `${(value / 100).toFixed(2)}%`);
+  return labels.length ? labels.join(" + ") : "Sin descuentos";
+}
+
+function shippingText(shipping = {}) {
+  return [
+    shipping.recipient,
+    shipping.address,
+    shipping.city && shipping.province ? `${shipping.city}, ${shipping.province}` : shipping.city || shipping.province,
+    shipping.postalCode ? `CP ${shipping.postalCode}` : "",
+    shipping.preferredTransport ? `Transporte: ${shipping.preferredTransport}` : "",
+    shipping.contactPhone ? `Tel: ${shipping.contactPhone}` : "",
+    shipping.notes ? `Notas: ${shipping.notes}` : ""
+  ].filter(Boolean).join(" | ");
 }
 
 function normalizeDateInput(value) {

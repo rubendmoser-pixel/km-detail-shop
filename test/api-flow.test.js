@@ -153,6 +153,23 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(orderPayload.order.subtotalNetCents, 100_800);
   assert.equal(orderPayload.order.vatCents, 21_168);
   assert.match(orderPayload.order.orderNumber, /^KM-\d{4}-\d{6}$/);
+  const adminOrderDetail = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, adminCookie);
+  assert.equal(adminOrderDetail.order.items.length, 1);
+  assert.equal(adminOrderDetail.order.items[0].kmCode, "API001K");
+  assert.equal(adminOrderDetail.order.shipping.city, "Cordoba");
+  const updatedOrderResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      status: "confirmed",
+      paymentStatus: "paid",
+      reason: "Confirmacion desde prueba automatica"
+    })
+  });
+  assert.equal(updatedOrderResponse.status, 200);
+  const updatedOrder = (await updatedOrderResponse.json()).order;
+  assert.equal(updatedOrder.status, "confirmed");
+  assert.equal(updatedOrder.paymentStatus, "paid");
 });
 
 test("customer welcome email does not depend on internal notification email", async (t) => {
