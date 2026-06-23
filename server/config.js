@@ -14,8 +14,8 @@ export const config = {
   whatsappNumber: process.env.WHATSAPP_NUMBER || "",
   notificationEmail: process.env.NOTIFICATION_EMAIL || "ventas@km-detail.com",
   smtpHost: process.env.SMTP_HOST || "smtp.zoho.com",
-  smtpPort: Number(process.env.SMTP_PORT || 465),
-  smtpSecure: process.env.SMTP_SECURE !== "false",
+  smtpPort: Number(process.env.SMTP_PORT || 587),
+  smtpSecure: process.env.SMTP_SECURE === "true",
   smtpUser: process.env.SMTP_USER || "",
   smtpPassword: process.env.SMTP_PASSWORD || "",
   publicBaseUrl: process.env.PUBLIC_BASE_URL || "https://km-detail.com"
