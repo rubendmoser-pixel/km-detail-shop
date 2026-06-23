@@ -182,9 +182,6 @@ function renderProducts() {
       input.value = Math.max(1, Number(input.value || 1) + Number(button.dataset.step));
     });
   });
-  els.productGrid.querySelectorAll("[data-account]").forEach((button) => {
-    button.addEventListener("click", () => openAccount(true));
-  });
   els.productGrid.querySelectorAll("[data-gallery-image]").forEach((button) => {
     button.addEventListener("click", () => selectProductImage(button));
   });
@@ -220,8 +217,7 @@ function renderProductCard(product) {
       <button class="add-button" type="button" data-add="${product.id}">Agregar</button>
     </div>` : `
     <div class="private-price">
-      <span>${state.user ? "Precio disponible al aprobar la cuenta" : "Inicia sesion para ver precios"}</span>
-      <button class="text-button" type="button" data-account>Acceso comercial</button>
+      <span>${state.user ? "Precio disponible al aprobar la cuenta" : "Precio disponible con cuenta comercial aprobada"}</span>
     </div>`;
   return `
     <article class="product-card family-${familyClass}">

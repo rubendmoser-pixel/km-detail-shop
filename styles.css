@@ -698,6 +698,11 @@ textarea:focus {
   border-top: 1px solid var(--line);
 }
 
+.private-price {
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
 .price-block span,
 .price-block small,
 .private-price span {
@@ -712,11 +717,6 @@ textarea:focus {
 
 .price-block s {
   margin-left: 5px;
-}
-
-.private-price .text-button {
-  justify-self: start;
-  color: var(--metal);
 }
 
 .qty-control {
