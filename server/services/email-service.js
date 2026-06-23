@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 
 export function createEmailService({ db, config }) {
+  const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
   const provider = config.emailProvider === "resend" ? "resend" : "smtp";
   const enabled = provider === "resend"
     ? Boolean(config.resendApiKey && config.resendFrom)
@@ -94,6 +95,75 @@ export function createEmailService({ db, config }) {
       "Si no solicitaste el cambio, ignora este mensaje."
     ].join("\n");
     queue("password_reset", user.email, "Recuperar contraseña | KM Detail Line", textBody);
+  }
+
+  function queueOrderCreated(orderId) {
+    const order = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, c.whatsapp, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.id = ?
+    `).get(orderId);
+    if (!order) return;
+    const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
+    const shipping = JSON.parse(order.shipping_snapshot_json);
+    const itemLines = items.map((item) => (
+      `- ${item.quantity} x ${item.km_code} | ${item.product_name} | ${money.format(item.subtotal_net_cents / 100)}`
+    ));
+    const totals = [
+      `Subtotal neto: ${money.format(order.subtotal_net_cents / 100)}`,
+      `IVA ${(order.vat_bps / 100).toFixed(2)}%: ${money.format(order.vat_cents / 100)}`,
+      `Total: ${money.format(order.total_cents / 100)}`
+    ];
+    const shippingText = [
+      shipping.recipient,
+      shipping.address,
+      `${shipping.city}, ${shipping.province}`,
+      shipping.postalCode ? `CP ${shipping.postalCode}` : "",
+      shipping.preferredTransport ? `Transporte: ${shipping.preferredTransport}` : "",
+      shipping.contactPhone ? `Telefono: ${shipping.contactPhone}` : "",
+      shipping.notes ? `Notas: ${shipping.notes}` : ""
+    ].filter(Boolean).join(" | ");
+
+    if (config.notificationEmail) {
+      queue("order_internal", config.notificationEmail, `Nuevo pedido ${order.order_number} | ${order.business_name}`, [
+        `Nuevo pedido confirmado en KM Detail Line: ${order.order_number}`,
+        "",
+        `Cliente: ${order.business_name}`,
+        `Contacto: ${order.contact_person}`,
+        `Email: ${order.email}`,
+        `WhatsApp: ${order.whatsapp}`,
+        "",
+        "Items:",
+        ...itemLines,
+        "",
+        ...totals,
+        "",
+        `Entrega: ${shippingText}`,
+        "",
+        `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
+      ].join("\n"));
+    }
+
+    queue("order_customer", order.email, `Recibimos tu pedido ${order.order_number} | KM Detail Line`, [
+      `Hola ${order.contact_person},`,
+      "",
+      `Recibimos tu pedido ${order.order_number}.`,
+      "El precio queda reservado, sujeto a confirmacion de disponibilidad por nuestro equipo.",
+      "",
+      "Detalle:",
+      ...itemLines,
+      "",
+      ...totals,
+      "",
+      `Entrega: ${shippingText}`,
+      "",
+      "Si necesitas agregar informacion, podes responder este correo o comunicarte por WhatsApp.",
+      "",
+      "KM Detail Line",
+      "Productos profesionales para pulido automotriz, chapa-pintura y detailing.",
+      "",
+      config.publicBaseUrl
+    ].join("\n"));
   }
 
   function queue(eventType, recipient, subject, textBody) {
@@ -220,6 +290,7 @@ export function createEmailService({ db, config }) {
     queueCustomerRegistration,
     queueCustomerStatus,
     queuePasswordReset,
+    queueOrderCreated,
     flush,
     verify,
     sendTest,

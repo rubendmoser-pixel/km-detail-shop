@@ -75,6 +75,7 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       if (request.method === "POST" && url.pathname === "/api/orders") {
         const user = requireApprovedCustomer(currentUser);
         const order = createOrder(db, user.customerId, await readJson(request));
+        emailService.queueOrderCreated(order.id);
         return sendJson(response, 201, { order, availabilityNotice: "Pedido sujeto a confirmación de disponibilidad." });
       }
 
