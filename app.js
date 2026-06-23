@@ -193,6 +193,7 @@ function renderProducts() {
 function renderProductCard(product) {
   const approved = isApprovedCustomer();
   const cut = product.cutLevel ? `<span class="tag yellow">Corte ${escapeHtml(product.cutLevel)}</span>` : "";
+  const familyClass = tagClass(product);
   const images = product.images?.length ? product.images : (product.primaryImageUrl ? [{ url: product.primaryImageUrl, altText: product.name }] : []);
   const gallery = images.length > 1 ? `<div class="product-gallery-thumbs" aria-label="Galeria de ${escapeHtml(product.kmCode)}">
     ${images.slice(0, 5).map((image, index) => `
@@ -202,8 +203,8 @@ function renderProductCard(product) {
     `).join("")}
   </div>` : "";
   const visual = images.length
-    ? `<div class="product-visual has-image"><figure><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(images[0].altText || product.name)}" loading="lazy" /></figure><span class="product-code">${escapeHtml(product.kmCode)}</span>${gallery}</div>`
-    : `<div class="product-visual ${tagClass(product)}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`;
+    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span></div><figure><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(images[0].altText || product.name)}" loading="lazy" /></figure>${gallery}</div>`
+    : `<div class="product-visual ${familyClass}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`;
   const pricing = approved ? `
     <div class="price-block">
       <span>Lista neta <s>${money.format(product.basePriceCents / 100)}</s></span>
@@ -223,13 +224,13 @@ function renderProductCard(product) {
       <button class="text-button" type="button" data-account>Acceso comercial</button>
     </div>`;
   return `
-    <article class="product-card">
+    <article class="product-card family-${familyClass}">
       ${visual}
       <div class="product-body">
         <h3>${escapeHtml(product.name)}</h3>
         <p>${escapeHtml(product.family.name)} · ${escapeHtml(product.attachmentSystem || "Sin especificar")} · EAN ${escapeHtml(product.ean13)}</p>
         <div class="meta-line">
-          <span class="tag ${tagClass(product)}">${escapeHtml(product.material || product.family.name)}</span>
+          <span class="tag ${familyClass}">${escapeHtml(product.material || product.family.name)}</span>
           ${product.measure ? `<span class="tag">${escapeHtml(product.measure)}</span>` : ""}
           ${cut}
           ${product.color ? `<span class="tag">${escapeHtml(product.color)}</span>` : ""}

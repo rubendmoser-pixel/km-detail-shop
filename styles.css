@@ -545,6 +545,11 @@ textarea:focus {
   overflow: hidden;
 }
 
+.product-card.family-lana { box-shadow: inset 5px 0 #8ca77a; }
+.product-card.family-poliespuma { box-shadow: inset 5px 0 #4aa9d6; }
+.product-card.family-accesorios { box-shadow: inset 5px 0 #8f77b3; }
+.product-card.family-tacos { box-shadow: inset 5px 0 #8f969e; }
+
 .product-visual {
   position: relative;
   display: grid;
@@ -555,10 +560,19 @@ textarea:focus {
 }
 
 .product-visual.has-image {
-  min-height: 232px;
+  min-height: 254px;
   padding: 12px;
   overflow: hidden;
   background: #101113;
+}
+
+.product-visual-head {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 8px;
 }
 
 .product-visual.has-image figure {
@@ -566,7 +580,7 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 178px;
+  height: 176px;
   margin: 0;
   overflow: hidden;
   background: #f2f2ef;
@@ -639,6 +653,10 @@ textarea:focus {
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 900;
+}
+
+.product-visual.has-image .product-code {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.16);
 }
 
 .product-body {
@@ -1661,6 +1679,11 @@ h2 {
   border-color: #34363b;
   box-shadow: none;
 }
+
+.product-card.family-lana { box-shadow: inset 5px 0 #8ca77a; }
+.product-card.family-poliespuma { box-shadow: inset 5px 0 #4aa9d6; }
+.product-card.family-accesorios { box-shadow: inset 5px 0 #8f77b3; }
+.product-card.family-tacos { box-shadow: inset 5px 0 #8f969e; }
 
 .promo-card:hover,
 .product-card:hover {
