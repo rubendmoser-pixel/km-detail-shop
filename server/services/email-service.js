@@ -411,15 +411,22 @@ export function createEmailService({ db, config }) {
     return { provider, messageId: body.id };
   }
 
-  function listOutbox(limit = 50) {
+  function listOutbox(options = 50) {
+    const limit = typeof options === "object" ? options.limit : options;
+    const search = typeof options === "object" ? String(options.search || "").trim() : "";
     const boundedLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const searchClause = search
+      ? `WHERE event_type LIKE ? OR recipient LIKE ? OR subject LIKE ? OR status LIKE ? OR last_error LIKE ? OR text_body LIKE ?`
+      : "";
+    const params = search ? Array(6).fill(`%${search}%`) : [];
     return db.prepare(`
       SELECT id, event_type, recipient, subject, status, attempts, last_error,
              created_at, updated_at, sent_at
       FROM email_outbox
+      ${searchClause}
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(boundedLimit);
+    `).all(...params, boundedLimit);
   }
 
   function summarizeOutbox() {

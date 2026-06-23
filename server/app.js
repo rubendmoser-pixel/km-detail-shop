@@ -216,7 +216,10 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
           enabled: emailService.enabled,
           provider: emailService.provider,
           summary: emailService.summarizeOutbox(),
-          emails: emailService.listOutbox(Number(url.searchParams.get("limit") || 50))
+          emails: emailService.listOutbox({
+            limit: Number(url.searchParams.get("limit") || 50),
+            search: url.searchParams.get("q") || ""
+          })
         });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/emails/flush") {

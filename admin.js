@@ -18,7 +18,7 @@ const adminEls = Object.fromEntries([
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
-  "emailStats", "emailConfigStatus", "emailsTableBody", "adminToast"
+  "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -56,6 +56,7 @@ function bindAdminEvents() {
   adminEls.availabilityForm.addEventListener("submit", saveAvailability);
   adminEls.fulfillmentForm.addEventListener("submit", saveFulfillment);
   adminEls.orderStatusForm.addEventListener("submit", saveOrderStatus);
+  adminEls.emailSearch.addEventListener("input", debounce(loadEmails, 250));
   document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
@@ -631,7 +632,10 @@ async function loadSettings() {
 }
 
 async function loadEmails() {
-  const { enabled, provider, summary, emails } = await adminApi("/api/admin/emails");
+  const params = new URLSearchParams();
+  const search = adminEls.emailSearch.value.trim();
+  if (search) params.set("q", search);
+  const { enabled, provider, summary, emails } = await adminApi(`/api/admin/emails${params.size ? `?${params}` : ""}`);
   adminState.emailEnabled = Boolean(enabled);
   adminState.emailProvider = provider || "";
   adminState.emailSummary = summary;
@@ -643,10 +647,8 @@ async function flushEmails() {
   const button = document.querySelector("#flushEmails");
   button.disabled = true;
   try {
-    const { result, summary, emails } = await adminApi("/api/admin/emails/flush", { method: "POST" });
-    adminState.emailSummary = summary;
-    adminState.emails = emails;
-    renderEmails();
+    const { result } = await adminApi("/api/admin/emails/flush", { method: "POST" });
+    await loadEmails();
     showAdminToast(result.enabled ? `Emails enviados: ${result.sent}.` : "SMTP no esta configurado en el servidor.");
   } catch (error) {
     showAdminToast(error.message);

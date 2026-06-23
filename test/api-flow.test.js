@@ -77,6 +77,9 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(emailsResponse.enabled, false);
   assert.equal(emailsResponse.summary.pending, 3);
   assert.equal(emailsResponse.emails.length, 3);
+  const filteredEmailsResponse = await getJson(`${baseUrl}/api/admin/emails?q=password_reset`, adminCookie);
+  assert.equal(filteredEmailsResponse.emails.length, 1);
+  assert.equal(filteredEmailsResponse.emails[0].event_type, "password_reset");
   assert.equal((await fetch(`${baseUrl}/api/admin/emails/flush`, {
     method: "POST", headers: jsonHeaders(adminCookie)
   })).status, 200);
