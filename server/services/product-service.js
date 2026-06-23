@@ -25,9 +25,10 @@ export function listProducts(db, user) {
     WHERE p.active = 1 AND f.active = 1
     ORDER BY f.sort_order, p.web_sort_order, p.name
   `).all();
+  const imagesByProduct = productImagesByProduct(db, rows.map((row) => row.id));
 
   if (!user || user.role !== "customer" || user.approvalStatus !== "approved") {
-    return rows.map(publicProduct);
+    return rows.map((row) => publicProduct(row, imagesByProduct.get(row.id) || []));
   }
 
   const discounts = db.prepare(`
@@ -36,7 +37,7 @@ export function listProducts(db, user) {
   `).get(user.customerId);
   const discountList = [discounts.discount_1_bps, discounts.discount_2_bps, discounts.discount_3_bps];
   return rows.map((row) => ({
-    ...publicProduct(row),
+    ...publicProduct(row, imagesByProduct.get(row.id) || []),
     basePriceCents: row.base_price_cents,
     discountsBps: discountList,
     finalPriceCents: applyDiscounts(row.base_price_cents, discountList),
@@ -44,6 +45,29 @@ export function listProducts(db, user) {
     priceEffectiveFrom: row.price_effective_from,
     priceNotice: "Precio neto. IVA no incluido."
   }));
+}
+
+function productImagesByProduct(db, productIds) {
+  if (!productIds.length) return new Map();
+  const placeholders = productIds.map(() => "?").join(",");
+  const rows = db.prepare(`
+    SELECT product_id, id, stored_filename, alt_text, is_primary
+    FROM product_images
+    WHERE product_id IN (${placeholders})
+    ORDER BY product_id, is_primary DESC, sort_order, id
+  `).all(...productIds);
+  const map = new Map();
+  for (const row of rows) {
+    const list = map.get(row.product_id) || [];
+    list.push({
+      id: row.id,
+      url: `/media/products/${row.stored_filename}`,
+      altText: row.alt_text || "",
+      isPrimary: Boolean(row.is_primary)
+    });
+    map.set(row.product_id, list);
+  }
+  return map;
 }
 
 export function listAdminProducts(db, filters = {}) {
@@ -267,7 +291,7 @@ function adminProduct(row) {
   };
 }
 
-function publicProduct(row) {
+function publicProduct(row, images = []) {
   return {
     id: row.id,
     kmCode: row.km_code,
@@ -285,7 +309,8 @@ function publicProduct(row) {
     recommendedUse: row.recommended_use,
     technicalDescription: row.technical_description,
     imageFilename: row.image_filename,
-    primaryImageUrl: row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : ""
+    primaryImageUrl: images[0]?.url || (row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : ""),
+    images
   };
 }
 

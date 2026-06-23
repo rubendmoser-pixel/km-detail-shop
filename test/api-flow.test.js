@@ -138,6 +138,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(products.products[0].basePriceCents, 100_000);
   assert.equal(products.products[0].finalPriceCents, 50_400);
   assert.equal(products.products[0].primaryImageUrl, images[0].url);
+  assert.equal(products.products[0].images.length, 1);
+  assert.equal(products.products[0].images[0].url, images[0].url);
 
   const orderResponse = await fetch(`${baseUrl}/api/orders`, {
     method: "POST",

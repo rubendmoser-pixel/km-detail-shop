@@ -185,13 +185,24 @@ function renderProducts() {
   els.productGrid.querySelectorAll("[data-account]").forEach((button) => {
     button.addEventListener("click", () => openAccount(true));
   });
+  els.productGrid.querySelectorAll("[data-gallery-image]").forEach((button) => {
+    button.addEventListener("click", () => selectProductImage(button));
+  });
 }
 
 function renderProductCard(product) {
   const approved = isApprovedCustomer();
   const cut = product.cutLevel ? `<span class="tag yellow">Corte ${escapeHtml(product.cutLevel)}</span>` : "";
-  const visual = product.primaryImageUrl
-    ? `<div class="product-visual has-image"><img src="${escapeHtml(product.primaryImageUrl)}" alt="${escapeHtml(product.name)}" loading="lazy" /><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`
+  const images = product.images?.length ? product.images : (product.primaryImageUrl ? [{ url: product.primaryImageUrl, altText: product.name }] : []);
+  const gallery = images.length > 1 ? `<div class="product-gallery-thumbs" aria-label="Galeria de ${escapeHtml(product.kmCode)}">
+    ${images.slice(0, 5).map((image, index) => `
+      <button class="${index === 0 ? "active" : ""}" type="button" data-gallery-image="${escapeHtml(image.url)}" data-gallery-alt="${escapeHtml(image.altText || product.name)}" aria-label="Ver imagen ${index + 1} de ${escapeHtml(product.kmCode)}">
+        <img src="${escapeHtml(image.url)}" alt="" loading="lazy" />
+      </button>
+    `).join("")}
+  </div>` : "";
+  const visual = images.length
+    ? `<div class="product-visual has-image"><figure><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(images[0].altText || product.name)}" loading="lazy" /></figure><span class="product-code">${escapeHtml(product.kmCode)}</span>${gallery}</div>`
     : `<div class="product-visual ${tagClass(product)}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`;
   const pricing = approved ? `
     <div class="price-block">
@@ -226,6 +237,15 @@ function renderProductCard(product) {
         ${pricing}
       </div>
     </article>`;
+}
+
+function selectProductImage(button) {
+  const visual = button.closest(".product-visual");
+  const image = visual?.querySelector("figure > img");
+  if (!visual || !image) return;
+  image.src = button.dataset.galleryImage;
+  image.alt = button.dataset.galleryAlt || image.alt;
+  visual.querySelectorAll("[data-gallery-image]").forEach((item) => item.classList.toggle("active", item === button));
 }
 
 function renderCart() {
