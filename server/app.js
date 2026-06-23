@@ -165,7 +165,14 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         return sendJson(response, 200, { families: listProductFamilies(db) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/orders") {
-        return sendJson(response, 200, { orders: listAdminOrders(db, url.searchParams.get("status") || "") });
+        return sendJson(response, 200, {
+          orders: listAdminOrders(db, {
+            status: url.searchParams.get("status") || "",
+            paymentStatus: url.searchParams.get("payment") || "",
+            fulfillmentStatus: url.searchParams.get("fulfillment") || "",
+            search: url.searchParams.get("q") || ""
+          })
+        });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/availability$/);
       if (request.method === "PATCH" && match) {

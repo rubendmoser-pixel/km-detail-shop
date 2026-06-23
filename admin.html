@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Administracion | KM Detail Line</title>
     <link rel="stylesheet" href="./styles.css?v=7" />
-    <link rel="stylesheet" href="./admin.css?v=9" />
+    <link rel="stylesheet" href="./admin.css?v=10" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -123,8 +123,39 @@
         </section>
 
         <section class="admin-view" id="ordersView" hidden>
-          <div class="admin-titlebar"><div><p class="eyebrow">Operacion</p><h1>Pedidos</h1></div><button class="ghost-button" id="reloadOrders" type="button">Actualizar</button></div>
-          <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Pago</th><th>Total</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Operacion</p><h1>Pedidos</h1></div>
+            <div class="admin-toolbar">
+              <input id="orderSearch" type="search" placeholder="Buscar pedido, cliente o CUIT" aria-label="Buscar pedidos" />
+              <select id="orderStatusFilter" aria-label="Filtrar estado de pedido">
+                <option value="">Todos los estados</option>
+                <option value="order_created">Recibido</option>
+                <option value="availability_confirmed">Disponibilidad confirmada</option>
+                <option value="confirmed">Confirmado</option>
+                <option value="in_preparation">En preparacion</option>
+                <option value="ready">Listo</option>
+                <option value="delivered">Entregado</option>
+                <option value="cancelled">Cancelado</option>
+              </select>
+              <select id="orderPaymentFilter" aria-label="Filtrar estado de pago">
+                <option value="">Todos los pagos</option>
+                <option value="pending_payment">Pendiente</option>
+                <option value="receipt_uploaded">Comprobante cargado</option>
+                <option value="paid">Pagado</option>
+                <option value="rejected">Rechazado</option>
+                <option value="refunded">Reintegrado</option>
+              </select>
+              <select id="orderFulfillmentFilter" aria-label="Filtrar despacho">
+                <option value="">Todos los despachos</option>
+                <option value="pending">Pendiente</option>
+                <option value="ready">Listo</option>
+                <option value="shipped">Despachado</option>
+                <option value="delivered">Entregado</option>
+              </select>
+              <button class="ghost-button" id="reloadOrders" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Estado</th><th>Pago</th><th>Despacho</th><th>Total</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
           <section class="order-detail-panel" id="orderDetailPanel" hidden>
             <div class="order-detail-header">
               <div><p class="eyebrow">Detalle de pedido</p><h2 id="orderDetailTitle"></h2></div>
@@ -220,6 +251,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=10" defer></script>
+    <script src="./admin.js?v=11" defer></script>
   </body>
 </html>

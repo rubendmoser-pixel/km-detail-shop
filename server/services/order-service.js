@@ -96,14 +96,33 @@ export function listCustomerOrders(db, customerId) {
   });
 }
 
-export function listAdminOrders(db, status = "") {
-  const where = status ? "WHERE o.status = ?" : "";
-  const params = status ? [status] : [];
+export function listAdminOrders(db, filters = {}) {
+  const where = [];
+  const params = [];
+  if (filters.status) {
+    where.push("o.status = ?");
+    params.push(filters.status);
+  }
+  if (filters.paymentStatus) {
+    where.push("o.payment_status = ?");
+    params.push(filters.paymentStatus);
+  }
+  if (filters.fulfillmentStatus) {
+    where.push("o.fulfillment_status = ?");
+    params.push(filters.fulfillmentStatus);
+  }
+  if (filters.search) {
+    where.push("(o.order_number LIKE ? OR c.business_name LIKE ? OR c.tax_id LIKE ?)");
+    const search = `%${filters.search}%`;
+    params.push(search, search, search);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   return db.prepare(`
     SELECT o.id, o.order_number, o.status, o.payment_status, o.total_cents, o.currency,
-           o.created_at, c.business_name, c.tax_id
+           o.fulfillment_status, o.created_at, c.business_name, c.tax_id
     FROM orders o JOIN customers c ON c.id = o.customer_id
-    ${where} ORDER BY o.created_at DESC
+    ${whereSql} ORDER BY o.created_at DESC
+    LIMIT 500
   `).all(...params);
 }
 

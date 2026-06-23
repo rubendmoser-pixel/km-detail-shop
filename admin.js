@@ -11,6 +11,7 @@ const statusLabels = {
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
+  "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderItemsBody",
   "availabilityForm", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentMessage",
   "orderStatusForm", "orderStatusMessage",
@@ -46,6 +47,10 @@ function bindAdminEvents() {
   document.querySelector("#resetProductForm").addEventListener("click", resetProductForm);
   adminEls.productForm.addEventListener("submit", saveProduct);
   adminEls.productImageInput.addEventListener("change", uploadProductImages);
+  adminEls.orderSearch.addEventListener("input", debounce(loadOrders, 250));
+  adminEls.orderStatusFilter.addEventListener("change", loadOrders);
+  adminEls.orderPaymentFilter.addEventListener("change", loadOrders);
+  adminEls.orderFulfillmentFilter.addEventListener("change", loadOrders);
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
   document.querySelector("#closeOrderDetail").addEventListener("click", closeOrderDetail);
   adminEls.availabilityForm.addEventListener("submit", saveAvailability);
@@ -414,14 +419,20 @@ async function saveDiscounts(event) {
 }
 
 async function loadOrders() {
-  const { orders } = await adminApi("/api/admin/orders");
+  const params = new URLSearchParams();
+  if (adminEls.orderSearch.value.trim()) params.set("q", adminEls.orderSearch.value.trim());
+  if (adminEls.orderStatusFilter.value) params.set("status", adminEls.orderStatusFilter.value);
+  if (adminEls.orderPaymentFilter.value) params.set("payment", adminEls.orderPaymentFilter.value);
+  if (adminEls.orderFulfillmentFilter.value) params.set("fulfillment", adminEls.orderFulfillmentFilter.value);
+  const { orders } = await adminApi(`/api/admin/orders${params.toString() ? `?${params}` : ""}`);
   adminState.orders = orders;
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
     <tr><td><strong>${escapeAdmin(order.order_number)}</strong></td><td>${escapeAdmin(order.business_name)}</td>
       <td>${escapeAdmin(order.status)}</td><td>${escapeAdmin(order.payment_status)}</td>
+      <td>${escapeAdmin(order.fulfillment_status || "pending")}</td>
       <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
       <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
-  `).join("") : `<tr><td colspan="7">Todavia no hay pedidos.</td></tr>`;
+  `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
   adminEls.ordersTableBody.querySelectorAll("[data-view-order]").forEach((button) => button.addEventListener("click", openOrderDetail));
 }
 
