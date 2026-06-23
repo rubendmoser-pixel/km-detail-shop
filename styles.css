@@ -6,13 +6,17 @@
   --soft: #f4f6f8;
   --panel: #ffffff;
   --dark: #111318;
-  --accent: #f2cf45;
+  --accent: #aeb4bb;
+  --signal: #d8c34f;
+  --metal: #c9cdd2;
   --blue: #46a9d8;
   --green: #71b86d;
   --violet: #8c67ce;
   --danger: #bd4a4a;
   --shadow: 0 18px 55px rgba(17, 19, 24, 0.14);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: Bahnschrift, "Arial Narrow", "Aptos Display", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 * {
@@ -225,6 +229,8 @@ p {
 h1 {
   max-width: 760px;
   margin-bottom: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
   font-size: clamp(2.35rem, 5vw, 5rem);
   line-height: 0.98;
   letter-spacing: 0;
@@ -232,6 +238,8 @@ h1 {
 
 h2 {
   margin-bottom: 0;
+  font-family: var(--font-display);
+  font-weight: 760;
   font-size: clamp(1.65rem, 2.5vw, 2.7rem);
   line-height: 1.05;
   letter-spacing: 0;
@@ -647,7 +655,7 @@ textarea:focus {
 
 .private-price .text-button {
   justify-self: start;
-  color: var(--accent);
+  color: var(--metal);
 }
 
 .qty-control {
@@ -679,8 +687,8 @@ textarea:focus {
 
 .add-button {
   min-height: 42px;
-  color: #111318;
-  background: var(--accent);
+  color: #09090a;
+  background: linear-gradient(180deg, #f2f3f2, #aeb4bb);
   border: 0;
   border-radius: 7px;
   cursor: pointer;
@@ -1061,7 +1069,7 @@ textarea:focus {
 
 .recovery-link {
   justify-self: start;
-  color: var(--accent);
+  color: var(--metal);
   font-size: 0.86rem;
   text-underline-offset: 4px;
 }
@@ -1264,7 +1272,9 @@ textarea:focus {
   --soft: #0d0e10;
   --panel: #121315;
   --dark: #070708;
-  --accent: #f2d900;
+  --accent: #aeb4bb;
+  --signal: #d8c34f;
+  --metal: #c9cdd2;
   --shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
 }
 
@@ -1310,7 +1320,7 @@ body {
 .brand-divider {
   width: 1px;
   height: 38px;
-  background: var(--accent);
+  background: linear-gradient(180deg, transparent, var(--signal), transparent);
   transform: skew(-12deg);
 }
 
@@ -1338,7 +1348,7 @@ body {
   bottom: 2px;
   left: 12px;
   height: 2px;
-  background: var(--accent);
+  background: var(--metal);
   transform: scaleX(0);
   transition: transform 160ms ease;
 }
@@ -1352,15 +1362,15 @@ body {
 }
 
 .cart-pill {
-  color: #111;
-  background: var(--accent);
-  border: 1px solid var(--accent);
+  color: #f5f5f2;
+  background: #1a1b1f;
+  border: 1px solid #5c6269;
 }
 
 .shop-hero {
   min-height: min(620px, calc(100svh - 178px));
   grid-template-columns: minmax(0, 1.05fr) minmax(440px, 0.95fr);
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 1px solid #3f4248;
   background: #070708;
   overflow: hidden;
 }
@@ -1377,25 +1387,30 @@ body {
   content: "";
   width: 32px;
   height: 2px;
-  background: var(--accent);
+  background: var(--signal);
 }
 
 .eyebrow {
-  color: var(--accent);
+  color: var(--metal);
+  font-family: var(--font-display);
   font-size: 0.76rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 h1 {
   max-width: 780px;
   color: #f7f7f5;
+  font-family: var(--font-display);
   font-size: 3.55rem;
+  font-weight: 800;
   line-height: 1.06;
 }
 
 h2 {
   color: #f7f7f5;
+  font-family: var(--font-display);
   font-size: 2.25rem;
+  font-weight: 760;
 }
 
 .hero-copy > p:not(.eyebrow) {
@@ -1421,8 +1436,9 @@ h2 {
 
 .primary-link,
 .primary-button {
-  color: #0a0a0a;
-  background: var(--accent);
+  color: #070708;
+  background: linear-gradient(180deg, #f2f3f2, #aeb4bb);
+  border: 1px solid #c9cdd2;
 }
 
 .secondary-link,
@@ -1476,7 +1492,7 @@ h2 {
   left: 0;
   width: 24px;
   height: 2px;
-  background: var(--accent);
+  background: var(--signal);
 }
 
 .category-strip {
@@ -1502,7 +1518,7 @@ h2 {
 
 .category-strip a:hover {
   background: #121315;
-  border-color: var(--accent);
+  border-color: #7a8088;
 }
 
 .category-strip strong {
@@ -1518,7 +1534,7 @@ h2 {
   left: 0;
   width: 34px;
   height: 2px;
-  background: var(--accent);
+  background: var(--signal);
 }
 
 .category-symbol {
@@ -1624,7 +1640,7 @@ textarea,
 .segmented button.active {
   color: #09090a;
   background: var(--accent);
-  border-color: var(--accent);
+  border-color: #c9cdd2;
 }
 
 .catalog-thumb {
@@ -1654,7 +1670,7 @@ textarea,
 }
 
 .product-visual.tacos {
-  box-shadow: inset 5px 0 var(--accent);
+  box-shadow: inset 5px 0 #8f969e;
 }
 
 .product-code {
@@ -1678,7 +1694,7 @@ textarea,
 
 .add-button {
   color: #09090a;
-  background: var(--accent);
+  background: linear-gradient(180deg, #f2f3f2, #aeb4bb);
 }
 
 .technical-band {
@@ -1691,7 +1707,7 @@ textarea,
 }
 
 .order-section {
-  border-top: 2px solid var(--accent);
+  border-top: 1px solid #3f4248;
   background: #080809;
 }
 

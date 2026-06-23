@@ -58,6 +58,8 @@
 .admin-login h1,
 .admin-titlebar h1 {
   margin-bottom: 0;
+  font-family: var(--font-display);
+  font-weight: 760;
   font-size: clamp(1.7rem, 3vw, 2.4rem);
 }
 
@@ -91,7 +93,7 @@
 
 .admin-tabs button.active {
   color: #fff;
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--metal);
 }
 
 .admin-titlebar {
@@ -249,9 +251,9 @@
 }
 
 .status-actions button.approve {
-  color: #111;
-  background: var(--accent);
-  border-color: var(--accent);
+  color: #0b0c0e;
+  background: #9fe19b;
+  border-color: #477746;
 }
 
 .discount-form {
@@ -371,9 +373,9 @@
   min-height: 42px;
   align-items: center;
   padding: 8px 14px;
-  color: #111;
-  background: var(--accent);
-  border: 1px solid var(--accent);
+  color: #080809;
+  background: linear-gradient(180deg, #f2f3f2, #aeb4bb);
+  border: 1px solid #c9cdd2;
   font-weight: 900;
   text-decoration: none;
 }
@@ -627,14 +629,14 @@
 }
 
 .product-image-card.is-primary {
-  border-color: #8a7d12;
-  box-shadow: inset 0 0 0 1px rgba(242, 217, 0, 0.2);
+  border-color: #858b93;
+  box-shadow: inset 0 0 0 1px rgba(174, 180, 187, 0.32);
 }
 
 .product-image-card.is-primary .product-image-meta strong {
   color: #09090a;
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--metal);
+  border-color: var(--metal);
 }
 
 .image-actions {
