@@ -304,13 +304,14 @@
 
 .product-admin-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(380px, 0.48fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
 
 .product-form {
   display: grid;
+  width: 100%;
   gap: 14px;
   padding: 18px;
   background: #111214;
@@ -383,12 +384,13 @@
 
 .product-image-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 10px;
 }
 
 .product-image-card {
   display: grid;
+  min-width: 0;
   gap: 10px;
   padding: 10px;
   background: #17181b;
@@ -418,13 +420,16 @@
 
 .image-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .image-actions .ghost-button {
+  width: 100%;
+  min-width: 0;
   min-height: 36px;
   padding: 6px 8px;
+  font-size: 0.82rem;
 }
 
 .image-actions .danger {
