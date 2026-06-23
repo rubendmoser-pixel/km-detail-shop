@@ -20,7 +20,8 @@ const els = Object.fromEntries([
   "cartEmpty", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
-  "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus"
+  "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus",
+  "imageLightbox", "imageLightboxImage", "imageLightboxCaption", "closeImageLightbox", "closeImageLightboxBackdrop"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function init() {
@@ -79,6 +80,11 @@ function bindEvents() {
   els.loginForm.addEventListener("submit", submitLogin);
   els.registerForm.addEventListener("submit", submitRegistration);
   document.querySelector("#logoutButton").addEventListener("click", logout);
+  els.closeImageLightbox.addEventListener("click", closeImageLightbox);
+  els.closeImageLightboxBackdrop.addEventListener("click", closeImageLightbox);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !els.imageLightbox.hidden) closeImageLightbox();
+  });
 }
 
 async function loadSession() {
@@ -185,6 +191,9 @@ function renderProducts() {
   els.productGrid.querySelectorAll("[data-gallery-image]").forEach((button) => {
     button.addEventListener("click", () => selectProductImage(button));
   });
+  els.productGrid.querySelectorAll("[data-zoom-image]").forEach((button) => {
+    button.addEventListener("click", () => openImageLightbox(button.dataset.zoomImage, button.dataset.zoomAlt, button.dataset.zoomCaption));
+  });
 }
 
 function renderProductCard(product) {
@@ -199,8 +208,10 @@ function renderProductCard(product) {
       </button>
     `).join("")}
   </div>` : "";
+  const mainAlt = images[0]?.altText || product.name;
+  const zoomCaption = `${product.kmCode} · ${product.name}`;
   const visual = images.length
-    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span></div><figure><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(images[0].altText || product.name)}" loading="lazy" /></figure>${gallery}</div>`
+    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span></div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" /></button></figure>${gallery}</div>`
     : `<div class="product-visual ${familyClass}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`;
   const pricing = approved ? `
     <div class="price-block">
@@ -238,11 +249,33 @@ function renderProductCard(product) {
 
 function selectProductImage(button) {
   const visual = button.closest(".product-visual");
-  const image = visual?.querySelector("figure > img");
+  const image = visual?.querySelector("figure img");
   if (!visual || !image) return;
   image.src = button.dataset.galleryImage;
   image.alt = button.dataset.galleryAlt || image.alt;
+  const zoomButton = visual.querySelector("[data-zoom-image]");
+  if (zoomButton) {
+    zoomButton.dataset.zoomImage = button.dataset.galleryImage;
+    zoomButton.dataset.zoomAlt = button.dataset.galleryAlt || image.alt;
+  }
   visual.querySelectorAll("[data-gallery-image]").forEach((item) => item.classList.toggle("active", item === button));
+}
+
+function openImageLightbox(src, alt = "", caption = "") {
+  if (!src) return;
+  els.imageLightboxImage.src = src;
+  els.imageLightboxImage.alt = alt;
+  els.imageLightboxCaption.textContent = caption || alt;
+  els.imageLightbox.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeImageLightbox() {
+  els.imageLightbox.hidden = true;
+  els.imageLightboxImage.removeAttribute("src");
+  els.imageLightboxImage.alt = "";
+  els.imageLightboxCaption.textContent = "";
+  document.body.classList.remove("modal-open");
 }
 
 function renderCart() {

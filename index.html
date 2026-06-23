@@ -13,7 +13,7 @@
     <link rel="canonical" href="https://km-detail.com/" />
     <title>KM Detail Line | Plataforma comercial</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=14" />
+    <link rel="stylesheet" href="./styles.css?v=15" />
   </head>
   <body>
     <header class="app-header">
@@ -276,8 +276,17 @@
       <p class="form-message" id="accountMessage" role="status"></p>
     </dialog>
 
+    <div class="image-lightbox" id="imageLightbox" hidden>
+      <button class="image-lightbox-backdrop" id="closeImageLightboxBackdrop" type="button" aria-label="Cerrar imagen ampliada"></button>
+      <div class="image-lightbox-panel" role="dialog" aria-modal="true" aria-label="Imagen ampliada de producto">
+        <button class="icon-button image-lightbox-close" id="closeImageLightbox" type="button" aria-label="Cerrar imagen ampliada">x</button>
+        <img id="imageLightboxImage" src="" alt="" />
+        <p id="imageLightboxCaption"></p>
+      </div>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=14" defer></script>
+    <script src="./app.js?v=15" defer></script>
   </body>
 </html>
