@@ -17,29 +17,31 @@ export function createEmailService({ db, config }) {
       FROM customers c JOIN users u ON u.id = c.user_id
       WHERE c.id = ?
     `).get(customerId);
-    if (!customer || !config.notificationEmail) return;
+    if (!customer) return;
 
-    const textBody = [
-      "Nueva solicitud de alta comercial en KM Detail Line",
-      "",
-      `Empresa: ${customer.business_name}`,
-      `CUIT: ${customer.tax_id}`,
-      `Condicion fiscal: ${customer.tax_condition}`,
-      `Tipo de cliente: ${customer.customer_type}`,
-      `Rubro: ${customer.industry}`,
-      `Ubicacion: ${customer.city}, ${customer.province}`,
-      `Contacto: ${customer.contact_person}`,
-      `Email: ${customer.email}`,
-      `Telefono: ${customer.phone}`,
-      `WhatsApp: ${customer.whatsapp}`,
-      "",
-      "Estado: pendiente de aprobacion"
-    ].join("\n");
+    if (config.notificationEmail) {
+      const textBody = [
+        "Nueva solicitud de alta comercial en KM Detail Line",
+        "",
+        `Empresa: ${customer.business_name}`,
+        `CUIT: ${customer.tax_id}`,
+        `Condicion fiscal: ${customer.tax_condition}`,
+        `Tipo de cliente: ${customer.customer_type}`,
+        `Rubro: ${customer.industry}`,
+        `Ubicacion: ${customer.city}, ${customer.province}`,
+        `Contacto: ${customer.contact_person}`,
+        `Email: ${customer.email}`,
+        `Telefono: ${customer.phone}`,
+        `WhatsApp: ${customer.whatsapp}`,
+        "",
+        "Estado: pendiente de aprobacion"
+      ].join("\n");
 
-    db.prepare(`
-      INSERT INTO email_outbox (event_type, recipient, subject, text_body)
-      VALUES ('customer_registration', ?, ?, ?)
-    `).run(config.notificationEmail, `Nueva alta comercial: ${customer.business_name}`, textBody);
+      db.prepare(`
+        INSERT INTO email_outbox (event_type, recipient, subject, text_body)
+        VALUES ('customer_registration', ?, ?, ?)
+      `).run(config.notificationEmail, `Nueva alta comercial: ${customer.business_name}`, textBody);
+    }
 
     const welcomeBody = [
       `Hola ${customer.contact_person},`,
@@ -158,5 +160,37 @@ export function createEmailService({ db, config }) {
     return { messageId: result.messageId, accepted: result.accepted, rejected: result.rejected };
   }
 
-  return { enabled, queueCustomerRegistration, queueCustomerStatus, queuePasswordReset, flush, verify, sendTest };
+  function listOutbox(limit = 50) {
+    const boundedLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    return db.prepare(`
+      SELECT id, event_type, recipient, subject, status, attempts, last_error,
+             created_at, updated_at, sent_at
+      FROM email_outbox
+      ORDER BY created_at DESC
+      LIMIT ?
+    `).all(boundedLimit);
+  }
+
+  function summarizeOutbox() {
+    return db.prepare(`
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+        SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent,
+        SUM(CASE WHEN status = 'pending' AND last_error IS NOT NULL THEN 1 ELSE 0 END) AS withErrors
+      FROM email_outbox
+    `).get();
+  }
+
+  return {
+    enabled,
+    queueCustomerRegistration,
+    queueCustomerStatus,
+    queuePasswordReset,
+    flush,
+    verify,
+    sendTest,
+    listOutbox,
+    summarizeOutbox
+  };
 }

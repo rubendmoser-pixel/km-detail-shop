@@ -1,4 +1,4 @@
-const adminState = { user: null, customers: [], orders: [], settings: null };
+const adminState = { user: null, customers: [], orders: [], settings: null, emails: [], emailSummary: null, emailEnabled: false };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
@@ -8,7 +8,7 @@ const statusLabels = {
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
-  "settingsForm", "settingsMessage", "adminToast"
+  "settingsForm", "settingsMessage", "emailStats", "emailConfigStatus", "emailsTableBody", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -30,6 +30,8 @@ function bindAdminEvents() {
   adminEls.customerStatusFilter.addEventListener("change", loadCustomers);
   document.querySelector("#reloadCustomers").addEventListener("click", loadCustomers);
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
+  document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
+  document.querySelector("#flushEmails").addEventListener("click", flushEmails);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
 }
 
@@ -58,7 +60,7 @@ async function enterWorkspace() {
   adminEls.adminWorkspace.hidden = false;
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
-  await Promise.all([loadCustomers(), loadOrders(), loadSettings()]);
+  await Promise.all([loadCustomers(), loadOrders(), loadSettings(), loadEmails()]);
 }
 
 async function logoutAdmin() {
@@ -174,6 +176,54 @@ async function loadSettings() {
   form.vatPercent.value = settings.vatBps / 100;
   form.whatsappNumber.value = settings.whatsappNumber;
   for (const key of ["bankName", "accountHolder", "taxId", "cbu", "alias", "accountType", "instructions"]) form[key].value = settings.bank[key] || "";
+}
+
+async function loadEmails() {
+  const { enabled, summary, emails } = await adminApi("/api/admin/emails");
+  adminState.emailEnabled = Boolean(enabled);
+  adminState.emailSummary = summary;
+  adminState.emails = emails;
+  renderEmails();
+}
+
+async function flushEmails() {
+  const button = document.querySelector("#flushEmails");
+  button.disabled = true;
+  try {
+    const { result, summary, emails } = await adminApi("/api/admin/emails/flush", { method: "POST" });
+    adminState.emailSummary = summary;
+    adminState.emails = emails;
+    renderEmails();
+    showAdminToast(result.enabled ? `Emails enviados: ${result.sent}.` : "SMTP no esta configurado en el servidor.");
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderEmails() {
+  const summary = adminState.emailSummary || {};
+  adminEls.emailStats.innerHTML = [
+    ["Total", summary.total || 0],
+    ["Pendientes", summary.pending || 0],
+    ["Enviados", summary.sent || 0],
+    ["Con error", summary.withErrors || 0]
+  ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
+  adminEls.emailConfigStatus.textContent = adminState.emailEnabled
+    ? "SMTP configurado. Los envios pendientes se procesan automaticamente y tambien se pueden reintentar desde este panel."
+    : "SMTP no esta configurado en el servidor. Los emails quedaran en cola hasta cargar las variables de correo.";
+  adminEls.emailsTableBody.innerHTML = adminState.emails.length ? adminState.emails.map((email) => `
+    <tr>
+      <td>${formatDate(email.created_at)}</td>
+      <td>${escapeAdmin(email.event_type)}</td>
+      <td>${escapeAdmin(email.recipient)}</td>
+      <td>${escapeAdmin(email.subject)}</td>
+      <td><span class="status-badge ${email.status}">${email.status === "sent" ? "Enviado" : "Pendiente"}</span></td>
+      <td>${email.attempts}</td>
+      <td class="email-error">${escapeAdmin(email.last_error || "")}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="7">Todavia no hay emails registrados.</td></tr>`;
 }
 
 async function saveSettings(event) {

@@ -192,6 +192,7 @@
 }
 
 .status-badge.approved { color: #9fe19b; border-color: #477746; }
+.status-badge.sent { color: #9fe19b; border-color: #477746; }
 .status-badge.pending { color: #f2d900; border-color: #766d22; }
 .status-badge.rejected,
 .status-badge.suspended { color: #ee9797; border-color: #794242; }
@@ -282,6 +283,23 @@
   color: #a7a9ae;
   font-size: 0.72rem;
   text-transform: uppercase;
+}
+
+.email-table td {
+  vertical-align: top;
+}
+
+.email-error {
+  max-width: 420px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: #ee9797;
+}
+
+.admin-note {
+  margin: -10px 0 18px;
+  color: #a7a9ae;
+  font-size: 0.92rem;
 }
 
 .settings-form {

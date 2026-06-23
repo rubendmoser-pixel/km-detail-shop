@@ -35,6 +35,7 @@
           <button class="active" type="button" data-admin-view="customers">Clientes</button>
           <button type="button" data-admin-view="orders">Pedidos</button>
           <button type="button" data-admin-view="settings">Configuracion</button>
+          <button type="button" data-admin-view="emails">Emails</button>
         </nav>
 
         <section class="admin-view" id="customersView">
@@ -73,6 +74,19 @@
             <button class="primary-button" type="submit">Guardar configuracion</button>
             <p class="form-message" id="settingsMessage" role="status"></p>
           </form>
+        </section>
+
+        <section class="admin-view" id="emailsView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Correo transaccional</p><h1>Bandeja de envios</h1></div>
+            <div class="admin-toolbar">
+              <button class="ghost-button" id="flushEmails" type="button">Reintentar pendientes</button>
+              <button class="ghost-button" id="reloadEmails" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="admin-stats" id="emailStats"></div>
+          <p class="admin-note" id="emailConfigStatus"></p>
+          <div class="orders-table-wrap"><table class="admin-table email-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Destinatario</th><th>Asunto</th><th>Estado</th><th>Intentos</th><th>Ultimo error</th></tr></thead><tbody id="emailsTableBody"></tbody></table></div>
         </section>
       </div>
     </main>

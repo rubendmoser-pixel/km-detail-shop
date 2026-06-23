@@ -69,6 +69,14 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(reusedResetResponse.status, 400);
 
   const adminCookie = await loginCookie(baseUrl, "admin@km-detail.com", "secure-admin-password");
+  const emailsResponse = await getJson(`${baseUrl}/api/admin/emails`, adminCookie);
+  assert.equal(emailsResponse.enabled, false);
+  assert.equal(emailsResponse.summary.pending, 3);
+  assert.equal(emailsResponse.emails.length, 3);
+  assert.equal((await fetch(`${baseUrl}/api/admin/emails/flush`, {
+    method: "POST", headers: jsonHeaders(adminCookie)
+  })).status, 200);
+
   const productResponse = await fetch(`${baseUrl}/api/admin/products`, {
     method: "POST",
     headers: jsonHeaders(adminCookie),
@@ -117,6 +125,36 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(orderPayload.order.subtotalNetCents, 100_800);
   assert.equal(orderPayload.order.vatCents, 21_168);
   assert.match(orderPayload.order.orderNumber, /^KM-\d{4}-\d{6}$/);
+});
+
+test("customer welcome email does not depend on internal notification email", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-welcome-${Date.now()}.sqlite`);
+  const config = {
+    sessionDays: 30,
+    secureCookies: false,
+    notificationEmail: "",
+    publicBaseUrl: baseUrlPlaceholder()
+  };
+  const db = await openDatabase({ databasePath });
+  const server = http.createServer(createApp({ db, config }));
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const response = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(customerRegistration())
+  });
+  assert.equal(response.status, 201);
+  const outbox = db.prepare("SELECT event_type, recipient FROM email_outbox ORDER BY id").all()
+    .map((row) => ({ event_type: row.event_type, recipient: row.recipient }));
+  assert.deepEqual(outbox, [{ event_type: "customer_welcome", recipient: "cliente-api@example.com" }]);
 });
 
 async function loginCookie(baseUrl, email, password) {

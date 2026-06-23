@@ -116,6 +116,21 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         const settings = updateCommercialSettings(db, await readJson(request), currentUser.id);
         return sendJson(response, 200, { settings });
       }
+      if (request.method === "GET" && url.pathname === "/api/admin/emails") {
+        return sendJson(response, 200, {
+          enabled: emailService.enabled,
+          summary: emailService.summarizeOutbox(),
+          emails: emailService.listOutbox(Number(url.searchParams.get("limit") || 50))
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/emails/flush") {
+        const result = await emailService.flush();
+        return sendJson(response, 200, {
+          result,
+          summary: emailService.summarizeOutbox(),
+          emails: emailService.listOutbox(50)
+        });
+      }
 
       if (url.pathname.startsWith("/api/")) return sendJson(response, 404, { error: "API route not found" });
       if (request.method === "GET" && serveStatic(response, projectRoot, url.pathname)) return;
