@@ -119,6 +119,7 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       if (request.method === "GET" && url.pathname === "/api/admin/emails") {
         return sendJson(response, 200, {
           enabled: emailService.enabled,
+          provider: emailService.provider,
           summary: emailService.summarizeOutbox(),
           emails: emailService.listOutbox(Number(url.searchParams.get("limit") || 50))
         });

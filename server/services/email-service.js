@@ -1,8 +1,11 @@
 import nodemailer from "nodemailer";
 
 export function createEmailService({ db, config }) {
-  const enabled = Boolean(config.smtpUser && config.smtpPassword);
-  const transporter = enabled ? nodemailer.createTransport({
+  const provider = config.emailProvider === "resend" ? "resend" : "smtp";
+  const enabled = provider === "resend"
+    ? Boolean(config.resendApiKey && config.resendFrom)
+    : Boolean(config.smtpUser && config.smtpPassword);
+  const transporter = provider === "smtp" && enabled ? nodemailer.createTransport({
     host: config.smtpHost,
     port: config.smtpPort,
     secure: config.smtpSecure,
@@ -112,12 +115,7 @@ export function createEmailService({ db, config }) {
       `).all();
       for (const message of messages) {
         try {
-          await transporter.sendMail({
-            from: `KM Detail Line <${config.smtpUser}>`,
-            to: message.recipient,
-            subject: message.subject,
-            text: message.text_body
-          });
+          await sendMail(message);
           db.prepare(`
             UPDATE email_outbox SET status = 'sent', attempts = attempts + 1,
               last_error = NULL, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
@@ -139,25 +137,59 @@ export function createEmailService({ db, config }) {
 
   async function verify() {
     if (!enabled) return { enabled: false, connected: false };
-    await transporter.verify();
-    return { enabled: true, connected: true };
+    if (provider === "smtp") await transporter.verify();
+    return { enabled: true, connected: true, provider };
   }
 
   async function sendTest(recipient = config.notificationEmail) {
-    if (!enabled) throw new Error("SMTP is not configured");
+    if (!enabled) throw new Error("Email provider is not configured");
     if (!recipient) throw new Error("Test recipient is not configured");
-    const result = await transporter.sendMail({
-      from: `KM Detail Line <${config.smtpUser}>`,
-      to: recipient,
+    const result = await sendMail({
+      recipient,
       subject: "Prueba de correo | KM Detail Line",
-      text: [
+      text_body: [
         "La conexion de correo de KM Detail Line funciona correctamente.",
         "",
         `Fecha de prueba: ${new Date().toISOString()}`,
-        "Origen: plataforma comercial local"
+        `Origen: plataforma comercial (${provider})`
       ].join("\n")
     });
-    return { messageId: result.messageId, accepted: result.accepted, rejected: result.rejected };
+    return result;
+  }
+
+  async function sendMail(message) {
+    if (provider === "resend") return sendWithResend(message);
+    const result = await transporter.sendMail({
+      from: `KM Detail Line <${config.smtpUser}>`,
+      to: message.recipient,
+      subject: message.subject,
+      text: message.text_body
+    });
+    return { provider, messageId: result.messageId, accepted: result.accepted, rejected: result.rejected };
+  }
+
+  async function sendWithResend(message) {
+    const payload = {
+      from: config.resendFrom,
+      to: [message.recipient],
+      subject: message.subject,
+      text: message.text_body
+    };
+    if (config.resendReplyTo) payload.reply_to = config.resendReplyTo;
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${config.resendApiKey}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = body.message || body.error || `Resend request failed with status ${response.status}`;
+      throw new Error(message);
+    }
+    return { provider, messageId: body.id };
   }
 
   function listOutbox(limit = 50) {
@@ -184,6 +216,7 @@ export function createEmailService({ db, config }) {
 
   return {
     enabled,
+    provider,
     queueCustomerRegistration,
     queueCustomerStatus,
     queuePasswordReset,

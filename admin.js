@@ -1,4 +1,4 @@
-const adminState = { user: null, customers: [], orders: [], settings: null, emails: [], emailSummary: null, emailEnabled: false };
+const adminState = { user: null, customers: [], orders: [], settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "" };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
@@ -179,8 +179,9 @@ async function loadSettings() {
 }
 
 async function loadEmails() {
-  const { enabled, summary, emails } = await adminApi("/api/admin/emails");
+  const { enabled, provider, summary, emails } = await adminApi("/api/admin/emails");
   adminState.emailEnabled = Boolean(enabled);
+  adminState.emailProvider = provider || "";
   adminState.emailSummary = summary;
   adminState.emails = emails;
   renderEmails();
@@ -211,7 +212,7 @@ function renderEmails() {
     ["Con error", summary.withErrors || 0]
   ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
   adminEls.emailConfigStatus.textContent = adminState.emailEnabled
-    ? "SMTP configurado. Los envios pendientes se procesan automaticamente y tambien se pueden reintentar desde este panel."
+    ? `Proveedor configurado: ${adminState.emailProvider}. Los envios pendientes se procesan automaticamente y tambien se pueden reintentar desde este panel.`
     : "SMTP no esta configurado en el servidor. Los emails quedaran en cola hasta cargar las variables de correo.";
   adminEls.emailsTableBody.innerHTML = adminState.emails.length ? adminState.emails.map((email) => `
     <tr>

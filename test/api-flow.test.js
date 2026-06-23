@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { createApp } from "../server/app.js";
 import { openDatabase } from "../server/db.js";
+import { createEmailService } from "../server/services/email-service.js";
 
 test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-api-${Date.now()}.sqlite`);
@@ -155,6 +156,49 @@ test("customer welcome email does not depend on internal notification email", as
   const outbox = db.prepare("SELECT event_type, recipient FROM email_outbox ORDER BY id").all()
     .map((row) => ({ event_type: row.event_type, recipient: row.recipient }));
   assert.deepEqual(outbox, [{ event_type: "customer_welcome", recipient: "cliente-api@example.com" }]);
+});
+
+test("email service sends pending messages through Resend API", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-resend-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath });
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (url, options) => {
+    requests.push({ url, options });
+    return new Response(JSON.stringify({ id: "email_test_123" }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  };
+
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  db.prepare(`
+    INSERT INTO email_outbox (event_type, recipient, subject, text_body)
+    VALUES ('test', 'cliente@example.com', 'Asunto de prueba', 'Contenido de prueba')
+  `).run();
+  const emailService = createEmailService({
+    db,
+    config: {
+      emailProvider: "resend",
+      resendApiKey: "re_test",
+      resendFrom: "KM Detail Line <notificaciones@send.km-detail.com>",
+      resendReplyTo: "ventas@km-detail.com"
+    }
+  });
+  const result = await emailService.flush();
+  assert.deepEqual(result, { enabled: true, sent: 1 });
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, "https://api.resend.com/emails");
+  const payload = JSON.parse(requests[0].options.body);
+  assert.equal(payload.from, "KM Detail Line <notificaciones@send.km-detail.com>");
+  assert.equal(payload.reply_to, "ventas@km-detail.com");
+  assert.deepEqual(payload.to, ["cliente@example.com"]);
+  assert.equal(db.prepare("SELECT status FROM email_outbox").get().status, "sent");
 });
 
 async function loginCookie(baseUrl, email, password) {
