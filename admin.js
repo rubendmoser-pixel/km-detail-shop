@@ -275,14 +275,14 @@ function renderProductImages(errorMessage = "") {
       ? "La imagen marcada como principal se muestra primero en la tienda."
       : "Todavia no hay imagenes cargadas para este producto.";
   }
-  adminEls.productImages.innerHTML = adminState.productImages.map((image) => `
+  adminEls.productImages.innerHTML = adminState.productImages.map((image, index) => `
     <article class="product-image-card ${image.isPrimary ? "is-primary" : ""}">
       <figure class="product-image-preview">
         <img src="${escapeAdmin(image.url)}" alt="${escapeAdmin(image.altText || image.originalFilename)}" loading="lazy" />
       </figure>
-      <div>
+      <div class="product-image-meta" title="${escapeAdmin(image.originalFilename)}">
         <strong>${image.isPrimary ? "Principal" : "Galeria"}</strong>
-        <span>${escapeAdmin(image.originalFilename)}</span>
+        <span>Imagen ${index + 1}</span>
       </div>
       <div class="image-actions">
         <button class="ghost-button" type="button" data-primary-image="${image.id}" ${image.isPrimary ? "disabled" : ""}>Principal</button>
