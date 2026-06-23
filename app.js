@@ -358,13 +358,13 @@ function renderOrderResult(order) {
   els.orderResult.hidden = false;
   els.orderResult.innerHTML = `
     <h3>Pedido ${escapeHtml(order.orderNumber)}</h3>
-    <p>Precio reservado. Pedido sujeto a confirmacion de disponibilidad.</p>
+    <p>Pedido recibido. KM confirmara disponibilidad y te enviara el importe final para pago y despacho.</p>
     <dl>
       <div><dt>Subtotal neto</dt><dd>${money.format(order.subtotalNetCents / 100)}</dd></div>
       <div><dt>IVA ${formatPercent(order.vatBps)}</dt><dd>${money.format(order.vatCents / 100)}</dd></div>
       <div><dt>Total</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
     </dl>
-    ${order.bank.alias ? `<p>Transferencia: <strong>${escapeHtml(order.bank.alias)}</strong></p>` : ""}
+    <p>No realices el pago hasta recibir la confirmacion comercial de disponibilidad.</p>
     ${whatsapp ? `<p>Para agilizar la gestion, envia el resumen por WhatsApp.</p>` : ""}
     ${whatsapp}`;
 }

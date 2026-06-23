@@ -378,6 +378,7 @@
   text-decoration: none;
 }
 
+.availability-form,
 .order-status-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -386,6 +387,24 @@
   border: 1px solid #3b3d42;
 }
 
+.availability-form {
+  grid-template-columns: 1fr;
+}
+
+.availability-form .orders-table-wrap {
+  margin: -14px -14px 0;
+  border-width: 0 0 1px;
+}
+
+.availability-form input {
+  min-width: 90px;
+}
+
+.confirmed-qty-input {
+  max-width: 90px;
+}
+
+.availability-form label,
 .order-status-form label {
   display: grid;
   gap: 6px;
@@ -395,11 +414,15 @@
 }
 
 .order-status-form .wide,
+.availability-form .wide,
 .order-status-form .primary-button,
-.order-status-form .form-message {
+.availability-form .primary-button,
+.order-status-form .form-message,
+.availability-form .form-message {
   grid-column: 1 / -1;
 }
 
+.availability-form .primary-button,
 .order-status-form .primary-button {
   justify-self: start;
 }
@@ -638,6 +661,7 @@
   .customer-data,
   .discount-form,
   .order-detail-grid,
+  .availability-form,
   .order-status-form {
     grid-template-columns: 1fr 1fr;
   }

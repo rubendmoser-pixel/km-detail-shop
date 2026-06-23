@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Administracion | KM Detail Line</title>
     <link rel="stylesheet" href="./styles.css?v=7" />
-    <link rel="stylesheet" href="./admin.css?v=6" />
+    <link rel="stylesheet" href="./admin.css?v=7" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -132,10 +132,16 @@
             </div>
             <div class="order-detail-grid" id="orderDetailSummary"></div>
             <div class="order-detail-actions" id="orderDetailActions"></div>
-            <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>KM</th><th>Producto</th><th>Cantidad</th><th>Precio final</th><th>Subtotal</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
+            <form class="availability-form" id="availabilityForm">
+              <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>KM</th><th>Producto</th><th>Pedido</th><th>Disponible</th><th>Precio final</th><th>Subtotal confirmado</th><th>Nota</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
+              <label class="wide"><span>Nota para el cliente</span><textarea name="reason" rows="2" required placeholder="Ej: confirmamos disponibilidad parcial para despacho"></textarea></label>
+              <button class="primary-button" type="submit">Confirmar disponibilidad</button>
+              <p class="form-message" id="availabilityMessage" role="status"></p>
+            </form>
             <form class="order-status-form" id="orderStatusForm">
               <label><span>Estado pedido</span><select name="status">
                 <option value="order_created">Pedido creado</option>
+                <option value="availability_confirmed">Disponibilidad confirmada</option>
                 <option value="confirmed">Confirmado</option>
                 <option value="in_preparation">En preparacion</option>
                 <option value="ready">Listo</option>
@@ -189,6 +195,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=7" defer></script>
+    <script src="./admin.js?v=8" defer></script>
   </body>
 </html>

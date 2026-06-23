@@ -148,7 +148,8 @@ export function createEmailService({ db, config }) {
       `Hola ${order.contact_person},`,
       "",
       `Recibimos tu pedido ${order.order_number}.`,
-      "El precio queda reservado, sujeto a confirmacion de disponibilidad por nuestro equipo.",
+      "El pedido queda pendiente de confirmacion comercial de disponibilidad.",
+      "No realices el pago hasta recibir el importe final confirmado para despacho.",
       "",
       "Detalle:",
       ...itemLines,
@@ -175,6 +176,7 @@ export function createEmailService({ db, config }) {
     if (!order) return;
     const statusLabels = {
       order_created: "pedido creado",
+      availability_confirmed: "disponibilidad confirmada",
       confirmed: "confirmado",
       in_preparation: "en preparacion",
       ready: "listo",
@@ -198,6 +200,42 @@ export function createEmailService({ db, config }) {
       `Estado del pedido: ${status}`,
       `Estado del pago: ${paymentStatus}`,
       `Total: ${money.format(order.total_cents / 100)}`,
+      reason ? `Nota: ${reason}` : "",
+      "",
+      "Si necesitas consultar algo, podes responder este correo o comunicarte por WhatsApp.",
+      "",
+      "KM Detail Line",
+      config.publicBaseUrl
+    ].filter(Boolean).join("\n"));
+  }
+
+  function queueOrderAvailabilityConfirmed(orderId, reason = "") {
+    const order = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.id = ?
+    `).get(orderId);
+    if (!order) return;
+    const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
+    const confirmed = items.filter((item) => item.confirmed_quantity > 0);
+    const unavailable = items.filter((item) => item.confirmed_quantity === 0);
+    queue("order_availability_customer", order.email, `Disponibilidad confirmada ${order.order_number} | KM Detail Line`, [
+      `Hola ${order.contact_person},`,
+      "",
+      `Confirmamos la disponibilidad comercial de tu pedido ${order.order_number}.`,
+      "El importe final para pago y despacho corresponde solo a los articulos confirmados.",
+      "",
+      "Articulos confirmados:",
+      ...(confirmed.length ? confirmed.map((item) => (
+        `- ${item.confirmed_quantity} de ${item.quantity} x ${item.km_code} | ${item.product_name} | ${money.format(item.confirmed_subtotal_net_cents / 100)}`
+      )) : ["- No hay articulos disponibles para despacho en esta confirmacion."]),
+      unavailable.length ? "" : null,
+      unavailable.length ? "Articulos no disponibles:" : null,
+      ...unavailable.map((item) => `- ${item.quantity} x ${item.km_code} | ${item.product_name}${item.availability_note ? ` | ${item.availability_note}` : ""}`),
+      "",
+      `Subtotal neto confirmado: ${money.format(order.subtotal_net_cents / 100)}`,
+      `IVA ${(order.vat_bps / 100).toFixed(2)}%: ${money.format(order.vat_cents / 100)}`,
+      `Total a pagar: ${money.format(order.total_cents / 100)}`,
       reason ? `Nota: ${reason}` : "",
       "",
       "Si necesitas consultar algo, podes responder este correo o comunicarte por WhatsApp.",
@@ -333,6 +371,7 @@ export function createEmailService({ db, config }) {
     queuePasswordReset,
     queueOrderCreated,
     queueOrderStatusUpdated,
+    queueOrderAvailabilityConfirmed,
     flush,
     verify,
     sendTest,

@@ -169,6 +169,30 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(adminOrderDetail.order.shipping.city, "Cordoba");
   assert.equal(adminOrderDetail.order.customerWhatsapp, "5493510000000");
   assert.equal(adminOrderDetail.order.contactPerson, "Cliente API");
+  const availabilityResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/availability`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      reason: "Confirmacion parcial por disponibilidad",
+      items: [{
+        id: adminOrderDetail.order.items[0].id,
+        confirmedQuantity: 1,
+        availabilityNote: "Se despacha una unidad ahora"
+      }]
+    })
+  });
+  assert.equal(availabilityResponse.status, 200);
+  const availabilityOrder = (await availabilityResponse.json()).order;
+  assert.equal(availabilityOrder.status, "availability_confirmed");
+  assert.equal(availabilityOrder.items[0].confirmedQuantity, 1);
+  assert.equal(availabilityOrder.items[0].lineStatus, "partial");
+  assert.equal(availabilityOrder.subtotalNetCents, 50_400);
+  assert.equal(availabilityOrder.vatCents, 10_584);
+  assert.equal(availabilityOrder.totalCents, 60_984);
+  const availabilityEmail = db.prepare("SELECT recipient, subject, text_body FROM email_outbox WHERE event_type = 'order_availability_customer'").get();
+  assert.equal(availabilityEmail.recipient, "cliente-api@example.com");
+  assert.equal(availabilityEmail.subject.includes(orderPayload.order.orderNumber), true);
+  assert.match(availabilityEmail.text_body, /Total a pagar/);
   const updatedOrderResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

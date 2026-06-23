@@ -12,7 +12,7 @@ const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderItemsBody",
-  "orderStatusForm", "orderStatusMessage",
+  "availabilityForm", "availabilityMessage", "orderStatusForm", "orderStatusMessage",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
@@ -47,6 +47,7 @@ function bindAdminEvents() {
   adminEls.productImageInput.addEventListener("change", uploadProductImages);
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
   document.querySelector("#closeOrderDetail").addEventListener("click", closeOrderDetail);
+  adminEls.availabilityForm.addEventListener("submit", saveAvailability);
   adminEls.orderStatusForm.addEventListener("submit", saveOrderStatus);
   document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
@@ -458,18 +459,56 @@ function renderOrderDetail() {
     ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
     : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
   adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
-    <tr>
+    <tr data-order-item-id="${item.id}" data-unit-cents="${item.finalUnitPriceCents}">
       <td><strong>${escapeAdmin(item.kmCode)}</strong><br><span>EAN ${escapeAdmin(item.ean13)}</span></td>
-      <td>${escapeAdmin(item.productName)}</td>
+      <td>${escapeAdmin(item.productName)}${item.availabilityNote ? `<br><span>${escapeAdmin(item.availabilityNote)}</span>` : ""}</td>
       <td>${item.quantity}</td>
+      <td><input class="confirmed-qty-input" name="confirmedQuantity-${item.id}" type="number" min="0" max="${item.quantity}" step="1" value="${item.confirmedQuantity || 0}" /></td>
       <td>${adminMoney.format(item.finalUnitPriceCents / 100)}</td>
-      <td>${adminMoney.format(item.subtotalNetCents / 100)}</td>
+      <td data-confirmed-subtotal>${adminMoney.format((item.confirmedSubtotalNetCents || 0) / 100)}</td>
+      <td><input name="availabilityNote-${item.id}" value="${escapeAdmin(item.availabilityNote || "")}" placeholder="${item.confirmedQuantity ? "" : "Motivo si no disponible"}" /></td>
     </tr>
   `).join("");
+  adminEls.orderItemsBody.querySelectorAll(".confirmed-qty-input").forEach((input) => input.addEventListener("input", updateConfirmedSubtotalPreview));
+  adminEls.availabilityForm.elements.reason.value = "";
+  adminEls.availabilityMessage.textContent = "";
   adminEls.orderStatusForm.elements.status.value = order.status;
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
   adminEls.orderStatusMessage.textContent = "";
+}
+
+function updateConfirmedSubtotalPreview(event) {
+  const row = event.currentTarget.closest("[data-order-item-id]");
+  const unitCents = Number(row.dataset.unitCents || 0);
+  const quantity = Math.max(0, Number(event.currentTarget.value || 0));
+  row.querySelector("[data-confirmed-subtotal]").textContent = adminMoney.format(unitCents * quantity / 100);
+}
+
+async function saveAvailability(event) {
+  event.preventDefault();
+  if (!adminState.selectedOrder) return;
+  const values = Object.fromEntries(new FormData(adminEls.availabilityForm));
+  const items = adminState.selectedOrder.items.map((item) => ({
+    id: item.id,
+    confirmedQuantity: Number(values[`confirmedQuantity-${item.id}`] || 0),
+    availabilityNote: values[`availabilityNote-${item.id}`] || ""
+  }));
+  setBusy(adminEls.availabilityForm, true);
+  try {
+    const { order } = await adminApi(`/api/admin/orders/${adminState.selectedOrder.id}/availability`, {
+      method: "PATCH",
+      body: { items, reason: values.reason }
+    });
+    adminState.selectedOrder = order;
+    await loadOrders();
+    renderOrderDetail();
+    adminEls.availabilityMessage.textContent = "Disponibilidad confirmada y email enviado.";
+  } catch (error) {
+    adminEls.availabilityMessage.textContent = error.message;
+  } finally {
+    setBusy(adminEls.availabilityForm, false);
+  }
 }
 
 function closeOrderDetail() {
@@ -488,9 +527,9 @@ async function saveOrderStatus(event) {
       body: { status: values.status, paymentStatus: values.paymentStatus, reason: values.reason }
     });
     adminState.selectedOrder = order;
-    adminEls.orderStatusMessage.textContent = "Pedido actualizado.";
     await loadOrders();
     renderOrderDetail();
+    adminEls.orderStatusMessage.textContent = "Pedido actualizado.";
   } catch (error) {
     adminEls.orderStatusMessage.textContent = error.message;
   } finally {

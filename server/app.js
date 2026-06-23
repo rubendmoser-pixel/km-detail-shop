@@ -1,7 +1,7 @@
 import path from "node:path";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import { listCustomers, setCustomerDiscounts, setCustomerStatus } from "./services/customer-service.js";
-import { acceptModifiedOrder, createOrder, getOrder, listAdminOrders, updateOrderStatus } from "./services/order-service.js";
+import { acceptModifiedOrder, confirmOrderAvailability, createOrder, getOrder, listAdminOrders, updateOrderStatus } from "./services/order-service.js";
 import {
   addProductImage,
   deleteProductImage,
@@ -143,6 +143,13 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       }
       if (request.method === "GET" && url.pathname === "/api/admin/orders") {
         return sendJson(response, 200, { orders: listAdminOrders(db, url.searchParams.get("status") || "") });
+      }
+      match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/availability$/);
+      if (request.method === "PATCH" && match) {
+        const body = await readJson(request);
+        const order = confirmOrderAvailability(db, Number(match[1]), body, currentUser.id);
+        emailService.queueOrderAvailabilityConfirmed(order.id, body.reason);
+        return sendJson(response, 200, { order });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)$/);
       if (request.method === "GET" && match) {

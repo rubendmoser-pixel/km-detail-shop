@@ -96,6 +96,49 @@ export function updateOrderStatus(db, orderId, input, adminUserId) {
   return getOrder(db, orderId, null, true);
 }
 
+export function confirmOrderAvailability(db, orderId, input, adminUserId) {
+  const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
+  if (!order) throw new NotFoundError("Order not found");
+  if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("items are required");
+  const reason = requiredText(input.reason, "reason", { min: 3, max: 1000 });
+
+  return transaction(db, () => {
+    const currentItems = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
+    const currentById = new Map(currentItems.map((item) => [item.id, item]));
+    const updateItem = db.prepare(`
+      UPDATE order_items SET confirmed_quantity = ?, confirmed_subtotal_net_cents = ?,
+        line_status = ?, availability_note = ?
+      WHERE id = ? AND order_id = ?
+    `);
+    let confirmedSubtotalNetCents = 0;
+    for (const itemInput of input.items) {
+      const itemId = positiveInteger(itemInput.id, "items[].id");
+      const item = currentById.get(itemId);
+      if (!item) throw new ValidationError(`Order item ${itemId} is invalid`);
+      const confirmedQuantity = normalizeConfirmedQuantity(itemInput.confirmedQuantity, item.quantity);
+      const confirmedSubtotal = item.final_unit_price_cents * confirmedQuantity;
+      const lineStatus = lineStatusFor(item.quantity, confirmedQuantity, itemInput.lineStatus);
+      const note = optionalText(itemInput.availabilityNote, "availabilityNote", { max: 500 });
+      confirmedSubtotalNetCents += confirmedSubtotal;
+      updateItem.run(confirmedQuantity, confirmedSubtotal, lineStatus, note, item.id, orderId);
+    }
+    const vatCents = Math.round(confirmedSubtotalNetCents * order.vat_bps / 10_000);
+    const totalCents = confirmedSubtotalNetCents + vatCents;
+    const newStatus = confirmedSubtotalNetCents > 0 ? "availability_confirmed" : "cancelled";
+    db.prepare(`
+      UPDATE orders SET status = ?, subtotal_net_cents = ?, vat_cents = ?, total_cents = ?,
+        modified_acceptance_required = 1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(newStatus, confirmedSubtotalNetCents, vatCents, totalCents, orderId);
+    addOrderEvent(db, orderId, adminUserId, "availability_confirmed", reason, { order, items: currentItems }, {
+      subtotalNetCents: confirmedSubtotalNetCents,
+      vatCents,
+      totalCents
+    });
+    return getOrder(db, orderId, null, true);
+  });
+}
+
 export function acceptModifiedOrder(db, orderId, customerId, userId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ? AND customer_id = ?").get(orderId, customerId);
   if (!order) throw new NotFoundError("Order not found");
@@ -129,6 +172,21 @@ function addOrderEvent(db, orderId, actorUserId, eventType, reason, before, afte
   `).run(orderId, actorUserId, eventType, reason, before ? JSON.stringify(before) : null, after ? JSON.stringify(after) : null);
 }
 
+function normalizeConfirmedQuantity(value, orderedQuantity) {
+  const quantity = Number(value);
+  if (!Number.isInteger(quantity) || quantity < 0 || quantity > orderedQuantity) {
+    throw new ValidationError("confirmedQuantity must be between 0 and ordered quantity");
+  }
+  return quantity;
+}
+
+function lineStatusFor(orderedQuantity, confirmedQuantity, requestedStatus = "") {
+  if (requestedStatus === "cancelled") return "cancelled";
+  if (confirmedQuantity === 0) return "unavailable";
+  if (confirmedQuantity < orderedQuantity) return "partial";
+  return "confirmed";
+}
+
 function mapOrder(order, items) {
   return {
     id: order.id,
@@ -160,10 +218,14 @@ function mapOrder(order, items) {
       ean13: item.ean13,
       productName: item.product_name,
       quantity: item.quantity,
+      confirmedQuantity: item.confirmed_quantity || 0,
       basePriceCents: item.base_price_cents,
       discountsBps: [item.discount_1_bps, item.discount_2_bps, item.discount_3_bps],
       finalUnitPriceCents: item.final_unit_price_cents,
-      subtotalNetCents: item.subtotal_net_cents
+      subtotalNetCents: item.subtotal_net_cents,
+      confirmedSubtotalNetCents: item.confirmed_subtotal_net_cents || 0,
+      lineStatus: item.line_status || "pending_confirmation",
+      availabilityNote: item.availability_note || ""
     }))
   };
 }

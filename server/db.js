@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -173,7 +173,12 @@ function migrate(db) {
       discount_2_bps INTEGER NOT NULL,
       discount_3_bps INTEGER NOT NULL,
       final_unit_price_cents INTEGER NOT NULL,
-      subtotal_net_cents INTEGER NOT NULL
+      subtotal_net_cents INTEGER NOT NULL,
+      confirmed_quantity INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_quantity >= 0),
+      confirmed_subtotal_net_cents INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_subtotal_net_cents >= 0),
+      line_status TEXT NOT NULL DEFAULT 'pending_confirmation'
+        CHECK (line_status IN ('pending_confirmation', 'confirmed', 'partial', 'unavailable', 'cancelled')),
+      availability_note TEXT NOT NULL DEFAULT ''
     );
 
     CREATE TABLE IF NOT EXISTS order_events (
@@ -240,7 +245,16 @@ function migrate(db) {
   `);
 
   const migration = db.prepare("SELECT version FROM schema_migrations WHERE version = ?").get(SCHEMA_VERSION);
+  ensureColumn(db, "order_items", "confirmed_quantity", "INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_quantity >= 0)");
+  ensureColumn(db, "order_items", "confirmed_subtotal_net_cents", "INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_subtotal_net_cents >= 0)");
+  ensureColumn(db, "order_items", "line_status", "TEXT NOT NULL DEFAULT 'pending_confirmation'");
+  ensureColumn(db, "order_items", "availability_note", "TEXT NOT NULL DEFAULT ''");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);
+}
+
+function ensureColumn(db, table, column, definition) {
+  const exists = db.prepare(`PRAGMA table_info(${table})`).all().some((row) => row.name === column);
+  if (!exists) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
 function seedSettings(db, whatsappNumber) {
