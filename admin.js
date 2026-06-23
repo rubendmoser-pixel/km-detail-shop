@@ -277,7 +277,9 @@ function renderProductImages(errorMessage = "") {
   }
   adminEls.productImages.innerHTML = adminState.productImages.map((image) => `
     <article class="product-image-card ${image.isPrimary ? "is-primary" : ""}">
-      <img src="${escapeAdmin(image.url)}" alt="${escapeAdmin(image.altText || image.originalFilename)}" loading="lazy" />
+      <figure class="product-image-preview">
+        <img src="${escapeAdmin(image.url)}" alt="${escapeAdmin(image.altText || image.originalFilename)}" loading="lazy" />
+      </figure>
       <div>
         <strong>${image.isPrimary ? "Principal" : "Galeria"}</strong>
         <span>${escapeAdmin(image.originalFilename)}</span>
