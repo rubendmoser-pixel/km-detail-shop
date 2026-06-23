@@ -73,6 +73,9 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(reusedResetResponse.status, 400);
 
   const adminCookie = await loginCookie(baseUrl, "admin@km-detail.com", "secure-admin-password");
+  const searchedCustomers = await getJson(`${baseUrl}/api/admin/customers?q=30-99999999-1`, adminCookie);
+  assert.equal(searchedCustomers.customers.length, 1);
+  assert.equal(searchedCustomers.customers[0].business_name, "Comercio API");
   const emailsResponse = await getJson(`${baseUrl}/api/admin/emails`, adminCookie);
   assert.equal(emailsResponse.enabled, false);
   assert.equal(emailsResponse.summary.pending, 3);

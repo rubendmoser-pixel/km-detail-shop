@@ -43,6 +43,7 @@
           <div class="admin-titlebar">
             <div><p class="eyebrow">Clientes comerciales</p><h1>Solicitudes y condiciones</h1></div>
             <div class="admin-toolbar">
+              <input id="customerSearch" type="search" placeholder="Buscar cliente, CUIT, email o WhatsApp" aria-label="Buscar clientes" />
               <select id="customerStatusFilter" aria-label="Filtrar por estado">
                 <option value="">Todos</option><option value="pending">Pendientes</option><option value="approved">Aprobados</option>
                 <option value="rejected">Rechazados</option><option value="suspended">Suspendidos</option><option value="inactive">Inactivos</option>
@@ -252,6 +253,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=12" defer></script>
+    <script src="./admin.js?v=14" defer></script>
   </body>
 </html>

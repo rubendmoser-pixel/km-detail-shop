@@ -3,6 +3,7 @@ const adminState = {
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: ""
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+const adminViews = new Set(["customers", "products", "orders", "settings", "emails"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -10,7 +11,7 @@ const statusLabels = {
 
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
-  "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
+  "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderItemsBody",
   "availabilityForm", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentMessage",
@@ -37,6 +38,8 @@ function bindAdminEvents() {
   adminEls.adminLoginForm.addEventListener("submit", loginAdmin);
   document.querySelector("#adminLogout").addEventListener("click", logoutAdmin);
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => showAdminView(button.dataset.adminView)));
+  window.addEventListener("hashchange", () => showAdminView(currentAdminView(), false));
+  adminEls.customerSearch.addEventListener("input", debounce(loadCustomers, 250));
   adminEls.customerStatusFilter.addEventListener("change", loadCustomers);
   document.querySelector("#reloadCustomers").addEventListener("click", loadCustomers);
   adminEls.productSearch.addEventListener("input", debounce(loadProducts, 250));
@@ -88,6 +91,7 @@ async function enterWorkspace() {
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
   await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails()]);
+  showAdminView(currentAdminView(), false);
   resetProductForm();
 }
 
@@ -100,14 +104,23 @@ async function logoutAdmin() {
   adminEls.adminLoginForm.reset();
 }
 
-function showAdminView(view) {
-  document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === view));
-  document.querySelectorAll(".admin-view").forEach((section) => { section.hidden = section.id !== `${view}View`; });
+function currentAdminView() {
+  const view = window.location.hash.replace("#", "");
+  return adminViews.has(view) ? view : "customers";
+}
+
+function showAdminView(view, updateHash = true) {
+  const targetView = adminViews.has(view) ? view : "customers";
+  if (updateHash && window.location.hash !== `#${targetView}`) window.location.hash = targetView;
+  document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === targetView));
+  document.querySelectorAll(".admin-view").forEach((section) => { section.hidden = section.id !== `${targetView}View`; });
 }
 
 async function loadCustomers() {
-  const status = adminEls.customerStatusFilter.value;
-  const { customers } = await adminApi(`/api/admin/customers${status ? `?status=${encodeURIComponent(status)}` : ""}`);
+  const params = new URLSearchParams();
+  if (adminEls.customerSearch.value.trim()) params.set("q", adminEls.customerSearch.value.trim());
+  if (adminEls.customerStatusFilter.value) params.set("status", adminEls.customerStatusFilter.value);
+  const { customers } = await adminApi(`/api/admin/customers${params.toString() ? `?${params}` : ""}`);
   adminState.customers = customers;
   renderCustomerStats();
   renderCustomers();

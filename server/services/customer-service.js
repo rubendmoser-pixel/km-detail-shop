@@ -2,15 +2,29 @@ import { NotFoundError, ValidationError, basisPoints } from "../domain/validatio
 
 const ALLOWED_STATUSES = new Set(["pending", "approved", "rejected", "suspended", "inactive"]);
 
-export function listCustomers(db, status = "") {
-  const where = status ? "WHERE c.approval_status = ?" : "";
-  const params = status ? [status] : [];
+export function listCustomers(db, filters = "") {
+  const status = typeof filters === "object" ? filters.status || "" : filters;
+  const search = typeof filters === "object" ? String(filters.search || "").trim() : "";
+  const where = [];
+  const params = [];
+  if (status) {
+    where.push("c.approval_status = ?");
+    params.push(status);
+  }
+  if (search) {
+    where.push(`(
+      c.business_name LIKE ? OR c.contact_person LIKE ? OR c.tax_id LIKE ? OR
+      c.phone LIKE ? OR c.whatsapp LIKE ? OR c.city LIKE ? OR c.province LIKE ? OR u.email LIKE ?
+    )`);
+    params.push(...Array(8).fill(`%${search}%`));
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   return db.prepare(`
     SELECT c.*, u.email, d.discount_1_bps, d.discount_2_bps, d.discount_3_bps
     FROM customers c
     JOIN users u ON u.id = c.user_id
     JOIN customer_discounts d ON d.customer_id = c.id
-    ${where}
+    ${whereSql}
     ORDER BY c.created_at DESC
   `).all(...params);
 }

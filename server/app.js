@@ -118,7 +118,12 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       if (url.pathname.startsWith("/api/admin/")) requireAdmin(currentUser);
 
       if (request.method === "GET" && url.pathname === "/api/admin/customers") {
-        return sendJson(response, 200, { customers: listCustomers(db, url.searchParams.get("status") || "") });
+        return sendJson(response, 200, {
+          customers: listCustomers(db, {
+            status: url.searchParams.get("status") || "",
+            search: url.searchParams.get("q") || ""
+          })
+        });
       }
       match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/status$/);
       if (request.method === "PATCH" && match) {
