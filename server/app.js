@@ -2,9 +2,18 @@ import path from "node:path";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import { listCustomers, setCustomerDiscounts, setCustomerStatus } from "./services/customer-service.js";
 import { acceptModifiedOrder, createOrder, getOrder, listAdminOrders, updateOrderStatus } from "./services/order-service.js";
-import { listAdminProducts, listProductFamilies, listProducts, upsertProduct } from "./services/product-service.js";
+import {
+  addProductImage,
+  deleteProductImage,
+  listAdminProducts,
+  listProductFamilies,
+  listProductImages,
+  listProducts,
+  setPrimaryProductImage,
+  upsertProduct
+} from "./services/product-service.js";
 import { getCommercialSettings, getPublicSettings, updateCommercialSettings } from "./services/settings-service.js";
-import { clearSessionCookie, parseCookies, readJson, sendJson, serveStatic, sessionCookie } from "./http.js";
+import { clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
 import { createRateLimiter } from "./rate-limit.js";
 
@@ -12,6 +21,7 @@ const projectRoot = path.resolve(import.meta.dirname, "..");
 
 export function createApp({ db, config, emailService = createEmailService({ db, config }) }) {
   const checkRateLimit = createRateLimiter();
+  const uploadsPath = config.uploadsPath || path.join(projectRoot, "uploads");
   return async function app(request, response) {
     const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
     const cookies = parseCookies(request);
@@ -23,6 +33,7 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       if (request.method === "GET" && url.pathname === "/api/health") {
         return sendJson(response, 200, { status: "ok", service: "km-detail-b2b", time: new Date().toISOString() });
       }
+      if (request.method === "GET" && serveProductImage(response, uploadsPath, url.pathname)) return;
       if (request.method === "POST" && url.pathname === "/api/auth/register") {
         const result = await registerCustomer(db, await readJson(request));
         emailService.queueCustomerRegistration(result.customer.id);
@@ -109,6 +120,22 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
             search: url.searchParams.get("q") || ""
           })
         });
+      }
+      match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/images$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { images: listProductImages(db, Number(match[1])) });
+      }
+      if (request.method === "POST" && match) {
+        const image = addProductImage(db, Number(match[1]), await readJson(request, 8_500_000), uploadsPath);
+        return sendJson(response, 201, { image, images: listProductImages(db, Number(match[1])) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/images\/(\d+)\/primary$/);
+      if (request.method === "PATCH" && match) {
+        return sendJson(response, 200, { images: setPrimaryProductImage(db, Number(match[1]), Number(match[2])) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/images\/(\d+)$/);
+      if (request.method === "DELETE" && match) {
+        return sendJson(response, 200, { images: deleteProductImage(db, Number(match[1]), Number(match[2]), uploadsPath) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/product-families") {
         return sendJson(response, 200, { families: listProductFamilies(db) });

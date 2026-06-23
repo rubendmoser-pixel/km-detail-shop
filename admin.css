@@ -366,6 +366,72 @@
   gap: 10px;
 }
 
+.product-gallery-fieldset {
+  grid-template-columns: 1fr;
+}
+
+.gallery-upload {
+  display: grid;
+  gap: 8px;
+}
+
+.gallery-upload p {
+  margin: 0;
+  color: #a7a9ae;
+  font-size: 0.86rem;
+}
+
+.product-image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.product-image-card {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  background: #17181b;
+  border: 1px solid #34363b;
+}
+
+.product-image-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #09090a;
+  border: 1px solid #2b2d31;
+}
+
+.product-image-card strong,
+.product-image-card span {
+  display: block;
+}
+
+.product-image-card span {
+  overflow: hidden;
+  color: #a7a9ae;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.image-actions .ghost-button {
+  min-height: 36px;
+  padding: 6px 8px;
+}
+
+.image-actions .danger {
+  color: #ee9797;
+  border-color: #794242;
+}
+
 .email-table td {
   vertical-align: top;
 }
@@ -477,6 +543,10 @@
   }
 
   .product-form fieldset {
+    grid-template-columns: 1fr;
+  }
+
+  .product-image-grid {
     grid-template-columns: 1fr;
   }
 }

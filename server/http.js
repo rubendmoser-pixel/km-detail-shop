@@ -10,6 +10,7 @@ const MIME_TYPES = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
   ".svg": "image/svg+xml"
 };
 
@@ -99,6 +100,24 @@ export function serveStatic(response, projectRoot, pathname) {
     "content-type": MIME_TYPES[path.extname(target).toLowerCase()] || "application/octet-stream",
     "content-length": content.length,
     "cache-control": requested === "/index.html" ? "no-cache" : "public, max-age=3600",
+    ...SECURITY_HEADERS
+  });
+  response.end(content);
+  return true;
+}
+
+export function serveProductImage(response, uploadsPath, pathname) {
+  const match = pathname.match(/^\/media\/products\/([A-Za-z0-9._-]+)$/);
+  if (!match) return false;
+  const productsRoot = path.resolve(uploadsPath, "products");
+  const target = path.resolve(productsRoot, match[1]);
+  if (!target.startsWith(`${productsRoot}${path.sep}`)) return false;
+  if (!fs.existsSync(target) || !fs.statSync(target).isFile()) return false;
+  const content = fs.readFileSync(target);
+  response.writeHead(200, {
+    "content-type": MIME_TYPES[path.extname(target).toLowerCase()] || "application/octet-stream",
+    "content-length": content.length,
+    "cache-control": "public, max-age=86400",
     ...SECURITY_HEADERS
   });
   response.end(content);

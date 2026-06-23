@@ -187,6 +187,9 @@ function renderProducts() {
 function renderProductCard(product) {
   const approved = isApprovedCustomer();
   const cut = product.cutLevel ? `<span class="tag yellow">Corte ${escapeHtml(product.cutLevel)}</span>` : "";
+  const visual = product.primaryImageUrl
+    ? `<div class="product-visual has-image"><img src="${escapeHtml(product.primaryImageUrl)}" alt="${escapeHtml(product.name)}" loading="lazy" /><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`
+    : `<div class="product-visual ${tagClass(product)}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`;
   const pricing = approved ? `
     <div class="price-block">
       <span>Lista neta <s>${money.format(product.basePriceCents / 100)}</s></span>
@@ -207,7 +210,7 @@ function renderProductCard(product) {
     </div>`;
   return `
     <article class="product-card">
-      <div class="product-visual ${tagClass(product)}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>
+      ${visual}
       <div class="product-body">
         <h3>${escapeHtml(product.name)}</h3>
         <p>${escapeHtml(product.family.name)} · ${escapeHtml(product.attachmentSystem || "Sin especificar")} · EAN ${escapeHtml(product.ean13)}</p>

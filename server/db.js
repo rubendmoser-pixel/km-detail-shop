@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -99,6 +99,20 @@ function migrate(db) {
       price_effective_from TEXT NOT NULL,
       active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
       web_sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS product_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      original_filename TEXT NOT NULL,
+      stored_filename TEXT NOT NULL UNIQUE,
+      mime_type TEXT NOT NULL CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+      size_bytes INTEGER NOT NULL CHECK (size_bytes > 0),
+      alt_text TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -217,6 +231,7 @@ function migrate(db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_products_family_active ON products(family_id, active);
+    CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id, sort_order, id);
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, expires_at);

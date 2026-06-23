@@ -10,11 +10,13 @@ import { createEmailService } from "../server/services/email-service.js";
 
 test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-api-${Date.now()}.sqlite`);
+  const uploadsPath = path.join(os.tmpdir(), `km-detail-api-uploads-${Date.now()}`);
   const config = {
     sessionDays: 30,
     secureCookies: false,
     notificationEmail: "ventas@km-detail.com",
-    publicBaseUrl: baseUrlPlaceholder()
+    publicBaseUrl: baseUrlPlaceholder(),
+    uploadsPath
   };
   const db = await openDatabase({ databasePath, adminEmail: "admin@km-detail.com", adminPassword: "secure-admin-password" });
   const server = http.createServer(createApp({ db, config }));
@@ -25,6 +27,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     await new Promise((resolve) => server.close(resolve));
     db.close();
     for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+    fs.rmSync(uploadsPath, { recursive: true, force: true });
   });
 
   const healthResponse = await fetch(`${baseUrl}/api/health`);
@@ -96,6 +99,23 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(adminProducts.products.length, 1);
   assert.equal(adminProducts.products[0].kmCode, "API001K");
   assert.equal(adminProducts.products[0].basePriceCents, 100_000);
+  const imageResponse = await fetch(`${baseUrl}/api/admin/products/${product.id}/images`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      originalFilename: "api-product.png",
+      mimeType: "image/png",
+      dataBase64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/axl5LkAAAAASUVORK5CYII="
+    })
+  });
+  assert.equal(imageResponse.status, 201);
+  const images = (await imageResponse.json()).images;
+  assert.equal(images.length, 1);
+  assert.equal(images[0].isPrimary, true);
+  assert.match(images[0].url, /^\/media\/products\/api001k-/);
+  const publicImageResponse = await fetch(`${baseUrl}${images[0].url}`);
+  assert.equal(publicImageResponse.status, 200);
+  assert.equal(publicImageResponse.headers.get("content-type"), "image/png");
   const adminFamilies = await getJson(`${baseUrl}/api/admin/product-families`, adminCookie);
   assert.equal(adminFamilies.families.some((family) => family.name === "Poliespumas"), true);
 
@@ -111,6 +131,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const products = await getJson(`${baseUrl}/api/products`, customerCookie);
   assert.equal(products.products[0].basePriceCents, 100_000);
   assert.equal(products.products[0].finalPriceCents, 50_400);
+  assert.equal(products.products[0].primaryImageUrl, images[0].url);
 
   const orderResponse = await fetch(`${baseUrl}/api/orders`, {
     method: "POST",

@@ -1,5 +1,5 @@
 const adminState = {
-  user: null, customers: [], products: [], families: [], selectedProductId: null,
+  user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: ""
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -12,7 +12,8 @@ const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
-  "productFormTitle", "productMessage", "familyNameOptions", "settingsForm", "settingsMessage",
+  "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
+  "productImagesNote", "settingsForm", "settingsMessage",
   "emailStats", "emailConfigStatus", "emailsTableBody", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
@@ -41,6 +42,7 @@ function bindAdminEvents() {
   document.querySelector("#newProduct").addEventListener("click", resetProductForm);
   document.querySelector("#resetProductForm").addEventListener("click", resetProductForm);
   adminEls.productForm.addEventListener("submit", saveProduct);
+  adminEls.productImageInput.addEventListener("change", uploadProductImages);
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
   document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
@@ -129,7 +131,7 @@ function renderProducts() {
       <td>${escapeAdmin(product.name)}${product.measure ? `<br><span>${escapeAdmin(product.measure)}</span>` : ""}</td>
       <td>${escapeAdmin(product.family.name)}</td>
       <td>${adminMoney.format(product.basePriceCents / 100)}</td>
-      <td><span class="status-badge ${product.active ? "approved" : "suspended"}">${product.active ? "Activo" : "Inactivo"}</span></td>
+      <td><span class="status-badge ${product.active ? "approved" : "suspended"}">${product.active ? "Activo" : "Inactivo"}</span>${product.imageCount ? `<br><span>${product.imageCount} img.</span>` : ""}</td>
       <td><button class="ghost-button row-button" type="button" data-edit-product="${product.id}">Editar</button></td>
     </tr>
   `).join("") : `<tr><td colspan="6">No hay productos para este filtro.</td></tr>`;
@@ -161,6 +163,7 @@ function editProduct(event) {
   productField("recommendedUse").value = product.recommendedUse || "";
   productField("technicalDescription").value = product.technicalDescription || "";
   adminEls.productMessage.textContent = "";
+  loadProductImages(product.id);
   adminEls.productForm.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -173,6 +176,8 @@ function resetProductForm() {
   productField("webSortOrder").value = 0;
   productField("priceEffectiveFrom").value = new Date().toISOString().slice(0, 10);
   adminEls.productMessage.textContent = "";
+  adminState.productImages = [];
+  renderProductImages();
 }
 
 async function saveProduct(event) {
@@ -208,12 +213,119 @@ async function saveProduct(event) {
     if (updated) {
       adminState.selectedProductId = updated.id;
       adminEls.productFormTitle.textContent = `Editar ${updated.kmCode}`;
+      await loadProductImages(updated.id);
     }
   } catch (error) {
     adminEls.productMessage.textContent = error.message;
   } finally {
     setBusy(adminEls.productForm, false);
   }
+}
+
+async function loadProductImages(productId) {
+  adminEls.productImagesNote.textContent = "Cargando imagenes...";
+  try {
+    const { images } = await adminApi(`/api/admin/products/${productId}/images`);
+    adminState.productImages = images;
+    renderProductImages();
+  } catch (error) {
+    adminState.productImages = [];
+    renderProductImages(error.message);
+  }
+}
+
+function renderProductImages(errorMessage = "") {
+  const hasProduct = Boolean(adminState.selectedProductId);
+  adminEls.productImageInput.disabled = !hasProduct;
+  if (!hasProduct) {
+    adminEls.productImagesNote.textContent = "Guarda o selecciona un producto para cargar imagenes.";
+    adminEls.productImages.innerHTML = "";
+    return;
+  }
+  if (errorMessage) {
+    adminEls.productImagesNote.textContent = errorMessage;
+  } else {
+    adminEls.productImagesNote.textContent = adminState.productImages.length
+      ? "La imagen marcada como principal se muestra primero en la tienda."
+      : "Todavia no hay imagenes cargadas para este producto.";
+  }
+  adminEls.productImages.innerHTML = adminState.productImages.map((image) => `
+    <article class="product-image-card">
+      <img src="${escapeAdmin(image.url)}" alt="${escapeAdmin(image.altText || image.originalFilename)}" loading="lazy" />
+      <div>
+        <strong>${image.isPrimary ? "Principal" : "Galeria"}</strong>
+        <span>${escapeAdmin(image.originalFilename)}</span>
+      </div>
+      <div class="image-actions">
+        <button class="ghost-button" type="button" data-primary-image="${image.id}" ${image.isPrimary ? "disabled" : ""}>Principal</button>
+        <button class="ghost-button danger" type="button" data-delete-image="${image.id}">Eliminar</button>
+      </div>
+    </article>
+  `).join("");
+  adminEls.productImages.querySelectorAll("[data-primary-image]").forEach((button) => button.addEventListener("click", setPrimaryProductImage));
+  adminEls.productImages.querySelectorAll("[data-delete-image]").forEach((button) => button.addEventListener("click", deleteProductImage));
+}
+
+async function uploadProductImages(event) {
+  const files = Array.from(event.currentTarget.files || []);
+  event.currentTarget.value = "";
+  if (!adminState.selectedProductId || !files.length) return;
+  adminEls.productImagesNote.textContent = `Subiendo ${files.length} imagen${files.length === 1 ? "" : "es"}...`;
+  adminEls.productImageInput.disabled = true;
+  try {
+    for (const file of files) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error(`${file.name}: formato no permitido.`);
+      if (file.size > 5 * 1024 * 1024) throw new Error(`${file.name}: maximo 5 MB.`);
+      const dataBase64 = await fileToBase64(file);
+      const { images } = await adminApi(`/api/admin/products/${adminState.selectedProductId}/images`, {
+        method: "POST",
+        body: { originalFilename: file.name, mimeType: file.type, dataBase64 }
+      });
+      adminState.productImages = images;
+    }
+    renderProductImages();
+    await loadProducts();
+    showAdminToast("Imagenes cargadas.");
+  } catch (error) {
+    renderProductImages(error.message);
+  } finally {
+    adminEls.productImageInput.disabled = false;
+  }
+}
+
+async function setPrimaryProductImage(event) {
+  const imageId = Number(event.currentTarget.dataset.primaryImage);
+  event.currentTarget.disabled = true;
+  try {
+    const { images } = await adminApi(`/api/admin/products/${adminState.selectedProductId}/images/${imageId}/primary`, { method: "PATCH" });
+    adminState.productImages = images;
+    renderProductImages();
+    await loadProducts();
+  } catch (error) {
+    renderProductImages(error.message);
+  }
+}
+
+async function deleteProductImage(event) {
+  const imageId = Number(event.currentTarget.dataset.deleteImage);
+  event.currentTarget.disabled = true;
+  try {
+    const { images } = await adminApi(`/api/admin/products/${adminState.selectedProductId}/images/${imageId}`, { method: "DELETE" });
+    adminState.productImages = images;
+    renderProductImages();
+    await loadProducts();
+  } catch (error) {
+    renderProductImages(error.message);
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result).split(",")[1] || ""));
+    reader.addEventListener("error", () => reject(new Error(`No se pudo leer ${file.name}.`)));
+    reader.readAsDataURL(file);
+  });
 }
 
 function productField(name) {

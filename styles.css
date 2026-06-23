@@ -531,11 +531,27 @@ textarea:focus {
 }
 
 .product-visual {
+  position: relative;
   display: grid;
   min-height: 118px;
   padding: 18px;
   color: #fff;
   background: linear-gradient(135deg, #22262d, #434a56);
+}
+
+.product-visual.has-image {
+  min-height: 180px;
+  padding: 12px;
+  overflow: hidden;
+  background: #111318;
+}
+
+.product-visual.has-image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .product-visual.lana {
@@ -555,6 +571,8 @@ textarea:focus {
 }
 
 .product-code {
+  position: relative;
+  z-index: 1;
   align-self: start;
   justify-self: start;
   padding: 6px 9px;

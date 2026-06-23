@@ -1,10 +1,27 @@
+import fs from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { applyDiscounts } from "../domain/pricing.js";
-import { ValidationError, optionalText, requiredText } from "../domain/validation.js";
+import { NotFoundError, ValidationError, optionalText, requiredText } from "../domain/validation.js";
+
+const IMAGE_MIME_EXTENSIONS = new Map([
+  ["image/jpeg", ".jpg"],
+  ["image/png", ".png"],
+  ["image/webp", ".webp"]
+]);
+const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export function listProducts(db, user) {
   const rows = db.prepare(`
-    SELECT p.*, f.name AS family_name, f.slug AS family_slug
+    SELECT p.*, f.name AS family_name, f.slug AS family_slug,
+           pi.stored_filename AS primary_image_filename
     FROM products p JOIN product_families f ON f.id = p.family_id
+    LEFT JOIN product_images pi ON pi.id = (
+      SELECT id FROM product_images
+      WHERE product_id = p.id
+      ORDER BY is_primary DESC, sort_order, id
+      LIMIT 1
+    )
     WHERE p.active = 1 AND f.active = 1
     ORDER BY f.sort_order, p.web_sort_order, p.name
   `).all();
@@ -51,12 +68,103 @@ export function listAdminProducts(db, filters = {}) {
            p.image_filename, p.base_price_cents, p.currency, p.price_effective_from,
            p.active, p.web_sort_order, p.created_at, p.updated_at,
            f.id AS family_id, f.name AS family_name, f.slug AS family_slug,
-           f.sort_order AS family_sort_order
+           f.sort_order AS family_sort_order,
+           pi.stored_filename AS primary_image_filename,
+           (SELECT COUNT(*) FROM product_images WHERE product_id = p.id) AS image_count
     FROM products p JOIN product_families f ON f.id = p.family_id
+    LEFT JOIN product_images pi ON pi.id = (
+      SELECT id FROM product_images
+      WHERE product_id = p.id
+      ORDER BY is_primary DESC, sort_order, id
+      LIMIT 1
+    )
     ${whereSql}
     ORDER BY f.sort_order, p.web_sort_order, p.name
     LIMIT 500
   `).all(...params).map(adminProduct);
+}
+
+export function listProductImages(db, productId) {
+  ensureProduct(db, productId);
+  return db.prepare(`
+    SELECT id, product_id, original_filename, stored_filename, mime_type, size_bytes,
+           alt_text, sort_order, is_primary, created_at, updated_at
+    FROM product_images
+    WHERE product_id = ?
+    ORDER BY is_primary DESC, sort_order, id
+  `).all(productId).map(productImage);
+}
+
+export function addProductImage(db, productId, input, uploadsPath) {
+  const product = ensureProduct(db, productId);
+  const originalFilename = requiredText(input.originalFilename, "originalFilename", { max: 180 });
+  const mimeType = requiredText(input.mimeType, "mimeType", { max: 40 }).toLowerCase();
+  const extension = IMAGE_MIME_EXTENSIONS.get(mimeType);
+  if (!extension) throw new ValidationError("mimeType must be image/jpeg, image/png or image/webp");
+  const base64 = requiredText(input.dataBase64, "dataBase64", { max: 8_000_000 }).replace(/^data:[^;]+;base64,/, "");
+  let bytes;
+  try {
+    bytes = Buffer.from(base64, "base64");
+  } catch {
+    throw new ValidationError("dataBase64 is invalid");
+  }
+  if (!bytes.length || bytes.length > MAX_PRODUCT_IMAGE_BYTES) {
+    throw new ValidationError("image must be between 1 byte and 5 MB");
+  }
+  const productsPath = path.join(uploadsPath, "products");
+  fs.mkdirSync(productsPath, { recursive: true });
+  const storedFilename = `${product.km_code.toLowerCase()}-${Date.now()}-${randomUUID().slice(0, 8)}${extension}`;
+  fs.writeFileSync(path.join(productsPath, storedFilename), bytes);
+
+  const imageCount = db.prepare("SELECT COUNT(*) AS count FROM product_images WHERE product_id = ?").get(productId).count;
+  const maxOrder = db.prepare("SELECT COALESCE(MAX(sort_order), -1) AS value FROM product_images WHERE product_id = ?").get(productId).value;
+  const isPrimary = imageCount === 0 ? 1 : 0;
+  if (isPrimary) db.prepare("UPDATE product_images SET is_primary = 0 WHERE product_id = ?").run(productId);
+  const row = db.prepare(`
+    INSERT INTO product_images (
+      product_id, original_filename, stored_filename, mime_type, size_bytes,
+      alt_text, sort_order, is_primary
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    RETURNING id, product_id, original_filename, stored_filename, mime_type, size_bytes,
+              alt_text, sort_order, is_primary, created_at, updated_at
+  `).get(
+    productId,
+    originalFilename,
+    storedFilename,
+    mimeType,
+    bytes.length,
+    optionalText(input.altText, "altText", { max: 180 }) || product.name,
+    Number(maxOrder) + 1,
+    isPrimary
+  );
+  return productImage(row);
+}
+
+export function setPrimaryProductImage(db, productId, imageId) {
+  ensureProductImage(db, productId, imageId);
+  db.prepare("UPDATE product_images SET is_primary = 0, updated_at = CURRENT_TIMESTAMP WHERE product_id = ?").run(productId);
+  db.prepare("UPDATE product_images SET is_primary = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(imageId);
+  return listProductImages(db, productId);
+}
+
+export function deleteProductImage(db, productId, imageId, uploadsPath) {
+  const image = ensureProductImage(db, productId, imageId);
+  db.prepare("DELETE FROM product_images WHERE id = ?").run(imageId);
+  try {
+    fs.rmSync(path.join(uploadsPath, "products", image.stored_filename), { force: true });
+  } catch {
+    // If the file is already gone, the database delete is still the source of truth.
+  }
+  const replacement = db.prepare(`
+    SELECT id FROM product_images
+    WHERE product_id = ?
+    ORDER BY sort_order, id
+    LIMIT 1
+  `).get(productId);
+  if (image.is_primary && replacement) {
+    db.prepare("UPDATE product_images SET is_primary = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(replacement.id);
+  }
+  return listProductImages(db, productId);
 }
 
 export function listProductFamilies(db) {
@@ -147,6 +255,8 @@ function adminProduct(row) {
     recommendedUse: row.recommended_use,
     technicalDescription: row.technical_description,
     imageFilename: row.image_filename,
+    primaryImageUrl: row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : "",
+    imageCount: row.image_count || 0,
     basePriceCents: row.base_price_cents,
     currency: row.currency,
     priceEffectiveFrom: row.price_effective_from,
@@ -174,8 +284,43 @@ function publicProduct(row) {
     compatibleMachine: row.compatible_machine,
     recommendedUse: row.recommended_use,
     technicalDescription: row.technical_description,
-    imageFilename: row.image_filename
+    imageFilename: row.image_filename,
+    primaryImageUrl: row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : ""
   };
+}
+
+function productImage(row) {
+  return {
+    id: row.id,
+    productId: row.product_id,
+    originalFilename: row.original_filename,
+    storedFilename: row.stored_filename,
+    url: `/media/products/${row.stored_filename}`,
+    mimeType: row.mime_type,
+    sizeBytes: row.size_bytes,
+    altText: row.alt_text,
+    sortOrder: row.sort_order,
+    isPrimary: Boolean(row.is_primary),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function ensureProduct(db, productId) {
+  const id = Number(productId);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("productId is invalid");
+  const product = db.prepare("SELECT id, km_code, name FROM products WHERE id = ?").get(id);
+  if (!product) throw new NotFoundError("Product not found");
+  return product;
+}
+
+function ensureProductImage(db, productId, imageId) {
+  ensureProduct(db, productId);
+  const id = Number(imageId);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("imageId is invalid");
+  const image = db.prepare("SELECT * FROM product_images WHERE id = ? AND product_id = ?").get(id, productId);
+  if (!image) throw new NotFoundError("Product image not found");
+  return image;
 }
 
 export function slugify(value) {
