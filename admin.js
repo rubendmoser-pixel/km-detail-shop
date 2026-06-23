@@ -12,7 +12,7 @@ const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderItemsBody",
-  "availabilityForm", "availabilityMessage", "orderStatusForm", "orderStatusMessage",
+  "availabilityForm", "availabilityMessage", "paymentReviewPanel", "orderStatusForm", "orderStatusMessage",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
@@ -472,10 +472,46 @@ function renderOrderDetail() {
   adminEls.orderItemsBody.querySelectorAll(".confirmed-qty-input").forEach((input) => input.addEventListener("input", updateConfirmedSubtotalPreview));
   adminEls.availabilityForm.elements.reason.value = "";
   adminEls.availabilityMessage.textContent = "";
+  renderPaymentReceipts(order);
   adminEls.orderStatusForm.elements.status.value = order.status;
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
   adminEls.orderStatusMessage.textContent = "";
+}
+
+function renderPaymentReceipts(order) {
+  const receipts = order.paymentReceipts || [];
+  adminEls.paymentReviewPanel.innerHTML = `
+    <div class="panel-heading"><p class="eyebrow">Pago</p><h3>Comprobantes</h3></div>
+    ${receipts.length ? receipts.map((receipt) => `
+      <article class="payment-receipt-row">
+        <div><strong>${escapeAdmin(receipt.originalFilename)}</strong><span>${escapeAdmin(receipt.status)} - ${formatDate(receipt.createdAt)}</span></div>
+        <div class="image-actions">
+          <button class="ghost-button" type="button" data-review-receipt="${receipt.id}" data-receipt-status="accepted" ${receipt.status === "accepted" ? "disabled" : ""}>Aceptar</button>
+          <button class="ghost-button danger" type="button" data-review-receipt="${receipt.id}" data-receipt-status="rejected" ${receipt.status === "rejected" ? "disabled" : ""}>Rechazar</button>
+        </div>
+      </article>
+    `).join("") : `<p class="admin-note">Todavia no hay comprobantes cargados.</p>`}
+  `;
+  adminEls.paymentReviewPanel.querySelectorAll("[data-review-receipt]").forEach((button) => button.addEventListener("click", reviewReceipt));
+}
+
+async function reviewReceipt(event) {
+  const receiptId = Number(event.currentTarget.dataset.reviewReceipt);
+  const status = event.currentTarget.dataset.receiptStatus;
+  event.currentTarget.disabled = true;
+  try {
+    const { order } = await adminApi(`/api/admin/payment-receipts/${receiptId}`, {
+      method: "PATCH",
+      body: { status, reason: status === "accepted" ? "Comprobante aceptado por administracion" : "Comprobante rechazado por administracion" }
+    });
+    adminState.selectedOrder = order;
+    await loadOrders();
+    renderOrderDetail();
+    showAdminToast(status === "accepted" ? "Pago aceptado." : "Comprobante rechazado.");
+  } catch (error) {
+    showAdminToast(error.message);
+  }
 }
 
 function updateConfirmedSubtotalPreview(event) {

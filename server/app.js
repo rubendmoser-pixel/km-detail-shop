@@ -1,7 +1,17 @@
 import path from "node:path";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import { listCustomers, setCustomerDiscounts, setCustomerStatus } from "./services/customer-service.js";
-import { acceptModifiedOrder, confirmOrderAvailability, createOrder, getOrder, listAdminOrders, updateOrderStatus } from "./services/order-service.js";
+import {
+  acceptModifiedOrder,
+  addPaymentReceipt,
+  confirmOrderAvailability,
+  createOrder,
+  getOrder,
+  listAdminOrders,
+  listCustomerOrders,
+  reviewPaymentReceipt,
+  updateOrderStatus
+} from "./services/order-service.js";
 import {
   addProductImage,
   deleteProductImage,
@@ -79,12 +89,24 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         return sendJson(response, 201, { order, availabilityNotice: "Pedido sujeto a confirmación de disponibilidad." });
       }
 
+      if (request.method === "GET" && url.pathname === "/api/orders") {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 200, { orders: listCustomerOrders(db, user.customerId) });
+      }
+
       let match = url.pathname.match(/^\/api\/orders\/(\d+)$/);
       if (request.method === "GET" && match) {
         const user = requireUser(currentUser);
         return sendJson(response, 200, {
           order: getOrder(db, Number(match[1]), user.customerId, user.role === "admin")
         });
+      }
+      match = url.pathname.match(/^\/api\/orders\/(\d+)\/payment-receipts$/);
+      if (request.method === "POST" && match) {
+        const user = requireApprovedCustomer(currentUser);
+        const order = addPaymentReceipt(db, Number(match[1]), user.customerId, user.id, await readJson(request, 12_500_000), uploadsPath);
+        emailService.queuePaymentReceiptUploaded(order.id);
+        return sendJson(response, 201, { order });
       }
       match = url.pathname.match(/^\/api\/orders\/(\d+)\/accept$/);
       if (request.method === "POST" && match) {
@@ -159,6 +181,13 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         const body = await readJson(request);
         const order = updateOrderStatus(db, Number(match[1]), body, currentUser.id);
         emailService.queueOrderStatusUpdated(order.id, body.reason);
+        return sendJson(response, 200, { order });
+      }
+      match = url.pathname.match(/^\/api\/admin\/payment-receipts\/(\d+)$/);
+      if (request.method === "PATCH" && match) {
+        const body = await readJson(request);
+        const order = reviewPaymentReceipt(db, Number(match[1]), body, currentUser.id);
+        emailService.queuePaymentReceiptReviewed(order.id, body.status, body.reason);
         return sendJson(response, 200, { order });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/settings") {

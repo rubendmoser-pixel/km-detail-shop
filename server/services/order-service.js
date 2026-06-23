@@ -1,8 +1,18 @@
+import fs from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { calculateLine, calculateOrderTotals } from "../domain/pricing.js";
 import { NotFoundError, ValidationError, optionalText, positiveInteger, requiredText } from "../domain/validation.js";
 import { transaction } from "../db.js";
 import { getCustomerPricingContext } from "./customer-service.js";
 import { getCommercialSettings } from "./settings-service.js";
+
+const RECEIPT_MIME_EXTENSIONS = new Map([
+  ["application/pdf", ".pdf"],
+  ["image/jpeg", ".jpg"],
+  ["image/png", ".png"]
+]);
+const MAX_RECEIPT_BYTES = 8 * 1024 * 1024;
 
 export function createOrder(db, customerId, input) {
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("Order requires at least one item");
@@ -68,7 +78,22 @@ export function getOrder(db, orderId, customerId = null, isAdmin = false) {
   `).get(orderId);
   if (!order || (!isAdmin && order.customer_id !== customerId)) throw new NotFoundError("Order not found");
   const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
-  return mapOrder(order, items);
+  const receipts = db.prepare("SELECT * FROM payment_receipts WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(orderId);
+  return mapOrder(order, items, receipts);
+}
+
+export function listCustomerOrders(db, customerId) {
+  return db.prepare(`
+    SELECT o.*, c.business_name, c.contact_person, c.whatsapp, u.email
+    FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+    WHERE o.customer_id = ?
+    ORDER BY o.created_at DESC
+    LIMIT 25
+  `).all(customerId).map((order) => {
+    const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(order.id);
+    const receipts = db.prepare("SELECT * FROM payment_receipts WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(order.id);
+    return mapOrder(order, items, receipts);
+  });
 }
 
 export function listAdminOrders(db, status = "") {
@@ -139,6 +164,46 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
   });
 }
 
+export function addPaymentReceipt(db, orderId, customerId, userId, input, uploadsPath) {
+  const order = db.prepare("SELECT * FROM orders WHERE id = ? AND customer_id = ?").get(orderId, customerId);
+  if (!order) throw new NotFoundError("Order not found");
+  if (!["availability_confirmed", "confirmed"].includes(order.status)) {
+    throw new ValidationError("Order availability must be confirmed before uploading a receipt");
+  }
+  const originalFilename = requiredText(input.originalFilename, "originalFilename", { max: 180 });
+  const mimeType = requiredText(input.mimeType, "mimeType", { max: 40 }).toLowerCase();
+  const extension = RECEIPT_MIME_EXTENSIONS.get(mimeType);
+  if (!extension) throw new ValidationError("mimeType must be application/pdf, image/jpeg or image/png");
+  const base64 = requiredText(input.dataBase64, "dataBase64", { max: 12_000_000 }).replace(/^data:[^;]+;base64,/, "");
+  const bytes = Buffer.from(base64, "base64");
+  if (!bytes.length || bytes.length > MAX_RECEIPT_BYTES) throw new ValidationError("receipt must be between 1 byte and 8 MB");
+  const receiptsPath = path.join(uploadsPath, "receipts");
+  fs.mkdirSync(receiptsPath, { recursive: true });
+  const storedFilename = `${order.order_number.toLowerCase()}-${Date.now()}-${randomUUID().slice(0, 8)}${extension}`;
+  fs.writeFileSync(path.join(receiptsPath, storedFilename), bytes);
+  const receipt = db.prepare(`
+    INSERT INTO payment_receipts (order_id, uploaded_by, original_filename, stored_filename, mime_type, size_bytes)
+    VALUES (?, ?, ?, ?, ?, ?)
+    RETURNING *
+  `).get(orderId, userId, originalFilename, storedFilename, mimeType, bytes.length);
+  db.prepare("UPDATE orders SET payment_status = 'receipt_uploaded', payment_method = 'bank_transfer', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(orderId);
+  addOrderEvent(db, orderId, userId, "payment_receipt_uploaded", "", null, { receiptId: receipt.id });
+  return getOrder(db, orderId, customerId, false);
+}
+
+export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
+  const receipt = db.prepare("SELECT * FROM payment_receipts WHERE id = ?").get(receiptId);
+  if (!receipt) throw new NotFoundError("Payment receipt not found");
+  const status = requiredText(input.status, "status", { max: 30 });
+  if (!["accepted", "rejected"].includes(status)) throw new ValidationError("status must be accepted or rejected");
+  const reason = optionalText(input.reason, "reason", { max: 1000 });
+  db.prepare("UPDATE payment_receipts SET status = ? WHERE id = ?").run(status, receiptId);
+  const paymentStatus = status === "accepted" ? "paid" : "rejected";
+  db.prepare("UPDATE orders SET payment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(paymentStatus, receipt.order_id);
+  addOrderEvent(db, receipt.order_id, adminUserId, "payment_receipt_reviewed", reason, receipt, { status });
+  return getOrder(db, receipt.order_id, null, true);
+}
+
 export function acceptModifiedOrder(db, orderId, customerId, userId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ? AND customer_id = ?").get(orderId, customerId);
   if (!order) throw new NotFoundError("Order not found");
@@ -187,7 +252,7 @@ function lineStatusFor(orderedQuantity, confirmedQuantity, requestedStatus = "")
   return "confirmed";
 }
 
-function mapOrder(order, items) {
+function mapOrder(order, items, receipts = []) {
   return {
     id: order.id,
     orderNumber: order.order_number,
@@ -198,6 +263,7 @@ function mapOrder(order, items) {
     email: order.email,
     status: order.status,
     paymentStatus: order.payment_status,
+    paymentMethod: order.payment_method || "bank_transfer",
     currency: order.currency,
     discountsBps: [order.discount_1_bps, order.discount_2_bps, order.discount_3_bps],
     subtotalNetCents: order.subtotal_net_cents,
@@ -211,6 +277,14 @@ function mapOrder(order, items) {
     modifiedAcceptanceRequired: Boolean(order.modified_acceptance_required),
     createdAt: order.created_at,
     updatedAt: order.updated_at,
+    paymentReceipts: receipts.map((receipt) => ({
+      id: receipt.id,
+      originalFilename: receipt.original_filename,
+      mimeType: receipt.mime_type,
+      sizeBytes: receipt.size_bytes,
+      status: receipt.status,
+      createdAt: receipt.created_at
+    })),
     items: items.map((item) => ({
       id: item.id,
       productId: item.product_id,

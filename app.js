@@ -4,6 +4,7 @@ const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS
 const state = {
   products: [],
   user: null,
+  orders: [],
   settings: { vatBps: 2100, whatsappNumber: "" },
   category: "Todos",
   search: "",
@@ -17,7 +18,7 @@ const els = Object.fromEntries([
   "categoryFilters", "cutFilter", "sizeFilter", "searchInput", "sortSelect", "productGrid",
   "resultCount", "productTotal", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
   "cartEmpty", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
-  "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "openAccount",
+  "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
   "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
@@ -26,6 +27,7 @@ async function init() {
   bindEvents();
   await Promise.all([loadSession(), loadSettings()]);
   await loadProducts();
+  if (isApprovedCustomer()) await loadCustomerOrders();
   renderAll();
 
   if ("serviceWorker" in navigator) {
@@ -113,6 +115,7 @@ function renderAll() {
   renderSelectOptions();
   renderProducts();
   renderCart();
+  renderCustomerOrders();
 }
 
 function renderAccountState() {
@@ -286,6 +289,7 @@ async function submitLogin(event) {
   try {
     state.user = (await api("/api/auth/login", { method: "POST", body: values })).user;
     await loadProducts();
+    await loadCustomerOrders();
     els.accountDialog.close();
     renderAll();
     showToast(`Bienvenido, ${state.user.businessName || state.user.email}.`);
@@ -307,6 +311,7 @@ async function submitRegistration(event) {
     await api("/api/auth/register", { method: "POST", body: values });
     state.user = (await api("/api/auth/login", { method: "POST", body: { email: values.email, password: values.password } })).user;
     await loadProducts();
+    await loadCustomerOrders();
     els.registerForm.reset();
     els.accountDialog.close();
     renderAll();
@@ -321,6 +326,7 @@ async function submitRegistration(event) {
 async function logout() {
   await api("/api/auth/logout", { method: "POST" });
   state.user = null;
+  state.orders = [];
   clearCart();
   await loadProducts();
   els.accountDialog.close();
@@ -343,11 +349,25 @@ async function submitOrder(event) {
     saveCart();
     renderCart();
     renderOrderResult(result.order);
+    await loadCustomerOrders();
+    renderCustomerOrders();
     showToast(`Pedido ${result.order.orderNumber} confirmado.`);
   } catch (error) {
     showToast(error.message);
   } finally {
     setFormBusy(els.orderForm, false);
+  }
+}
+
+async function loadCustomerOrders() {
+  if (!isApprovedCustomer()) {
+    state.orders = [];
+    return;
+  }
+  try {
+    state.orders = (await api("/api/orders")).orders;
+  } catch {
+    state.orders = [];
   }
 }
 
@@ -369,6 +389,64 @@ function renderOrderResult(order) {
     ${whatsapp}`;
 }
 
+function renderCustomerOrders() {
+  const approved = isApprovedCustomer();
+  els.customerOrders.hidden = !approved;
+  if (!approved) {
+    els.customerOrders.innerHTML = "";
+    return;
+  }
+  const payableOrders = state.orders.filter((order) => ["availability_confirmed", "confirmed"].includes(order.status));
+  els.customerOrders.innerHTML = `
+    <div class="section-title compact"><p class="eyebrow">Pagos</p><h3>Mis pedidos pendientes</h3></div>
+    ${payableOrders.length ? payableOrders.map(renderCustomerOrder).join("") : `<p class="muted">Todavia no hay pedidos confirmados para pago.</p>`}
+  `;
+  els.customerOrders.querySelectorAll("[data-receipt-input]").forEach((input) => input.addEventListener("change", uploadReceipt));
+}
+
+function renderCustomerOrder(order) {
+  const latestReceipt = order.paymentReceipts?.[0];
+  const canUpload = order.paymentStatus !== "paid";
+  const bank = order.bank || {};
+  return `
+    <article class="customer-order-card">
+      <div>
+        <strong>${escapeHtml(order.orderNumber)}</strong>
+        <span>${escapeHtml(order.status)} / ${escapeHtml(order.paymentStatus)}</span>
+      </div>
+      <dl>
+        <div><dt>Total confirmado</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
+        <div><dt>Alias</dt><dd>${escapeHtml(bank.alias || "-")}</dd></div>
+        <div><dt>CBU</dt><dd>${escapeHtml(bank.cbu || "-")}</dd></div>
+      </dl>
+      ${bank.instructions ? `<p>${escapeHtml(bank.instructions)}</p>` : ""}
+      ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(latestReceipt.status)})</p>` : ""}
+      ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : `<p>Pago acreditado.</p>`}
+    </article>
+  `;
+}
+
+async function uploadReceipt(event) {
+  const file = event.currentTarget.files?.[0];
+  const orderId = Number(event.currentTarget.dataset.receiptInput);
+  event.currentTarget.value = "";
+  if (!file || !orderId) return;
+  if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) return showToast("Formato no permitido. Usa PDF, JPG o PNG.");
+  if (file.size > 8 * 1024 * 1024) return showToast("El comprobante no puede superar 8 MB.");
+  try {
+    const dataBase64 = await fileToBase64(file);
+    await api(`/api/orders/${orderId}/payment-receipts`, {
+      method: "POST",
+      body: { originalFilename: file.name, mimeType: file.type, dataBase64 }
+    });
+    showToast("Comprobante cargado. KM lo revisara.");
+    await loadCustomerOrders();
+    renderCustomerOrders();
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
 function copyOrderSummary() {
   const text = cartSummary();
   if (!text) return showToast("Agrega productos para copiar el resumen.");
@@ -387,6 +465,15 @@ function cartSummary() {
     ...lines.map(({ product, quantity }) => `- ${quantity} x ${product.kmCode} | ${product.name} | ${money.format(product.finalPriceCents * quantity / 100)}`),
     "", `Subtotal neto: ${money.format(subtotal / 100)}`, `IVA ${formatPercent(state.settings.vatBps)}: ${money.format(vat / 100)}`,
     `Total: ${money.format((subtotal + vat) / 100)}`].join("\n");
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result).split(",")[1] || ""));
+    reader.addEventListener("error", () => reject(new Error(`No se pudo leer ${file.name}.`)));
+    reader.readAsDataURL(file);
+  });
 }
 
 function orderSummary(order) {

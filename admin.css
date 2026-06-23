@@ -378,6 +378,38 @@
   text-decoration: none;
 }
 
+.payment-review-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #3b3d42;
+}
+
+.panel-heading h3 {
+  margin: 0;
+}
+
+.payment-receipt-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: #17181b;
+  border: 1px solid #34363b;
+}
+
+.payment-receipt-row strong,
+.payment-receipt-row span {
+  display: block;
+}
+
+.payment-receipt-row span {
+  margin-top: 4px;
+  color: #a7a9ae;
+  font-size: 0.8rem;
+}
+
 .availability-form,
 .order-status-form {
   display: grid;

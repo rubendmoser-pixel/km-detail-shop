@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -143,6 +143,7 @@ function migrate(db) {
       customer_id INTEGER NOT NULL REFERENCES customers(id),
       status TEXT NOT NULL DEFAULT 'order_created',
       payment_status TEXT NOT NULL DEFAULT 'pending_payment',
+      payment_method TEXT NOT NULL DEFAULT 'bank_transfer' CHECK (payment_method IN ('bank_transfer', 'mercadopago')),
       currency TEXT NOT NULL DEFAULT 'ARS' CHECK (currency = 'ARS'),
       discount_1_bps INTEGER NOT NULL,
       discount_2_bps INTEGER NOT NULL,
@@ -249,6 +250,7 @@ function migrate(db) {
   ensureColumn(db, "order_items", "confirmed_subtotal_net_cents", "INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_subtotal_net_cents >= 0)");
   ensureColumn(db, "order_items", "line_status", "TEXT NOT NULL DEFAULT 'pending_confirmation'");
   ensureColumn(db, "order_items", "availability_note", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "payment_method", "TEXT NOT NULL DEFAULT 'bank_transfer'");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);
 }
 

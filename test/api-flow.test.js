@@ -193,6 +193,36 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(availabilityEmail.recipient, "cliente-api@example.com");
   assert.equal(availabilityEmail.subject.includes(orderPayload.order.orderNumber), true);
   assert.match(availabilityEmail.text_body, /Total a pagar/);
+  const customerOrders = await getJson(`${baseUrl}/api/orders`, customerCookie);
+  assert.equal(customerOrders.orders[0].id, orderPayload.order.id);
+  assert.equal(customerOrders.orders[0].paymentMethod, "bank_transfer");
+  const receiptResponse = await fetch(`${baseUrl}/api/orders/${orderPayload.order.id}/payment-receipts`, {
+    method: "POST",
+    headers: jsonHeaders(customerCookie),
+    body: JSON.stringify({
+      originalFilename: "comprobante.png",
+      mimeType: "image/png",
+      dataBase64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/axl5LkAAAAASUVORK5CYII="
+    })
+  });
+  assert.equal(receiptResponse.status, 201);
+  const receiptOrder = (await receiptResponse.json()).order;
+  assert.equal(receiptOrder.paymentStatus, "receipt_uploaded");
+  assert.equal(receiptOrder.paymentReceipts[0].status, "received");
+  const receiptId = receiptOrder.paymentReceipts[0].id;
+  const receiptEmail = db.prepare("SELECT recipient FROM email_outbox WHERE event_type = 'payment_receipt_internal'").get();
+  assert.equal(receiptEmail.recipient, "ventas@km-detail.com");
+  const reviewReceiptResponse = await fetch(`${baseUrl}/api/admin/payment-receipts/${receiptId}`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({ status: "accepted", reason: "Pago acreditado" })
+  });
+  assert.equal(reviewReceiptResponse.status, 200);
+  const paidOrder = (await reviewReceiptResponse.json()).order;
+  assert.equal(paidOrder.paymentStatus, "paid");
+  assert.equal(paidOrder.paymentReceipts[0].status, "accepted");
+  const receiptCustomerEmail = db.prepare("SELECT recipient FROM email_outbox WHERE event_type = 'payment_receipt_customer'").get();
+  assert.equal(receiptCustomerEmail.recipient, "cliente-api@example.com");
   const updatedOrderResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

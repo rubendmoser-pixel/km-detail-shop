@@ -761,6 +761,56 @@ textarea:focus {
   margin: 0;
 }
 
+.customer-orders {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.section-title.compact {
+  margin-bottom: 0;
+}
+
+.customer-order-card {
+  display: grid;
+  max-width: 900px;
+  gap: 12px;
+  padding: 16px;
+  background: #111214;
+  border: 1px solid #3c3e43;
+}
+
+.customer-order-card > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.customer-order-card span,
+.customer-order-card p {
+  color: var(--muted);
+}
+
+.customer-order-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: #34363b;
+}
+
+.customer-order-card dl div {
+  padding: 10px;
+  background: #181a1e;
+}
+
+.receipt-upload {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .grand-total {
   color: var(--accent);
   font-size: 1.08rem;

@@ -245,6 +245,51 @@ export function createEmailService({ db, config }) {
     ].filter(Boolean).join("\n"));
   }
 
+  function queuePaymentReceiptUploaded(orderId) {
+    if (!config.notificationEmail) return;
+    const order = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.id = ?
+    `).get(orderId);
+    if (!order) return;
+    queue("payment_receipt_internal", config.notificationEmail, `Comprobante cargado ${order.order_number} | ${order.business_name}`, [
+      `El cliente cargo un comprobante para el pedido ${order.order_number}.`,
+      "",
+      `Cliente: ${order.business_name}`,
+      `Contacto: ${order.contact_person}`,
+      `Email: ${order.email}`,
+      `Total del pedido: ${money.format(order.total_cents / 100)}`,
+      "",
+      `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
+    ].join("\n"));
+  }
+
+  function queuePaymentReceiptReviewed(orderId, status, reason = "") {
+    const order = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.id = ?
+    `).get(orderId);
+    if (!order) return;
+    const accepted = status === "accepted";
+    queue("payment_receipt_customer", order.email, `${accepted ? "Pago acreditado" : "Comprobante observado"} ${order.order_number} | KM Detail Line`, [
+      `Hola ${order.contact_person},`,
+      "",
+      accepted
+        ? `Acreditamos el pago del pedido ${order.order_number}.`
+        : `Revisamos el comprobante del pedido ${order.order_number} y necesita revision.`,
+      "",
+      `Total: ${money.format(order.total_cents / 100)}`,
+      reason ? `Nota: ${reason}` : "",
+      "",
+      accepted ? "KM continuara con la preparacion y despacho del pedido." : "Podes responder este correo o comunicarte por WhatsApp para corregirlo.",
+      "",
+      "KM Detail Line",
+      config.publicBaseUrl
+    ].filter(Boolean).join("\n"));
+  }
+
   function queue(eventType, recipient, subject, textBody) {
     if (!recipient) return;
     db.prepare(`
@@ -372,6 +417,8 @@ export function createEmailService({ db, config }) {
     queueOrderCreated,
     queueOrderStatusUpdated,
     queueOrderAvailabilityConfirmed,
+    queuePaymentReceiptUploaded,
+    queuePaymentReceiptReviewed,
     flush,
     verify,
     sendTest,
