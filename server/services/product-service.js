@@ -29,6 +29,51 @@ export function listProducts(db, user) {
   }));
 }
 
+export function listAdminProducts(db, filters = {}) {
+  const where = [];
+  const params = [];
+  if (filters.status === "active") where.push("p.active = 1");
+  if (filters.status === "inactive") where.push("p.active = 0");
+  if (filters.familySlug) {
+    where.push("f.slug = ?");
+    params.push(filters.familySlug);
+  }
+  if (filters.search) {
+    where.push("(p.km_code LIKE ? OR p.name LIKE ? OR p.ean13 LIKE ?)");
+    const search = `%${filters.search}%`;
+    params.push(search, search, search);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  return db.prepare(`
+    SELECT p.id, p.km_code, p.ean13, p.name, p.slug, p.subfamily, p.material,
+           p.color, p.measure, p.cut_level, p.attachment_system,
+           p.compatible_machine, p.recommended_use, p.technical_description,
+           p.image_filename, p.base_price_cents, p.currency, p.price_effective_from,
+           p.active, p.web_sort_order, p.created_at, p.updated_at,
+           f.id AS family_id, f.name AS family_name, f.slug AS family_slug,
+           f.sort_order AS family_sort_order
+    FROM products p JOIN product_families f ON f.id = p.family_id
+    ${whereSql}
+    ORDER BY f.sort_order, p.web_sort_order, p.name
+    LIMIT 500
+  `).all(...params).map(adminProduct);
+}
+
+export function listProductFamilies(db) {
+  return db.prepare(`
+    SELECT id, name, slug, description, sort_order, active
+    FROM product_families
+    ORDER BY sort_order, name
+  `).all().map((family) => ({
+    id: family.id,
+    name: family.name,
+    slug: family.slug,
+    description: family.description,
+    sortOrder: family.sort_order,
+    active: Boolean(family.active)
+  }));
+}
+
 export function upsertProduct(db, input) {
   const familyName = requiredText(input.familyName, "familyName");
   const familySlug = slugify(input.familySlug || familyName);
@@ -82,6 +127,34 @@ export function upsertProduct(db, input) {
     input.basePriceCents, requiredText(input.priceEffectiveFrom, "priceEffectiveFrom", { max: 30 }),
     input.active === false ? 0 : 1, Number.isInteger(input.webSortOrder) ? input.webSortOrder : 0
   );
+}
+
+function adminProduct(row) {
+  return {
+    id: row.id,
+    kmCode: row.km_code,
+    ean13: row.ean13,
+    name: row.name,
+    slug: row.slug,
+    family: { id: row.family_id, name: row.family_name, slug: row.family_slug, sortOrder: row.family_sort_order },
+    subfamily: row.subfamily,
+    material: row.material,
+    color: row.color,
+    measure: row.measure,
+    cutLevel: row.cut_level,
+    attachmentSystem: row.attachment_system,
+    compatibleMachine: row.compatible_machine,
+    recommendedUse: row.recommended_use,
+    technicalDescription: row.technical_description,
+    imageFilename: row.image_filename,
+    basePriceCents: row.base_price_cents,
+    currency: row.currency,
+    priceEffectiveFrom: row.price_effective_from,
+    active: Boolean(row.active),
+    webSortOrder: row.web_sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
 }
 
 function publicProduct(row) {

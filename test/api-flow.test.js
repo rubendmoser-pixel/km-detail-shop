@@ -92,6 +92,12 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   });
   assert.equal(productResponse.status, 201);
   const product = (await productResponse.json()).product;
+  const adminProducts = await getJson(`${baseUrl}/api/admin/products?q=API001K`, adminCookie);
+  assert.equal(adminProducts.products.length, 1);
+  assert.equal(adminProducts.products[0].kmCode, "API001K");
+  assert.equal(adminProducts.products[0].basePriceCents, 100_000);
+  const adminFamilies = await getJson(`${baseUrl}/api/admin/product-families`, adminCookie);
+  assert.equal(adminFamilies.families.some((family) => family.name === "Poliespumas"), true);
 
   assert.equal((await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/status`, {
     method: "PATCH", headers: jsonHeaders(adminCookie), body: JSON.stringify({ status: "approved" })

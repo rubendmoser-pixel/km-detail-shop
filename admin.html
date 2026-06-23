@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Administracion | KM Detail Line</title>
     <link rel="stylesheet" href="./styles.css?v=7" />
-    <link rel="stylesheet" href="./admin.css?v=2" />
+    <link rel="stylesheet" href="./admin.css?v=3" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -33,6 +33,7 @@
       <div id="adminWorkspace" hidden>
         <nav class="admin-tabs" aria-label="Secciones administrativas">
           <button class="active" type="button" data-admin-view="customers">Clientes</button>
+          <button type="button" data-admin-view="products">Productos</button>
           <button type="button" data-admin-view="orders">Pedidos</button>
           <button type="button" data-admin-view="settings">Configuracion</button>
           <button type="button" data-admin-view="emails">Emails</button>
@@ -51,6 +52,66 @@
           </div>
           <div class="admin-stats" id="customerStats"></div>
           <div class="customer-list" id="customerList"></div>
+        </section>
+
+        <section class="admin-view" id="productsView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Catálogo comercial</p><h1>Productos y precios</h1></div>
+            <div class="admin-toolbar">
+              <input id="productSearch" type="search" placeholder="Buscar código, nombre o EAN" aria-label="Buscar productos" />
+              <select id="productFamilyFilter" aria-label="Filtrar por familia"><option value="">Todas las familias</option></select>
+              <select id="productStatusFilter" aria-label="Filtrar por estado">
+                <option value="">Todos</option><option value="active">Activos</option><option value="inactive">Inactivos</option>
+              </select>
+              <button class="ghost-button" id="newProduct" type="button">Nuevo</button>
+              <button class="ghost-button" id="reloadProducts" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="product-admin-layout">
+            <div class="orders-table-wrap">
+              <table class="admin-table product-table">
+                <thead><tr><th>KM</th><th>Producto</th><th>Familia</th><th>Precio lista</th><th>Estado</th><th>Editar</th></tr></thead>
+                <tbody id="productsTableBody"></tbody>
+              </table>
+            </div>
+            <form class="product-form" id="productForm">
+              <div class="form-heading"><p class="eyebrow">Ficha de producto</p><h2 id="productFormTitle">Nuevo producto</h2></div>
+              <fieldset>
+                <legend>Identificación</legend>
+                <label><span>Código KM</span><input name="kmCode" required maxlength="30" /></label>
+                <label><span>EAN13</span><input name="ean13" required inputmode="numeric" minlength="13" maxlength="13" /></label>
+                <label class="wide"><span>Nombre</span><input name="name" required /></label>
+                <label><span>Familia</span><input name="familyName" list="familyNameOptions" required /></label>
+                <label><span>Subfamilia</span><input name="subfamily" /></label>
+                <label><span>Orden familia</span><input name="familySortOrder" type="number" step="1" value="0" /></label>
+                <label><span>Orden web</span><input name="webSortOrder" type="number" step="1" value="0" /></label>
+              </fieldset>
+              <fieldset>
+                <legend>Precio y estado</legend>
+                <label><span>Precio lista sin IVA ($)</span><input name="basePrice" type="number" min="0" step="0.01" required /></label>
+                <label><span>Vigente desde</span><input name="priceEffectiveFrom" type="date" required /></label>
+                <label class="checkbox-label"><input name="active" type="checkbox" checked /><span>Producto activo</span></label>
+                <label><span>Imagen archivo</span><input name="imageFilename" placeholder="ej: km-pa-150.jpg" /></label>
+              </fieldset>
+              <fieldset>
+                <legend>Ficha técnica</legend>
+                <label><span>Material</span><input name="material" /></label>
+                <label><span>Color</span><input name="color" /></label>
+                <label><span>Medida</span><input name="measure" /></label>
+                <label><span>Corte</span><input name="cutLevel" /></label>
+                <label><span>Sistema de fijación</span><input name="attachmentSystem" /></label>
+                <label><span>Máquina compatible</span><input name="compatibleMachine" /></label>
+                <label class="wide"><span>Uso recomendado</span><textarea name="recommendedUse" rows="2"></textarea></label>
+                <label class="wide"><span>Descripción técnica</span><textarea name="technicalDescription" rows="3"></textarea></label>
+              </fieldset>
+              <datalist id="familyNameOptions"></datalist>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">Guardar producto</button>
+                <button class="ghost-button" id="resetProductForm" type="button">Limpiar</button>
+              </div>
+              <p class="form-message" id="productMessage" role="status"></p>
+            </form>
+          </div>
         </section>
 
         <section class="admin-view" id="ordersView" hidden>
@@ -91,6 +152,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=3" defer></script>
+    <script src="./admin.js?v=4" defer></script>
   </body>
 </html>

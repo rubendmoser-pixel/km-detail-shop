@@ -2,7 +2,7 @@ import path from "node:path";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import { listCustomers, setCustomerDiscounts, setCustomerStatus } from "./services/customer-service.js";
 import { acceptModifiedOrder, createOrder, getOrder, listAdminOrders, updateOrderStatus } from "./services/order-service.js";
-import { listProducts, upsertProduct } from "./services/product-service.js";
+import { listAdminProducts, listProductFamilies, listProducts, upsertProduct } from "./services/product-service.js";
 import { getCommercialSettings, getPublicSettings, updateCommercialSettings } from "./services/settings-service.js";
 import { clearSessionCookie, parseCookies, readJson, sendJson, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
@@ -100,6 +100,18 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       }
       if (request.method === "POST" && url.pathname === "/api/admin/products") {
         return sendJson(response, 201, { product: upsertProduct(db, await readJson(request)) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/products") {
+        return sendJson(response, 200, {
+          products: listAdminProducts(db, {
+            status: url.searchParams.get("status") || "",
+            familySlug: url.searchParams.get("family") || "",
+            search: url.searchParams.get("q") || ""
+          })
+        });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/product-families") {
+        return sendJson(response, 200, { families: listProductFamilies(db) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/orders") {
         return sendJson(response, 200, { orders: listAdminOrders(db, url.searchParams.get("status") || "") });

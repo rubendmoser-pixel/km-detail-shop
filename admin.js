@@ -1,4 +1,7 @@
-const adminState = { user: null, customers: [], orders: [], settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "" };
+const adminState = {
+  user: null, customers: [], products: [], families: [], selectedProductId: null,
+  orders: [], settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: ""
+};
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
@@ -8,7 +11,9 @@ const statusLabels = {
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
-  "settingsForm", "settingsMessage", "emailStats", "emailConfigStatus", "emailsTableBody", "adminToast"
+  "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
+  "productFormTitle", "productMessage", "familyNameOptions", "settingsForm", "settingsMessage",
+  "emailStats", "emailConfigStatus", "emailsTableBody", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -29,6 +34,13 @@ function bindAdminEvents() {
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => showAdminView(button.dataset.adminView)));
   adminEls.customerStatusFilter.addEventListener("change", loadCustomers);
   document.querySelector("#reloadCustomers").addEventListener("click", loadCustomers);
+  adminEls.productSearch.addEventListener("input", debounce(loadProducts, 250));
+  adminEls.productFamilyFilter.addEventListener("change", loadProducts);
+  adminEls.productStatusFilter.addEventListener("change", loadProducts);
+  document.querySelector("#reloadProducts").addEventListener("click", loadProducts);
+  document.querySelector("#newProduct").addEventListener("click", resetProductForm);
+  document.querySelector("#resetProductForm").addEventListener("click", resetProductForm);
+  adminEls.productForm.addEventListener("submit", saveProduct);
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
   document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
@@ -60,7 +72,8 @@ async function enterWorkspace() {
   adminEls.adminWorkspace.hidden = false;
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
-  await Promise.all([loadCustomers(), loadOrders(), loadSettings(), loadEmails()]);
+  await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails()]);
+  resetProductForm();
 }
 
 async function logoutAdmin() {
@@ -83,6 +96,128 @@ async function loadCustomers() {
   adminState.customers = customers;
   renderCustomerStats();
   renderCustomers();
+}
+
+async function loadProducts() {
+  const params = new URLSearchParams();
+  if (adminEls.productSearch.value.trim()) params.set("q", adminEls.productSearch.value.trim());
+  if (adminEls.productFamilyFilter.value) params.set("family", adminEls.productFamilyFilter.value);
+  if (adminEls.productStatusFilter.value) params.set("status", adminEls.productStatusFilter.value);
+  const [{ products }, { families }] = await Promise.all([
+    adminApi(`/api/admin/products${params.toString() ? `?${params}` : ""}`),
+    adminApi("/api/admin/product-families")
+  ]);
+  adminState.products = products;
+  adminState.families = families;
+  renderProductFamilies();
+  renderProducts();
+}
+
+function renderProductFamilies() {
+  const current = adminEls.productFamilyFilter.value;
+  adminEls.productFamilyFilter.innerHTML = `<option value="">Todas las familias</option>${adminState.families.map((family) => (
+    `<option value="${escapeAdmin(family.slug)}">${escapeAdmin(family.name)}</option>`
+  )).join("")}`;
+  adminEls.productFamilyFilter.value = current;
+  adminEls.familyNameOptions.innerHTML = adminState.families.map((family) => `<option value="${escapeAdmin(family.name)}"></option>`).join("");
+}
+
+function renderProducts() {
+  adminEls.productsTableBody.innerHTML = adminState.products.length ? adminState.products.map((product) => `
+    <tr data-product-id="${product.id}">
+      <td><strong>${escapeAdmin(product.kmCode)}</strong><br><span>${escapeAdmin(product.ean13)}</span></td>
+      <td>${escapeAdmin(product.name)}${product.measure ? `<br><span>${escapeAdmin(product.measure)}</span>` : ""}</td>
+      <td>${escapeAdmin(product.family.name)}</td>
+      <td>${adminMoney.format(product.basePriceCents / 100)}</td>
+      <td><span class="status-badge ${product.active ? "approved" : "suspended"}">${product.active ? "Activo" : "Inactivo"}</span></td>
+      <td><button class="ghost-button row-button" type="button" data-edit-product="${product.id}">Editar</button></td>
+    </tr>
+  `).join("") : `<tr><td colspan="6">No hay productos para este filtro.</td></tr>`;
+  adminEls.productsTableBody.querySelectorAll("[data-edit-product]").forEach((button) => button.addEventListener("click", editProduct));
+}
+
+function editProduct(event) {
+  const product = adminState.products.find((item) => item.id === Number(event.currentTarget.dataset.editProduct));
+  if (!product) return;
+  adminState.selectedProductId = product.id;
+  adminEls.productFormTitle.textContent = `Editar ${product.kmCode}`;
+  productField("kmCode").value = product.kmCode;
+  productField("ean13").value = product.ean13;
+  productField("name").value = product.name;
+  productField("familyName").value = product.family.name;
+  productField("subfamily").value = product.subfamily || "";
+  productField("familySortOrder").value = product.family.sortOrder || 0;
+  productField("webSortOrder").value = product.webSortOrder || 0;
+  productField("basePrice").value = (product.basePriceCents / 100).toFixed(2);
+  productField("priceEffectiveFrom").value = normalizeDateInput(product.priceEffectiveFrom);
+  productField("active").checked = product.active;
+  productField("imageFilename").value = product.imageFilename || "";
+  productField("material").value = product.material || "";
+  productField("color").value = product.color || "";
+  productField("measure").value = product.measure || "";
+  productField("cutLevel").value = product.cutLevel || "";
+  productField("attachmentSystem").value = product.attachmentSystem || "";
+  productField("compatibleMachine").value = product.compatibleMachine || "";
+  productField("recommendedUse").value = product.recommendedUse || "";
+  productField("technicalDescription").value = product.technicalDescription || "";
+  adminEls.productMessage.textContent = "";
+  adminEls.productForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function resetProductForm() {
+  adminState.selectedProductId = null;
+  adminEls.productForm.reset();
+  adminEls.productFormTitle.textContent = "Nuevo producto";
+  productField("active").checked = true;
+  productField("familySortOrder").value = 0;
+  productField("webSortOrder").value = 0;
+  productField("priceEffectiveFrom").value = new Date().toISOString().slice(0, 10);
+  adminEls.productMessage.textContent = "";
+}
+
+async function saveProduct(event) {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(adminEls.productForm));
+  const body = {
+    kmCode: values.kmCode,
+    ean13: values.ean13,
+    name: values.name,
+    familyName: values.familyName,
+    subfamily: values.subfamily,
+    familySortOrder: Number(values.familySortOrder || 0),
+    webSortOrder: Number(values.webSortOrder || 0),
+    basePriceCents: Math.round(Number(values.basePrice || 0) * 100),
+    priceEffectiveFrom: values.priceEffectiveFrom,
+    active: productField("active").checked,
+    imageFilename: values.imageFilename,
+    material: values.material,
+    color: values.color,
+    measure: values.measure,
+    cutLevel: values.cutLevel,
+    attachmentSystem: values.attachmentSystem,
+    compatibleMachine: values.compatibleMachine,
+    recommendedUse: values.recommendedUse,
+    technicalDescription: values.technicalDescription
+  };
+  setBusy(adminEls.productForm, true);
+  try {
+    const { product } = await adminApi("/api/admin/products", { method: "POST", body });
+    adminEls.productMessage.textContent = `Producto ${product.km_code || body.kmCode} guardado.`;
+    await loadProducts();
+    const updated = adminState.products.find((item) => item.kmCode === String(body.kmCode).trim().toUpperCase());
+    if (updated) {
+      adminState.selectedProductId = updated.id;
+      adminEls.productFormTitle.textContent = `Editar ${updated.kmCode}`;
+    }
+  } catch (error) {
+    adminEls.productMessage.textContent = error.message;
+  } finally {
+    setBusy(adminEls.productForm, false);
+  }
+}
+
+function productField(name) {
+  return adminEls.productForm.querySelector(`[name="${name}"]`);
 }
 
 function renderCustomerStats() {
@@ -271,6 +406,19 @@ function showAdminToast(message) {
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(`${value}Z`));
+}
+
+function normalizeDateInput(value) {
+  if (!value) return new Date().toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
+function debounce(callback, waitMs) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => callback(...args), waitMs);
+  };
 }
 
 function escapeAdmin(value) {
