@@ -396,35 +396,48 @@ function renderCustomerOrders() {
     els.customerOrders.innerHTML = "";
     return;
   }
-  const payableOrders = state.orders.filter((order) => ["availability_confirmed", "confirmed"].includes(order.status));
+  const visibleOrders = state.orders.slice(0, 10);
   els.customerOrders.innerHTML = `
-    <div class="section-title compact"><p class="eyebrow">Pagos</p><h3>Mis pedidos pendientes</h3></div>
-    ${payableOrders.length ? payableOrders.map(renderCustomerOrder).join("") : `<p class="muted">Todavia no hay pedidos confirmados para pago.</p>`}
+    <div class="section-title compact"><p class="eyebrow">Operacion</p><h3>Mis pedidos</h3></div>
+    ${visibleOrders.length ? visibleOrders.map(renderCustomerOrder).join("") : `<p class="muted">Todavia no hay pedidos registrados.</p>`}
   `;
   els.customerOrders.querySelectorAll("[data-receipt-input]").forEach((input) => input.addEventListener("change", uploadReceipt));
 }
 
 function renderCustomerOrder(order) {
   const latestReceipt = order.paymentReceipts?.[0];
-  const canUpload = order.paymentStatus !== "paid";
+  const canUpload = ["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid";
   const bank = order.bank || {};
+  const confirmedItems = order.items.filter((item) => item.confirmedQuantity > 0);
+  const unavailableItems = order.items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
   return `
     <article class="customer-order-card">
-      <div>
-        <strong>${escapeHtml(order.orderNumber)}</strong>
-        <span>${escapeHtml(order.status)} / ${escapeHtml(order.paymentStatus)}</span>
+      <div class="customer-order-head">
+        <div><strong>${escapeHtml(order.orderNumber)}</strong><span>${formatDate(order.createdAt)}</span></div>
+        <div class="order-status-pills"><span>${escapeHtml(orderStatusText(order.status))}</span><span>${escapeHtml(paymentStatusText(order.paymentStatus))}</span></div>
       </div>
       <dl>
         <div><dt>Total confirmado</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
         <div><dt>Alias</dt><dd>${escapeHtml(bank.alias || "-")}</dd></div>
         <div><dt>CBU</dt><dd>${escapeHtml(bank.cbu || "-")}</dd></div>
       </dl>
+      <div class="customer-order-lines">
+        <strong>Articulos confirmados</strong>
+        ${confirmedItems.length ? confirmedItems.map((item) => `<span>${item.confirmedQuantity} x ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}</span>`).join("") : `<span>Pendiente de confirmacion comercial.</span>`}
+        ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
+      </div>
       ${order.fulfillment?.status && order.fulfillment.status !== "pending" ? `<p>Despacho: ${escapeHtml(customerFulfillmentText(order.fulfillment))}</p>` : ""}
       ${bank.instructions ? `<p>${escapeHtml(bank.instructions)}</p>` : ""}
       ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(latestReceipt.status)})</p>` : ""}
-      ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : `<p>Pago acreditado.</p>`}
+      ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : paymentHelperText(order)}
     </article>
   `;
+}
+
+function paymentHelperText(order) {
+  if (order.paymentStatus === "paid") return `<p>Pago acreditado.</p>`;
+  if (!["availability_confirmed", "confirmed"].includes(order.status)) return `<p>KM confirmara disponibilidad antes de habilitar el pago.</p>`;
+  return "";
 }
 
 async function uploadReceipt(event) {
@@ -486,6 +499,28 @@ function customerFulfillmentText(fulfillment = {}) {
     fulfillment.estimatedDate ? `Fecha estimada: ${fulfillment.estimatedDate}` : "",
     fulfillment.notes
   ].filter(Boolean).join(" | ");
+}
+
+function orderStatusText(status) {
+  return ({
+    order_created: "Recibido",
+    availability_confirmed: "Disponibilidad confirmada",
+    confirmed: "Confirmado",
+    in_preparation: "En preparacion",
+    ready: "Listo",
+    delivered: "Entregado",
+    cancelled: "Cancelado"
+  })[status] || status;
+}
+
+function paymentStatusText(status) {
+  return ({
+    pending_payment: "Pago pendiente",
+    receipt_uploaded: "Comprobante cargado",
+    paid: "Pagado",
+    rejected: "Pago rechazado",
+    refunded: "Reintegrado"
+  })[status] || status;
 }
 
 function orderSummary(order) {

@@ -780,10 +780,31 @@ textarea:focus {
   border: 1px solid #3c3e43;
 }
 
-.customer-order-card > div:first-child {
+.customer-order-head {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+}
+
+.customer-order-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.order-status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.order-status-pills span {
+  padding: 5px 8px;
+  color: #111;
+  background: var(--accent);
+  border-radius: 3px;
+  font-size: 0.76rem;
+  font-weight: 900;
 }
 
 .customer-order-card span,
@@ -802,6 +823,21 @@ textarea:focus {
 .customer-order-card dl div {
   padding: 10px;
   background: #181a1e;
+}
+
+.customer-order-lines {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #34363b;
+}
+
+.customer-order-lines strong {
+  margin-top: 4px;
+}
+
+.customer-order-lines span {
+  display: block;
 }
 
 .receipt-upload {
