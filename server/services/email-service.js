@@ -28,16 +28,16 @@ export function createEmailService({ db, config }) {
         "",
         `Empresa: ${customer.business_name}`,
         `CUIT: ${customer.tax_id}`,
-        `Condicion fiscal: ${customer.tax_condition}`,
+        `Condición fiscal: ${customer.tax_condition}`,
         `Tipo de cliente: ${customer.customer_type}`,
         `Rubro: ${customer.industry}`,
-        `Ubicacion: ${customer.city}, ${customer.province}`,
+        `Ubicación: ${customer.city}, ${customer.province}`,
         `Contacto: ${customer.contact_person}`,
         `Email: ${customer.email}`,
-        `Telefono: ${customer.phone}`,
+        `Teléfono: ${customer.phone}`,
         `WhatsApp: ${customer.whatsapp}`,
         "",
-        "Estado: pendiente de aprobacion"
+        "Estado: pendiente de aprobación"
       ].join("\n");
 
       db.prepare(`
@@ -52,14 +52,14 @@ export function createEmailService({ db, config }) {
       "Bienvenido a KM Detail Line.",
       "",
       `Recibimos la solicitud de alta comercial de ${customer.business_name}.`,
-      "La cuenta se encuentra pendiente de revision por nuestro equipo.",
+      "La cuenta se encuentra pendiente de revisión por nuestro equipo.",
       "",
-      "Cuando la solicitud sea aprobada, recibiras un nuevo correo y podras ingresar para consultar tus precios, descuentos y realizar pedidos.",
+      "Cuando la solicitud sea aprobada, recibirás un nuevo correo y podrás ingresar para consultar tus precios, descuentos y realizar pedidos.",
       "",
-      "Si necesitas agregar informacion, podes responder este mensaje.",
+      "Si necesitás agregar información, podés responder este mensaje.",
       "",
       "Gracias por elegir KM Detail Line.",
-      "Productos profesionales para pulido automotriz, chapa y pintura y detailing.",
+      "Productos profesionales para pulido automotriz, chapa-pintura y detailing.",
       "",
       config.publicBaseUrl
     ].join("\n");
@@ -78,7 +78,7 @@ export function createEmailService({ db, config }) {
     const textBody = [
       `Hola, ${customer.business_name}.`, "",
       `Tu cuenta comercial de KM Detail Line fue ${label}.`,
-      status === "approved" ? "Ya podes ingresar para consultar tus precios y realizar pedidos." : "Para mas informacion, comunicate con KM Detail Line.",
+      status === "approved" ? "Ya podés ingresar para consultar tus precios y realizar pedidos." : "Para más información, comunicate con KM Detail Line.",
       "", config.publicBaseUrl
     ].join("\n");
     queue("customer_status", customer.email, `Cuenta comercial ${label} | KM Detail Line`, textBody);
@@ -89,11 +89,11 @@ export function createEmailService({ db, config }) {
     if (!user) return;
     const resetUrl = `${config.publicBaseUrl.replace(/\/$/, "")}/reset.html?token=${encodeURIComponent(token)}`;
     const textBody = [
-      "Recibimos una solicitud para cambiar tu contrasena de KM Detail Line.", "",
+      "Recibimos una solicitud para cambiar tu contraseña de KM Detail Line.", "",
       "El enlace vence en una hora y puede utilizarse una sola vez:", resetUrl, "",
       "Si no solicitaste el cambio, ignora este mensaje."
     ].join("\n");
-    queue("password_reset", user.email, "Recuperar contrasena | KM Detail Line", textBody);
+    queue("password_reset", user.email, "Recuperar contraseña | KM Detail Line", textBody);
   }
 
   function queue(eventType, recipient, subject, textBody) {
@@ -148,7 +148,7 @@ export function createEmailService({ db, config }) {
       recipient,
       subject: "Prueba de correo | KM Detail Line",
       text_body: [
-        "La conexion de correo de KM Detail Line funciona correctamente.",
+        "La conexión de correo de KM Detail Line funciona correctamente.",
         "",
         `Fecha de prueba: ${new Date().toISOString()}`,
         `Origen: plataforma comercial (${provider})`
