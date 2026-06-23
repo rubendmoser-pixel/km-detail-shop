@@ -551,29 +551,29 @@
 
 .product-image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 170px));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 220px));
   align-items: start;
   justify-content: start;
-  gap: 14px;
+  gap: 16px;
 }
 
 .product-image-card {
   display: grid;
   min-width: 0;
-  gap: 9px;
-  padding: 8px;
+  gap: 10px;
+  padding: 10px;
   background: #17181b;
   border: 1px solid #34363b;
   border-radius: 4px;
-  overflow: hidden;
 }
 
 .product-image-card img {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 170px;
   object-fit: contain;
   background: #f4f4f2;
   border: 1px solid #2b2d31;
+  box-sizing: border-box;
 }
 
 .product-image-card strong,
@@ -613,15 +613,21 @@
 
 .image-actions {
   display: grid;
-  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .image-actions .ghost-button {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 34px;
-  padding: 6px;
-  font-size: 0.76rem;
+  min-height: 38px;
+  padding: 6px 8px;
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .image-actions .danger {
