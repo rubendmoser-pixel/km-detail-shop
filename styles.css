@@ -80,6 +80,13 @@ a {
   transform: skew(-12deg);
 }
 
+.brand-logo {
+  display: block;
+  width: 98px;
+  height: 44px;
+  object-fit: contain;
+}
+
 .brand strong,
 .brand small {
   display: block;
@@ -1191,6 +1198,11 @@ textarea:focus {
     height: 34px;
   }
 
+  .brand-logo {
+    width: 84px;
+    height: 36px;
+  }
+
   .brand small {
     display: none;
   }
@@ -1288,6 +1300,11 @@ body {
   font-style: italic;
   line-height: 1;
   transform: skew(-10deg);
+}
+
+.brand-logo {
+  width: 112px;
+  height: 48px;
 }
 
 .brand-divider {
@@ -1748,6 +1765,11 @@ textarea,
 
   .brand-mark {
     font-size: 1.8rem;
+  }
+
+  .brand-logo {
+    width: 82px;
+    height: 34px;
   }
 
   .hero-copy {
