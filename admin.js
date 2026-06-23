@@ -12,7 +12,8 @@ const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderItemsBody",
-  "availabilityForm", "availabilityMessage", "paymentReviewPanel", "orderStatusForm", "orderStatusMessage",
+  "availabilityForm", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentMessage",
+  "orderStatusForm", "orderStatusMessage",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
@@ -48,6 +49,7 @@ function bindAdminEvents() {
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
   document.querySelector("#closeOrderDetail").addEventListener("click", closeOrderDetail);
   adminEls.availabilityForm.addEventListener("submit", saveAvailability);
+  adminEls.fulfillmentForm.addEventListener("submit", saveFulfillment);
   adminEls.orderStatusForm.addEventListener("submit", saveOrderStatus);
   document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
@@ -452,7 +454,8 @@ function renderOrderDetail() {
     ["IVA", `${(order.vatBps / 100).toFixed(2)}% - ${adminMoney.format(order.vatCents / 100)}`],
     ["Total", adminMoney.format(order.totalCents / 100)],
     ["Precio reservado", formatDate(order.priceReservedAt)],
-    ["Envio", shippingText(order.shipping)]
+    ["Entrega solicitada", shippingText(order.shipping)],
+    ["Despacho", fulfillmentText(order.fulfillment)]
   ].map(([label, value]) => `<div><span>${label}</span><strong>${escapeAdmin(value)}</strong></div>`).join("");
   const customerWhatsapp = cleanPhone(order.customerWhatsapp);
   adminEls.orderDetailActions.innerHTML = customerWhatsapp
@@ -473,10 +476,44 @@ function renderOrderDetail() {
   adminEls.availabilityForm.elements.reason.value = "";
   adminEls.availabilityMessage.textContent = "";
   renderPaymentReceipts(order);
+  renderFulfillment(order);
   adminEls.orderStatusForm.elements.status.value = order.status;
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
   adminEls.orderStatusMessage.textContent = "";
+}
+
+function renderFulfillment(order) {
+  const form = adminEls.fulfillmentForm.elements;
+  const fulfillment = order.fulfillment || {};
+  form.fulfillmentStatus.value = fulfillment.status || "pending";
+  form.fulfillmentMethod.value = fulfillment.method || "";
+  form.fulfillmentCarrier.value = fulfillment.carrier || "";
+  form.fulfillmentTracking.value = fulfillment.tracking || "";
+  form.fulfillmentEstimatedDate.value = normalizeDateInput(fulfillment.estimatedDate);
+  form.fulfillmentNotes.value = fulfillment.notes || "";
+  adminEls.fulfillmentMessage.textContent = "";
+}
+
+async function saveFulfillment(event) {
+  event.preventDefault();
+  if (!adminState.selectedOrder) return;
+  const values = Object.fromEntries(new FormData(adminEls.fulfillmentForm));
+  setBusy(adminEls.fulfillmentForm, true);
+  try {
+    const { order } = await adminApi(`/api/admin/orders/${adminState.selectedOrder.id}/fulfillment`, {
+      method: "PATCH",
+      body: values
+    });
+    adminState.selectedOrder = order;
+    await loadOrders();
+    renderOrderDetail();
+    adminEls.fulfillmentMessage.textContent = "Despacho guardado y email enviado.";
+  } catch (error) {
+    adminEls.fulfillmentMessage.textContent = error.message;
+  } finally {
+    setBusy(adminEls.fulfillmentForm, false);
+  }
 }
 
 function renderPaymentReceipts(order) {
@@ -693,6 +730,17 @@ function shippingText(shipping = {}) {
     shipping.preferredTransport ? `Transporte: ${shipping.preferredTransport}` : "",
     shipping.contactPhone ? `Tel: ${shipping.contactPhone}` : "",
     shipping.notes ? `Notas: ${shipping.notes}` : ""
+  ].filter(Boolean).join(" | ");
+}
+
+function fulfillmentText(fulfillment = {}) {
+  return [
+    fulfillment.status && fulfillment.status !== "pending" ? fulfillment.status : "Pendiente",
+    fulfillment.method,
+    fulfillment.carrier,
+    fulfillment.tracking ? `Guia/remito: ${fulfillment.tracking}` : "",
+    fulfillment.estimatedDate ? `Fecha: ${fulfillment.estimatedDate}` : "",
+    fulfillment.notes
   ].filter(Boolean).join(" | ");
 }
 

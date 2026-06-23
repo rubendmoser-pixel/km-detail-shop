@@ -411,6 +411,7 @@
 }
 
 .availability-form,
+.fulfillment-form,
 .order-status-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -421,6 +422,10 @@
 
 .availability-form {
   grid-template-columns: 1fr;
+}
+
+.fulfillment-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .availability-form .orders-table-wrap {
@@ -437,6 +442,7 @@
 }
 
 .availability-form label,
+.fulfillment-form label,
 .order-status-form label {
   display: grid;
   gap: 6px;
@@ -447,14 +453,18 @@
 
 .order-status-form .wide,
 .availability-form .wide,
+.fulfillment-form .wide,
 .order-status-form .primary-button,
 .availability-form .primary-button,
+.fulfillment-form .primary-button,
 .order-status-form .form-message,
-.availability-form .form-message {
+.availability-form .form-message,
+.fulfillment-form .form-message {
   grid-column: 1 / -1;
 }
 
 .availability-form .primary-button,
+.fulfillment-form .primary-button,
 .order-status-form .primary-button {
   justify-self: start;
 }
@@ -694,6 +704,7 @@
   .discount-form,
   .order-detail-grid,
   .availability-form,
+  .fulfillment-form,
   .order-status-form {
     grid-template-columns: 1fr 1fr;
   }

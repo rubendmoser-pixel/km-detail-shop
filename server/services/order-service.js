@@ -204,6 +204,35 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
   return getOrder(db, receipt.order_id, null, true);
 }
 
+export function updateOrderFulfillment(db, orderId, input, adminUserId) {
+  const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
+  if (!order) throw new NotFoundError("Order not found");
+  const fulfillmentStatus = requiredText(input.fulfillmentStatus, "fulfillmentStatus", { max: 30 });
+  if (!["pending", "ready", "shipped", "delivered"].includes(fulfillmentStatus)) {
+    throw new ValidationError("fulfillmentStatus is invalid");
+  }
+  const fulfillmentMethod = optionalText(input.fulfillmentMethod, "fulfillmentMethod", { max: 80 });
+  const fulfillmentCarrier = optionalText(input.fulfillmentCarrier, "fulfillmentCarrier", { max: 120 });
+  const fulfillmentTracking = optionalText(input.fulfillmentTracking, "fulfillmentTracking", { max: 120 });
+  const fulfillmentEstimatedDate = optionalText(input.fulfillmentEstimatedDate, "fulfillmentEstimatedDate", { max: 30 });
+  const fulfillmentNotes = optionalText(input.fulfillmentNotes, "fulfillmentNotes", { max: 1000 });
+  const reason = optionalText(input.reason, "reason", { max: 1000 });
+  db.prepare(`
+    UPDATE orders SET fulfillment_status = ?, fulfillment_method = ?, fulfillment_carrier = ?,
+      fulfillment_tracking = ?, fulfillment_estimated_date = ?, fulfillment_notes = ?,
+      status = CASE WHEN ? = 'shipped' THEN 'ready' WHEN ? = 'delivered' THEN 'delivered' ELSE status END,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(
+    fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking,
+    fulfillmentEstimatedDate, fulfillmentNotes, fulfillmentStatus, fulfillmentStatus, orderId
+  );
+  addOrderEvent(db, orderId, adminUserId, "fulfillment_updated", reason, order, {
+    fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking, fulfillmentEstimatedDate, fulfillmentNotes
+  });
+  return getOrder(db, orderId, null, true);
+}
+
 export function acceptModifiedOrder(db, orderId, customerId, userId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ? AND customer_id = ?").get(orderId, customerId);
   if (!order) throw new NotFoundError("Order not found");
@@ -264,6 +293,14 @@ function mapOrder(order, items, receipts = []) {
     status: order.status,
     paymentStatus: order.payment_status,
     paymentMethod: order.payment_method || "bank_transfer",
+    fulfillment: {
+      status: order.fulfillment_status || "pending",
+      method: order.fulfillment_method || "",
+      carrier: order.fulfillment_carrier || "",
+      tracking: order.fulfillment_tracking || "",
+      estimatedDate: order.fulfillment_estimated_date || "",
+      notes: order.fulfillment_notes || ""
+    },
     currency: order.currency,
     discountsBps: [order.discount_1_bps, order.discount_2_bps, order.discount_3_bps],
     subtotalNetCents: order.subtotal_net_cents,

@@ -223,6 +223,25 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(paidOrder.paymentReceipts[0].status, "accepted");
   const receiptCustomerEmail = db.prepare("SELECT recipient FROM email_outbox WHERE event_type = 'payment_receipt_customer'").get();
   assert.equal(receiptCustomerEmail.recipient, "cliente-api@example.com");
+  const fulfillmentResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/fulfillment`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      fulfillmentStatus: "shipped",
+      fulfillmentMethod: "Transporte",
+      fulfillmentCarrier: "Expreso API",
+      fulfillmentTracking: "REM-123",
+      fulfillmentEstimatedDate: "2026-06-30",
+      fulfillmentNotes: "Despachado por expreso"
+    })
+  });
+  assert.equal(fulfillmentResponse.status, 200);
+  const shippedOrder = (await fulfillmentResponse.json()).order;
+  assert.equal(shippedOrder.fulfillment.status, "shipped");
+  assert.equal(shippedOrder.fulfillment.carrier, "Expreso API");
+  const fulfillmentEmail = db.prepare("SELECT recipient, text_body FROM email_outbox WHERE event_type = 'order_fulfillment_customer'").get();
+  assert.equal(fulfillmentEmail.recipient, "cliente-api@example.com");
+  assert.match(fulfillmentEmail.text_body, /REM-123/);
   const updatedOrderResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

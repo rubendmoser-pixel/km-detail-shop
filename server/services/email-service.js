@@ -290,6 +290,31 @@ export function createEmailService({ db, config }) {
     ].filter(Boolean).join("\n"));
   }
 
+  function queueOrderFulfillmentUpdated(orderId) {
+    const order = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.id = ?
+    `).get(orderId);
+    if (!order) return;
+    const labels = { pending: "pendiente", ready: "listo para despacho", shipped: "despachado", delivered: "entregado" };
+    queue("order_fulfillment_customer", order.email, `Despacho ${order.order_number} | KM Detail Line`, [
+      `Hola ${order.contact_person},`,
+      "",
+      `Actualizamos la informacion de envio/despacho de tu pedido ${order.order_number}.`,
+      "",
+      `Estado: ${labels[order.fulfillment_status] || order.fulfillment_status}`,
+      order.fulfillment_method ? `Modalidad: ${order.fulfillment_method}` : "",
+      order.fulfillment_carrier ? `Transporte: ${order.fulfillment_carrier}` : "",
+      order.fulfillment_tracking ? `Guia/remito: ${order.fulfillment_tracking}` : "",
+      order.fulfillment_estimated_date ? `Fecha estimada: ${order.fulfillment_estimated_date}` : "",
+      order.fulfillment_notes ? `Observaciones: ${order.fulfillment_notes}` : "",
+      "",
+      "KM Detail Line",
+      config.publicBaseUrl
+    ].filter(Boolean).join("\n"));
+  }
+
   function queue(eventType, recipient, subject, textBody) {
     if (!recipient) return;
     db.prepare(`
@@ -419,6 +444,7 @@ export function createEmailService({ db, config }) {
     queueOrderAvailabilityConfirmed,
     queuePaymentReceiptUploaded,
     queuePaymentReceiptReviewed,
+    queueOrderFulfillmentUpdated,
     flush,
     verify,
     sendTest,

@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -144,6 +144,12 @@ function migrate(db) {
       status TEXT NOT NULL DEFAULT 'order_created',
       payment_status TEXT NOT NULL DEFAULT 'pending_payment',
       payment_method TEXT NOT NULL DEFAULT 'bank_transfer' CHECK (payment_method IN ('bank_transfer', 'mercadopago')),
+      fulfillment_status TEXT NOT NULL DEFAULT 'pending' CHECK (fulfillment_status IN ('pending', 'ready', 'shipped', 'delivered')),
+      fulfillment_method TEXT NOT NULL DEFAULT '',
+      fulfillment_carrier TEXT NOT NULL DEFAULT '',
+      fulfillment_tracking TEXT NOT NULL DEFAULT '',
+      fulfillment_estimated_date TEXT NOT NULL DEFAULT '',
+      fulfillment_notes TEXT NOT NULL DEFAULT '',
       currency TEXT NOT NULL DEFAULT 'ARS' CHECK (currency = 'ARS'),
       discount_1_bps INTEGER NOT NULL,
       discount_2_bps INTEGER NOT NULL,
@@ -251,6 +257,12 @@ function migrate(db) {
   ensureColumn(db, "order_items", "line_status", "TEXT NOT NULL DEFAULT 'pending_confirmation'");
   ensureColumn(db, "order_items", "availability_note", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "payment_method", "TEXT NOT NULL DEFAULT 'bank_transfer'");
+  ensureColumn(db, "orders", "fulfillment_status", "TEXT NOT NULL DEFAULT 'pending'");
+  ensureColumn(db, "orders", "fulfillment_method", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "fulfillment_carrier", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "fulfillment_tracking", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "fulfillment_estimated_date", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "fulfillment_notes", "TEXT NOT NULL DEFAULT ''");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);
 }
 

@@ -10,6 +10,7 @@ import {
   listAdminOrders,
   listCustomerOrders,
   reviewPaymentReceipt,
+  updateOrderFulfillment,
   updateOrderStatus
 } from "./services/order-service.js";
 import {
@@ -171,6 +172,12 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         const body = await readJson(request);
         const order = confirmOrderAvailability(db, Number(match[1]), body, currentUser.id);
         emailService.queueOrderAvailabilityConfirmed(order.id, body.reason);
+        return sendJson(response, 200, { order });
+      }
+      match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/fulfillment$/);
+      if (request.method === "PATCH" && match) {
+        const order = updateOrderFulfillment(db, Number(match[1]), await readJson(request), currentUser.id);
+        emailService.queueOrderFulfillmentUpdated(order.id);
         return sendJson(response, 200, { order });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)$/);

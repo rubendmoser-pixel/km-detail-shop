@@ -419,6 +419,7 @@ function renderCustomerOrder(order) {
         <div><dt>Alias</dt><dd>${escapeHtml(bank.alias || "-")}</dd></div>
         <div><dt>CBU</dt><dd>${escapeHtml(bank.cbu || "-")}</dd></div>
       </dl>
+      ${order.fulfillment?.status && order.fulfillment.status !== "pending" ? `<p>Despacho: ${escapeHtml(customerFulfillmentText(order.fulfillment))}</p>` : ""}
       ${bank.instructions ? `<p>${escapeHtml(bank.instructions)}</p>` : ""}
       ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(latestReceipt.status)})</p>` : ""}
       ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : `<p>Pago acreditado.</p>`}
@@ -474,6 +475,17 @@ function fileToBase64(file) {
     reader.addEventListener("error", () => reject(new Error(`No se pudo leer ${file.name}.`)));
     reader.readAsDataURL(file);
   });
+}
+
+function customerFulfillmentText(fulfillment = {}) {
+  return [
+    fulfillment.status,
+    fulfillment.method,
+    fulfillment.carrier,
+    fulfillment.tracking ? `Guia/remito: ${fulfillment.tracking}` : "",
+    fulfillment.estimatedDate ? `Fecha estimada: ${fulfillment.estimatedDate}` : "",
+    fulfillment.notes
+  ].filter(Boolean).join(" | ");
 }
 
 function orderSummary(order) {
