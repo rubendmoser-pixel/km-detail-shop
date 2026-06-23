@@ -276,7 +276,7 @@ function renderProductImages(errorMessage = "") {
       : "Todavia no hay imagenes cargadas para este producto.";
   }
   adminEls.productImages.innerHTML = adminState.productImages.map((image) => `
-    <article class="product-image-card">
+    <article class="product-image-card ${image.isPrimary ? "is-primary" : ""}">
       <img src="${escapeAdmin(image.url)}" alt="${escapeAdmin(image.altText || image.originalFilename)}" loading="lazy" />
       <div>
         <strong>${image.isPrimary ? "Principal" : "Galeria"}</strong>
