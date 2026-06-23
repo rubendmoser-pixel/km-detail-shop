@@ -11,8 +11,8 @@ const statusLabels = {
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
-  "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderItemsBody", "orderStatusForm",
-  "orderStatusMessage",
+  "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderItemsBody",
+  "orderStatusForm", "orderStatusMessage",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
@@ -444,6 +444,7 @@ function renderOrderDetail() {
   adminEls.orderDetailTitle.textContent = `${order.orderNumber} - ${order.businessName}`;
   adminEls.orderDetailSummary.innerHTML = [
     ["Cliente", `${order.businessName} (${order.email})`],
+    ["Contacto", `${order.contactPerson || "-"} | WhatsApp ${order.customerWhatsapp || "-"}`],
     ["Estado", `${order.status} / ${order.paymentStatus}`],
     ["Descuentos", discountText(order.discountsBps)],
     ["Subtotal neto", adminMoney.format(order.subtotalNetCents / 100)],
@@ -452,6 +453,10 @@ function renderOrderDetail() {
     ["Precio reservado", formatDate(order.priceReservedAt)],
     ["Envio", shippingText(order.shipping)]
   ].map(([label, value]) => `<div><span>${label}</span><strong>${escapeAdmin(value)}</strong></div>`).join("");
+  const customerWhatsapp = cleanPhone(order.customerWhatsapp);
+  adminEls.orderDetailActions.innerHTML = customerWhatsapp
+    ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
+    : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
   adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
     <tr>
       <td><strong>${escapeAdmin(item.kmCode)}</strong><br><span>EAN ${escapeAdmin(item.ean13)}</span></td>
@@ -614,6 +619,23 @@ function shippingText(shipping = {}) {
     shipping.contactPhone ? `Tel: ${shipping.contactPhone}` : "",
     shipping.notes ? `Notas: ${shipping.notes}` : ""
   ].filter(Boolean).join(" | ");
+}
+
+function cleanPhone(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function orderCustomerWhatsappText(order) {
+  return [
+    `Hola ${order.contactPerson || order.businessName}, te contactamos de KM Detail Line.`,
+    "",
+    `Pedido: ${order.orderNumber}`,
+    `Estado: ${order.status}`,
+    `Pago: ${order.paymentStatus}`,
+    `Total: ${adminMoney.format(order.totalCents / 100)}`,
+    "",
+    "Cualquier informacion adicional la coordinamos por este medio."
+  ].join("\n");
 }
 
 function normalizeDateInput(value) {

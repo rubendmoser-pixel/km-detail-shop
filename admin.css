@@ -359,6 +359,25 @@
   font-size: 0.9rem;
 }
 
+.order-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.order-detail-actions .primary-link {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 8px 14px;
+  color: #111;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .order-status-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

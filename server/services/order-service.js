@@ -62,7 +62,7 @@ export function createOrder(db, customerId, input) {
 
 export function getOrder(db, orderId, customerId = null, isAdmin = false) {
   const order = db.prepare(`
-    SELECT o.*, c.business_name, u.email
+    SELECT o.*, c.business_name, c.contact_person, c.whatsapp, u.email
     FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
     WHERE o.id = ?
   `).get(orderId);
@@ -135,6 +135,8 @@ function mapOrder(order, items) {
     orderNumber: order.order_number,
     customerId: order.customer_id,
     businessName: order.business_name,
+    contactPerson: order.contact_person,
+    customerWhatsapp: order.whatsapp,
     email: order.email,
     status: order.status,
     paymentStatus: order.payment_status,

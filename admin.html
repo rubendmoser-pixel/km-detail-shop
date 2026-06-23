@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Administracion | KM Detail Line</title>
     <link rel="stylesheet" href="./styles.css?v=7" />
-    <link rel="stylesheet" href="./admin.css?v=5" />
+    <link rel="stylesheet" href="./admin.css?v=6" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -131,6 +131,7 @@
               <button class="ghost-button" id="closeOrderDetail" type="button">Cerrar</button>
             </div>
             <div class="order-detail-grid" id="orderDetailSummary"></div>
+            <div class="order-detail-actions" id="orderDetailActions"></div>
             <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>KM</th><th>Producto</th><th>Cantidad</th><th>Precio final</th><th>Subtotal</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
             <form class="order-status-form" id="orderStatusForm">
               <label><span>Estado pedido</span><select name="status">
@@ -188,6 +189,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=6" defer></script>
+    <script src="./admin.js?v=7" defer></script>
   </body>
 </html>

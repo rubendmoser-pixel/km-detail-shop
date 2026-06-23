@@ -353,7 +353,7 @@ async function submitOrder(event) {
 
 function renderOrderResult(order) {
   const whatsapp = state.settings.whatsappNumber
-    ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${state.settings.whatsappNumber}?text=${encodeURIComponent(orderSummary(order))}">Enviar a WhatsApp KM</a>`
+    ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${state.settings.whatsappNumber}?text=${encodeURIComponent(orderSummary(order))}">Enviar pedido por WhatsApp a KM</a>`
     : "";
   els.orderResult.hidden = false;
   els.orderResult.innerHTML = `
@@ -365,6 +365,7 @@ function renderOrderResult(order) {
       <div><dt>Total</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
     </dl>
     ${order.bank.alias ? `<p>Transferencia: <strong>${escapeHtml(order.bank.alias)}</strong></p>` : ""}
+    ${whatsapp ? `<p>Para agilizar la gestion, envia el resumen por WhatsApp.</p>` : ""}
     ${whatsapp}`;
 }
 
@@ -389,9 +390,17 @@ function cartSummary() {
 }
 
 function orderSummary(order) {
-  return [`Pedido ${order.orderNumber}`, `Cliente: ${order.businessName}`,
+  return [`Pedido ${order.orderNumber}`, `Cliente: ${order.businessName}`, `Email: ${state.user?.email || ""}`, "",
     ...order.items.map((item) => `- ${item.quantity} x ${item.kmCode} | ${item.productName}`),
-    `Total: ${money.format(order.totalCents / 100)}`].join("\n");
+    "",
+    `Subtotal neto: ${money.format(order.subtotalNetCents / 100)}`,
+    `IVA ${formatPercent(order.vatBps)}: ${money.format(order.vatCents / 100)}`,
+    `Total: ${money.format(order.totalCents / 100)}`,
+    "",
+    `Entrega: ${order.shipping.recipient} | ${order.shipping.address} | ${order.shipping.city}, ${order.shipping.province}`,
+    order.shipping.preferredTransport ? `Transporte: ${order.shipping.preferredTransport}` : "",
+    order.shipping.notes ? `Notas: ${order.shipping.notes}` : ""
+  ].filter(Boolean).join("\n");
 }
 
 function addToCart(productId, quantity) {
