@@ -13,7 +13,7 @@
     <link rel="canonical" href="https://km-detail.com/" />
     <title>KM Detail Line | Plataforma comercial</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=25" />
+    <link rel="stylesheet" href="./styles.css?v=26" />
   </head>
   <body>
     <header class="app-header">
@@ -29,7 +29,7 @@
         <a href="#empresa">Empresa</a>
         <a href="#catalogo">Productos y pedidos</a>
         <a href="#catalogo-pdf">Catalogo PDF 2026</a>
-        <a href="#distribuidores">Distribuidores</a>
+        <a href="#pedido">Distribuidores</a>
         <a href="#pedido">Contacto</a>
       </nav>
       <div class="header-actions">
@@ -173,30 +173,23 @@
         </div>
       </section>
 
-      <section class="section distributor-section" id="distribuidores">
-        <div>
-          <p class="eyebrow">Distribuidores</p>
-          <h2>Estamos incorporando cuentas comerciales</h2>
-          <p>
-            KM Detail Line busca desarrollar su red de distribuidores y comercios
-            especializados en Argentina y Sudamerica. Si tu empresa trabaja con
-            talleres, pinturerias o detailing profesional, podes solicitar el alta
-            comercial para acceder a condiciones de venta B2B.
-          </p>
-        </div>
-        <div class="distributor-actions">
-          <button class="primary-button" type="button" data-open-account="register">Solicitar alta comercial</button>
-          <a class="secondary-link" href="#catalogo-pdf">Ver catalogo PDF 2026</a>
-        </div>
-      </section>
-
       <section class="section order-section" id="pedido">
         <div class="section-title">
-          <p class="eyebrow">Pedido</p>
-          <h2>Confirmar datos de entrega</h2>
+          <div>
+            <p class="eyebrow">Canal comercial</p>
+            <h2>Alta comercial y pedidos B2B</h2>
+          </div>
+          <p class="section-lead">
+            Venta exclusiva a distribuidores, pinturerias y comercios
+            especializados. Las cuentas aprobadas pueden consultar precios
+            comerciales y enviar pedidos desde la plataforma.
+          </p>
         </div>
         <div class="order-access" id="orderAccess">
-          <strong>Acceso para clientes aprobados</strong>
+          <div>
+            <strong>Acceso para cuentas comerciales aprobadas</strong>
+            <p>Solicita el alta o ingresa para operar pedidos B2B.</p>
+          </div>
           <button class="primary-button" id="orderLogin" type="button">Ingresar o solicitar alta</button>
         </div>
         <form class="order-form" id="orderForm" hidden>
@@ -324,6 +317,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=25" defer></script>
+    <script src="./app.js?v=26" defer></script>
   </body>
 </html>
