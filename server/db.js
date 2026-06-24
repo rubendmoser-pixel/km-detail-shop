@@ -280,8 +280,16 @@ function seedSettings(db, whatsappNumber) {
 
 async function ensureAdmin(db, email, password) {
   const normalizedEmail = email.trim().toLowerCase();
-  if (db.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail)) return;
   const passwordHash = await hashPassword(password);
+  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail);
+  if (existing) {
+    db.prepare(`
+      UPDATE users
+      SET password_hash = ?, role = 'admin', status = 'active', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(passwordHash, existing.id);
+    return;
+  }
   db.prepare("INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'admin')")
     .run(normalizedEmail, passwordHash);
 }
