@@ -371,7 +371,13 @@ export function renderSitemap(products = []) {
     ["https://www.km-detail.com/assets/catalogo-km-detail-2026.pdf", "monthly", "0.5"]
   ];
   const unique = [...new Map(urls.map((item) => [item[0], item])).values()];
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${unique.map(([loc, changefreq, priority]) => `  <url>\n    <loc>${escapeXml(loc)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`).join("\n")}\n</urlset>\n`;
+  const productsByUrl = new Map(products.map((product) => [`${SITE_URL}${product.publicUrl}`, product]));
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${unique.map(([loc, changefreq, priority]) => {
+    const product = productsByUrl.get(loc);
+    const images = product?.images?.length ? product.images.slice(0, 6) : [];
+    const imageNodes = images.map((item) => `    <image:image>\n      <image:loc>${escapeXml(absoluteUrl(item.url))}</image:loc>\n      <image:title>${escapeXml(item.altText || product.name)}</image:title>\n    </image:image>`).join("\n");
+    return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>${imageNodes ? `\n${imageNodes}` : ""}\n  </url>`;
+  }).join("\n")}\n</urlset>\n`;
 }
 
 function layout({ title, description, url, image, schemaGraph, main }) {

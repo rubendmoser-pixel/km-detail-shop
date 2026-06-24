@@ -212,13 +212,16 @@ export function addProductImage(db, productId, input, uploadsPath) {
   }
   const productsPath = path.join(uploadsPath, "products");
   fs.mkdirSync(productsPath, { recursive: true });
-  const storedFilename = `${product.km_code.toLowerCase()}-${Date.now()}-${randomUUID().slice(0, 8)}${extension}`;
-  fs.writeFileSync(path.join(productsPath, storedFilename), bytes);
 
   const imageCount = db.prepare("SELECT COUNT(*) AS count FROM product_images WHERE product_id = ?").get(productId).count;
   const maxOrder = db.prepare("SELECT COALESCE(MAX(sort_order), -1) AS value FROM product_images WHERE product_id = ?").get(productId).value;
+  const imageOrder = Number(maxOrder) + 1;
+  const storedFilename = `${product.slug || slugify(`${product.km_code}-${product.name}`)}-imagen-${imageOrder + 1}-${randomUUID().slice(0, 8)}${extension}`;
+  fs.writeFileSync(path.join(productsPath, storedFilename), bytes);
+
   const isPrimary = imageCount === 0 ? 1 : 0;
   if (isPrimary) db.prepare("UPDATE product_images SET is_primary = 0 WHERE product_id = ?").run(productId);
+  const altText = optionalText(input.altText, "altText", { max: 180 }) || buildProductImageAlt(product, imageOrder);
   const row = db.prepare(`
     INSERT INTO product_images (
       product_id, original_filename, stored_filename, mime_type, size_bytes,
@@ -232,8 +235,8 @@ export function addProductImage(db, productId, input, uploadsPath) {
     storedFilename,
     mimeType,
     bytes.length,
-    optionalText(input.altText, "altText", { max: 180 }) || product.name,
-    Number(maxOrder) + 1,
+    altText,
+    imageOrder,
     isPrimary
   );
   return productImage(row);
@@ -410,9 +413,31 @@ function productImage(row) {
 function ensureProduct(db, productId) {
   const id = Number(productId);
   if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("productId is invalid");
-  const product = db.prepare("SELECT id, km_code, name FROM products WHERE id = ?").get(id);
+  const product = db.prepare(`
+    SELECT p.id, p.km_code, p.name, p.slug, p.subfamily, p.material, p.color, p.measure,
+           p.cut_level, p.attachment_system, p.compatible_machine,
+           f.name AS family_name
+    FROM products p JOIN product_families f ON f.id = p.family_id
+    WHERE p.id = ?
+  `).get(id);
   if (!product) throw new NotFoundError("Product not found");
   return product;
+}
+
+function buildProductImageAlt(product, imageOrder = 0) {
+  const details = [
+    product.km_code,
+    product.name,
+    product.family_name,
+    product.material,
+    product.measure,
+    product.cut_level ? `corte ${product.cut_level}` : "",
+    product.attachment_system,
+    product.compatible_machine,
+    "KM Detail Line"
+  ].filter(Boolean);
+  const suffix = imageOrder > 0 ? ` imagen ${imageOrder + 1}` : "";
+  return `${[...new Set(details)].join(" - ")}${suffix}`.slice(0, 180);
 }
 
 function ensureProductImage(db, productId, imageId) {

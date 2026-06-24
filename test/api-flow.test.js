@@ -150,7 +150,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const images = (await imageResponse.json()).images;
   assert.equal(images.length, 1);
   assert.equal(images[0].isPrimary, true);
-  assert.match(images[0].url, /^\/media\/products\/api001k-/);
+  assert.match(images[0].url, /^\/media\/products\/api001k-pad-de-prueba-api-imagen-1-/);
+  assert.match(images[0].altText, /API001K - Pad de prueba API - Poliespumas - KM Detail Line/);
   const publicImageResponse = await fetch(`${baseUrl}${images[0].url}`);
   assert.equal(publicImageResponse.status, 200);
   assert.equal(publicImageResponse.headers.get("content-type"), "image/png");
@@ -167,6 +168,9 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(sitemapResponse.status, 200);
   const sitemap = await sitemapResponse.text();
   assert.match(sitemap, /\/producto\/api001k-pad-de-prueba-api/);
+  assert.match(sitemap, /xmlns:image="http:\/\/www.google.com\/schemas\/sitemap-image\/1.1"/);
+  assert.match(sitemap, /<image:image>/);
+  assert.match(sitemap, /api001k-pad-de-prueba-api-imagen-1-/);
   const adminFamilies = await getJson(`${baseUrl}/api/admin/product-families`, adminCookie);
   assert.equal(adminFamilies.families.some((family) => family.name === "Poliespumas"), true);
 
