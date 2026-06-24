@@ -104,6 +104,7 @@ function bindEvents() {
   els.catalogNext.addEventListener("click", () => setCatalogPage(state.catalogPage + 1));
 
   [els.openAccount, document.querySelector("#openAccountHero"), document.querySelector("#orderLogin")]
+    .filter(Boolean)
     .forEach((button) => button.addEventListener("click", () => openAccount(button.id !== "openAccount")));
   document.querySelectorAll("[data-open-account]").forEach((button) => {
     button.addEventListener("click", () => openAccount(button.dataset.openAccount === "register"));
