@@ -326,16 +326,15 @@ h3 {
   border-bottom: 1px solid #34363b;
 }
 
-.company-grid {
+.company-story {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
-.company-grid article {
+.company-story article {
   display: grid;
   gap: 12px;
-  min-height: 210px;
   padding: 22px;
   color: #f5f5f2;
   background: #111214;
@@ -343,12 +342,18 @@ h3 {
   border-radius: 8px;
 }
 
-.company-grid strong {
+.company-story .company-intro {
+  grid-column: 1 / -1;
+  max-width: 1040px;
+  background: #0f1012;
+}
+
+.company-story strong {
   font-family: var(--font-display);
   font-size: 1.2rem;
 }
 
-.company-grid p,
+.company-story p,
 .order-access p {
   margin: 0;
   color: #c6c7ca;
@@ -1813,7 +1818,7 @@ textarea,
     font-size: 3rem;
   }
 
-  .company-grid {
+  .company-story {
     grid-template-columns: 1fr;
   }
 
