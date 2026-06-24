@@ -2058,6 +2058,14 @@ textarea,
     grid-template-columns: 1fr;
   }
 
+  .company-visual .company-story {
+    grid-template-columns: 1fr;
+  }
+
+  .company-visual {
+    min-height: auto;
+  }
+
   .catalog-book-toolbar {
     display: grid;
     grid-template-columns: 1fr;
@@ -2086,6 +2094,15 @@ textarea,
   .hero-copy {
     min-height: 520px;
     padding: 42px 18px;
+  }
+
+  .section-visual-content {
+    padding: 28px 20px;
+  }
+
+  .company-heading p,
+  .company-story p {
+    font-size: 0.95rem;
   }
 
   h1 {
