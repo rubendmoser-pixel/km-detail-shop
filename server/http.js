@@ -46,8 +46,8 @@ const SEO_ROUTES = new Map([
     description: "Catalogo profesional KM Detail Line 2026 para distribuidores, pinturerias y comercios especializados."
   }],
   ["/distribuidores", {
-    title: "Distribuidores | KM Detail Line",
-    description: "Alta de cuentas comerciales para distribuidores, pinturerias y comercios especializados en Argentina y Sudamerica."
+    title: "Distribuidores KM Detail Line | Alta de cuentas comerciales",
+    description: "Alta comercial KM Detail Line para distribuidores, pinturerias y comercios especializados en pulido automotriz, chapa-pintura y detailing."
   }],
   ["/contacto", {
     title: "Contacto | KM Detail Line",
