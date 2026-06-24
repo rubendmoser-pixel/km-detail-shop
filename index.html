@@ -13,7 +13,7 @@
     <link rel="canonical" href="https://km-detail.com/" />
     <title>KM Detail Line | Plataforma comercial</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=32" />
+    <link rel="stylesheet" href="./styles.css?v=33" />
   </head>
   <body>
     <header class="app-header">
@@ -210,28 +210,31 @@
       <section class="section order-section commercial-section" id="distribuidores">
         <div class="section-visual">
           <img src="./assets/km-distribuidores.png" alt="Distribuidores KM Detail Line" loading="lazy" />
-        </div>
-        <div class="commercial-layout">
-          <div>
-            <p class="eyebrow">Distribuidores</p>
-            <h2>Canal comercial y alta de cuentas</h2>
-            <p class="section-lead">
-              KM Detail Line desarrolla su red comercial en Argentina y
-              Sudam&eacute;rica a trav&eacute;s de distribuidores, pinturer&iacute;as y comercios
-              especializados.
-            </p>
-            <p class="section-lead">
-              Las cuentas aprobadas pueden consultar productos activos, precios
-              netos, descuentos comerciales y enviar pedidos desde la plataforma.
-            </p>
+          <div class="section-visual-content">
+            <div class="commercial-layout">
+              <div>
+                <p class="eyebrow">Canal comercial</p>
+                <h2>Alta de cuentas y pedidos profesionales</h2>
+                <p class="section-lead">
+                  KM Detail Line desarrolla su red comercial en Argentina y
+                  Sudam&eacute;rica a trav&eacute;s de distribuidores, pinturer&iacute;as y comercios
+                  especializados.
+                </p>
+                <p class="section-lead">
+                  Las cuentas aprobadas pueden consultar productos activos,
+                  precios netos, descuentos comerciales y enviar pedidos desde
+                  la plataforma.
+                </p>
+              </div>
+            </div>
+            <div class="order-access" id="orderAccess">
+              <div>
+                <strong>Acceso para cuentas comerciales aprobadas</strong>
+                <p>Solicit&aacute; el alta o ingres&aacute; para operar pedidos comerciales.</p>
+              </div>
+              <button class="primary-button" id="orderLogin" type="button">Ingresar o solicitar alta</button>
+            </div>
           </div>
-        </div>
-        <div class="order-access" id="orderAccess">
-          <div>
-            <strong>Acceso para cuentas comerciales aprobadas</strong>
-            <p>Solicit&aacute; el alta o ingres&aacute; para operar pedidos comerciales.</p>
-          </div>
-          <button class="primary-button" id="orderLogin" type="button">Ingresar o solicitar alta</button>
         </div>
         <form class="order-form" id="orderForm" hidden>
           <label>
@@ -278,32 +281,34 @@
       <section class="section contact-section commercial-section" id="contacto">
         <div class="section-visual">
           <img src="./assets/km-contacto-final.png" alt="Contacto KM Detail Line" loading="lazy" />
-        </div>
-        <div class="contact-layout">
-          <div>
-            <p class="eyebrow">Contacto</p>
-            <h2>Oficina comercial KM Detail Line</h2>
-            <p class="section-lead">
-              Canal de atenci&oacute;n para distribuidores, pinturer&iacute;as y comercios
-              especializados. Para consultas comerciales pod&eacute;s escribir por
-              WhatsApp o email.
-            </p>
-          </div>
-          <div class="contact-card">
-            <dl>
+          <div class="section-visual-content">
+            <div class="contact-layout">
               <div>
-                <dt>Oficina comercial</dt>
-                <dd>C&oacute;rdoba 645, piso 10, oficina 7<br />Rosario (CP 2000), Santa Fe, Argentina</dd>
+                <p class="eyebrow">Canal comercial</p>
+                <h2>Oficina comercial KM Detail Line</h2>
+                <p class="section-lead">
+                  Atenci&oacute;n para distribuidores, pinturer&iacute;as y comercios
+                  especializados. Para consultas comerciales pod&eacute;s escribir
+                  por WhatsApp o email.
+                </p>
               </div>
-              <div>
-                <dt>Tel&eacute;fono / WhatsApp</dt>
-                <dd><a href="https://wa.me/5493412531269" target="_blank" rel="noreferrer">+54 9 341 253 1269</a></dd>
+              <div class="contact-card">
+                <dl>
+                  <div>
+                    <dt>Oficina comercial</dt>
+                    <dd>C&oacute;rdoba 645, piso 10, oficina 7<br />Rosario (CP 2000), Santa Fe, Argentina</dd>
+                  </div>
+                  <div>
+                    <dt>Tel&eacute;fono / WhatsApp</dt>
+                    <dd><a href="https://wa.me/5493412531269" target="_blank" rel="noreferrer">+54 9 341 253 1269</a></dd>
+                  </div>
+                  <div>
+                    <dt>Email</dt>
+                    <dd><a href="mailto:ventas@km-detail.com">ventas@km-detail.com</a></dd>
+                  </div>
+                </dl>
               </div>
-              <div>
-                <dt>Email</dt>
-                <dd><a href="mailto:ventas@km-detail.com">ventas@km-detail.com</a></dd>
-              </div>
-            </dl>
+            </div>
           </div>
         </div>
       </section>
@@ -391,6 +396,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=32" defer></script>
+    <script src="./app.js?v=33" defer></script>
   </body>
 </html>
