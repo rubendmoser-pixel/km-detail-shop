@@ -544,14 +544,6 @@ textarea:focus {
   text-underline-offset: 4px;
 }
 
-.catalog-thumb {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 7px;
-  border: 1px solid var(--line);
-}
-
 .pdf-section {
   background: #080809;
   border-top: 1px solid #34363b;
@@ -1873,11 +1865,6 @@ textarea,
   color: #09090a;
   background: var(--accent);
   border-color: #c9cdd2;
-}
-
-.catalog-thumb {
-  border-color: #3f4146;
-  filter: grayscale(0.55) contrast(1.05);
 }
 
 .product-visual,
