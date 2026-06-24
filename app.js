@@ -28,6 +28,14 @@ const catalogPages = [
   "25_CATALOGO-DE-PRODUCTOS-2026.png"
 ];
 
+const routeSections = new Map([
+  ["/empresa", "empresa"],
+  ["/productos", "catalogo"],
+  ["/catalogo-2026", "catalogo-pdf"],
+  ["/distribuidores", "distribuidores"],
+  ["/contacto", "contacto"]
+]);
+
 const state = {
   products: [],
   user: null,
@@ -54,6 +62,7 @@ const els = Object.fromEntries([
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function init() {
+  normalizeInitialRoute();
   bindEvents();
   await Promise.all([loadSession(), loadSettings()]);
   await loadProducts();
@@ -62,6 +71,13 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  }
+}
+
+function normalizeInitialRoute() {
+  const section = routeSections.get(window.location.pathname);
+  if (section && !window.location.hash) {
+    window.history.replaceState(null, "", `${window.location.pathname}#${section}`);
   }
 }
 

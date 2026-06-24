@@ -36,6 +36,9 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(healthResponse.headers.get("x-content-type-options"), "nosniff");
   const health = await healthResponse.json();
   assert.equal(health.status, "ok");
+  const contactPageResponse = await fetch(`${baseUrl}/contacto`);
+  assert.equal(contactPageResponse.status, 200);
+  assert.match(await contactPageResponse.text(), /<title>Contacto \| KM Detail Line<\/title>/);
 
   const publicSettings = await getJson(`${baseUrl}/api/public-settings`);
   assert.equal(publicSettings.settings.vatBps, 2100);

@@ -18,13 +18,36 @@ const MIME_TYPES = {
 };
 
 const SECURITY_HEADERS = {
-  "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'sha256-Qf2BqYcesXXzMK9QkQvcEjf02X0MYZuqoClfdBvkyMU='; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+  "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'sha256-PVZHrizMClelU2iyN4TWf3xQbRC26gEboVXyy3/YVIc='; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
   "cross-origin-opener-policy": "same-origin",
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
   "x-frame-options": "DENY"
 };
+
+const SEO_ROUTES = new Map([
+  ["/empresa", {
+    title: "Empresa | KM Detail Line",
+    description: "KM Detail Line como canal profesional de insumos para pulido automotriz, chapa-pintura y detailing."
+  }],
+  ["/productos", {
+    title: "Productos y pedidos | KM Detail Line",
+    description: "Catalogo operativo de productos KM Detail Line para distribuidores, pinturerias y comercios especializados."
+  }],
+  ["/catalogo-2026", {
+    title: "Catalogo 2026 | KM Detail Line",
+    description: "Catalogo profesional KM Detail Line 2026 para distribuidores, pinturerias y comercios especializados."
+  }],
+  ["/distribuidores", {
+    title: "Distribuidores | KM Detail Line",
+    description: "Alta de cuentas comerciales para distribuidores, pinturerias y comercios especializados en Argentina y Sudamerica."
+  }],
+  ["/contacto", {
+    title: "Contacto | KM Detail Line",
+    description: "Oficina comercial KM Detail Line en Rosario. Canal de atencion para distribuidores, pinturerias y comercios especializados."
+  }]
+]);
 
 export async function readJson(request, maxBytes = 1_000_000) {
   const contentType = request.headers["content-type"] || "";
@@ -91,22 +114,37 @@ export function clearSessionCookie({ secure = false } = {}) {
 export function serveStatic(response, projectRoot, pathname) {
   const requested = pathname === "/" ? "/index.html" : pathname;
   const decoded = decodeURIComponent(requested);
-  const target = path.resolve(projectRoot, `.${decoded}`);
+  const routeMeta = SEO_ROUTES.get(decoded);
+  const target = path.resolve(projectRoot, routeMeta ? "./index.html" : `.${decoded}`);
   const denied = ["server", "data", "uploads", ".git", ".env", "package.json"];
   const relative = path.relative(projectRoot, target);
   if (relative.startsWith("..") || denied.some((segment) => relative === segment || relative.startsWith(`${segment}${path.sep}`))) {
     return false;
   }
   if (!fs.existsSync(target) || !fs.statSync(target).isFile()) return false;
-  const content = fs.readFileSync(target);
+  const rawContent = fs.readFileSync(target);
+  const content = routeMeta ? Buffer.from(applyRouteMeta(rawContent.toString("utf8"), decoded, routeMeta), "utf8") : rawContent;
   response.writeHead(200, {
     "content-type": MIME_TYPES[path.extname(target).toLowerCase()] || "application/octet-stream",
     "content-length": content.length,
-    "cache-control": requested === "/index.html" ? "no-cache" : "public, max-age=3600",
+    "cache-control": requested === "/index.html" || routeMeta ? "no-cache" : "public, max-age=3600",
     ...SECURITY_HEADERS
   });
   response.end(content);
   return true;
+}
+
+function applyRouteMeta(html, routePath, routeMeta) {
+  const url = `https://www.km-detail.com${routePath}`;
+  return html
+    .replace(/<title>.*?<\/title>/, `<title>${routeMeta.title}</title>`)
+    .replace(/<link rel="canonical" href="[^"]+" \/>/, `<link rel="canonical" href="${url}" />`)
+    .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${routeMeta.description}" />`)
+    .replace(/<meta property="og:title" content="[^"]*" \/>/, `<meta property="og:title" content="${routeMeta.title}" />`)
+    .replace(/<meta property="og:description" content="[^"]*" \/>/, `<meta property="og:description" content="${routeMeta.description}" />`)
+    .replace(/<meta property="og:url" content="[^"]*" \/>/, `<meta property="og:url" content="${url}" />`)
+    .replace(/<meta name="twitter:title" content="[^"]*" \/>/, `<meta name="twitter:title" content="${routeMeta.title}" />`)
+    .replace(/<meta name="twitter:description" content="[^"]*" \/>/, `<meta name="twitter:description" content="${routeMeta.description}" />`);
 }
 
 export function serveProductImage(response, uploadsPath, pathname) {
