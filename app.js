@@ -1,5 +1,32 @@
 const SITE_URL = "https://km-detail.com";
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+const catalogPages = [
+  "1_DETAIL-LINE.png",
+  "2_INDICE.png",
+  "3_KM-DETAIL-LINE-Presentacion.png",
+  "4_SISTEMA-DE-PULIDO-KM.png",
+  "5_GUIA-DE-NIVEL-DE-CORTE-KM.png",
+  "6_SISTEMA-DE-PANOS-HIBRIDOS-KM.png",
+  "7_PANOS-HIBRIDOS-PRODUCTOS-75-IN.png",
+  "8_LINEA-PA-100percent-LANA-CON-BACKING-INTEGRADO.png",
+  "9_LINEA-PA-PRODUCTOS.png",
+  "10_LANA-PRELAVADA-Y-PEINADA-KM.png",
+  "11_LANA-PRELAVADA-Y-PEINADA-PRODUCTOS.png",
+  "12_SISTEMA-DE-POLIESPUMAS-KM.png",
+  "13_POLIESPUMAS-CON-BACKING-ROSCA-14-x-2-mm.png",
+  "14_POLIESPUMAS-CON-VELCRO-SIN-BACKING.png",
+  "15_POLIESPUMAS-PARA-ROTO-ORBITALES.png",
+  "16_PADS-100percent-LANA-CON-RESPALDO-DE-POLIESPUMA.png",
+  "17_INTERFACES-DE-ESPUMA-CON-VELCRO-KM.png",
+  "18_INTERFACES-DE-ESPUMA-PRODUCTOS.png",
+  "19_SISTEMA-DE-BACKINGS-KM.png",
+  "20_BACKINGS-KM-PRODUCTOS.png",
+  "21_APLICADORES-DE-CERA-Y-LIMPIEZA-KM.png",
+  "22_APLICADORES-PRODUCTOS.png",
+  "23_SISTEMA-DE-TACOS-DE-LIJADO-KM.png",
+  "24_TACOS-DE-LIJADO-PRODUCTOS.png",
+  "25_CATALOGO-DE-PRODUCTOS-2026.png"
+];
 
 const state = {
   products: [],
@@ -11,6 +38,7 @@ const state = {
   cut: "",
   size: "",
   sort: "featured",
+  catalogPage: 0,
   cart: readCart()
 };
 
@@ -21,7 +49,8 @@ const els = Object.fromEntries([
   "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
   "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus",
-  "imageLightbox", "imageLightboxImage", "imageLightboxCaption", "closeImageLightbox", "closeImageLightboxBackdrop"
+  "imageLightbox", "imageLightboxImage", "imageLightboxCaption", "closeImageLightbox", "closeImageLightboxBackdrop",
+  "catalogPrev", "catalogNext", "catalogPageLabel", "catalogPageImage", "catalogThumbs"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function init() {
@@ -71,6 +100,8 @@ function bindEvents() {
   els.goToOrder.addEventListener("click", closeCart);
   document.querySelector("#copyOrder").addEventListener("click", copyOrderSummary);
   els.orderForm.addEventListener("submit", submitOrder);
+  els.catalogPrev.addEventListener("click", () => setCatalogPage(state.catalogPage - 1));
+  els.catalogNext.addEventListener("click", () => setCatalogPage(state.catalogPage + 1));
 
   [els.openAccount, document.querySelector("#openAccountHero"), document.querySelector("#orderLogin")]
     .forEach((button) => button.addEventListener("click", () => openAccount(button.id !== "openAccount")));
@@ -122,9 +153,46 @@ function renderAll() {
   renderAccountState();
   renderCategoryFilters();
   renderSelectOptions();
+  renderCatalogBook();
   renderProducts();
   renderCart();
   renderCustomerOrders();
+}
+
+function renderCatalogBook() {
+  if (!els.catalogThumbs) return;
+  els.catalogThumbs.innerHTML = catalogPages.map((page, index) => `
+    <button class="${index === state.catalogPage ? "active" : ""}" type="button" data-catalog-page="${index}" aria-label="Ver pagina ${index + 1}">
+      <img src="${catalogPageUrl(page)}" alt="" loading="lazy" />
+      <span>${index + 1}</span>
+    </button>
+  `).join("");
+  els.catalogThumbs.querySelectorAll("[data-catalog-page]").forEach((button) => {
+    button.addEventListener("click", () => setCatalogPage(Number(button.dataset.catalogPage)));
+  });
+  updateCatalogBook();
+}
+
+function setCatalogPage(index) {
+  state.catalogPage = Math.min(Math.max(index, 0), catalogPages.length - 1);
+  updateCatalogBook();
+}
+
+function updateCatalogBook() {
+  const page = catalogPages[state.catalogPage];
+  if (!page || !els.catalogPageImage) return;
+  els.catalogPageImage.src = catalogPageUrl(page);
+  els.catalogPageImage.alt = `Pagina ${state.catalogPage + 1} del catalogo KM Detail Line 2026`;
+  els.catalogPageLabel.textContent = `Pagina ${state.catalogPage + 1} de ${catalogPages.length}`;
+  els.catalogPrev.disabled = state.catalogPage === 0;
+  els.catalogNext.disabled = state.catalogPage === catalogPages.length - 1;
+  els.catalogThumbs.querySelectorAll("[data-catalog-page]").forEach((button) => {
+    button.classList.toggle("active", Number(button.dataset.catalogPage) === state.catalogPage);
+  });
+}
+
+function catalogPageUrl(page) {
+  return `./assets/catalogo-2026/${page}`;
 }
 
 function renderAccountState() {
