@@ -51,7 +51,7 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         return sendJson(response, 201, result);
       }
       if (request.method === "POST" && url.pathname === "/api/auth/login") {
-        const result = await login(db, await readJson(request), config.sessionDays);
+        const result = await login(db, await readJson(request), config.sessionDays, config);
         return sendJson(response, 200, { user: result.user, expiresAt: result.expiresAt }, {
           "set-cookie": sessionCookie(result.token, {
             secure: config.secureCookies,

@@ -41,6 +41,17 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(publicSettings.settings.vatBps, 2100);
   assert.equal(publicSettings.settings.whatsappNumber, "");
 
+  const staleAdminLogin = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "admin@km-detail.com", password: "admin-password-from-env" })
+  });
+  assert.equal(staleAdminLogin.status, 401);
+  config.adminEmail = "admin@km-detail.com";
+  config.adminPassword = "admin-password-from-env";
+  const repairedAdminCookie = await loginCookie(baseUrl, "admin@km-detail.com", "admin-password-from-env");
+  assert.match(repairedAdminCookie, /km_session=/);
+
   const registrationResponse = await fetch(`${baseUrl}/api/auth/register`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -72,7 +83,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   });
   assert.equal(reusedResetResponse.status, 400);
 
-  const adminCookie = await loginCookie(baseUrl, "admin@km-detail.com", "secure-admin-password");
+  const adminCookie = await loginCookie(baseUrl, "admin@km-detail.com", "admin-password-from-env");
   const searchedCustomers = await getJson(`${baseUrl}/api/admin/customers?q=30-99999999-1`, adminCookie);
   assert.equal(searchedCustomers.customers.length, 1);
   assert.equal(searchedCustomers.customers[0].business_name, "Comercio API");

@@ -48,16 +48,17 @@ export async function registerCustomer(db, input) {
   }
 }
 
-export async function login(db, { email: rawEmail, password }, sessionDays) {
+export async function login(db, { email: rawEmail, password }, sessionDays, config = {}) {
   const email = normalizeEmail(rawEmail);
-  const user = db.prepare(`
+  let user = db.prepare(`
     SELECT u.*, c.id AS customer_id, c.approval_status, c.business_name
     FROM users u LEFT JOIN customers c ON c.user_id = u.id
     WHERE u.email = ?
   `).get(email);
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {
-    throw new AuthError("Invalid email or password");
+    user = await repairAdminLogin(db, email, password, config);
+    if (!user) throw new AuthError("Invalid email or password");
   }
   if (user.status !== "active") throw new AuthError("User is not active", 403);
 
@@ -67,6 +68,29 @@ export async function login(db, { email: rawEmail, password }, sessionDays) {
     .run(user.id, tokenHash, expiresAt);
 
   return { token, expiresAt, user: publicUser(user) };
+}
+
+async function repairAdminLogin(db, email, password, config) {
+  const configuredEmail = String(config.adminEmail || "").trim().toLowerCase();
+  const configuredPassword = String(config.adminPassword || "");
+  if (!configuredEmail || !configuredPassword || email !== configuredEmail || password !== configuredPassword) return null;
+
+  const passwordHash = await hashPassword(password);
+  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  if (existing) {
+    db.prepare(`
+      UPDATE users
+      SET password_hash = ?, role = 'admin', status = 'active', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(passwordHash, existing.id);
+  } else {
+    db.prepare("INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'admin')").run(email, passwordHash);
+  }
+  return db.prepare(`
+    SELECT u.*, c.id AS customer_id, c.approval_status, c.business_name
+    FROM users u LEFT JOIN customers c ON c.user_id = u.id
+    WHERE u.email = ?
+  `).get(email);
 }
 
 export function authenticate(db, token) {

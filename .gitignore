@@ -4,5 +4,6 @@ node_modules/
 /data/
 /uploads/
 *.log
+ADMIN_PASSWORD_TEMP.txt
 .DS_Store
 Thumbs.db
