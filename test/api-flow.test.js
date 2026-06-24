@@ -317,6 +317,46 @@ test("customer welcome email does not depend on internal notification email", as
   assert.deepEqual(outbox, [{ event_type: "customer_welcome", recipient: "cliente-api@example.com" }]);
 });
 
+test("configured admin can recover access when the account is missing", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-admin-reset-${Date.now()}.sqlite`);
+  const config = {
+    sessionDays: 30,
+    secureCookies: false,
+    adminEmail: "ventas@km-detail.com",
+    notificationEmail: "ventas@km-detail.com",
+    publicBaseUrl: baseUrlPlaceholder()
+  };
+  const db = await openDatabase({ databasePath });
+  const server = http.createServer(createApp({ db, config }));
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const forgotResponse = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "ventas@km-detail.com" })
+  });
+  assert.equal(forgotResponse.status, 200);
+  const resetMessage = db.prepare("SELECT text_body FROM email_outbox WHERE event_type = 'password_reset'").get();
+  const resetToken = new URL(resetMessage.text_body.match(/https?:\/\/\S+/)[0]).searchParams.get("token");
+  const resetResponse = await fetch(`${baseUrl}/api/auth/reset-password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: resetToken, password: "new-admin-password-456" })
+  });
+  assert.equal(resetResponse.status, 200);
+
+  const adminCookie = await loginCookie(baseUrl, "ventas@km-detail.com", "new-admin-password-456");
+  const me = await getJson(`${baseUrl}/api/me`, adminCookie);
+  assert.equal(me.user.role, "admin");
+});
+
 test("email service sends pending messages through Resend API", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-resend-${Date.now()}.sqlite`);
   const db = await openDatabase({ databasePath });

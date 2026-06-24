@@ -110,9 +110,19 @@ export function logout(db, token) {
   if (token) db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(hashToken(token));
 }
 
-export function createPasswordReset(db, rawEmail) {
+export async function createPasswordReset(db, rawEmail, config = {}) {
   const email = normalizeEmail(rawEmail);
-  const user = db.prepare("SELECT id, email, status FROM users WHERE email = ?").get(email);
+  let user = db.prepare("SELECT id, email, role, status FROM users WHERE email = ?").get(email);
+  if (!user && isConfiguredAdminEmail(email, config)) {
+    const temporaryPassword = createSessionToken().token;
+    db.prepare("INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'admin')")
+      .run(email, await hashPassword(temporaryPassword));
+    user = db.prepare("SELECT id, email, role, status FROM users WHERE email = ?").get(email);
+  }
+  if (user && isConfiguredAdminEmail(email, config) && (user.role !== "admin" || user.status !== "active")) {
+    db.prepare("UPDATE users SET role = 'admin', status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
+    user = { ...user, role: "admin", status: "active" };
+  }
   if (!user || user.status !== "active") return null;
 
   const { token, tokenHash } = createSessionToken();
@@ -125,20 +135,31 @@ export function createPasswordReset(db, rawEmail) {
   return { userId: user.id, email: user.email, token, expiresAt };
 }
 
-export async function resetPassword(db, token, password) {
+export async function resetPassword(db, token, password, config = {}) {
   const normalizedToken = requiredText(token, "token", { min: 20, max: 500 });
   const reset = db.prepare(`
-    SELECT * FROM password_reset_tokens
-    WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?
+    SELECT prt.*, u.email
+    FROM password_reset_tokens prt
+    JOIN users u ON u.id = prt.user_id
+    WHERE prt.token_hash = ? AND prt.used_at IS NULL AND prt.expires_at > ?
   `).get(hashToken(normalizedToken), new Date().toISOString());
   if (!reset) throw new ValidationError("Password reset link is invalid or expired");
   const passwordHash = await hashPassword(password);
   transaction(db, () => {
-    db.prepare("UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(passwordHash, reset.user_id);
+    if (isConfiguredAdminEmail(reset.email, config)) {
+      db.prepare("UPDATE users SET password_hash = ?, role = 'admin', status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(passwordHash, reset.user_id);
+    } else {
+      db.prepare("UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(passwordHash, reset.user_id);
+    }
     db.prepare("UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?").run(reset.id);
     db.prepare("DELETE FROM sessions WHERE user_id = ?").run(reset.user_id);
   });
   return { ok: true };
+}
+
+function isConfiguredAdminEmail(email, config = {}) {
+  const configuredEmail = String(config.adminEmail || "").trim().toLowerCase();
+  return Boolean(configuredEmail) && String(email || "").trim().toLowerCase() === configuredEmail;
 }
 
 export function requireUser(user) {

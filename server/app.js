@@ -65,13 +65,13 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       }
       if (request.method === "POST" && url.pathname === "/api/auth/forgot-password") {
         const body = await readJson(request);
-        const reset = createPasswordReset(db, body.email);
+        const reset = await createPasswordReset(db, body.email, config);
         if (reset) emailService.queuePasswordReset(reset.userId, reset.token);
         return sendJson(response, 200, { message: "If the account exists, a recovery email was queued." });
       }
       if (request.method === "POST" && url.pathname === "/api/auth/reset-password") {
         const body = await readJson(request);
-        const result = await resetPassword(db, body.token, body.password);
+        const result = await resetPassword(db, body.token, body.password, config);
         return sendJson(response, 200, result);
       }
       if (request.method === "GET" && url.pathname === "/api/me") {
