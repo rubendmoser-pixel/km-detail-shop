@@ -44,7 +44,7 @@ const state = {
 
 const els = Object.fromEntries([
   "categoryFilters", "cutFilter", "sizeFilter", "searchInput", "sortSelect", "productGrid",
-  "resultCount", "productTotal", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
+  "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
   "cartEmpty", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
@@ -149,7 +149,6 @@ async function loadProducts() {
 }
 
 function renderAll() {
-  els.productTotal.textContent = state.products.length;
   renderAccountState();
   renderCategoryFilters();
   renderSelectOptions();
