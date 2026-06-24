@@ -13,7 +13,7 @@
     <link rel="canonical" href="https://km-detail.com/" />
     <title>KM Detail Line | Plataforma comercial</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=31" />
+    <link rel="stylesheet" href="./styles.css?v=32" />
   </head>
   <body>
     <header class="app-header">
@@ -29,8 +29,8 @@
         <a href="#empresa">Empresa</a>
         <a href="#catalogo">Productos</a>
         <a href="#catalogo-pdf">Catalogo 2026</a>
-        <a href="#pedido">Distribuidores</a>
-        <a href="#pedido">Contacto</a>
+        <a href="#distribuidores">Distribuidores</a>
+        <a href="#contacto">Contacto</a>
       </nav>
       <div class="header-actions">
         <button class="account-button" id="openAccount" type="button">Ingresar</button>
@@ -207,41 +207,29 @@
         </div>
       </section>
 
-      <section class="section order-section" id="pedido">
-        <div class="contact-hero">
-          <img src="./assets/km-contacto.png" alt="Contacto comercial KM Detail Line" loading="lazy" />
+      <section class="section order-section commercial-section" id="distribuidores">
+        <div class="section-visual">
+          <img src="./assets/km-distribuidores.png" alt="Distribuidores KM Detail Line" loading="lazy" />
         </div>
-        <div class="contact-layout">
+        <div class="commercial-layout">
           <div>
-            <p class="eyebrow">Contacto</p>
-            <h2>Canal comercial KM Detail Line</h2>
+            <p class="eyebrow">Distribuidores</p>
+            <h2>Canal comercial y alta de cuentas</h2>
             <p class="section-lead">
-              Venta exclusiva a distribuidores, pinturerías y comercios
-              especializados. Las cuentas aprobadas pueden consultar precios
-              comerciales y enviar pedidos desde la plataforma.
+              KM Detail Line desarrolla su red comercial en Argentina y
+              Sudam&eacute;rica a trav&eacute;s de distribuidores, pinturer&iacute;as y comercios
+              especializados.
             </p>
-          </div>
-          <div class="contact-card">
-            <dl>
-              <div>
-                <dt>Oficina comercial</dt>
-                <dd>Córdoba 645, piso 10, oficina 7<br />Rosario (CP 2000), Santa Fe, Argentina</dd>
-              </div>
-              <div>
-                <dt>Teléfono / WhatsApp</dt>
-                <dd><a href="https://wa.me/5493412531269" target="_blank" rel="noreferrer">+54 9 341 253 1269</a></dd>
-              </div>
-              <div>
-                <dt>Email</dt>
-                <dd><a href="mailto:ventas@km-detail.com">ventas@km-detail.com</a></dd>
-              </div>
-            </dl>
+            <p class="section-lead">
+              Las cuentas aprobadas pueden consultar productos activos, precios
+              netos, descuentos comerciales y enviar pedidos desde la plataforma.
+            </p>
           </div>
         </div>
         <div class="order-access" id="orderAccess">
           <div>
             <strong>Acceso para cuentas comerciales aprobadas</strong>
-            <p>Solicita el alta o ingresa para operar pedidos comerciales.</p>
+            <p>Solicit&aacute; el alta o ingres&aacute; para operar pedidos comerciales.</p>
           </div>
           <button class="primary-button" id="orderLogin" type="button">Ingresar o solicitar alta</button>
         </div>
@@ -286,6 +274,39 @@
         <div class="order-result" id="orderResult" hidden></div>
         <div class="customer-orders" id="customerOrders" hidden></div>
       </section>
+
+      <section class="section contact-section commercial-section" id="contacto">
+        <div class="section-visual">
+          <img src="./assets/km-contacto-final.png" alt="Contacto KM Detail Line" loading="lazy" />
+        </div>
+        <div class="contact-layout">
+          <div>
+            <p class="eyebrow">Contacto</p>
+            <h2>Oficina comercial KM Detail Line</h2>
+            <p class="section-lead">
+              Canal de atenci&oacute;n para distribuidores, pinturer&iacute;as y comercios
+              especializados. Para consultas comerciales pod&eacute;s escribir por
+              WhatsApp o email.
+            </p>
+          </div>
+          <div class="contact-card">
+            <dl>
+              <div>
+                <dt>Oficina comercial</dt>
+                <dd>C&oacute;rdoba 645, piso 10, oficina 7<br />Rosario (CP 2000), Santa Fe, Argentina</dd>
+              </div>
+              <div>
+                <dt>Tel&eacute;fono / WhatsApp</dt>
+                <dd><a href="https://wa.me/5493412531269" target="_blank" rel="noreferrer">+54 9 341 253 1269</a></dd>
+              </div>
+              <div>
+                <dt>Email</dt>
+                <dd><a href="mailto:ventas@km-detail.com">ventas@km-detail.com</a></dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
     </main>
 
     <aside class="cart-drawer" id="cartDrawer" aria-hidden="true" aria-label="Carrito de pedido">
@@ -305,7 +326,7 @@
           <div class="grand-total"><dt>Total</dt><dd id="cartTotal">$ 0,00</dd></div>
         </dl>
         <div class="cart-actions">
-          <a class="primary-link disabled" id="goToOrder" href="#pedido">Continuar pedido</a>
+          <a class="primary-link disabled" id="goToOrder" href="#distribuidores">Continuar pedido</a>
           <button class="text-button" id="clearCart" type="button">Vaciar carrito</button>
         </div>
       </div>
@@ -370,6 +391,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=31" defer></script>
+    <script src="./app.js?v=32" defer></script>
   </body>
 </html>

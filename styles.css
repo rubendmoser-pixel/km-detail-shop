@@ -972,12 +972,12 @@ body.modal-open {
   font-weight: 900;
 }
 
-.order-section {
-  background: #17191f;
+.commercial-section {
+  background: #080809;
   color: #fff;
 }
 
-.contact-hero {
+.section-visual {
   margin-bottom: 28px;
   overflow: hidden;
   background: #080809;
@@ -985,20 +985,25 @@ body.modal-open {
   border-radius: 8px;
 }
 
-.contact-hero img {
+.section-visual img {
   display: block;
   width: 100%;
-  max-height: 420px;
+  max-height: 430px;
   object-fit: cover;
   object-position: center;
 }
 
+.commercial-layout,
 .contact-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.48fr);
   gap: 24px;
   align-items: start;
   margin-bottom: 24px;
+}
+
+.commercial-layout {
+  grid-template-columns: minmax(0, 0.92fr);
 }
 
 .contact-card {
@@ -1868,6 +1873,44 @@ textarea,
   background: #080809;
 }
 
+.commercial-section {
+  border-top: 1px solid #3f4248;
+  background: #080809;
+}
+
+.section-visual {
+  margin-bottom: clamp(22px, 3vw, 34px);
+  overflow: hidden;
+  background: #080809;
+  border: 1px solid #34363b;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.section-visual img {
+  display: block;
+  width: 100%;
+  max-height: 430px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.commercial-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 820px);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.contact-layout {
+  align-items: stretch;
+}
+
+.contact-card {
+  box-shadow: inset 4px 0 #8f969e;
+}
+
 .cart-shell {
   color: #f5f5f2;
   background: #111214;
@@ -1948,6 +1991,11 @@ textarea,
   .order-access {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .commercial-layout,
+  .contact-layout {
+    grid-template-columns: 1fr;
   }
 
   .catalog-book-toolbar {
