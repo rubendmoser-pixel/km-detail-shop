@@ -81,7 +81,45 @@ export function getPublicProductBySlug(db, slug) {
     WHERE p.active = 1 AND f.active = 1 AND p.slug = ?
   `).get(normalizedSlug);
   if (!row) return null;
-  return publicProduct(row, productImagesByProduct(db, [row.id]).get(row.id) || []);
+  const product = publicProduct(row, productImagesByProduct(db, [row.id]).get(row.id) || []);
+  product.relatedProducts = listRelatedPublicProducts(db, row);
+  return product;
+}
+
+function listRelatedPublicProducts(db, productRow) {
+  const rows = db.prepare(`
+    SELECT p.*, f.name AS family_name, f.slug AS family_slug,
+           pi.stored_filename AS primary_image_filename
+    FROM products p JOIN product_families f ON f.id = p.family_id
+    LEFT JOIN product_images pi ON pi.id = (
+      SELECT id FROM product_images
+      WHERE product_id = p.id
+      ORDER BY is_primary DESC, sort_order, id
+      LIMIT 1
+    )
+    WHERE p.active = 1
+      AND f.active = 1
+      AND p.id <> ?
+      AND (p.family_id = ? OR p.subfamily = ? OR p.attachment_system = ?)
+    ORDER BY
+      CASE
+        WHEN p.subfamily = ? THEN 0
+        WHEN p.family_id = ? THEN 1
+        ELSE 2
+      END,
+      p.web_sort_order,
+      p.name
+    LIMIT 6
+  `).all(
+    productRow.id,
+    productRow.family_id,
+    productRow.subfamily,
+    productRow.attachment_system,
+    productRow.subfamily,
+    productRow.family_id
+  );
+  const imagesByProduct = productImagesByProduct(db, rows.map((row) => row.id));
+  return rows.map((row) => publicProduct(row, imagesByProduct.get(row.id) || []));
 }
 
 function productImagesByProduct(db, productIds) {

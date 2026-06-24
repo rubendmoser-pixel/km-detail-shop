@@ -120,6 +120,19 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   });
   assert.equal(productResponse.status, 201);
   const product = (await productResponse.json()).product;
+  const relatedProductResponse = await fetch(`${baseUrl}/api/admin/products`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      kmCode: "API002K",
+      ean13: "7791234567891",
+      name: "Pad relacionado API",
+      familyName: "Poliespumas",
+      basePriceCents: 90_000,
+      priceEffectiveFrom: "2026-01-01"
+    })
+  });
+  assert.equal(relatedProductResponse.status, 201);
   const adminProducts = await getJson(`${baseUrl}/api/admin/products?q=API001K`, adminCookie);
   assert.equal(adminProducts.products.length, 1);
   assert.equal(adminProducts.products[0].kmCode, "API001K");
@@ -146,6 +159,9 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const publicProductPage = await publicProductPageResponse.text();
   assert.match(publicProductPage, /<title>API001K \| Pad de prueba API \| KM Detail Line<\/title>/);
   assert.match(publicProductPage, /"@type":"Product"/);
+  assert.match(publicProductPage, /Productos relacionados/);
+  assert.match(publicProductPage, /Pad relacionado API/);
+  assert.match(publicProductPage, /"@type":"ItemList"/);
   assert.match(publicProductPage, /EAN/);
   const sitemapResponse = await fetch(`${baseUrl}/sitemap.xml`);
   assert.equal(sitemapResponse.status, 200);

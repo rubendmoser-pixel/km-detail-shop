@@ -269,6 +269,7 @@ export function renderProductPage(product) {
     ["Maquina compatible", product.compatibleMachine]
   ].filter(([, value]) => Boolean(value));
   const gallery = product.images?.length ? product.images : (product.primaryImageUrl ? [{ url: product.primaryImageUrl, altText: product.name }] : []);
+  const relatedProducts = product.relatedProducts || [];
   const hasGallery = gallery.length > 0;
   const mediaBlock = hasGallery ? `
           <div class="product-seo-media">
@@ -303,8 +304,19 @@ export function renderProductPage(product) {
         "@type": "BusinessAudience",
         audienceType: "Distribuidores, pinturerias y comercios especializados"
       }
-    }
-  ];
+    },
+    relatedProducts.length ? {
+      "@type": "ItemList",
+      "@id": `${url}#related-products`,
+      name: `Productos relacionados con ${product.kmCode}`,
+      itemListElement: relatedProducts.map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${SITE_URL}${item.publicUrl}`,
+        name: item.name
+      }))
+    } : null
+  ].filter(Boolean);
   return layout({
     title,
     description,
@@ -338,6 +350,7 @@ export function renderProductPage(product) {
               <p>Producto orientado a distribuidores, pinturerias y comercios especializados. Los precios comerciales se muestran solo con cuenta aprobada y no incluyen IVA.</p>
               <a class="primary-link" href="/productos">Ver catalogo operativo</a>
             </div>
+            ${renderRelatedProducts(relatedProducts)}
           </article>
         </div>
       </section>`
@@ -437,6 +450,23 @@ function renderSeoLinks(currentPath) {
     <span>Tambien puede interesarte</span>
     ${links}
   </nav>`;
+}
+
+function renderRelatedProducts(products = []) {
+  if (!products.length) return "";
+  return `<section class="product-seo-related" aria-label="Productos relacionados">
+    <div>
+      <p class="eyebrow">Misma linea tecnica</p>
+      <h2>Productos relacionados</h2>
+    </div>
+    <div class="product-seo-related-grid">
+      ${products.map((product) => `<a href="${escapeHtml(product.publicUrl)}">
+        <span class="product-code">${escapeHtml(product.kmCode)}</span>
+        <strong>${escapeHtml(product.name)}</strong>
+        <small>${escapeHtml([product.family?.name, product.measure, product.attachmentSystem].filter(Boolean).join(" · "))}</small>
+      </a>`).join("")}
+    </div>
+  </section>`;
 }
 
 function organizationSchema() {
