@@ -13,7 +13,7 @@
     <link rel="canonical" href="https://km-detail.com/" />
     <title>KM Detail Line | Plataforma comercial</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=18" />
+    <link rel="stylesheet" href="./styles.css?v=19" />
   </head>
   <body>
     <header class="app-header">
@@ -26,10 +26,10 @@
       </a>
       <nav class="top-nav" aria-label="Principal">
         <a href="#inicio">Inicio</a>
-        <a href="#catalogo">Productos</a>
-        <a href="#catalogo">Catalogo 2026</a>
-        <a href="#sistema">Diferenciales</a>
-        <a href="#pedido">Distribuidores</a>
+        <a href="#empresa">Empresa</a>
+        <a href="#catalogo">Productos y pedidos</a>
+        <a href="#catalogo-pdf">Catalogo PDF 2026</a>
+        <a href="#distribuidores">Distribuidores</a>
         <a href="#pedido">Contacto</a>
       </nav>
       <div class="header-actions">
@@ -52,9 +52,44 @@
             comercios especializados.
           </p>
           <div class="hero-actions">
-            <a class="primary-link" href="#catalogo">Ver catalogo 2026 <span aria-hidden="true">&#8594;</span></a>
+            <a class="primary-link" href="#catalogo-pdf">Ver catalogo PDF <span aria-hidden="true">&#8594;</span></a>
             <button class="secondary-link" id="openAccountHero" type="button">Solicitar alta comercial <span aria-hidden="true">&#8594;</span></button>
           </div>
+        </div>
+      </section>
+
+      <section class="section company-section" id="empresa">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Empresa</p>
+            <h2>KM Detail Line como canal profesional</h2>
+          </div>
+        </div>
+        <div class="company-grid">
+          <article>
+            <strong>Presentacion comercial</strong>
+            <p>
+              Esta pagina presenta la linea KM Detail Line para distribuidores,
+              pinturerias y comercios especializados que trabajan el mercado
+              profesional del pulido automotriz, chapa-pintura y detailing.
+            </p>
+          </article>
+          <article>
+            <strong>Plataforma B2B</strong>
+            <p>
+              Los clientes aprobados pueden consultar productos, precios netos,
+              descuentos comerciales y armar pedidos. Los precios no incluyen
+              IVA y el pedido queda sujeto a confirmacion de disponibilidad.
+            </p>
+          </article>
+          <article>
+            <strong>Venta por canal</strong>
+            <p>
+              La venta se orienta exclusivamente a distribuidores, pinturerias y
+              comercios especializados. El objetivo es fortalecer el canal KM en
+              Argentina y Sudamerica.
+            </p>
+          </article>
         </div>
       </section>
 
@@ -87,9 +122,13 @@
       <section class="section catalog-layout" id="catalogo">
         <aside class="filters-panel" aria-label="Filtros de catalogo">
           <div class="section-title compact">
-            <p class="eyebrow">Catalogo</p>
-            <h2>Buscar productos</h2>
+            <p class="eyebrow">Productos y pedidos</p>
+            <h2>Catalogo operativo</h2>
           </div>
+          <p class="panel-note">
+            Busqueda para clientes comerciales. Los precios se muestran solo con
+            cuenta aprobada.
+          </p>
           <label class="search-box">
             <span>Busqueda</span>
             <input id="searchInput" type="search" placeholder="Codigo, articulo, EAN..." autocomplete="off" />
@@ -133,6 +172,29 @@
         </div>
       </section>
 
+      <section class="section pdf-section" id="catalogo-pdf">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Catalogo PDF</p>
+            <h2>Catalogo profesional KM Detail Line 2026</h2>
+          </div>
+          <div class="pdf-actions">
+            <a class="primary-link" href="./assets/catalogo-km-detail-2026.pdf" target="_blank" rel="noopener">Ver catalogo online <span aria-hidden="true">&#8594;</span></a>
+            <a class="secondary-link" href="./assets/catalogo-km-detail-2026.pdf" download>Descargar PDF</a>
+          </div>
+        </div>
+        <p class="section-lead">
+          Material de presentacion para distribuidores, pinturerias y comercios
+          especializados. La compra operativa se realiza desde Productos y pedidos
+          con cuenta comercial aprobada.
+        </p>
+        <div class="pdf-viewer">
+          <object data="./assets/catalogo-km-detail-2026.pdf#view=FitH" type="application/pdf">
+            <p>Tu navegador no pudo mostrar el PDF. Podes abrirlo o descargarlo desde los botones superiores.</p>
+          </object>
+        </div>
+      </section>
+
       <section class="section technical-band" id="sistema">
         <div>
           <p class="eyebrow">Sistema KM</p>
@@ -147,6 +209,23 @@
           <img src="./assets/catalog/catalog-page-9.png" alt="Linea PA productos" />
           <img src="./assets/catalog/catalog-page-13.png" alt="Poliespumas con backing" />
           <img src="./assets/catalog/catalog-page-20.png" alt="Backings KM" />
+        </div>
+      </section>
+
+      <section class="section distributor-section" id="distribuidores">
+        <div>
+          <p class="eyebrow">Distribuidores</p>
+          <h2>Estamos incorporando cuentas comerciales</h2>
+          <p>
+            KM Detail Line busca desarrollar su red de distribuidores y comercios
+            especializados en Argentina y Sudamerica. Si tu empresa trabaja con
+            talleres, pinturerias o detailing profesional, podes solicitar el alta
+            comercial para acceder a condiciones de venta B2B.
+          </p>
+        </div>
+        <div class="distributor-actions">
+          <button class="primary-button" type="button" data-open-account="register">Solicitar alta comercial</button>
+          <a class="secondary-link" href="#catalogo-pdf">Ver catalogo PDF 2026</a>
         </div>
       </section>
 
@@ -284,6 +363,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=18" defer></script>
+    <script src="./app.js?v=19" defer></script>
   </body>
 </html>

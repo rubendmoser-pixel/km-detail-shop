@@ -74,6 +74,9 @@ function bindEvents() {
 
   [els.openAccount, document.querySelector("#openAccountHero"), document.querySelector("#orderLogin")]
     .forEach((button) => button.addEventListener("click", () => openAccount(button.id !== "openAccount")));
+  document.querySelectorAll("[data-open-account]").forEach((button) => {
+    button.addEventListener("click", () => openAccount(button.dataset.openAccount === "register"));
+  });
   document.querySelector("#closeAccount").addEventListener("click", () => els.accountDialog.close());
   els.showLogin.addEventListener("click", () => setAccountMode("login"));
   els.showRegister.addEventListener("click", () => setAccountMode("register"));
