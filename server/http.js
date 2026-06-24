@@ -18,13 +18,18 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml"
 };
 
-const SECURITY_HEADERS = {
+export const SECURITY_HEADERS = {
   "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'sha256-PVZHrizMClelU2iyN4TWf3xQbRC26gEboVXyy3/YVIc='; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
   "cross-origin-opener-policy": "same-origin",
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
   "x-frame-options": "DENY"
+};
+
+export const SEO_SECURITY_HEADERS = {
+  ...SECURITY_HEADERS,
+  "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
 };
 
 const SEO_ROUTES = new Map([
@@ -122,7 +127,7 @@ export function serveStatic(response, projectRoot, pathname) {
       "content-type": "text/html; charset=utf-8",
       "content-length": content.length,
       "cache-control": "no-cache",
-      ...SECURITY_HEADERS
+      ...SEO_SECURITY_HEADERS
     });
     response.end(content);
     return true;

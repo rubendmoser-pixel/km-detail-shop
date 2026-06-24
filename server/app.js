@@ -16,7 +16,9 @@ import {
 import {
   addProductImage,
   deleteProductImage,
+  getPublicProductBySlug,
   listAdminProducts,
+  listPublicProductsForSeo,
   listProductFamilies,
   listProductImages,
   listProducts,
@@ -24,9 +26,10 @@ import {
   upsertProduct
 } from "./services/product-service.js";
 import { getCommercialSettings, getPublicSettings, updateCommercialSettings } from "./services/settings-service.js";
-import { clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
+import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
 import { createRateLimiter } from "./rate-limit.js";
+import { renderProductPage, renderSitemap } from "./seo-pages.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -43,6 +46,17 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       if (retryAfter) return sendJson(response, 429, { error: "Too many requests. Try again later." }, { "retry-after": String(retryAfter) });
       if (request.method === "GET" && url.pathname === "/api/health") {
         return sendJson(response, 200, { status: "ok", service: "km-detail-b2b", time: new Date().toISOString() });
+      }
+      if (request.method === "GET" && url.pathname === "/sitemap.xml") {
+        const body = renderSitemap(listPublicProductsForSeo(db));
+        response.writeHead(200, {
+          "content-type": "application/xml; charset=utf-8",
+          "content-length": Buffer.byteLength(body),
+          "cache-control": "no-cache",
+          ...SECURITY_HEADERS
+        });
+        response.end(body);
+        return;
       }
       if (request.method === "GET" && serveProductImage(response, uploadsPath, url.pathname)) return;
       if (request.method === "POST" && url.pathname === "/api/auth/register") {
@@ -237,6 +251,20 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       }
 
       if (url.pathname.startsWith("/api/")) return sendJson(response, 404, { error: "API route not found" });
+      match = url.pathname.match(/^\/producto\/([a-z0-9-]+)$/);
+      if (request.method === "GET" && match) {
+        const productPage = renderProductPage(getPublicProductBySlug(db, match[1]));
+        if (productPage) {
+          response.writeHead(200, {
+            "content-type": "text/html; charset=utf-8",
+            "content-length": Buffer.byteLength(productPage),
+            "cache-control": "no-cache",
+            ...SEO_SECURITY_HEADERS
+          });
+          response.end(productPage);
+          return;
+        }
+      }
       if (request.method === "GET" && serveStatic(response, projectRoot, url.pathname)) return;
       return sendJson(response, 404, { error: "Not found" });
     } catch (error) {

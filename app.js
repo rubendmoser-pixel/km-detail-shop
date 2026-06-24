@@ -296,6 +296,7 @@ function renderProductCard(product) {
     `).join("")}
   </div>` : "";
   const mainAlt = images[0]?.altText || product.name;
+  const productUrl = product.publicUrl || `/producto/${encodeURIComponent(product.slug || product.kmCode.toLowerCase())}`;
   const zoomCaption = `${product.kmCode} · ${product.name}`;
   const visual = images.length
     ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span></div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" /></button></figure>${gallery}</div>`
@@ -321,7 +322,7 @@ function renderProductCard(product) {
     <article class="product-card family-${familyClass}">
       ${visual}
       <div class="product-body">
-        <h3>${escapeHtml(product.name)}</h3>
+        <h3><a class="product-title-link" href="${escapeHtml(productUrl)}">${escapeHtml(product.name)}</a></h3>
         <p>${escapeHtml(product.family.name)} · ${escapeHtml(product.attachmentSystem || "Sin especificar")} · EAN ${escapeHtml(product.ean13)}</p>
         <div class="meta-line">
           <span class="tag ${familyClass}">${escapeHtml(product.material || product.family.name)}</span>

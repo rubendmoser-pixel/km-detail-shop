@@ -1,27 +1,36 @@
 const SITE_URL = "https://www.km-detail.com";
+const DEFAULT_IMAGE = `${SITE_URL}/assets/km-linea-profesional.png`;
 
 export const seoLandingPages = new Map([
   ["/panos-para-pulir-autos", {
     title: "Panos para pulir autos | KM Detail Line",
-    description: "Panos para pulido automotriz, corte, abrillantado y terminacion. Linea profesional KM Detail Line para distribuidores y comercios especializados.",
+    description: "Panos, boinas y pads para pulido automotriz profesional. Corte, correccion, abrillantado y terminacion para distribuidores y pinturerias.",
     eyebrow: "Pulido automotriz",
     heading: "Panos para pulir autos",
-    lead: "Linea profesional de panos para pulido automotriz, correccion, abrillantado y terminacion, desarrollada para procesos tecnicos de talleres, pinturerias y detailing profesional.",
+    lead: "Linea profesional de panos, boinas y pads para pulido automotriz, correccion, abrillantado y terminacion. Productos orientados al canal comercial de distribuidores, pinturerias y comercios especializados.",
     sections: [
       {
-        title: "Panos de corte, abrillantado y terminacion",
-        body: "KM Detail Line organiza los panos por funcion dentro del proceso: corte inicial, correccion de pintura, pulido intermedio, abrillantado y acabado final. Esto facilita elegir el producto correcto segun la superficie y el nivel de terminacion buscado."
+        title: "Corte, correccion y terminacion",
+        body: "KM Detail Line organiza los panos por funcion dentro del proceso: corte inicial, correccion de pintura, pulido intermedio, abrillantado y acabado final. Esta lectura tecnica ayuda a elegir el producto correcto segun superficie, herramienta y nivel de terminacion."
+      },
+      {
+        title: "Vocabulario real del rubro",
+        body: "En el mercado se buscan como panos para pulir, boinas para pulidora, gorros de lana, pads de lana, panos de corte, panos de brillo o panos para detailing. La linea KM ordena esas busquedas dentro de familias tecnicas claras."
       },
       {
         title: "Canal comercial especializado",
         body: "La venta esta orientada a distribuidores, pinturerias y comercios especializados. Los clientes aprobados pueden acceder al catalogo operativo, precios netos y condiciones comerciales desde la plataforma."
       }
     ],
-    keywords: ["pano para pulir auto", "panos para pulido automotriz", "pano para pulidora", "pano de corte", "pano de abrillantado", "pano de terminacion"]
+    faq: [
+      ["Que diferencia hay entre pano, boina y pad?", "Son nombres que el mercado usa para productos de pulido. La diferencia concreta depende de material, medida, sistema de sujecion y funcion dentro del proceso."],
+      ["KM Detail Line vende al consumidor final?", "No. La venta esta orientada exclusivamente a distribuidores, pinturerias y comercios especializados."]
+    ],
+    keywords: ["pano para pulir auto", "panos para pulido automotriz", "boina para pulidora", "gorro de lana", "pad de lana", "pano de corte", "pano de abrillantado", "pano de terminacion", "pulido automotriz profesional"]
   }],
   ["/gorros-de-lana-para-pulidora", {
     title: "Gorros de lana para pulidora | KM Detail Line",
-    description: "Gorros, boinas y pads de lana para pulidora rotativa. Productos profesionales de alto corte para pulido automotriz y repintado.",
+    description: "Gorros, boinas, panos y pads de lana para pulidora rotativa. Alto corte para pulido automotriz, repintado y detailing profesional.",
     eyebrow: "Lana profesional",
     heading: "Gorros de lana para pulidora",
     lead: "Productos de lana para procesos de alto corte, correccion de pintura y trabajo profesional con pulidora en chapa-pintura, repintado automotriz y detailing.",
@@ -33,27 +42,43 @@ export const seoLandingPages = new Map([
       {
         title: "Gorro, boina, pad o pano",
         body: "En el mercado se usan distintos nombres para productos similares: gorro de lana, boina de lana, pad de lana o pano de lana. KM estructura la informacion para que el canal comercial pueda identificar rapido la funcion, medida y sistema de sujecion."
+      },
+      {
+        title: "Aplicacion profesional",
+        body: "Las lanas trabajan en procesos donde importan corte, temperatura, control de marcas y preparacion para etapas posteriores de pulido, abrillantado o terminacion."
       }
     ],
-    keywords: ["gorro de lana para pulidora", "boina de lana para pulidora", "pad de lana para pulido", "lana para pulidora", "gorro de lana alto corte", "pano de lana"]
+    faq: [
+      ["Para que se usa una boina de lana?", "Se utiliza principalmente para corte y correccion en procesos de pulido profesional."],
+      ["Que herramientas usan estos productos?", "Segun el producto, pueden utilizarse con pulidoras rotativas o sistemas compatibles con velcro, backing o rosca."]
+    ],
+    keywords: ["gorro de lana para pulidora", "boina de lana para pulidora", "pad de lana para pulido", "lana para pulidora", "gorro de lana alto corte", "pano de lana", "boina de corte", "lana para detailing"]
   }],
   ["/pads-de-espuma-para-pulido", {
     title: "Pads de espuma para pulido | KM Detail Line",
-    description: "Pads de espuma y poliespumas para pulido, abrillantado y terminacion automotriz. Linea profesional para canal comercial.",
+    description: "Pads de espuma, poliespumas y esponjas para pulido, abrillantado y terminacion automotriz. Linea profesional para canal comercial.",
     eyebrow: "Poliespumas",
     heading: "Pads de espuma para pulido",
-    lead: "Poliespumas y pads de espuma para etapas de corte medio, pulido intermedio, abrillantado y terminacion sin hologramas en procesos profesionales.",
+    lead: "Poliespumas, pads de espuma y esponjas para etapas de corte medio, pulido intermedio, abrillantado y terminacion sin hologramas en procesos profesionales.",
     sections: [
       {
         title: "Espumas por etapa de trabajo",
         body: "Las poliespumas KM se integran al sistema de pulido para controlar corte, temperatura, acabado y terminacion. La seleccion correcta permite reducir marcas, mejorar brillo y ordenar el proceso de trabajo."
       },
       {
+        title: "Corte, brillo y acabado final",
+        body: "El canal profesional busca pads de corte, pads de pulido, pads de terminacion, esponjas para pulidora, poliespumas de abrillantado y accesorios para detailing. KM agrupa estas variantes dentro de una linea tecnica."
+      },
+      {
         title: "Detalle tecnico para el canal",
         body: "Cada producto puede identificarse por familia, medida, corte, sistema de sujecion y uso recomendado. El objetivo es que distribuidores y comercios especializados tengan una linea clara para vender y asesorar."
       }
     ],
-    keywords: ["pad de espuma para pulido", "poliespuma para pulido", "esponja para pulidora", "pad de abrillantado", "pad de terminacion", "pad para eliminar hologramas"]
+    faq: [
+      ["Como elegir un pad de espuma?", "La eleccion depende de la etapa de trabajo: corte, correccion, pulido intermedio, abrillantado o terminacion."],
+      ["Las poliespumas son para uso profesional?", "Si. La linea esta pensada para talleres, pinturerias, distribuidores y comercios especializados."]
+    ],
+    keywords: ["pad de espuma para pulido", "poliespuma para pulido", "esponja para pulidora", "pad de abrillantado", "pad de terminacion", "pad para eliminar hologramas", "pad para detailing", "pad de corte medio"]
   }],
   ["/backings-para-pulidora", {
     title: "Backings para pulidora | KM Detail Line",
@@ -69,9 +94,17 @@ export const seoLandingPages = new Map([
       {
         title: "Parte del sistema de pulido",
         body: "El backing no es un accesorio aislado: define como trabaja el pad o pano sobre la superficie. Por eso KM lo integra dentro de un sistema tecnico junto con lanas, poliespumas e interfaces."
+      },
+      {
+        title: "Busqueda por nombre tecnico y comercial",
+        body: "El mercado tambien busca plato para pulidora, soporte para pad, base velcro, respaldo para pulidora o backing flexible. La pagina esta preparada para cubrir esas variantes sin duplicar contenido."
       }
     ],
-    keywords: ["backing para pulidora", "plato para pulidora", "soporte para pad", "backing rosca 14", "backing flexible", "backing ultra flex"]
+    faq: [
+      ["Que significa rosca 14 x 2?", "Es una medida de rosca estandar utilizada en accesorios y platos para pulidora compatibles."],
+      ["Para que sirve un backing flexible?", "Permite mejorar el apoyo del pad o pano sobre superficies con curvaturas o zonas de trabajo delicadas."]
+    ],
+    keywords: ["backing para pulidora", "plato para pulidora", "soporte para pad", "backing rosca 14", "backing flexible", "backing ultra flex", "base velcro para pulidora", "respaldo para pulidora"]
   }],
   ["/tacos-de-lijado-automotriz", {
     title: "Tacos de lijado automotriz | KM Detail Line",
@@ -87,9 +120,17 @@ export const seoLandingPages = new Map([
       {
         title: "Compatibilidad con sistemas abrasivos",
         body: "La linea contempla soluciones para lija, velcro, adhesivo reposicionable y formatos tecnicos orientados al uso profesional en talleres y comercios especializados."
+      },
+      {
+        title: "Preparacion y terminacion",
+        body: "El lijado automotriz se vincula con chapa-pintura, repintado, correccion de defectos, acabado manual y preparacion de superficies antes del pulido final."
       }
     ],
-    keywords: ["taco de lijado automotriz", "taco para lija", "taco para chapa y pintura", "taco con velcro", "taco 70 mm", "taco para repintado"]
+    faq: [
+      ["Para que sirve un taco de lijado?", "Sirve para controlar el apoyo y la presion de la lija durante trabajos de preparacion o terminacion."],
+      ["Se usa en chapa-pintura?", "Si. Es una herramienta de apoyo para procesos de repintado y preparacion de superficies."]
+    ],
+    keywords: ["taco de lijado automotriz", "taco para lija", "taco para chapa y pintura", "taco con velcro", "taco 70 mm", "taco para repintado", "lijado automotriz", "preparacion de superficies"]
   }],
   ["/insumos-para-chapa-y-pintura", {
     title: "Insumos para chapa y pintura | KM Detail Line",
@@ -103,11 +144,19 @@ export const seoLandingPages = new Map([
         body: "KM Detail Line integra panos, pads, poliespumas, interfaces, backings, aplicadores y tacos de lijado para acompanar distintas etapas del proceso de chapa-pintura."
       },
       {
+        title: "Del lijado al acabado final",
+        body: "La propuesta cubre preparacion de superficies, soporte de herramientas, correccion, pulido intermedio, abrillantado y aplicacion manual dentro de procesos profesionales."
+      },
+      {
         title: "Venta exclusiva por canal",
         body: "La plataforma esta pensada para cuentas comerciales aprobadas. No se orienta a venta minorista directa, sino al desarrollo de distribuidores, pinturerias y comercios especializados."
       }
     ],
-    keywords: ["productos para chapa y pintura", "insumos para chapa y pintura", "productos para repintado automotriz", "pads para chapa y pintura", "interfaces para lijado", "productos para talleres de pintura"]
+    faq: [
+      ["KM vende insumos para talleres de pintura?", "KM trabaja con distribuidores, pinturerias y comercios especializados que abastecen el canal profesional."],
+      ["Los precios publicados incluyen IVA?", "Los precios comerciales de la plataforma no incluyen IVA y se muestran solo a cuentas aprobadas."]
+    ],
+    keywords: ["productos para chapa y pintura", "insumos para chapa y pintura", "productos para repintado automotriz", "pads para chapa y pintura", "interfaces para lijado", "productos para talleres de pintura", "insumos para pinturerias", "pulido para repintado"]
   }],
   ["/productos-para-detailing-profesional", {
     title: "Productos para detailing profesional | KM Detail Line",
@@ -121,11 +170,19 @@ export const seoLandingPages = new Map([
         body: "La linea KM permite ordenar productos por funcion: corte, correccion, pulido intermedio, brillo, terminacion, soporte y aplicacion. Esto ayuda al canal comercial a asesorar con criterio tecnico."
       },
       {
+        title: "No son productos aislados",
+        body: "El objetivo es construir una lectura por proceso: que producto usar, en que etapa, con que soporte y para que nivel de acabado. Esa organizacion mejora la venta tecnica en comercios especializados."
+      },
+      {
         title: "Distribuidores y comercios especializados",
         body: "KM Detail Line busca fortalecer su red comercial en Argentina y Sudamerica con una propuesta clara, trazable y preparada para crecer junto a distribuidores del rubro."
       }
     ],
-    keywords: ["productos para detailing profesional", "insumos para detailing", "pads para detailing", "panos para detailing", "aplicadores para detailing", "productos para pulido detailing"]
+    faq: [
+      ["Que productos incluye la linea para detailing?", "Incluye panos, pads, poliespumas, backings, interfaces, aplicadores y productos de soporte para procesos de terminacion."],
+      ["Como se opera comercialmente?", "Los clientes aprobados consultan precios netos y arman pedidos desde la plataforma. La coordinacion se realiza por email y WhatsApp."]
+    ],
+    keywords: ["productos para detailing profesional", "insumos para detailing", "pads para detailing", "panos para detailing", "aplicadores para detailing", "productos para pulido detailing", "abrillantado automotriz", "terminacion automotriz"]
   }]
 ]);
 
@@ -133,30 +190,205 @@ export function renderSeoLandingPage(pathname) {
   const page = seoLandingPages.get(pathname);
   if (!page) return null;
   const url = `${SITE_URL}${pathname}`;
+  const graph = [
+    organizationSchema(),
+    websiteSchema(),
+    breadcrumbSchema([
+      ["Inicio", SITE_URL],
+      [page.heading, url]
+    ]),
+    {
+      "@type": "CollectionPage",
+      "@id": `${url}#webpage`,
+      url,
+      name: page.title,
+      description: page.description,
+      image: DEFAULT_IMAGE,
+      isPartOf: { "@id": `${SITE_URL}/#website` },
+      about: { "@id": `${SITE_URL}/#organization` },
+      inLanguage: "es-AR",
+      keywords: page.keywords.join(", ")
+    },
+    faqSchema(page.faq)
+  ].filter(Boolean);
+
+  return layout({
+    title: page.title,
+    description: page.description,
+    url,
+    image: DEFAULT_IMAGE,
+    schemaGraph: graph,
+    main: `
+      <section class="section company-section commercial-section seo-landing">
+        <div class="section-visual company-visual">
+          <img src="/assets/km-linea-profesional.png" alt="${escapeHtml(page.heading)}" />
+          <div class="section-visual-content">
+            <div class="company-heading">
+              <p class="eyebrow">${escapeHtml(page.eyebrow)}</p>
+              <h1>${escapeHtml(page.heading)}</h1>
+              <p>${escapeHtml(page.lead)}</p>
+            </div>
+            <div class="company-story">
+              ${page.sections.map((section) => `<article><strong>${escapeHtml(section.title)}</strong><p>${escapeHtml(section.body)}</p></article>`).join("")}
+              <article class="seo-keyword-card">
+                <strong>Busquedas relacionadas</strong>
+                <p>${page.keywords.map(escapeHtml).join(" | ")}</p>
+              </article>
+            </div>
+            ${renderFaq(page.faq)}
+            ${renderSeoLinks(pathname)}
+          </div>
+        </div>
+      </section>`
+  });
+}
+
+export function renderProductPage(product) {
+  if (!product) return null;
+  const url = `${SITE_URL}${product.publicUrl}`;
+  const image = absoluteUrl(product.primaryImageUrl) || DEFAULT_IMAGE;
+  const title = `${product.kmCode} | ${product.name} | KM Detail Line`;
+  const description = [
+    product.name,
+    product.family?.name,
+    product.measure,
+    product.attachmentSystem,
+    product.ean13 ? `EAN ${product.ean13}` : "",
+    "Producto profesional KM Detail Line para canal comercial."
+  ].filter(Boolean).join(" - ");
+  const specs = [
+    ["Codigo KM", product.kmCode],
+    ["EAN", product.ean13],
+    ["Familia", product.family?.name],
+    ["Subfamilia", product.subfamily],
+    ["Material", product.material],
+    ["Medida", product.measure],
+    ["Corte", product.cutLevel],
+    ["Sistema", product.attachmentSystem],
+    ["Color", product.color],
+    ["Maquina compatible", product.compatibleMachine]
+  ].filter(([, value]) => Boolean(value));
+  const gallery = product.images?.length ? product.images : (product.primaryImageUrl ? [{ url: product.primaryImageUrl, altText: product.name }] : []);
+  const graph = [
+    organizationSchema(),
+    websiteSchema(),
+    breadcrumbSchema([
+      ["Inicio", SITE_URL],
+      ["Productos", `${SITE_URL}/productos`],
+      [product.name, url]
+    ]),
+    {
+      "@type": "Product",
+      "@id": `${url}#product`,
+      name: product.name,
+      sku: product.kmCode,
+      gtin13: product.ean13,
+      brand: { "@type": "Brand", name: "KM Detail Line" },
+      category: product.family?.name,
+      description,
+      image: gallery.map((item) => absoluteUrl(item.url)).filter(Boolean),
+      url,
+      additionalProperty: specs.map(([name, value]) => ({
+        "@type": "PropertyValue",
+        name,
+        value
+      })),
+      audience: {
+        "@type": "BusinessAudience",
+        audienceType: "Distribuidores, pinturerias y comercios especializados"
+      }
+    }
+  ];
+  return layout({
+    title,
+    description,
+    url,
+    image,
+    schemaGraph: graph,
+    main: `
+      <section class="section product-seo-page">
+        <div class="product-seo-shell">
+          <div class="product-seo-media">
+            <span class="product-code">${escapeHtml(product.kmCode)}</span>
+            ${gallery.length ? `<figure><img src="${escapeHtml(gallery[0].url)}" alt="${escapeHtml(gallery[0].altText || product.name)}" /></figure>` : ""}
+            ${gallery.length > 1 ? `<div class="product-seo-thumbs">${gallery.slice(0, 6).map((item) => `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.altText || product.name)}" />`).join("")}</div>` : ""}
+          </div>
+          <article class="product-seo-content">
+            <p class="eyebrow">Ficha tecnica KM Detail Line</p>
+            <h1>${escapeHtml(product.name)}</h1>
+            <p class="section-lead">${escapeHtml(description)}</p>
+            <div class="meta-line">
+              ${product.family?.name ? `<span class="tag">${escapeHtml(product.family.name)}</span>` : ""}
+              ${product.measure ? `<span class="tag">${escapeHtml(product.measure)}</span>` : ""}
+              ${product.cutLevel ? `<span class="tag yellow">Corte ${escapeHtml(product.cutLevel)}</span>` : ""}
+              ${product.attachmentSystem ? `<span class="tag">${escapeHtml(product.attachmentSystem)}</span>` : ""}
+            </div>
+            <dl class="product-seo-specs">
+              ${specs.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}
+            </dl>
+            ${product.recommendedUse ? `<h2>Uso recomendado</h2><p>${escapeHtml(product.recommendedUse)}</p>` : ""}
+            ${product.technicalDescription ? `<h2>Descripcion tecnica</h2><p>${escapeHtml(product.technicalDescription)}</p>` : ""}
+            <div class="seo-commercial-note">
+              <strong>Venta por canal profesional</strong>
+              <p>Producto orientado a distribuidores, pinturerias y comercios especializados. Los precios comerciales se muestran solo con cuenta aprobada y no incluyen IVA.</p>
+              <a class="primary-link" href="/productos">Ver catalogo operativo</a>
+            </div>
+          </article>
+        </div>
+      </section>`
+  });
+}
+
+export function renderSitemap(products = []) {
+  const today = new Date().toISOString().slice(0, 10);
+  const urls = [
+    ["https://www.km-detail.com/", "weekly", "1.0"],
+    ["https://www.km-detail.com/empresa", "monthly", "0.7"],
+    ["https://www.km-detail.com/productos", "weekly", "0.9"],
+    ["https://www.km-detail.com/catalogo-2026", "monthly", "0.8"],
+    ["https://www.km-detail.com/distribuidores", "monthly", "0.8"],
+    ["https://www.km-detail.com/contacto", "monthly", "0.6"],
+    ...[...seoLandingPages.keys()].map((path) => [`${SITE_URL}${path}`, "monthly", "0.8"]),
+    ...products.map((product) => [`${SITE_URL}${product.publicUrl}`, "monthly", "0.7"]),
+    ["https://www.km-detail.com/assets/catalogo-km-detail-2026.pdf", "monthly", "0.5"]
+  ];
+  const unique = [...new Map(urls.map((item) => [item[0], item])).values()];
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${unique.map(([loc, changefreq, priority]) => `  <url>\n    <loc>${escapeXml(loc)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`).join("\n")}\n</urlset>\n`;
+}
+
+function layout({ title, description, url, image, schemaGraph, main }) {
   return `<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#111318" />
-    <meta name="description" content="${escapeHtml(page.description)}" />
+    <meta name="description" content="${escapeHtml(description)}" />
     <meta name="robots" content="index,follow" />
-    <meta property="og:title" content="${escapeHtml(page.title)}" />
-    <meta property="og:description" content="${escapeHtml(page.description)}" />
-    <meta property="og:url" content="${url}" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(description)}" />
+    <meta property="og:url" content="${escapeHtml(url)}" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="${SITE_URL}/assets/km-linea-profesional.png" />
+    <meta property="og:image" content="${escapeHtml(image)}" />
     <meta property="og:locale" content="es_AR" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${escapeHtml(page.title)}" />
-    <meta name="twitter:description" content="${escapeHtml(page.description)}" />
-    <meta name="twitter:image" content="${SITE_URL}/assets/km-linea-profesional.png" />
-    <link rel="canonical" href="${url}" />
-    <title>${escapeHtml(page.title)}</title>
-    <link rel="stylesheet" href="/styles.css?v=35" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(description)}" />
+    <meta name="twitter:image" content="${escapeHtml(image)}" />
+    <link rel="canonical" href="${escapeHtml(url)}" />
+    <title>${escapeHtml(title)}</title>
+    <link rel="stylesheet" href="/styles.css?v=36" />
+    <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": schemaGraph })}</script>
   </head>
   <body>
-    <header class="app-header">
+    ${header()}
+    <main>${main}</main>
+  </body>
+</html>`;
+}
+
+function header() {
+  return `<header class="app-header">
       <a class="brand" href="/" aria-label="KM Detail Line">
         <img class="brand-logo" src="/assets/km-metal-logo-small.png" alt="KM" />
         <span class="brand-divider" aria-hidden="true"></span>
@@ -173,30 +405,90 @@ export function renderSeoLandingPage(pathname) {
       <div class="header-actions">
         <a class="account-button" href="/productos">Ver productos</a>
       </div>
-    </header>
-    <main>
-      <section class="section company-section commercial-section seo-landing">
-        <div class="section-visual company-visual">
-          <img src="/assets/km-linea-profesional.png" alt="${escapeHtml(page.heading)}" />
-          <div class="section-visual-content">
-            <div class="company-heading">
-              <p class="eyebrow">${escapeHtml(page.eyebrow)}</p>
-              <h1>${escapeHtml(page.heading)}</h1>
-              <p>${escapeHtml(page.lead)}</p>
-            </div>
-            <div class="company-story">
-              ${page.sections.map((section) => `<article><strong>${escapeHtml(section.title)}</strong><p>${escapeHtml(section.body)}</p></article>`).join("")}
-              <article>
-                <strong>Busquedas relacionadas</strong>
-                <p>${page.keywords.map(escapeHtml).join(" | ")}</p>
-              </article>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  </body>
-</html>`;
+    </header>`;
+}
+
+function renderFaq(faq = []) {
+  if (!faq.length) return "";
+  return `<div class="seo-faq">
+    <p class="eyebrow">Preguntas tecnicas</p>
+    <div class="company-story">
+      ${faq.map(([question, answer]) => `<article><strong>${escapeHtml(question)}</strong><p>${escapeHtml(answer)}</p></article>`).join("")}
+    </div>
+  </div>`;
+}
+
+function renderSeoLinks(currentPath) {
+  const links = [...seoLandingPages.entries()]
+    .filter(([path]) => path !== currentPath)
+    .slice(0, 6)
+    .map(([path, page]) => `<a href="${path}">${escapeHtml(page.heading)}</a>`)
+    .join("");
+  return `<nav class="seo-related-links" aria-label="Paginas tecnicas relacionadas">
+    <span>Tambien puede interesarte</span>
+    ${links}
+  </nav>`;
+}
+
+function organizationSchema() {
+  return {
+    "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
+    name: "KM Detail Line",
+    url: `${SITE_URL}/`,
+    logo: `${SITE_URL}/assets/km-metal-logo.png`,
+    email: "ventas@km-detail.com",
+    telephone: "+54 9 341 253 1269",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Cordoba 645, piso 10, oficina 7",
+      addressLocality: "Rosario",
+      addressRegion: "Santa Fe",
+      postalCode: "2000",
+      addressCountry: "AR"
+    },
+    areaServed: ["Argentina", "Sudamerica"]
+  };
+}
+
+function websiteSchema() {
+  return {
+    "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
+    url: `${SITE_URL}/`,
+    name: "KM Detail Line",
+    publisher: { "@id": `${SITE_URL}/#organization` },
+    inLanguage: "es-AR"
+  };
+}
+
+function breadcrumbSchema(items) {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: items.map(([name, item], index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name,
+      item
+    }))
+  };
+}
+
+function faqSchema(faq = []) {
+  if (!faq.length) return null;
+  return {
+    "@type": "FAQPage",
+    mainEntity: faq.map(([question, answer]) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: { "@type": "Answer", text: answer }
+    }))
+  };
+}
+
+function absoluteUrl(value) {
+  if (!value) return "";
+  return value.startsWith("http") ? value : `${SITE_URL}${value.startsWith("/") ? "" : "/"}${value}`;
 }
 
 function escapeHtml(value) {
@@ -207,4 +499,8 @@ function escapeHtml(value) {
     "'": "&#39;",
     '"': "&quot;"
   })[character]);
+}
+
+function escapeXml(value) {
+  return escapeHtml(value);
 }

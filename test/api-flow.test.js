@@ -141,6 +141,16 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const publicImageResponse = await fetch(`${baseUrl}${images[0].url}`);
   assert.equal(publicImageResponse.status, 200);
   assert.equal(publicImageResponse.headers.get("content-type"), "image/png");
+  const publicProductPageResponse = await fetch(`${baseUrl}/producto/${adminProducts.products[0].slug}`);
+  assert.equal(publicProductPageResponse.status, 200);
+  const publicProductPage = await publicProductPageResponse.text();
+  assert.match(publicProductPage, /<title>API001K \| Pad de prueba API \| KM Detail Line<\/title>/);
+  assert.match(publicProductPage, /"@type":"Product"/);
+  assert.match(publicProductPage, /EAN/);
+  const sitemapResponse = await fetch(`${baseUrl}/sitemap.xml`);
+  assert.equal(sitemapResponse.status, 200);
+  const sitemap = await sitemapResponse.text();
+  assert.match(sitemap, /\/producto\/api001k-pad-de-prueba-api/);
   const adminFamilies = await getJson(`${baseUrl}/api/admin/product-families`, adminCookie);
   assert.equal(adminFamilies.families.some((family) => family.name === "Poliespumas"), true);
 

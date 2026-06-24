@@ -47,6 +47,43 @@ export function listProducts(db, user) {
   }));
 }
 
+export function listPublicProductsForSeo(db) {
+  const rows = db.prepare(`
+    SELECT p.*, f.name AS family_name, f.slug AS family_slug,
+           pi.stored_filename AS primary_image_filename
+    FROM products p JOIN product_families f ON f.id = p.family_id
+    LEFT JOIN product_images pi ON pi.id = (
+      SELECT id FROM product_images
+      WHERE product_id = p.id
+      ORDER BY is_primary DESC, sort_order, id
+      LIMIT 1
+    )
+    WHERE p.active = 1 AND f.active = 1
+    ORDER BY f.sort_order, p.web_sort_order, p.name
+  `).all();
+  const imagesByProduct = productImagesByProduct(db, rows.map((row) => row.id));
+  return rows.map((row) => publicProduct(row, imagesByProduct.get(row.id) || []));
+}
+
+export function getPublicProductBySlug(db, slug) {
+  const normalizedSlug = String(slug || "").trim().toLowerCase();
+  if (!/^[a-z0-9-]+$/.test(normalizedSlug)) return null;
+  const row = db.prepare(`
+    SELECT p.*, f.name AS family_name, f.slug AS family_slug,
+           pi.stored_filename AS primary_image_filename
+    FROM products p JOIN product_families f ON f.id = p.family_id
+    LEFT JOIN product_images pi ON pi.id = (
+      SELECT id FROM product_images
+      WHERE product_id = p.id
+      ORDER BY is_primary DESC, sort_order, id
+      LIMIT 1
+    )
+    WHERE p.active = 1 AND f.active = 1 AND p.slug = ?
+  `).get(normalizedSlug);
+  if (!row) return null;
+  return publicProduct(row, productImagesByProduct(db, [row.id]).get(row.id) || []);
+}
+
 function productImagesByProduct(db, productIds) {
   if (!productIds.length) return new Map();
   const placeholders = productIds.map(() => "?").join(",");
@@ -310,7 +347,8 @@ function publicProduct(row, images = []) {
     technicalDescription: row.technical_description,
     imageFilename: row.image_filename,
     primaryImageUrl: images[0]?.url || (row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : ""),
-    images
+    images,
+    publicUrl: `/producto/${row.slug}`
   };
 }
 
