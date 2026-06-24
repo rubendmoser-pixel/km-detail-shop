@@ -382,6 +382,10 @@ function layout({ title, description, url, image, schemaGraph, main }) {
     <meta name="twitter:image" content="${escapeHtml(image)}" />
     <link rel="canonical" href="${escapeHtml(url)}" />
     <title>${escapeHtml(title)}</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="/styles.css?v=36" />
     <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": schemaGraph })}</script>
   </head>
