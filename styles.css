@@ -1539,6 +1539,7 @@ body.modal-open {
 
 .product-seo-page {
   min-height: calc(100vh - 78px);
+  padding-top: clamp(28px, 5vw, 64px);
   background:
     radial-gradient(circle at 78% 12%, rgba(174, 180, 187, 0.12), transparent 30%),
     linear-gradient(180deg, #0b0b0c, #050506);
@@ -1546,9 +1547,16 @@ body.modal-open {
 
 .product-seo-shell {
   display: grid;
-  grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 0.86fr) minmax(0, 1.08fr);
   gap: clamp(22px, 4vw, 48px);
   align-items: start;
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+.product-seo-shell-single {
+  grid-template-columns: minmax(0, 980px);
+  justify-content: center;
 }
 
 .product-seo-media,
@@ -1601,10 +1609,27 @@ body.modal-open {
   display: grid;
   gap: 18px;
   padding: clamp(22px, 4vw, 42px);
+  box-shadow: inset 5px 0 #8f77b3;
+}
+
+.product-seo-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-seo-kicker .eyebrow {
+  margin: 0;
 }
 
 .product-seo-content h1 {
-  font-size: clamp(2rem, 4vw, 4rem);
+  max-width: 960px;
+  font-size: clamp(2rem, 3.4vw, 3.5rem);
+}
+
+.product-seo-content .section-lead {
+  max-width: 920px;
 }
 
 .product-seo-content h2 {

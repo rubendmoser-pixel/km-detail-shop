@@ -269,6 +269,12 @@ export function renderProductPage(product) {
     ["Maquina compatible", product.compatibleMachine]
   ].filter(([, value]) => Boolean(value));
   const gallery = product.images?.length ? product.images : (product.primaryImageUrl ? [{ url: product.primaryImageUrl, altText: product.name }] : []);
+  const hasGallery = gallery.length > 0;
+  const mediaBlock = hasGallery ? `
+          <div class="product-seo-media">
+            <figure><img src="${escapeHtml(gallery[0].url)}" alt="${escapeHtml(gallery[0].altText || product.name)}" /></figure>
+            ${gallery.length > 1 ? `<div class="product-seo-thumbs">${gallery.slice(0, 6).map((item) => `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.altText || product.name)}" />`).join("")}</div>` : ""}
+          </div>` : "";
   const graph = [
     organizationSchema(),
     websiteSchema(),
@@ -307,14 +313,13 @@ export function renderProductPage(product) {
     schemaGraph: graph,
     main: `
       <section class="section product-seo-page">
-        <div class="product-seo-shell">
-          <div class="product-seo-media">
-            <span class="product-code">${escapeHtml(product.kmCode)}</span>
-            ${gallery.length ? `<figure><img src="${escapeHtml(gallery[0].url)}" alt="${escapeHtml(gallery[0].altText || product.name)}" /></figure>` : ""}
-            ${gallery.length > 1 ? `<div class="product-seo-thumbs">${gallery.slice(0, 6).map((item) => `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.altText || product.name)}" />`).join("")}</div>` : ""}
-          </div>
+        <div class="product-seo-shell${hasGallery ? "" : " product-seo-shell-single"}">
+          ${mediaBlock}
           <article class="product-seo-content">
-            <p class="eyebrow">Ficha tecnica KM Detail Line</p>
+            <div class="product-seo-kicker">
+              <span class="product-code">${escapeHtml(product.kmCode)}</span>
+              <p class="eyebrow">Ficha tecnica KM Detail Line</p>
+            </div>
             <h1>${escapeHtml(product.name)}</h1>
             <p class="section-lead">${escapeHtml(description)}</p>
             <div class="meta-line">
