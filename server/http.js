@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { renderSeoLandingPage } from "./seo-pages.js";
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -114,6 +115,18 @@ export function clearSessionCookie({ secure = false } = {}) {
 export function serveStatic(response, projectRoot, pathname) {
   const requested = pathname === "/" ? "/index.html" : pathname;
   const decoded = decodeURIComponent(requested);
+  const seoLandingPage = renderSeoLandingPage(decoded);
+  if (seoLandingPage) {
+    const content = Buffer.from(seoLandingPage, "utf8");
+    response.writeHead(200, {
+      "content-type": "text/html; charset=utf-8",
+      "content-length": content.length,
+      "cache-control": "no-cache",
+      ...SECURITY_HEADERS
+    });
+    response.end(content);
+    return true;
+  }
   const routeMeta = SEO_ROUTES.get(decoded);
   const target = path.resolve(projectRoot, routeMeta ? "./index.html" : `.${decoded}`);
   const denied = ["server", "data", "uploads", ".git", ".env", "package.json"];

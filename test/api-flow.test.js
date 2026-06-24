@@ -39,6 +39,11 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const contactPageResponse = await fetch(`${baseUrl}/contacto`);
   assert.equal(contactPageResponse.status, 200);
   assert.match(await contactPageResponse.text(), /<title>Contacto \| KM Detail Line<\/title>/);
+  const seoPageResponse = await fetch(`${baseUrl}/pads-de-espuma-para-pulido`);
+  assert.equal(seoPageResponse.status, 200);
+  const seoPage = await seoPageResponse.text();
+  assert.match(seoPage, /<title>Pads de espuma para pulido \| KM Detail Line<\/title>/);
+  assert.match(seoPage, /<h1>Pads de espuma para pulido<\/h1>/);
 
   const publicSettings = await getJson(`${baseUrl}/api/public-settings`);
   assert.equal(publicSettings.settings.vatBps, 2100);

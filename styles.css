@@ -387,6 +387,28 @@ h3 {
   line-height: 1.65;
 }
 
+.seo-topic-section {
+  border-top: 1px solid #24262b;
+  border-bottom: 1px solid #24262b;
+}
+
+.seo-topic-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.seo-topic-grid a {
+  display: grid;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.seo-topic-grid article:hover {
+  border-color: #bcc1c8;
+  background: #1d2026;
+}
+
 .promo-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
