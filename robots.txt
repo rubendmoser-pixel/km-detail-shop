@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /reset.html
+Disallow: /api/
+Disallow: /uploads/
+
+Sitemap: https://www.km-detail.com/sitemap.xml
