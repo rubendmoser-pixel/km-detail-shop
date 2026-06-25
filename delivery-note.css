@@ -78,7 +78,6 @@ body {
 
 .eyebrow,
 .note-meta span,
-.issuer-strip span,
 .notes-box span,
 .note-footer span,
 .document-box span,
@@ -139,32 +138,17 @@ h1 {
   text-transform: uppercase;
 }
 
-.issuer-strip {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr 1.1fr;
-  gap: 3mm;
+.order-barcode {
   margin-bottom: 4mm;
-}
-
-.issuer-strip div {
-  min-height: 18mm;
-  padding: 3mm;
+  padding: 3mm 6mm 2mm;
+  background: #fff;
   border: 0.35mm solid #c8cbd0;
 }
 
-.issuer-strip strong {
+.order-barcode svg {
   display: block;
-  margin-top: 1.6mm;
-  font-size: 9.8pt;
-  line-height: 1.15;
-}
-
-.issuer-strip small {
-  display: block;
-  margin-top: 1.2mm;
-  color: #55585e;
-  font-size: 7.8pt;
-  line-height: 1.25;
+  width: 100%;
+  height: 24mm;
 }
 
 .note-meta {

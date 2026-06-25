@@ -2,6 +2,19 @@ const root = document.querySelector("#deliveryNoteRoot");
 const params = new URLSearchParams(window.location.search);
 const orderId = Number(params.get("order") || 0);
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+const CODE39 = {
+  "0": "101001101101", "1": "110100101011", "2": "101100101011", "3": "110110010101",
+  "4": "101001101011", "5": "110100110101", "6": "101100110101", "7": "101001011011",
+  "8": "110100101101", "9": "101100101101", "A": "110101001011", "B": "101101001011",
+  "C": "110110100101", "D": "101011001011", "E": "110101100101", "F": "101101100101",
+  "G": "101010011011", "H": "110101001101", "I": "101101001101", "J": "101011001101",
+  "K": "110101010011", "L": "101101010011", "M": "110110101001", "N": "101011010011",
+  "O": "110101101001", "P": "101101101001", "Q": "101010110011", "R": "110101011001",
+  "S": "101101011001", "T": "101011011001", "U": "110010101011", "V": "100110101011",
+  "W": "110011010101", "X": "100101101011", "Y": "110010110101", "Z": "100110110101",
+  "-": "100101011011", ".": "110010101101", " ": "100110101101", "$": "100100100101",
+  "/": "100100101001", "+": "100101001001", "%": "101001001001", "*": "100101101101"
+};
 
 initDeliveryNote();
 
@@ -47,22 +60,8 @@ function renderDeliveryNote(payload) {
         </div>
       </header>
       <section class="warning-strip">Documento no valido como factura</section>
-      <section class="issuer-strip">
-        <div>
-          <span>Emisor</span>
-          <strong>KM Detail Line - Lopez Karina Marisel</strong>
-          <small>CUIT 27-28000765-5 | Responsable inscripto | IIBB 0215237899</small>
-        </div>
-        <div>
-          <span>Oficina comercial</span>
-          <strong>Cordoba 645, piso 10, oficina 7</strong>
-          <small>Rosario (CP 2000), Santa Fe, Argentina</small>
-        </div>
-        <div>
-          <span>Contacto KM</span>
-          <strong>ventas@km-detail.com</strong>
-          <small>WhatsApp +54 9 341 253 1269 | www.km-detail.com</small>
-        </div>
+      <section class="order-barcode">
+        ${code39Svg(order.orderNumber)}
       </section>
       <section class="note-meta">
         <div>
@@ -137,6 +136,29 @@ function shippingLine(shipping = {}) {
 
 function renderError(message) {
   root.innerHTML = `<section class="screen-panel"><h1>No se pudo generar el detalle</h1><p>${escapeHtml(message)}</p><p><a href="./admin.html#orders">Volver al panel</a></p></section>`;
+}
+
+function code39Svg(value) {
+  const text = `*${String(value).toUpperCase().replace(/[^A-Z0-9 ./$+%-]/g, "-")}*`;
+  const narrow = 2;
+  const wide = 5;
+  const gap = narrow;
+  let x = 0;
+  const bars = [];
+  for (const character of text) {
+    const pattern = CODE39[character] || CODE39["-"];
+    for (let index = 0; index < pattern.length; index += 1) {
+      const width = pattern[index] === "1" ? wide : narrow;
+      if (index % 2 === 0) bars.push(`<rect x="${x}" y="0" width="${width}" height="110" />`);
+      x += width;
+    }
+    x += gap;
+  }
+  return `<svg viewBox="0 0 ${x} 138" role="img" aria-label="Codigo de barras ${escapeHtml(value)}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="${x}" height="138" fill="#fff" />
+    <g fill="#0b0c0e">${bars.join("")}</g>
+    <text x="${x / 2}" y="132" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">${escapeHtml(value)}</text>
+  </svg>`;
 }
 
 function formatDate(value) {
