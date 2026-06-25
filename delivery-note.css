@@ -78,7 +78,7 @@ body {
 
 .eyebrow,
 .note-meta span,
-.note-table th,
+.issuer-strip span,
 .notes-box span,
 .note-footer span,
 .document-box span,
@@ -127,7 +127,7 @@ h1 {
 }
 
 .warning-strip {
-  margin: 5mm 0;
+  margin: 4mm 0 3mm;
   padding: 2.8mm 4mm;
   color: #0b0c0e;
   background: #f1f2f4;
@@ -137,6 +137,34 @@ h1 {
   letter-spacing: 0.08em;
   text-align: center;
   text-transform: uppercase;
+}
+
+.issuer-strip {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1.1fr;
+  gap: 3mm;
+  margin-bottom: 4mm;
+}
+
+.issuer-strip div {
+  min-height: 18mm;
+  padding: 3mm;
+  border: 0.35mm solid #c8cbd0;
+}
+
+.issuer-strip strong {
+  display: block;
+  margin-top: 1.6mm;
+  font-size: 9.8pt;
+  line-height: 1.15;
+}
+
+.issuer-strip small {
+  display: block;
+  margin-top: 1.2mm;
+  color: #55585e;
+  font-size: 7.8pt;
+  line-height: 1.25;
 }
 
 .note-meta {
@@ -188,6 +216,7 @@ h1 {
 
 .note-table th,
 .note-table td {
+  display: table-cell !important;
   padding: 2.4mm 2.2mm;
   border: 0.35mm solid #c8cbd0;
   text-align: left;
@@ -197,6 +226,11 @@ h1 {
 
 .note-table th {
   background: #f1f2f4;
+  color: #55585e;
+  font-size: 7.5pt;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .note-table thead {

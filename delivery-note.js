@@ -46,7 +46,24 @@ function renderDeliveryNote(payload) {
           <small>${formatDate(generatedAt)}</small>
         </div>
       </header>
-      <section class="warning-strip">No valido como factura. Documento de control para acompanar despacho.</section>
+      <section class="warning-strip">Documento no valido como factura</section>
+      <section class="issuer-strip">
+        <div>
+          <span>Emisor</span>
+          <strong>KM Detail Line - Lopez Karina Marisel</strong>
+          <small>CUIT 27-28000765-5 | Responsable inscripto | IIBB 0215237899</small>
+        </div>
+        <div>
+          <span>Oficina comercial</span>
+          <strong>Cordoba 645, piso 10, oficina 7</strong>
+          <small>Rosario (CP 2000), Santa Fe, Argentina</small>
+        </div>
+        <div>
+          <span>Contacto KM</span>
+          <strong>ventas@km-detail.com</strong>
+          <small>WhatsApp +54 9 341 253 1269 | www.km-detail.com</small>
+        </div>
+      </section>
       <section class="note-meta">
         <div>
           <span>Cliente</span>
