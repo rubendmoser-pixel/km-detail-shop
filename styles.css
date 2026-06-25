@@ -2268,6 +2268,30 @@ textarea,
   padding: clamp(28px, 5vw, 74px);
 }
 
+.distributor-visual {
+  align-items: start;
+}
+
+.distributor-visual::after {
+  background:
+    linear-gradient(180deg, rgba(8, 8, 9, 0.24) 0%, rgba(8, 8, 9, 0.54) 24%, rgba(8, 8, 9, 0.72) 100%),
+    linear-gradient(90deg, rgba(8, 8, 9, 0.82) 0%, rgba(8, 8, 9, 0.48) 58%, rgba(8, 8, 9, 0.34) 100%);
+}
+
+.distributor-visual .section-visual-content {
+  align-self: start;
+  max-width: 1160px;
+  padding-top: clamp(96px, 9vw, 132px);
+}
+
+.distributor-visual .commercial-layout {
+  grid-template-columns: minmax(0, 760px);
+}
+
+.distributor-visual .section-lead {
+  max-width: 760px;
+}
+
 .commercial-layout {
   display: grid;
   grid-template-columns: minmax(0, 820px);
@@ -2408,6 +2432,10 @@ textarea,
   .commercial-layout,
   .contact-layout {
     grid-template-columns: 1fr;
+  }
+
+  .distributor-visual .section-visual-content {
+    padding-top: 82px;
   }
 
   .company-visual .company-story {
