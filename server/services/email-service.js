@@ -260,7 +260,7 @@ export function createEmailService({ db, config }) {
       "",
       "Articulos confirmados:",
       ...(confirmed.length ? confirmed.map((item) => (
-        `- ${item.confirmed_quantity} de ${item.quantity} x ${item.km_code} | ${item.product_name} | ${money.format(item.confirmed_subtotal_net_cents / 100)}`
+        `- ${item.km_code} | ${item.product_name} | Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity} | Precio unitario neto: ${money.format(item.final_unit_price_cents / 100)} | Subtotal confirmado: ${money.format(item.confirmed_subtotal_net_cents / 100)}`
       )) : ["- No hay articulos disponibles para despacho en esta confirmacion."]),
       unavailable.length ? "" : null,
       unavailable.length ? "Articulos no disponibles:" : null,
@@ -283,7 +283,7 @@ export function createEmailService({ db, config }) {
       "",
       "Articulos confirmados:",
       ...(confirmed.length ? confirmed.map((item) => (
-        `- ${item.confirmed_quantity} de ${item.quantity} x ${item.km_code} | ${item.product_name} | ${money.format(item.confirmed_subtotal_net_cents / 100)}`
+        `- ${item.km_code} | ${item.product_name} | Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity} | Precio unitario neto: ${money.format(item.final_unit_price_cents / 100)} | Subtotal confirmado: ${money.format(item.confirmed_subtotal_net_cents / 100)}`
       )) : ["- No hay articulos disponibles para despacho en esta confirmacion."]),
       "",
       `Total confirmado: ${money.format(order.total_cents / 100)}`,

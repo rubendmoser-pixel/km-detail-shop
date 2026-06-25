@@ -138,6 +138,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     })
   });
   assert.equal(relatedProductResponse.status, 201);
+  const relatedProduct = (await relatedProductResponse.json()).product;
   const adminProducts = await getJson(`${baseUrl}/api/admin/products?q=API001K`, adminCookie);
   assert.equal(adminProducts.products.length, 1);
   assert.equal(adminProducts.products[0].kmCode, "API001K");
@@ -219,7 +220,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     method: "POST",
     headers: jsonHeaders(customerCookie),
     body: JSON.stringify({
-      items: [{ productId: product.id, quantity: 2 }],
+      items: [{ productId: product.id, quantity: 2 }, { productId: relatedProduct.id, quantity: 5 }],
       shipping: {
         recipient: "Cliente API",
         address: "Calle 123",
@@ -232,11 +233,11 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   });
   assert.equal(orderResponse.status, 201);
   const orderPayload = await orderResponse.json();
-  assert.equal(orderPayload.order.subtotalNetCents, 100_800);
-  assert.equal(orderPayload.order.vatCents, 21_168);
+  assert.equal(orderPayload.order.subtotalNetCents, 327_600);
+  assert.equal(orderPayload.order.vatCents, 68_796);
   assert.equal(orderPayload.order.salesRep.email, "vendedor-api@km-detail.com");
   assert.equal(orderPayload.order.salesRep.commissionBps, 350);
-  assert.equal(orderPayload.order.salesRep.commissionCents, 3528);
+  assert.equal(orderPayload.order.salesRep.commissionCents, 11466);
   assert.match(orderPayload.order.orderNumber, /^KM-\d{4}-\d{6}$/);
   const orderEmails = db.prepare(`
     SELECT event_type, recipient, subject, text_body
@@ -250,7 +251,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(orderEmails.some((email) => email.event_type === "order_sales_rep" && email.recipient === "vendedor-api@km-detail.com"), true);
   assert.equal(orderEmails.every((email) => email.subject.includes(orderPayload.order.orderNumber)), true);
   const adminOrderDetail = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, adminCookie);
-  assert.equal(adminOrderDetail.order.items.length, 1);
+  assert.equal(adminOrderDetail.order.items.length, 2);
   assert.equal(adminOrderDetail.order.items[0].kmCode, "API001K");
   assert.equal(adminOrderDetail.order.items[0].warehouseLocation, "A-03-02");
   assert.equal(adminOrderDetail.order.shipping.city, "Cordoba");
@@ -262,7 +263,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(labelPayload.packages[3].code, `${orderPayload.order.orderNumber}-B04-04`);
   assert.equal(labelPayload.order.shipping.address, "Calle 123");
   const pickingPayload = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/picking-list`, adminCookie);
-  assert.equal(pickingPayload.order.items.length, 1);
+  assert.equal(pickingPayload.order.items.length, 2);
   assert.equal(pickingPayload.order.items[0].warehouseLocation, "A-03-02");
   assert.equal(pickingPayload.order.items[0].pickQuantity, 2);
   const availabilityResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/availability`, {
@@ -274,6 +275,10 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
         id: adminOrderDetail.order.items[0].id,
         confirmedQuantity: 1,
         availabilityNote: "Se despacha una unidad ahora"
+      }, {
+        id: adminOrderDetail.order.items[1].id,
+        confirmedQuantity: 3,
+        availabilityNote: "Se despachan tres unidades ahora"
       }]
     })
   });
@@ -282,13 +287,18 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(availabilityOrder.status, "availability_confirmed");
   assert.equal(availabilityOrder.items[0].confirmedQuantity, 1);
   assert.equal(availabilityOrder.items[0].lineStatus, "partial");
-  assert.equal(availabilityOrder.subtotalNetCents, 50_400);
-  assert.equal(availabilityOrder.vatCents, 10_584);
-  assert.equal(availabilityOrder.totalCents, 60_984);
-  assert.equal(availabilityOrder.salesRep.commissionCents, 1764);
+  assert.equal(availabilityOrder.items[1].confirmedQuantity, 3);
+  assert.equal(availabilityOrder.items[1].lineStatus, "partial");
+  assert.equal(availabilityOrder.subtotalNetCents, 186_480);
+  assert.equal(availabilityOrder.vatCents, 39_161);
+  assert.equal(availabilityOrder.totalCents, 225_641);
+  assert.equal(availabilityOrder.salesRep.commissionCents, 6527);
   const availabilityEmail = db.prepare("SELECT recipient, subject, text_body FROM email_outbox WHERE event_type = 'order_availability_customer'").get();
   assert.equal(availabilityEmail.recipient, "cliente-api@example.com");
   assert.equal(availabilityEmail.subject.includes(orderPayload.order.orderNumber), true);
+  assert.match(availabilityEmail.text_body, /Cantidad confirmada: 3 de 5/);
+  assert.match(availabilityEmail.text_body, /Subtotal confirmado/);
+  assert.match(availabilityEmail.text_body, /Total a pagar: \$\s*2\.256,41/);
   const availabilitySalesEmail = db.prepare("SELECT recipient, subject FROM email_outbox WHERE event_type = 'order_availability_sales_rep'").get();
   assert.equal(availabilitySalesEmail.recipient, "vendedor-api@km-detail.com");
   assert.match(availabilityEmail.text_body, /Total a pagar/);
