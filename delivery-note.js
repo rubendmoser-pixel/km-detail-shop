@@ -60,8 +60,22 @@ function renderDeliveryNote(payload) {
         </div>
       </header>
       <section class="warning-strip">Documento no valido como factura</section>
-      <section class="order-barcode">
-        ${code39Svg(order.orderNumber)}
+      <section class="issuer-strip">
+        <div>
+          <span>Emisor</span>
+          <strong>KM Detail Line - Lopez Karina Marisel</strong>
+          <small>CUIT 27-28000765-5 | Responsable inscripto | IIBB 0215237899</small>
+        </div>
+        <div>
+          <span>Oficina comercial</span>
+          <strong>Cordoba 645, piso 10, oficina 7</strong>
+          <small>Rosario (CP 2000), Santa Fe, Argentina</small>
+        </div>
+        <div>
+          <span>Contacto KM</span>
+          <strong>ventas@km-detail.com</strong>
+          <small>WhatsApp +54 9 341 253 1269 | www.km-detail.com</small>
+        </div>
       </section>
       <section class="note-meta">
         <div>
@@ -120,10 +134,8 @@ function renderDeliveryNote(payload) {
           <div class="grand-total"><span>Total</span><strong>${money.format(order.totalCents / 100)}</strong></div>
         </div>
       </section>
-      <footer class="note-footer">
-        <div><span>Preparado por</span></div>
-        <div><span>Controlado por</span></div>
-        <div><span>Recibido por</span></div>
+      <footer class="note-footer barcode-footer">
+        ${code39Svg(order.orderNumber)}
       </footer>
     </section>
   `;
