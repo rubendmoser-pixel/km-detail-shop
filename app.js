@@ -58,7 +58,7 @@ const els = Object.fromEntries([
   "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
   "cartEmpty", "cartSummaryText", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
-  "navPurchases",
+  "navPurchases", "topNav", "mobileMenuToggle",
   "shippingAddressList", "shippingAddressForm", "shippingAddressFormTitle", "shippingAddressMessage",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
   "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus",
@@ -73,6 +73,7 @@ async function init() {
   await loadProducts();
   if (isApprovedCustomer()) await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
   renderAll();
+  if (window.location.hash === "#mis-compras" && isApprovedCustomer()) await openPurchases();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js").catch(() => {});
@@ -122,6 +123,10 @@ function bindEvents() {
   document.querySelector("#copyOrder").addEventListener("click", copyOrderSummary);
   els.orderForm.addEventListener("submit", submitOrder);
   els.navPurchases?.addEventListener("click", openPurchases);
+  els.mobileMenuToggle?.addEventListener("click", toggleMobileMenu);
+  els.topNav?.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => setMobileMenu(false));
+  });
   document.querySelector("#newShippingAddress").addEventListener("click", () => openShippingAddressForm());
   document.querySelector("#editShippingAddress").addEventListener("click", editSelectedShippingAddress);
   document.querySelector("#defaultShippingAddress").addEventListener("click", setSelectedShippingDefault);
@@ -872,13 +877,23 @@ function paymentHelperText(order) {
 }
 
 async function openPurchases(event) {
-  event.preventDefault();
+  event?.preventDefault?.();
   if (!isApprovedCustomer()) return openAccount(false);
   await loadCustomerOrders();
   renderCustomerOrders();
   els.customerOrders.hidden = false;
-  history.replaceState(null, "", "#customerOrders");
+  setMobileMenu(false);
+  history.replaceState(null, "", "#mis-compras");
   els.customerOrders.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function toggleMobileMenu() {
+  setMobileMenu(!els.topNav.classList.contains("open"));
+}
+
+function setMobileMenu(open) {
+  els.topNav?.classList.toggle("open", open);
+  els.mobileMenuToggle?.setAttribute("aria-expanded", open ? "true" : "false");
 }
 
 async function acceptOrder(orderId) {

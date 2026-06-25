@@ -23,7 +23,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=37" />
+    <link rel="stylesheet" href="./styles.css?v=38" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -84,16 +84,17 @@
           <strong>Detail Line</strong>
         </span>
       </a>
-      <nav class="top-nav" aria-label="Principal">
+      <nav class="top-nav" id="topNav" aria-label="Principal">
         <a href="#inicio">Inicio</a>
         <a href="#empresa">Empresa</a>
         <a href="#catalogo">Productos</a>
         <a href="#catalogo-pdf">Catalogo 2026</a>
         <a href="#distribuidores">Distribuidores</a>
-        <a href="#customerOrders" id="navPurchases" hidden>Mis compras</a>
+        <a href="#mis-compras" id="navPurchases" hidden>Mis compras</a>
         <a href="#contacto">Contacto</a>
       </nav>
       <div class="header-actions">
+        <button class="mobile-menu-button" id="mobileMenuToggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="topNav">Menu</button>
         <button class="account-button" id="openAccount" type="button">Ingresar</button>
         <button class="cart-pill" id="openCart" type="button" aria-label="Abrir carrito">
           <span class="cart-icon" aria-hidden="true"></span>
@@ -382,6 +383,7 @@
         <div class="order-result" id="orderResult" hidden></div>
       </section>
 
+      <span class="scroll-anchor" id="mis-compras" aria-hidden="true"></span>
       <section class="section purchases-section customer-orders" id="customerOrders" hidden>
       </section>
 
@@ -511,6 +513,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=40" defer></script>
+    <script src="./app.js?v=42" defer></script>
   </body>
 </html>
