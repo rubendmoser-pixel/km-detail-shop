@@ -121,6 +121,7 @@ function bindEvents() {
   els.goToOrder.addEventListener("click", closeCart);
   document.querySelector("#copyOrder").addEventListener("click", copyOrderSummary);
   els.orderForm.addEventListener("submit", submitOrder);
+  els.navPurchases?.addEventListener("click", openPurchases);
   document.querySelector("#newShippingAddress").addEventListener("click", () => openShippingAddressForm());
   document.querySelector("#editShippingAddress").addEventListener("click", editSelectedShippingAddress);
   document.querySelector("#defaultShippingAddress").addEventListener("click", setSelectedShippingDefault);
@@ -719,6 +720,7 @@ function renderCustomerOrders() {
   }
   const metrics = purchaseMetrics(state.orders);
   const filteredOrders = filterPurchases(state.orders);
+  const orderCards = filteredOrders.map(renderCustomerOrder).join("");
   els.customerOrders.innerHTML = `
     <div class="purchases-header">
       <div class="section-title compact">
@@ -744,7 +746,7 @@ function renderCustomerOrders() {
       <article><strong>${metrics.shipments}</strong><span>en despacho</span></article>
     </div>
     <div class="purchase-list">
-      ${filteredOrders.length ? filteredOrders.map(renderCustomerOrder).join("") : `<article class="empty-purchases"><strong>Sin compras para este filtro</strong><span>Cambia el filtro o arma un pedido desde Productos.</span></article>`}
+      ${filteredOrders.length ? orderCards : `<article class="empty-purchases"><strong>Sin compras para este filtro</strong><span>Cambia el filtro o arma un pedido desde Productos.</span></article>`}
     </div>
   `;
   els.customerOrders.querySelector("#purchaseStatusFilter")?.addEventListener("change", (event) => {
@@ -758,14 +760,17 @@ function renderCustomerOrders() {
 }
 
 function renderCustomerOrder(order) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  const fulfillment = order.fulfillment || {};
+  const shipping = order.shipping || {};
   const latestReceipt = order.paymentReceipts?.[0];
   const needsAcceptance = order.modifiedAcceptanceRequired && ["availability_confirmed", "confirmed"].includes(order.status);
   const canUpload = ["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid" && !needsAcceptance;
   const bank = order.bank || {};
-  const visibleItems = order.items.filter((item) => order.status === "order_created" || item.confirmedQuantity > 0).slice(0, 5);
-  const unavailableItems = order.items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
+  const visibleItems = items.filter((item) => order.status === "order_created" || item.confirmedQuantity > 0).slice(0, 5);
+  const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
   const statusClass = purchaseStatusClass(order);
-  const itemCount = order.items.reduce((sum, item) => sum + (item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity), 0);
+  const itemCount = items.reduce((sum, item) => sum + (Number(item.confirmedQuantity) > 0 ? Number(item.confirmedQuantity) : Number(item.quantity || 0)), 0);
   return `
     <article class="customer-order-card ${statusClass}">
       <div class="customer-order-head">
@@ -777,7 +782,7 @@ function renderCustomerOrder(order) {
         <div class="order-status-pills">
           <span class="${statusClass}">${escapeHtml(orderStatusText(order.status))}</span>
           <span class="${paymentStatusClass(order.paymentStatus)}">${escapeHtml(paymentStatusText(order.paymentStatus))}</span>
-          <span class="${fulfillmentStatusClass(order.fulfillment?.status)}">${escapeHtml(fulfillmentStatusText(order.fulfillment?.status))}</span>
+          <span class="${fulfillmentStatusClass(fulfillment.status)}">${escapeHtml(fulfillmentStatusText(fulfillment.status))}</span>
         </div>
       </div>
       ${renderPurchaseTimeline(order)}
@@ -789,15 +794,15 @@ function renderCustomerOrder(order) {
         </dl>
         <div class="purchase-shipping">
           <strong>Entrega</strong>
-          <span>${escapeHtml(order.shipping?.recipient || "-")}</span>
-          <span>${escapeHtml(order.shipping?.address || "-")}</span>
-          <span>${escapeHtml([order.shipping?.city, order.shipping?.province].filter(Boolean).join(", "))}</span>
+          <span>${escapeHtml(shipping.recipient || "-")}</span>
+          <span>${escapeHtml(shipping.address || "-")}</span>
+          <span>${escapeHtml([shipping.city, shipping.province].filter(Boolean).join(", "))}</span>
         </div>
       </div>
       <div class="customer-order-lines">
         <strong>${order.status === "order_created" ? "Articulos solicitados" : "Articulos confirmados"}</strong>
         ${visibleItems.length ? visibleItems.map(renderPurchaseLine).join("") : `<span>Pendiente de confirmacion comercial.</span>`}
-        ${order.items.length > visibleItems.length ? `<span>+ ${order.items.length - visibleItems.length} articulo${order.items.length - visibleItems.length === 1 ? "" : "s"} mas</span>` : ""}
+        ${items.length > visibleItems.length ? `<span>+ ${items.length - visibleItems.length} articulo${items.length - visibleItems.length === 1 ? "" : "s"} mas</span>` : ""}
         ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
       </div>
       <div class="purchase-actions">
@@ -806,7 +811,7 @@ function renderCustomerOrder(order) {
         ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
       </div>
       ${canUpload ? renderBankSummary(bank) : ""}
-      ${order.fulfillment?.status && order.fulfillment.status !== "pending" ? `<p class="purchase-note">Despacho: ${escapeHtml(customerFulfillmentText(order.fulfillment))}</p>` : ""}
+      ${fulfillment.status && fulfillment.status !== "pending" ? `<p class="purchase-note">Despacho: ${escapeHtml(customerFulfillmentText(fulfillment))}</p>` : ""}
     </article>
   `;
 }
@@ -864,6 +869,16 @@ function paymentHelperText(order) {
   if (order.modifiedAcceptanceRequired) return `<p>Revisa y acepta la disponibilidad confirmada para continuar.</p>`;
   if (!["availability_confirmed", "confirmed"].includes(order.status)) return `<p>KM confirmara disponibilidad antes de habilitar el pago.</p>`;
   return "";
+}
+
+async function openPurchases(event) {
+  event.preventDefault();
+  if (!isApprovedCustomer()) return openAccount(false);
+  await loadCustomerOrders();
+  renderCustomerOrders();
+  els.customerOrders.hidden = false;
+  history.replaceState(null, "", "#customerOrders");
+  els.customerOrders.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function acceptOrder(orderId) {
