@@ -37,6 +37,7 @@
       <div id="adminWorkspace" hidden>
         <nav class="admin-tabs" aria-label="Secciones administrativas">
           <button class="active" type="button" data-admin-view="customers">Clientes</button>
+          <button type="button" data-admin-view="sales">Vendedores</button>
           <button type="button" data-admin-view="products">Productos</button>
           <button type="button" data-admin-view="orders">Pedidos</button>
           <button type="button" data-admin-view="settings">Configuracion</button>
@@ -58,6 +59,45 @@
           </div>
           <div class="admin-stats" id="customerStats"></div>
           <div class="customer-list" id="customerList"></div>
+        </section>
+
+        <section class="admin-view" id="salesView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Equipo comercial</p><h1>Vendedores y comisiones</h1></div>
+            <div class="admin-toolbar">
+              <input id="salesRepSearch" type="search" placeholder="Buscar vendedor, email o WhatsApp" aria-label="Buscar vendedores" />
+              <select id="salesRepStatusFilter" aria-label="Filtrar vendedores">
+                <option value="">Todos</option>
+                <option value="active">Activos</option>
+                <option value="inactive">Inactivos</option>
+              </select>
+              <button class="ghost-button" id="reloadSalesReps" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="sales-admin-layout">
+            <form class="sales-rep-form" id="salesRepForm">
+              <div class="form-heading"><p class="eyebrow">Ficha comercial</p><h2 id="salesRepFormTitle">Nuevo vendedor</h2></div>
+              <input name="id" type="hidden" />
+              <label><span>Nombre</span><input name="name" required maxlength="160" /></label>
+              <label><span>Email</span><input name="email" type="email" required maxlength="254" /></label>
+              <label><span>Telefono</span><input name="phone" /></label>
+              <label><span>WhatsApp</span><input name="whatsapp" /></label>
+              <label><span>Comision general (%)</span><input name="defaultCommission" type="number" min="0" max="100" step="0.01" value="0" /></label>
+              <label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label>
+              <label class="wide"><span>Observaciones</span><textarea name="notes" rows="3"></textarea></label>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">Guardar vendedor</button>
+                <button class="ghost-button" id="resetSalesRepForm" type="button">Limpiar</button>
+              </div>
+              <p class="form-message" id="salesRepMessage" role="status"></p>
+            </form>
+            <div class="orders-table-wrap">
+              <table class="admin-table">
+                <thead><tr><th>Vendedor</th><th>Contacto</th><th>Comision</th><th>Estado</th><th>Editar</th></tr></thead>
+                <tbody id="salesRepsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <section class="admin-view" id="productsView" hidden>
@@ -276,6 +316,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=19" defer></script>
+    <script src="./admin.js?v=20" defer></script>
   </body>
 </html>

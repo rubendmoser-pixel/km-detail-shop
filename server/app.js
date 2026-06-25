@@ -26,6 +26,7 @@ import {
   upsertProduct
 } from "./services/product-service.js";
 import { getCommercialSettings, getPublicSettings, updateCommercialSettings } from "./services/settings-service.js";
+import { assignSalesRepToCustomer, listSalesReps, upsertSalesRep } from "./services/sales-rep-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
 import { createRateLimiter } from "./rate-limit.js";
@@ -180,6 +181,22 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         const body = await readJson(request);
         const discounts = setCustomerDiscounts(db, Number(match[1]), body.discountsBps || [], currentUser.id);
         return sendJson(response, 200, { discounts });
+      }
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/sales-rep$/);
+      if (request.method === "PATCH" && match) {
+        const assignment = assignSalesRepToCustomer(db, Number(match[1]), await readJson(request));
+        return sendJson(response, 200, { assignment });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/sales-reps") {
+        return sendJson(response, 200, {
+          salesReps: listSalesReps(db, {
+            search: url.searchParams.get("q") || "",
+            status: url.searchParams.get("status") || ""
+          })
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/sales-reps") {
+        return sendJson(response, 201, { salesRep: upsertSalesRep(db, await readJson(request)) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/products") {
         return sendJson(response, 201, { product: upsertProduct(db, await readJson(request)) });

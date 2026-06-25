@@ -1,10 +1,10 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null
+  securityEvents: [], securitySummary: null, salesReps: []
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const adminViews = new Set(["customers", "products", "orders", "settings", "emails", "security"]);
+const adminViews = new Set(["customers", "sales", "products", "orders", "settings", "emails", "security"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -42,6 +42,8 @@ const adminEls = Object.fromEntries([
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
+  "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
+  "salesRepMessage", "salesRepsTableBody",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
@@ -88,6 +90,11 @@ function bindAdminEvents() {
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
   adminEls.securitySearch.addEventListener("input", debounce(loadSecurityEvents, 250));
   document.querySelector("#reloadSecurity").addEventListener("click", loadSecurityEvents);
+  adminEls.salesRepSearch.addEventListener("input", debounce(loadSalesReps, 250));
+  adminEls.salesRepStatusFilter.addEventListener("change", loadSalesReps);
+  adminEls.reloadSalesReps.addEventListener("click", loadSalesReps);
+  adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
+  document.querySelector("#resetSalesRepForm").addEventListener("click", resetSalesRepForm);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
 }
 
@@ -116,9 +123,11 @@ async function enterWorkspace() {
   adminEls.adminWorkspace.hidden = false;
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
+  await loadSalesReps();
   await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents()]);
   showAdminView(currentAdminView(), false);
   resetProductForm();
+  resetSalesRepForm();
 }
 
 async function logoutAdmin() {
@@ -150,6 +159,81 @@ async function loadCustomers() {
   adminState.customers = customers;
   renderCustomerStats();
   renderCustomers();
+}
+
+async function loadSalesReps() {
+  const params = new URLSearchParams();
+  if (adminEls.salesRepSearch.value.trim()) params.set("q", adminEls.salesRepSearch.value.trim());
+  if (adminEls.salesRepStatusFilter.value) params.set("status", adminEls.salesRepStatusFilter.value);
+  const { salesReps } = await adminApi(`/api/admin/sales-reps${params.toString() ? `?${params}` : ""}`);
+  adminState.salesReps = salesReps;
+  renderSalesReps();
+  renderCustomers();
+}
+
+function renderSalesReps() {
+  adminEls.salesRepsTableBody.innerHTML = adminState.salesReps.length ? adminState.salesReps.map((rep) => `
+    <tr data-sales-rep-id="${rep.id}">
+      <td><strong>${escapeAdmin(rep.name)}</strong><br><span>${escapeAdmin(rep.email)}</span></td>
+      <td>${escapeAdmin(rep.phone || "-")}<br><span>WhatsApp ${escapeAdmin(rep.whatsapp || "-")}</span></td>
+      <td>${formatBps(rep.default_commission_bps)}</td>
+      <td><span class="status-badge ${rep.status === "active" ? "approved" : "suspended"}">${rep.status === "active" ? "Activo" : "Inactivo"}</span></td>
+      <td><button class="ghost-button row-button" type="button" data-edit-sales-rep="${rep.id}">Editar</button></td>
+    </tr>
+  `).join("") : `<tr><td colspan="5">Todavia no hay vendedores cargados.</td></tr>`;
+  adminEls.salesRepsTableBody.querySelectorAll("[data-edit-sales-rep]").forEach((button) => button.addEventListener("click", editSalesRep));
+}
+
+function editSalesRep(event) {
+  const rep = adminState.salesReps.find((item) => item.id === Number(event.currentTarget.dataset.editSalesRep));
+  if (!rep) return;
+  adminEls.salesRepFormTitle.textContent = `Editar ${rep.name}`;
+  adminEls.salesRepForm.elements.id.value = rep.id;
+  adminEls.salesRepForm.elements.name.value = rep.name;
+  adminEls.salesRepForm.elements.email.value = rep.email;
+  adminEls.salesRepForm.elements.phone.value = rep.phone || "";
+  adminEls.salesRepForm.elements.whatsapp.value = rep.whatsapp || "";
+  adminEls.salesRepForm.elements.defaultCommission.value = rep.default_commission_bps / 100;
+  adminEls.salesRepForm.elements.status.value = rep.status;
+  adminEls.salesRepForm.elements.notes.value = rep.notes || "";
+  adminEls.salesRepMessage.textContent = "";
+}
+
+function resetSalesRepForm() {
+  adminEls.salesRepForm.reset();
+  adminEls.salesRepForm.elements.id.value = "";
+  adminEls.salesRepForm.elements.defaultCommission.value = "0";
+  adminEls.salesRepForm.elements.status.value = "active";
+  adminEls.salesRepFormTitle.textContent = "Nuevo vendedor";
+  adminEls.salesRepMessage.textContent = "";
+}
+
+async function saveSalesRep(event) {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(adminEls.salesRepForm));
+  setBusy(adminEls.salesRepForm, true);
+  try {
+    await adminApi("/api/admin/sales-reps", {
+      method: "POST",
+      body: {
+        id: values.id ? Number(values.id) : undefined,
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        whatsapp: values.whatsapp,
+        defaultCommissionBps: Math.round(Number(values.defaultCommission || 0) * 100),
+        status: values.status,
+        notes: values.notes
+      }
+    });
+    adminEls.salesRepMessage.textContent = "Vendedor guardado.";
+    resetSalesRepForm();
+    await loadSalesReps();
+  } catch (error) {
+    adminEls.salesRepMessage.textContent = error.message;
+  } finally {
+    setBusy(adminEls.salesRepForm, false);
+  }
 }
 
 async function loadProducts() {
@@ -407,6 +491,7 @@ function renderCustomers() {
           <div><dt>Tipo</dt><dd>${escapeAdmin(customer.customer_type)}</dd></div><div><dt>Rubro</dt><dd>${escapeAdmin(customer.industry)}</dd></div>
           <div><dt>Ubicacion</dt><dd>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)} ${escapeAdmin(customer.postal_code || "")}</dd></div><div><dt>Contacto</dt><dd>${escapeAdmin(customer.contact_person)}</dd></div>
           <div><dt>Telefono</dt><dd>${escapeAdmin(customer.phone)}</dd></div><div><dt>WhatsApp</dt><dd>${escapeAdmin(customer.whatsapp)}</dd></div>
+          <div><dt>Vendedor</dt><dd>${escapeAdmin(customer.sales_rep_name || "Sin asignar")}</dd></div><div><dt>Comision</dt><dd>${escapeAdmin(customerCommissionText(customer))}</dd></div>
         </dl>
       </div>
       <div class="customer-controls">
@@ -421,11 +506,33 @@ function renderCustomers() {
           <label><span>Desc. 3 (%)</span><input name="discount3" type="number" min="0" max="100" step="0.01" value="${customer.discount_3_bps / 100}" /></label>
           <button class="ghost-button" type="submit">Guardar descuentos</button>
         </form>
+        <form class="sales-assignment-form">
+          <div class="sales-summary wide">Asignacion comercial: <strong>${escapeAdmin(customer.sales_rep_name || "sin vendedor")}</strong></div>
+          <label><span>Vendedor</span><select name="salesRepId">${salesRepOptions(customer.sales_rep_id)}</select></label>
+          <label><span>Comision cliente (%)</span><input name="commission" type="number" min="0" max="100" step="0.01" value="${customer.sales_commission_bps === null || customer.sales_commission_bps === undefined ? "" : customer.sales_commission_bps / 100}" placeholder="General" /></label>
+          <button class="ghost-button" type="submit">Guardar vendedor</button>
+        </form>
       </div>
     </article>`).join("");
 
   adminEls.customerList.querySelectorAll("[data-customer-status]").forEach((button) => button.addEventListener("click", updateCustomerStatus));
   adminEls.customerList.querySelectorAll(".discount-form").forEach((form) => form.addEventListener("submit", saveDiscounts));
+  adminEls.customerList.querySelectorAll(".sales-assignment-form").forEach((form) => form.addEventListener("submit", saveCustomerSalesRep));
+}
+
+function salesRepOptions(selectedId) {
+  return [
+    `<option value="">Sin vendedor</option>`,
+    ...adminState.salesReps
+      .filter((rep) => rep.status === "active" || rep.id === selectedId)
+      .map((rep) => `<option value="${rep.id}" ${rep.id === selectedId ? "selected" : ""}>${escapeAdmin(rep.name)} - ${formatBps(rep.default_commission_bps)}</option>`)
+  ].join("");
+}
+
+function customerCommissionText(customer) {
+  if (!customer.sales_rep_id) return "Sin vendedor";
+  if (customer.sales_commission_bps !== null && customer.sales_commission_bps !== undefined) return `${formatBps(customer.sales_commission_bps)} especial`;
+  return `${formatBps(customer.sales_rep_default_commission_bps || 0)} general`;
 }
 
 async function updateCustomerStatus(event) {
@@ -453,6 +560,29 @@ async function saveDiscounts(event) {
   try {
     await adminApi(`/api/admin/customers/${customerId}/discounts`, { method: "PATCH", body: { discountsBps } });
     showAdminToast("Descuentos guardados en cascada.");
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
+  }
+}
+
+async function saveCustomerSalesRep(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const customerId = Number(form.closest("[data-customer-id]").dataset.customerId);
+  const values = Object.fromEntries(new FormData(form));
+  setBusy(form, true);
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/sales-rep`, {
+      method: "PATCH",
+      body: {
+        salesRepId: values.salesRepId ? Number(values.salesRepId) : null,
+        commissionBps: values.commission === "" ? null : Math.round(Number(values.commission || 0) * 100)
+      }
+    });
+    showAdminToast("Vendedor asignado al cliente.");
+    await loadCustomers();
   } catch (error) {
     showAdminToast(error.message);
   } finally {
@@ -506,6 +636,8 @@ function renderOrderDetail() {
     ["Subtotal neto", adminMoney.format(order.subtotalNetCents / 100)],
     ["IVA", `${(order.vatBps / 100).toFixed(2)}% - ${adminMoney.format(order.vatCents / 100)}`],
     ["Total", adminMoney.format(order.totalCents / 100)],
+    ["Vendedor", order.salesRep?.name ? `${order.salesRep.name} (${order.salesRep.email})` : "Sin vendedor"],
+    ["Comision", order.salesRep?.email ? `${formatBps(order.salesRep.commissionBps)} - ${adminMoney.format((order.salesRep.commissionCents || 0) / 100)}` : "Sin comision"],
     ["Precio reservado", formatDate(order.priceReservedAt)],
     ["Entrega solicitada", shippingText(order.shipping)],
     ["Despacho", fulfillmentText(order.fulfillment)]
@@ -827,6 +959,10 @@ function formatDate(value) {
 function discountText(discountsBps = []) {
   const labels = discountsBps.filter(Boolean).map((value) => `${(value / 100).toFixed(2)}%`);
   return labels.length ? labels.join(" + ") : "Sin descuentos";
+}
+
+function formatBps(value = 0) {
+  return `${(Number(value || 0) / 100).toFixed(2)}%`;
 }
 
 function shippingText(shipping = {}) {

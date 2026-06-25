@@ -20,10 +20,13 @@ export function listCustomers(db, filters = "") {
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   return db.prepare(`
-    SELECT c.*, u.email, d.discount_1_bps, d.discount_2_bps, d.discount_3_bps
+    SELECT c.*, u.email, d.discount_1_bps, d.discount_2_bps, d.discount_3_bps,
+           sr.name AS sales_rep_name, sr.email AS sales_rep_email,
+           sr.default_commission_bps AS sales_rep_default_commission_bps
     FROM customers c
     JOIN users u ON u.id = c.user_id
     JOIN customer_discounts d ON d.customer_id = c.id
+    LEFT JOIN sales_reps sr ON sr.id = c.sales_rep_id
     ${whereSql}
     ORDER BY c.created_at DESC
   `).all(...params);

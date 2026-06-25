@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -50,6 +50,8 @@ function migrate(db) {
       whatsapp TEXT NOT NULL,
       contact_person TEXT NOT NULL,
       notes TEXT NOT NULL DEFAULT '',
+      sales_rep_id INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL,
+      sales_commission_bps INTEGER,
       approval_status TEXT NOT NULL DEFAULT 'pending'
         CHECK (approval_status IN ('pending', 'approved', 'rejected', 'suspended', 'inactive')),
       terms_accepted_at TEXT NOT NULL,
@@ -67,6 +69,19 @@ function migrate(db) {
       discount_3_bps INTEGER NOT NULL DEFAULT 0 CHECK (discount_3_bps BETWEEN 0 AND 10000),
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_by INTEGER REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS sales_reps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      phone TEXT NOT NULL DEFAULT '',
+      whatsapp TEXT NOT NULL DEFAULT '',
+      default_commission_bps INTEGER NOT NULL DEFAULT 0 CHECK (default_commission_bps BETWEEN 0 AND 10000),
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS product_families (
@@ -155,6 +170,12 @@ function migrate(db) {
       discount_1_bps INTEGER NOT NULL,
       discount_2_bps INTEGER NOT NULL,
       discount_3_bps INTEGER NOT NULL,
+      sales_rep_id INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL,
+      sales_rep_name TEXT NOT NULL DEFAULT '',
+      sales_rep_email TEXT NOT NULL DEFAULT '',
+      sales_commission_bps INTEGER NOT NULL DEFAULT 0 CHECK (sales_commission_bps BETWEEN 0 AND 10000),
+      sales_commission_base_cents INTEGER NOT NULL DEFAULT 0 CHECK (sales_commission_base_cents >= 0),
+      sales_commission_cents INTEGER NOT NULL DEFAULT 0 CHECK (sales_commission_cents >= 0),
       subtotal_net_cents INTEGER NOT NULL,
       vat_bps INTEGER NOT NULL,
       vat_cents INTEGER NOT NULL,
@@ -262,6 +283,8 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id, sort_order, id);
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
+    CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
+    CREATE INDEX IF NOT EXISTS idx_customers_sales_rep ON customers(sales_rep_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON email_outbox(status, created_at);
@@ -281,7 +304,15 @@ function migrate(db) {
   ensureColumn(db, "orders", "fulfillment_tracking", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "fulfillment_estimated_date", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "fulfillment_notes", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
+  ensureColumn(db, "orders", "sales_rep_name", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "sales_rep_email", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "sales_commission_bps", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "sales_commission_base_cents", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "sales_commission_cents", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "customers", "postal_code", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "customers", "sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
+  ensureColumn(db, "customers", "sales_commission_bps", "INTEGER");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);
 }
 

@@ -185,6 +185,25 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal((await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/discounts`, {
     method: "PATCH", headers: jsonHeaders(adminCookie), body: JSON.stringify({ discountsBps: [3000, 2000, 1000] })
   })).status, 200);
+  const salesRepResponse = await fetch(`${baseUrl}/api/admin/sales-reps`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      name: "Vendedor API",
+      email: "vendedor-api@km-detail.com",
+      phone: "3410000000",
+      whatsapp: "5493410000000",
+      defaultCommissionBps: 500,
+      status: "active"
+    })
+  });
+  assert.equal(salesRepResponse.status, 201);
+  const salesRep = (await salesRepResponse.json()).salesRep;
+  assert.equal((await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/sales-rep`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({ salesRepId: salesRep.id, commissionBps: 350 })
+  })).status, 200);
 
   const customerCookie = await loginCookie(baseUrl, "cliente-api@example.com", "new-customer-password-456");
   const products = await getJson(`${baseUrl}/api/products`, customerCookie);
@@ -213,16 +232,20 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const orderPayload = await orderResponse.json();
   assert.equal(orderPayload.order.subtotalNetCents, 100_800);
   assert.equal(orderPayload.order.vatCents, 21_168);
+  assert.equal(orderPayload.order.salesRep.email, "vendedor-api@km-detail.com");
+  assert.equal(orderPayload.order.salesRep.commissionBps, 350);
+  assert.equal(orderPayload.order.salesRep.commissionCents, 3528);
   assert.match(orderPayload.order.orderNumber, /^KM-\d{4}-\d{6}$/);
   const orderEmails = db.prepare(`
     SELECT event_type, recipient, subject, text_body
     FROM email_outbox
-    WHERE event_type IN ('order_internal', 'order_customer')
+    WHERE event_type IN ('order_internal', 'order_customer', 'order_sales_rep')
     ORDER BY event_type
   `).all();
-  assert.equal(orderEmails.length, 2);
+  assert.equal(orderEmails.length, 3);
   assert.equal(orderEmails.some((email) => email.event_type === "order_internal" && email.recipient === "ventas@km-detail.com"), true);
   assert.equal(orderEmails.some((email) => email.event_type === "order_customer" && email.recipient === "cliente-api@example.com"), true);
+  assert.equal(orderEmails.some((email) => email.event_type === "order_sales_rep" && email.recipient === "vendedor-api@km-detail.com"), true);
   assert.equal(orderEmails.every((email) => email.subject.includes(orderPayload.order.orderNumber)), true);
   const adminOrderDetail = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, adminCookie);
   assert.equal(adminOrderDetail.order.items.length, 1);
@@ -250,9 +273,12 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(availabilityOrder.subtotalNetCents, 50_400);
   assert.equal(availabilityOrder.vatCents, 10_584);
   assert.equal(availabilityOrder.totalCents, 60_984);
+  assert.equal(availabilityOrder.salesRep.commissionCents, 1764);
   const availabilityEmail = db.prepare("SELECT recipient, subject, text_body FROM email_outbox WHERE event_type = 'order_availability_customer'").get();
   assert.equal(availabilityEmail.recipient, "cliente-api@example.com");
   assert.equal(availabilityEmail.subject.includes(orderPayload.order.orderNumber), true);
+  const availabilitySalesEmail = db.prepare("SELECT recipient, subject FROM email_outbox WHERE event_type = 'order_availability_sales_rep'").get();
+  assert.equal(availabilitySalesEmail.recipient, "vendedor-api@km-detail.com");
   assert.match(availabilityEmail.text_body, /Total a pagar/);
   const customerOrders = await getJson(`${baseUrl}/api/orders`, customerCookie);
   assert.equal(customerOrders.orders[0].id, orderPayload.order.id);

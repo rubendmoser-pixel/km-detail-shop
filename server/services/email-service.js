@@ -144,6 +144,27 @@ export function createEmailService({ db, config }) {
       ].join("\n"));
     }
 
+    queueSalesRep(order, "order_sales_rep", `Copia de pedido ${order.order_number} | ${order.business_name}`, [
+      `Hola ${order.sales_rep_name},`,
+      "",
+      `Recibiste copia del pedido ${order.order_number} de ${order.business_name}.`,
+      "",
+      `Contacto: ${order.contact_person}`,
+      `Email: ${order.email}`,
+      `WhatsApp: ${order.whatsapp}`,
+      "",
+      "Items:",
+      ...itemLines,
+      "",
+      ...totals,
+      "",
+      `Comision estimada: ${formatCommission(order)}`,
+      "",
+      `Entrega: ${shippingText}`,
+      "",
+      `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
+    ].join("\n"));
+
     queue("order_customer", order.email, `Recibimos tu pedido ${order.order_number} | KM Detail Line`, [
       `Hola ${order.contact_person},`,
       "",
@@ -207,6 +228,18 @@ export function createEmailService({ db, config }) {
       "KM Detail Line",
       config.publicBaseUrl
     ].filter(Boolean).join("\n"));
+    queueSalesRep(order, "order_status_sales_rep", `Seguimiento ${order.order_number} | ${order.business_name}`, [
+      `Pedido ${order.order_number} actualizado.`,
+      "",
+      `Cliente: ${order.business_name}`,
+      `Estado del pedido: ${status}`,
+      `Estado del pago: ${paymentStatus}`,
+      `Total: ${money.format(order.total_cents / 100)}`,
+      `Comision estimada: ${formatCommission(order)}`,
+      reason ? `Nota: ${reason}` : "",
+      "",
+      `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
+    ].filter(Boolean).join("\n"));
   }
 
   function queueOrderAvailabilityConfirmed(orderId, reason = "") {
@@ -242,6 +275,22 @@ export function createEmailService({ db, config }) {
       "",
       "KM Detail Line",
       config.publicBaseUrl
+    ].filter(Boolean).join("\n"));
+    queueSalesRep(order, "order_availability_sales_rep", `Disponibilidad ${order.order_number} | ${order.business_name}`, [
+      `Disponibilidad confirmada para el pedido ${order.order_number}.`,
+      "",
+      `Cliente: ${order.business_name}`,
+      "",
+      "Articulos confirmados:",
+      ...(confirmed.length ? confirmed.map((item) => (
+        `- ${item.confirmed_quantity} de ${item.quantity} x ${item.km_code} | ${item.product_name} | ${money.format(item.confirmed_subtotal_net_cents / 100)}`
+      )) : ["- No hay articulos disponibles para despacho en esta confirmacion."]),
+      "",
+      `Total confirmado: ${money.format(order.total_cents / 100)}`,
+      `Comision estimada: ${formatCommission(order)}`,
+      reason ? `Nota: ${reason}` : "",
+      "",
+      `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
     ].filter(Boolean).join("\n"));
   }
 
@@ -288,6 +337,17 @@ export function createEmailService({ db, config }) {
       "KM Detail Line",
       config.publicBaseUrl
     ].filter(Boolean).join("\n"));
+    queueSalesRep(order, "payment_receipt_sales_rep", `Pago ${order.order_number} | ${order.business_name}`, [
+      `Actualizacion de pago para el pedido ${order.order_number}.`,
+      "",
+      `Cliente: ${order.business_name}`,
+      `Estado: ${accepted ? "Pago acreditado" : "Comprobante observado"}`,
+      `Total: ${money.format(order.total_cents / 100)}`,
+      `Comision estimada: ${formatCommission(order)}`,
+      reason ? `Nota: ${reason}` : "",
+      "",
+      `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
+    ].filter(Boolean).join("\n"));
   }
 
   function queueOrderFulfillmentUpdated(orderId) {
@@ -313,6 +373,29 @@ export function createEmailService({ db, config }) {
       "KM Detail Line",
       config.publicBaseUrl
     ].filter(Boolean).join("\n"));
+    queueSalesRep(order, "order_fulfillment_sales_rep", `Despacho ${order.order_number} | ${order.business_name}`, [
+      `Actualizacion de despacho para el pedido ${order.order_number}.`,
+      "",
+      `Cliente: ${order.business_name}`,
+      `Estado: ${labels[order.fulfillment_status] || order.fulfillment_status}`,
+      order.fulfillment_method ? `Modalidad: ${order.fulfillment_method}` : "",
+      order.fulfillment_carrier ? `Transporte: ${order.fulfillment_carrier}` : "",
+      order.fulfillment_tracking ? `Guia/remito: ${order.fulfillment_tracking}` : "",
+      order.fulfillment_estimated_date ? `Fecha estimada: ${order.fulfillment_estimated_date}` : "",
+      order.fulfillment_notes ? `Observaciones: ${order.fulfillment_notes}` : "",
+      "",
+      `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
+    ].filter(Boolean).join("\n"));
+  }
+
+  function queueSalesRep(order, eventType, subject, textBody) {
+    if (!order.sales_rep_email) return;
+    queue(eventType, order.sales_rep_email, subject, textBody);
+  }
+
+  function formatCommission(order) {
+    if (!order.sales_rep_email || !order.sales_commission_bps) return "Sin vendedor/comision asignada";
+    return `${(order.sales_commission_bps / 100).toFixed(2)}% sobre ${money.format((order.sales_commission_base_cents || order.subtotal_net_cents) / 100)} = ${money.format((order.sales_commission_cents || 0) / 100)}`;
   }
 
   function queue(eventType, recipient, subject, textBody) {

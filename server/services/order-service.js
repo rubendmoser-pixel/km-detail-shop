@@ -5,6 +5,7 @@ import { calculateLine, calculateOrderTotals } from "../domain/pricing.js";
 import { NotFoundError, ValidationError, optionalText, positiveInteger, requiredText } from "../domain/validation.js";
 import { transaction } from "../db.js";
 import { getCustomerPricingContext } from "./customer-service.js";
+import { resolveCustomerSalesRep } from "./sales-rep-service.js";
 import { getCommercialSettings } from "./settings-service.js";
 
 const RECEIPT_MIME_EXTENSIONS = new Map([
@@ -21,6 +22,7 @@ export function createOrder(db, customerId, input) {
   const customer = getCustomerPricingContext(db, customerId);
   if (!customer || customer.approval_status !== "approved") throw new ValidationError("Customer is not approved");
   const discounts = [customer.discount_1_bps, customer.discount_2_bps, customer.discount_3_bps];
+  const salesRep = resolveCustomerSalesRep(db, customerId);
   const settings = getCommercialSettings(db);
   const shipping = validateShipping(input.shipping || {});
 
@@ -37,17 +39,23 @@ export function createOrder(db, customerId, input) {
       return { product, ...calculateLine({ basePriceCents: product.base_price_cents, quantity, discountsBps: discounts }) };
     });
     const totals = calculateOrderTotals(lines, settings.vatBps);
+    const commissionCents = calculateCommission(totals.subtotalNetCents, salesRep.commissionBps);
     const now = new Date().toISOString();
 
     const order = db.prepare(`
       INSERT INTO orders (
         customer_id, status, payment_status, discount_1_bps, discount_2_bps, discount_3_bps,
+        sales_rep_id, sales_rep_name, sales_rep_email, sales_commission_bps,
+        sales_commission_base_cents, sales_commission_cents,
         subtotal_net_cents, vat_bps, vat_cents, total_cents, bank_snapshot_json,
         shipping_snapshot_json, price_reserved_at, customer_accepted_at
-      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `).get(
-      customerId, ...discounts, totals.subtotalNetCents, totals.vatBps, totals.vatCents,
+      customerId, ...discounts,
+      salesRep.id, salesRep.name, salesRep.email, salesRep.commissionBps,
+      totals.subtotalNetCents, commissionCents,
+      totals.subtotalNetCents, totals.vatBps, totals.vatCents,
       totals.totalCents, JSON.stringify(settings.bank), JSON.stringify(shipping), now, now
     );
     const orderNumber = `KM-${new Date().getUTCFullYear()}-${String(order.id).padStart(6, "0")}`;
@@ -168,12 +176,14 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
     }
     const vatCents = Math.round(confirmedSubtotalNetCents * order.vat_bps / 10_000);
     const totalCents = confirmedSubtotalNetCents + vatCents;
+    const commissionCents = calculateCommission(confirmedSubtotalNetCents, order.sales_commission_bps || 0);
     const newStatus = confirmedSubtotalNetCents > 0 ? "availability_confirmed" : "cancelled";
     db.prepare(`
       UPDATE orders SET status = ?, subtotal_net_cents = ?, vat_cents = ?, total_cents = ?,
+        sales_commission_base_cents = ?, sales_commission_cents = ?,
         modified_acceptance_required = 1, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(newStatus, confirmedSubtotalNetCents, vatCents, totalCents, orderId);
+    `).run(newStatus, confirmedSubtotalNetCents, vatCents, totalCents, confirmedSubtotalNetCents, commissionCents, orderId);
     addOrderEvent(db, orderId, adminUserId, "availability_confirmed", reason, { order, items: currentItems }, {
       subtotalNetCents: confirmedSubtotalNetCents,
       vatCents,
@@ -300,6 +310,10 @@ function lineStatusFor(orderedQuantity, confirmedQuantity, requestedStatus = "")
   return "confirmed";
 }
 
+function calculateCommission(baseCents, commissionBps) {
+  return Math.round((baseCents * commissionBps) / 10_000);
+}
+
 function mapOrder(order, items, receipts = []) {
   return {
     id: order.id,
@@ -322,6 +336,14 @@ function mapOrder(order, items, receipts = []) {
     },
     currency: order.currency,
     discountsBps: [order.discount_1_bps, order.discount_2_bps, order.discount_3_bps],
+    salesRep: {
+      id: order.sales_rep_id || null,
+      name: order.sales_rep_name || "",
+      email: order.sales_rep_email || "",
+      commissionBps: order.sales_commission_bps || 0,
+      commissionBaseCents: order.sales_commission_base_cents || 0,
+      commissionCents: order.sales_commission_cents || 0
+    },
     subtotalNetCents: order.subtotal_net_cents,
     vatBps: order.vat_bps,
     vatCents: order.vat_cents,
