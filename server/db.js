@@ -109,6 +109,7 @@ function migrate(db) {
       compatible_machine TEXT NOT NULL DEFAULT '',
       recommended_use TEXT NOT NULL DEFAULT '',
       technical_description TEXT NOT NULL DEFAULT '',
+      warehouse_location TEXT NOT NULL DEFAULT '',
       image_filename TEXT,
       base_price_cents INTEGER NOT NULL CHECK (base_price_cents >= 0),
       currency TEXT NOT NULL DEFAULT 'ARS' CHECK (currency = 'ARS'),
@@ -296,6 +297,8 @@ function migrate(db) {
   ensureColumn(db, "order_items", "confirmed_subtotal_net_cents", "INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_subtotal_net_cents >= 0)");
   ensureColumn(db, "order_items", "line_status", "TEXT NOT NULL DEFAULT 'pending_confirmation'");
   ensureColumn(db, "order_items", "availability_note", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "order_items", "warehouse_location", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "products", "warehouse_location", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "payment_method", "TEXT NOT NULL DEFAULT 'bank_transfer'");
   ensureColumn(db, "orders", "fulfillment_status", "TEXT NOT NULL DEFAULT 'pending'");
   ensureColumn(db, "orders", "fulfillment_method", "TEXT NOT NULL DEFAULT ''");

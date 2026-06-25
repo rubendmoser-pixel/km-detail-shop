@@ -118,6 +118,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
       ean13: "7791234567890",
       name: "Pad de prueba API",
       familyName: "Poliespumas",
+      warehouseLocation: "A-03-02",
       basePriceCents: 100_000,
       priceEffectiveFrom: "2026-01-01"
     })
@@ -141,6 +142,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(adminProducts.products.length, 1);
   assert.equal(adminProducts.products[0].kmCode, "API001K");
   assert.equal(adminProducts.products[0].basePriceCents, 100_000);
+  assert.equal(adminProducts.products[0].warehouseLocation, "A-03-02");
   const imageResponse = await fetch(`${baseUrl}/api/admin/products/${product.id}/images`, {
     method: "POST",
     headers: jsonHeaders(adminCookie),
@@ -250,6 +252,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const adminOrderDetail = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, adminCookie);
   assert.equal(adminOrderDetail.order.items.length, 1);
   assert.equal(adminOrderDetail.order.items[0].kmCode, "API001K");
+  assert.equal(adminOrderDetail.order.items[0].warehouseLocation, "A-03-02");
   assert.equal(adminOrderDetail.order.shipping.city, "Cordoba");
   assert.equal(adminOrderDetail.order.customerWhatsapp, "5493510000000");
   assert.equal(adminOrderDetail.order.contactPerson, "Cliente API");
@@ -258,6 +261,10 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(labelPayload.packages[0].code, `${orderPayload.order.orderNumber}-B01-04`);
   assert.equal(labelPayload.packages[3].code, `${orderPayload.order.orderNumber}-B04-04`);
   assert.equal(labelPayload.order.shipping.address, "Calle 123");
+  const pickingPayload = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/picking-list`, adminCookie);
+  assert.equal(pickingPayload.order.items.length, 1);
+  assert.equal(pickingPayload.order.items[0].warehouseLocation, "A-03-02");
+  assert.equal(pickingPayload.order.items[0].pickQuantity, 2);
   const availabilityResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/availability`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

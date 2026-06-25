@@ -163,7 +163,7 @@ export function listAdminProducts(db, filters = {}) {
   return db.prepare(`
     SELECT p.id, p.km_code, p.ean13, p.name, p.slug, p.subfamily, p.material,
            p.color, p.measure, p.cut_level, p.attachment_system,
-           p.compatible_machine, p.recommended_use, p.technical_description,
+           p.compatible_machine, p.recommended_use, p.technical_description, p.warehouse_location,
            p.image_filename, p.base_price_cents, p.currency, p.price_effective_from,
            p.active, p.web_sort_order, p.created_at, p.updated_at,
            f.id AS family_id, f.name AS family_name, f.slug AS family_slug,
@@ -307,9 +307,9 @@ export function upsertProduct(db, input) {
     INSERT INTO products (
       km_code, ean13, name, slug, family_id, subfamily, material, color, measure,
       cut_level, attachment_system, compatible_machine, recommended_use,
-      technical_description, image_filename, base_price_cents, price_effective_from,
+      technical_description, warehouse_location, image_filename, base_price_cents, price_effective_from,
       active, web_sort_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(km_code) DO UPDATE SET
       ean13 = excluded.ean13, name = excluded.name, slug = excluded.slug,
       family_id = excluded.family_id, subfamily = excluded.subfamily,
@@ -318,6 +318,7 @@ export function upsertProduct(db, input) {
       compatible_machine = excluded.compatible_machine,
       recommended_use = excluded.recommended_use,
       technical_description = excluded.technical_description,
+      warehouse_location = excluded.warehouse_location,
       image_filename = excluded.image_filename,
       base_price_cents = excluded.base_price_cents,
       price_effective_from = excluded.price_effective_from,
@@ -333,6 +334,7 @@ export function upsertProduct(db, input) {
     optionalText(input.compatibleMachine, "compatibleMachine"),
     optionalText(input.recommendedUse, "recommendedUse"),
     optionalText(input.technicalDescription, "technicalDescription"),
+    optionalText(input.warehouseLocation, "warehouseLocation", { max: 80 }),
     optionalText(input.imageFilename, "imageFilename") || null,
     input.basePriceCents, requiredText(input.priceEffectiveFrom, "priceEffectiveFrom", { max: 30 }),
     input.active === false ? 0 : 1, Number.isInteger(input.webSortOrder) ? input.webSortOrder : 0
@@ -356,6 +358,7 @@ function adminProduct(row) {
     compatibleMachine: row.compatible_machine,
     recommendedUse: row.recommended_use,
     technicalDescription: row.technical_description,
+    warehouseLocation: row.warehouse_location || "",
     imageFilename: row.image_filename,
     primaryImageUrl: row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : "",
     imageCount: row.image_count || 0,

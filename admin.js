@@ -264,7 +264,7 @@ function renderProducts() {
   adminEls.productsTableBody.innerHTML = adminState.products.length ? adminState.products.map((product) => `
     <tr data-product-id="${product.id}">
       <td><strong>${escapeAdmin(product.kmCode)}</strong><br><span>${escapeAdmin(product.ean13)}</span></td>
-      <td>${escapeAdmin(product.name)}${product.measure ? `<br><span>${escapeAdmin(product.measure)}</span>` : ""}</td>
+      <td>${escapeAdmin(product.name)}${product.measure ? `<br><span>${escapeAdmin(product.measure)}</span>` : ""}${product.warehouseLocation ? `<br><span>Ubicacion: ${escapeAdmin(product.warehouseLocation)}</span>` : ""}</td>
       <td>${escapeAdmin(product.family.name)}</td>
       <td>${adminMoney.format(product.basePriceCents / 100)}</td>
       <td><span class="status-badge ${product.active ? "approved" : "suspended"}">${product.active ? "Activo" : "Inactivo"}</span>${product.imageCount ? `<br><span>${product.imageCount} img.</span>` : ""}</td>
@@ -290,6 +290,7 @@ function editProduct(event) {
   productField("priceEffectiveFrom").value = normalizeDateInput(product.priceEffectiveFrom);
   productField("active").checked = product.active;
   productField("imageFilename").value = product.imageFilename || "";
+  productField("warehouseLocation").value = product.warehouseLocation || "";
   productField("material").value = product.material || "";
   productField("color").value = product.color || "";
   productField("measure").value = product.measure || "";
@@ -310,6 +311,7 @@ function resetProductForm() {
   productField("active").checked = true;
   productField("familySortOrder").value = 0;
   productField("webSortOrder").value = 0;
+  productField("warehouseLocation").value = "";
   productField("priceEffectiveFrom").value = new Date().toISOString().slice(0, 10);
   adminEls.productMessage.textContent = "";
   adminState.productImages = [];
@@ -331,6 +333,7 @@ async function saveProduct(event) {
     priceEffectiveFrom: values.priceEffectiveFrom,
     active: productField("active").checked,
     imageFilename: values.imageFilename,
+    warehouseLocation: values.warehouseLocation,
     material: values.material,
     color: values.color,
     measure: values.measure,
@@ -647,16 +650,18 @@ function renderOrderDetail() {
     ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
     : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
   adminEls.orderDetailActions.insertAdjacentHTML("beforeend", `
+    <button class="ghost-button" type="button" id="openPickingList">Imprimir preparacion</button>
     <form class="shipping-label-form">
       <label><span>Bultos</span><input name="packages" type="number" min="1" max="99" step="1" value="1" /></label>
       <button class="ghost-button" type="submit">Generar etiquetas A4</button>
     </form>
   `);
+  adminEls.orderDetailActions.querySelector("#openPickingList").addEventListener("click", openPickingList);
   adminEls.orderDetailActions.querySelector(".shipping-label-form").addEventListener("submit", openShippingLabels);
   adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
     <tr data-order-item-id="${item.id}" data-unit-cents="${item.finalUnitPriceCents}">
       <td><strong>${escapeAdmin(item.kmCode)}</strong><br><span>EAN ${escapeAdmin(item.ean13)}</span></td>
-      <td>${escapeAdmin(item.productName)}${item.availabilityNote ? `<br><span>${escapeAdmin(item.availabilityNote)}</span>` : ""}</td>
+      <td>${escapeAdmin(item.productName)}${item.warehouseLocation ? `<br><span>Ubicacion: ${escapeAdmin(item.warehouseLocation)}</span>` : ""}${item.availabilityNote ? `<br><span>${escapeAdmin(item.availabilityNote)}</span>` : ""}</td>
       <td>${item.quantity}</td>
       <td><input class="confirmed-qty-input" name="confirmedQuantity-${item.id}" type="number" min="0" max="${item.quantity}" step="1" value="${item.confirmedQuantity || 0}" /></td>
       <td>${adminMoney.format(item.finalUnitPriceCents / 100)}</td>
@@ -681,6 +686,11 @@ function openShippingLabels(event) {
   const values = Object.fromEntries(new FormData(event.currentTarget));
   const packages = Math.max(1, Math.min(99, Number(values.packages || 1)));
   window.open(`./labels.html?order=${adminState.selectedOrder.id}&packages=${packages}`, "_blank", "noopener,noreferrer");
+}
+
+function openPickingList() {
+  if (!adminState.selectedOrder) return;
+  window.open(`./picking.html?order=${adminState.selectedOrder.id}`, "_blank", "noopener,noreferrer");
 }
 
 function renderFulfillment(order) {

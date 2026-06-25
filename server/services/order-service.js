@@ -63,13 +63,13 @@ export function createOrder(db, customerId, input) {
 
     const insertItem = db.prepare(`
       INSERT INTO order_items (
-        order_id, product_id, km_code, ean13, product_name, quantity, base_price_cents,
+        order_id, product_id, km_code, ean13, product_name, warehouse_location, quantity, base_price_cents,
         discount_1_bps, discount_2_bps, discount_3_bps, final_unit_price_cents, subtotal_net_cents
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const line of lines) {
       insertItem.run(
-        order.id, line.product.id, line.product.km_code, line.product.ean13, line.product.name,
+        order.id, line.product.id, line.product.km_code, line.product.ean13, line.product.name, line.product.warehouse_location || "",
         line.quantity, line.basePriceCents, ...discounts, line.finalUnitPriceCents, line.subtotalNetCents
       );
     }
@@ -118,6 +118,43 @@ export function createShippingLabels(db, orderId, packageCount) {
       total: packages,
       code: `${order.orderNumber}-B${String(index + 1).padStart(2, "0")}-${String(packages).padStart(2, "0")}`
     }))
+  };
+}
+
+export function createPickingList(db, orderId) {
+  const order = getOrder(db, orderId, null, true);
+  const locations = db.prepare(`
+    SELECT oi.id, COALESCE(NULLIF(oi.warehouse_location, ''), p.warehouse_location, '') AS warehouse_location
+    FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id
+    WHERE oi.order_id = ?
+  `).all(orderId);
+  const locationByItemId = new Map(locations.map((item) => [item.id, item.warehouse_location || "Sin ubicacion"]));
+  const items = order.items
+    .map((item) => ({
+      ...item,
+      pickQuantity: item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity,
+      warehouseLocation: locationByItemId.get(item.id) || "Sin ubicacion"
+    }))
+    .filter((item) => item.pickQuantity > 0)
+    .sort((a, b) => a.warehouseLocation.localeCompare(b.warehouseLocation, "es") || a.kmCode.localeCompare(b.kmCode, "es"));
+
+  return {
+    generatedAt: new Date().toISOString(),
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      businessName: order.businessName,
+      contactPerson: order.contactPerson,
+      customerWhatsapp: order.customerWhatsapp,
+      email: order.email,
+      shipping: order.shipping,
+      fulfillment: order.fulfillment,
+      totalCents: order.totalCents,
+      currency: order.currency,
+      items
+    }
   };
 }
 
@@ -408,6 +445,7 @@ function mapOrder(order, items, receipts = []) {
       kmCode: item.km_code,
       ean13: item.ean13,
       productName: item.product_name,
+      warehouseLocation: item.warehouse_location || "",
       quantity: item.quantity,
       confirmedQuantity: item.confirmed_quantity || 0,
       basePriceCents: item.base_price_cents,
