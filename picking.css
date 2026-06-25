@@ -51,22 +51,22 @@ body {
   width: 210mm;
   min-height: 297mm;
   margin: 18px auto;
-  padding: 11mm;
+  padding: 9mm 10mm;
   background: #fff;
   color: #0b0c0e;
 }
 
 .pick-header {
   display: grid;
-  grid-template-columns: 46mm 1fr auto;
-  gap: 8mm;
+  grid-template-columns: 39mm 1fr auto;
+  gap: 7mm;
   align-items: center;
-  padding-bottom: 7mm;
-  border-bottom: 1.2mm solid #0b0c0e;
+  padding-bottom: 5mm;
+  border-bottom: 1mm solid #0b0c0e;
 }
 
 .pick-header img {
-  width: 42mm;
+  width: 34mm;
   height: auto;
 }
 
@@ -81,26 +81,30 @@ body {
 
 h1 {
   margin: 0;
-  font-size: 24pt;
+  font-size: 22pt;
   line-height: 1;
 }
 
 .order-number {
-  font-size: 20pt;
+  padding: 3mm 4mm;
+  background: #0b0c0e;
+  color: #fff;
+  font-size: 17pt;
   font-weight: 900;
+  letter-spacing: 0.02em;
 }
 
 .pick-meta {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 5mm;
-  padding: 7mm 0;
+  grid-template-columns: 1.2fr 1.15fr 0.9fr;
+  gap: 4mm;
+  padding: 5mm 0;
   border-bottom: 0.35mm solid #c8cbd0;
 }
 
 .pick-meta div {
-  min-height: 23mm;
-  padding: 4mm;
+  min-height: 19mm;
+  padding: 3mm 3.5mm;
   border: 0.35mm solid #c8cbd0;
 }
 
@@ -117,27 +121,54 @@ h1 {
 
 .pick-meta strong {
   display: block;
-  margin-top: 2mm;
-  font-size: 12pt;
+  margin-top: 1.8mm;
+  font-size: 11pt;
 }
 
 .pick-table {
   width: 100%;
-  margin-top: 7mm;
+  margin-top: 5mm;
   border-collapse: collapse;
-  font-size: 10.5pt;
+  font-size: 9.7pt;
+  table-layout: fixed;
+}
+
+.location-col {
+  width: 28mm;
+}
+
+.code-col {
+  width: 40mm;
+}
+
+.qty-col {
+  width: 14mm;
+}
+
+.check-col {
+  width: 13mm;
 }
 
 .pick-table th,
 .pick-table td {
-  padding: 3mm 2.5mm;
+  padding: 2.6mm 2.3mm;
   border: 0.35mm solid #c8cbd0;
   text-align: left;
   vertical-align: top;
+  overflow-wrap: anywhere;
 }
 
 .pick-table th {
   background: #f1f2f4;
+}
+
+.pick-table thead {
+  display: table-header-group;
+}
+
+.pick-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .pick-table .qty,
@@ -146,18 +177,32 @@ h1 {
 }
 
 .pick-location {
-  font-size: 15pt;
+  font-size: 13pt;
   font-weight: 900;
+  line-height: 1.05;
+}
+
+.pick-location.missing-location {
+  color: #8a8f98;
+  font-size: 10pt;
+  text-transform: uppercase;
 }
 
 .pick-code {
   font-weight: 900;
+  line-height: 1.22;
+}
+
+.pick-code span,
+.pick-table td span {
+  color: #55585e;
+  font-size: 8.5pt;
 }
 
 .check-box {
   display: inline-block;
-  width: 7mm;
-  height: 7mm;
+  width: 6.2mm;
+  height: 6.2mm;
   border: 0.6mm solid #0b0c0e;
 }
 
@@ -165,11 +210,11 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6mm;
-  margin-top: 9mm;
+  margin-top: 8mm;
 }
 
 .control-box {
-  min-height: 25mm;
+  min-height: 22mm;
   padding-top: 4mm;
   border-top: 0.45mm solid #0b0c0e;
 }

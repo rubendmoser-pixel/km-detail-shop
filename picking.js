@@ -34,7 +34,7 @@ function renderPicking(payload) {
         <img src="./assets/km-metal-logo-small.png" alt="KM Detail Line" />
         <div>
           <p class="eyebrow">Preparacion interna de deposito</p>
-          <h1>Hoja de pedido</h1>
+          <h1>Hoja de preparacion</h1>
         </div>
         <div class="order-number">${escapeHtml(order.orderNumber)}</div>
       </header>
@@ -44,6 +44,13 @@ function renderPicking(payload) {
         <div><span>Fecha</span><strong>${formatDate(generatedAt)}</strong></div>
       </section>
       <table class="pick-table">
+        <colgroup>
+          <col class="location-col" />
+          <col class="code-col" />
+          <col class="product-col" />
+          <col class="qty-col" />
+          <col class="check-col" />
+        </colgroup>
         <thead>
           <tr>
             <th>Ubicacion</th>
@@ -56,7 +63,7 @@ function renderPicking(payload) {
         <tbody>
           ${order.items.map((item) => `
             <tr>
-              <td class="pick-location">${escapeHtml(item.warehouseLocation || "Sin ubicacion")}</td>
+              <td class="pick-location ${item.warehouseLocation ? "" : "missing-location"}">${escapeHtml(item.warehouseLocation || "Pendiente")}</td>
               <td class="pick-code">${escapeHtml(item.kmCode)}<br><span>EAN ${escapeHtml(item.ean13)}</span></td>
               <td>${escapeHtml(item.productName)}${item.availabilityNote ? `<br><span>${escapeHtml(item.availabilityNote)}</span>` : ""}</td>
               <td class="qty"><strong>${item.pickQuantity}</strong></td>
