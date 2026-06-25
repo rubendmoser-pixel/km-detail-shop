@@ -42,6 +42,7 @@ const state = {
   orders: [],
   shippingAddresses: [],
   selectedShippingAddressId: null,
+  purchaseFilter: "all",
   settings: { vatBps: 2100, whatsappNumber: "" },
   category: "Todos",
   search: "",
@@ -57,6 +58,7 @@ const els = Object.fromEntries([
   "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
   "cartEmpty", "cartSummaryText", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
+  "navPurchases",
   "shippingAddressList", "shippingAddressForm", "shippingAddressFormTitle", "shippingAddressMessage",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
   "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus",
@@ -231,6 +233,7 @@ function renderAccountState() {
       : "Inicia sesion para consultar precios comerciales.";
   els.orderAccess.hidden = approved;
   els.orderForm.hidden = !approved;
+  if (els.navPurchases) els.navPurchases.hidden = !approved;
 }
 
 function renderCategoryFilters() {
@@ -714,48 +717,164 @@ function renderCustomerOrders() {
     els.customerOrders.innerHTML = "";
     return;
   }
-  const visibleOrders = state.orders.slice(0, 10);
+  const metrics = purchaseMetrics(state.orders);
+  const filteredOrders = filterPurchases(state.orders);
   els.customerOrders.innerHTML = `
-    <div class="section-title compact"><p class="eyebrow">Operacion</p><h3>Mis pedidos</h3></div>
-    ${visibleOrders.length ? visibleOrders.map(renderCustomerOrder).join("") : `<p class="muted">Todavia no hay pedidos registrados.</p>`}
+    <div class="purchases-header">
+      <div class="section-title compact">
+        <p class="eyebrow">Cuenta comercial</p>
+        <h2>Mis compras</h2>
+        <p>Historial de pedidos, disponibilidad, pagos y despacho.</p>
+      </div>
+      <label class="purchase-filter">
+        <span>Ver</span>
+        <select id="purchaseStatusFilter">
+          <option value="all" ${state.purchaseFilter === "all" ? "selected" : ""}>Todas las compras</option>
+          <option value="active" ${state.purchaseFilter === "active" ? "selected" : ""}>En curso</option>
+          <option value="pay" ${state.purchaseFilter === "pay" ? "selected" : ""}>Para pagar</option>
+          <option value="shipment" ${state.purchaseFilter === "shipment" ? "selected" : ""}>Despacho</option>
+          <option value="closed" ${state.purchaseFilter === "closed" ? "selected" : ""}>Finalizadas</option>
+        </select>
+      </label>
+    </div>
+    <div class="purchase-metrics" aria-label="Resumen de compras">
+      <article><strong>${metrics.total}</strong><span>compras</span></article>
+      <article><strong>${metrics.active}</strong><span>en curso</span></article>
+      <article><strong>${metrics.toPay}</strong><span>para pagar</span></article>
+      <article><strong>${metrics.shipments}</strong><span>en despacho</span></article>
+    </div>
+    <div class="purchase-list">
+      ${filteredOrders.length ? filteredOrders.map(renderCustomerOrder).join("") : `<article class="empty-purchases"><strong>Sin compras para este filtro</strong><span>Cambia el filtro o arma un pedido desde Productos.</span></article>`}
+    </div>
   `;
+  els.customerOrders.querySelector("#purchaseStatusFilter")?.addEventListener("change", (event) => {
+    state.purchaseFilter = event.currentTarget.value;
+    renderCustomerOrders();
+  });
   els.customerOrders.querySelectorAll("[data-receipt-input]").forEach((input) => input.addEventListener("change", uploadReceipt));
+  els.customerOrders.querySelectorAll("[data-accept-order]").forEach((button) => {
+    button.addEventListener("click", () => acceptOrder(Number(button.dataset.acceptOrder)));
+  });
 }
 
 function renderCustomerOrder(order) {
   const latestReceipt = order.paymentReceipts?.[0];
-  const canUpload = ["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid";
+  const needsAcceptance = order.modifiedAcceptanceRequired && ["availability_confirmed", "confirmed"].includes(order.status);
+  const canUpload = ["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid" && !needsAcceptance;
   const bank = order.bank || {};
-  const confirmedItems = order.items.filter((item) => item.confirmedQuantity > 0);
+  const visibleItems = order.items.filter((item) => order.status === "order_created" || item.confirmedQuantity > 0).slice(0, 5);
   const unavailableItems = order.items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
+  const statusClass = purchaseStatusClass(order);
+  const itemCount = order.items.reduce((sum, item) => sum + (item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity), 0);
   return `
-    <article class="customer-order-card">
+    <article class="customer-order-card ${statusClass}">
       <div class="customer-order-head">
-        <div><strong>${escapeHtml(order.orderNumber)}</strong><span>${formatDate(order.createdAt)}</span></div>
-        <div class="order-status-pills"><span>${escapeHtml(orderStatusText(order.status))}</span><span>${escapeHtml(paymentStatusText(order.paymentStatus))}</span></div>
+        <div>
+          <p class="eyebrow">Compra</p>
+          <strong>${escapeHtml(order.orderNumber)}</strong>
+          <span>${formatDate(order.createdAt)} | ${itemCount} unidad${itemCount === 1 ? "" : "es"}</span>
+        </div>
+        <div class="order-status-pills">
+          <span class="${statusClass}">${escapeHtml(orderStatusText(order.status))}</span>
+          <span class="${paymentStatusClass(order.paymentStatus)}">${escapeHtml(paymentStatusText(order.paymentStatus))}</span>
+          <span class="${fulfillmentStatusClass(order.fulfillment?.status)}">${escapeHtml(fulfillmentStatusText(order.fulfillment?.status))}</span>
+        </div>
       </div>
-      <dl>
-        <div><dt>Total confirmado</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
-        <div><dt>Alias</dt><dd>${escapeHtml(bank.alias || "-")}</dd></div>
-        <div><dt>CBU</dt><dd>${escapeHtml(bank.cbu || "-")}</dd></div>
-      </dl>
+      ${renderPurchaseTimeline(order)}
+      <div class="purchase-card-grid">
+        <dl>
+          <div><dt>Total</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
+          <div><dt>Subtotal neto</dt><dd>${money.format(order.subtotalNetCents / 100)}</dd></div>
+          <div><dt>IVA ${formatPercent(order.vatBps)}</dt><dd>${money.format(order.vatCents / 100)}</dd></div>
+        </dl>
+        <div class="purchase-shipping">
+          <strong>Entrega</strong>
+          <span>${escapeHtml(order.shipping?.recipient || "-")}</span>
+          <span>${escapeHtml(order.shipping?.address || "-")}</span>
+          <span>${escapeHtml([order.shipping?.city, order.shipping?.province].filter(Boolean).join(", "))}</span>
+        </div>
+      </div>
       <div class="customer-order-lines">
-        <strong>Articulos confirmados</strong>
-        ${confirmedItems.length ? confirmedItems.map((item) => `<span>${item.confirmedQuantity} x ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}</span>`).join("") : `<span>Pendiente de confirmacion comercial.</span>`}
+        <strong>${order.status === "order_created" ? "Articulos solicitados" : "Articulos confirmados"}</strong>
+        ${visibleItems.length ? visibleItems.map(renderPurchaseLine).join("") : `<span>Pendiente de confirmacion comercial.</span>`}
+        ${order.items.length > visibleItems.length ? `<span>+ ${order.items.length - visibleItems.length} articulo${order.items.length - visibleItems.length === 1 ? "" : "s"} mas</span>` : ""}
         ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
       </div>
-      ${order.fulfillment?.status && order.fulfillment.status !== "pending" ? `<p>Despacho: ${escapeHtml(customerFulfillmentText(order.fulfillment))}</p>` : ""}
-      ${bank.instructions ? `<p>${escapeHtml(bank.instructions)}</p>` : ""}
-      ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(latestReceipt.status)})</p>` : ""}
-      ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : paymentHelperText(order)}
+      <div class="purchase-actions">
+        ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}">Aceptar disponibilidad</button>` : ""}
+        ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : paymentHelperText(order)}
+        ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
+      </div>
+      ${canUpload ? renderBankSummary(bank) : ""}
+      ${order.fulfillment?.status && order.fulfillment.status !== "pending" ? `<p class="purchase-note">Despacho: ${escapeHtml(customerFulfillmentText(order.fulfillment))}</p>` : ""}
     </article>
   `;
 }
 
+function renderPurchaseLine(item) {
+  const quantity = item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity;
+  const suffix = item.confirmedQuantity > 0 && item.confirmedQuantity !== item.quantity ? ` de ${item.quantity}` : "";
+  return `<span>${quantity}${suffix} x ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}</span>`;
+}
+
+function renderBankSummary(bank = {}) {
+  return `
+    <div class="purchase-bank">
+      <strong>Datos para transferencia</strong>
+      <span>Alias: ${escapeHtml(bank.alias || "-")}</span>
+      <span>CBU: ${escapeHtml(bank.cbu || "-")}</span>
+      ${bank.instructions ? `<small>${escapeHtml(bank.instructions)}</small>` : ""}
+    </div>
+  `;
+}
+
+function renderPurchaseTimeline(order) {
+  const steps = [
+    { key: "received", label: "Pedido recibido", done: true },
+    { key: "availability", label: "Disponibilidad", done: ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status) },
+    { key: "payment", label: "Pago", done: order.paymentStatus === "paid" },
+    { key: "shipment", label: "Despacho", done: ["shipped", "delivered"].includes(order.fulfillment?.status) }
+  ];
+  return `<ol class="purchase-timeline">${steps.map((step) => `<li class="${step.done ? "done" : ""}"><span></span>${step.label}</li>`).join("")}</ol>`;
+}
+
+function purchaseMetrics(orders) {
+  return {
+    total: orders.length,
+    active: orders.filter((order) => purchaseGroup(order) === "active").length,
+    toPay: orders.filter((order) => purchaseGroup(order) === "pay").length,
+    shipments: orders.filter((order) => purchaseGroup(order) === "shipment").length
+  };
+}
+
+function filterPurchases(orders) {
+  if (state.purchaseFilter === "all") return orders;
+  return orders.filter((order) => purchaseGroup(order) === state.purchaseFilter);
+}
+
+function purchaseGroup(order) {
+  if (["delivered", "cancelled"].includes(order.status) || order.fulfillment?.status === "delivered") return "closed";
+  if (["shipped", "ready"].includes(order.fulfillment?.status)) return "shipment";
+  if (["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid") return "pay";
+  return "active";
+}
+
 function paymentHelperText(order) {
   if (order.paymentStatus === "paid") return `<p>Pago acreditado.</p>`;
+  if (order.modifiedAcceptanceRequired) return `<p>Revisa y acepta la disponibilidad confirmada para continuar.</p>`;
   if (!["availability_confirmed", "confirmed"].includes(order.status)) return `<p>KM confirmara disponibilidad antes de habilitar el pago.</p>`;
   return "";
+}
+
+async function acceptOrder(orderId) {
+  try {
+    await api(`/api/orders/${orderId}/accept`, { method: "POST" });
+    await loadCustomerOrders();
+    renderCustomerOrders();
+    showToast("Disponibilidad aceptada. Ya podes continuar con el pago.");
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 async function uploadReceipt(event) {
@@ -831,6 +950,14 @@ function orderStatusText(status) {
   })[status] || status;
 }
 
+function purchaseStatusClass(order) {
+  if (order.status === "cancelled") return "status-danger";
+  if (["availability_confirmed", "confirmed"].includes(order.status)) return "status-info";
+  if (["in_preparation", "ready"].includes(order.status)) return "status-warn";
+  if (order.status === "delivered") return "status-success";
+  return "status-neutral";
+}
+
 function paymentStatusText(status) {
   return ({
     pending_payment: "Pago pendiente",
@@ -841,6 +968,16 @@ function paymentStatusText(status) {
   })[status] || status;
 }
 
+function paymentStatusClass(status) {
+  return ({
+    pending_payment: "status-warn",
+    receipt_uploaded: "status-info",
+    paid: "status-success",
+    rejected: "status-danger",
+    refunded: "status-neutral"
+  })[status] || "status-neutral";
+}
+
 function fulfillmentStatusText(status) {
   return ({
     pending: "Despacho pendiente",
@@ -848,6 +985,23 @@ function fulfillmentStatusText(status) {
     shipped: "Despachado",
     delivered: "Entregado"
   })[status] || status || "";
+}
+
+function fulfillmentStatusClass(status) {
+  return ({
+    pending: "status-neutral",
+    ready: "status-warn",
+    shipped: "status-info",
+    delivered: "status-success"
+  })[status] || "status-neutral";
+}
+
+function receiptStatusText(status) {
+  return ({
+    received: "recibido",
+    accepted: "aceptado",
+    rejected: "rechazado"
+  })[status] || status;
 }
 
 function orderSummary(order) {

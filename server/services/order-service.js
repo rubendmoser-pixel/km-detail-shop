@@ -208,7 +208,7 @@ export function listCustomerOrders(db, customerId) {
     FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
     WHERE o.customer_id = ?
     ORDER BY o.created_at DESC
-    LIMIT 25
+    LIMIT 100
   `).all(customerId).map((order) => {
     const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(order.id);
     const receipts = db.prepare("SELECT * FROM payment_receipts WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(order.id);

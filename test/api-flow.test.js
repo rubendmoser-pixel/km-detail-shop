@@ -341,6 +341,13 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(deliveryNotePayload.order.items[1].quantity, 3);
   assert.equal(deliveryNotePayload.order.subtotalNetCents, 186_480);
   assert.equal(deliveryNotePayload.order.totalCents, 225_641);
+  const acceptanceResponse = await fetch(`${baseUrl}/api/orders/${orderPayload.order.id}/accept`, {
+    method: "POST",
+    headers: jsonHeaders(customerCookie)
+  });
+  assert.equal(acceptanceResponse.status, 200);
+  const acceptedOrder = (await acceptanceResponse.json()).order;
+  assert.equal(acceptedOrder.modifiedAcceptanceRequired, false);
   const customerOrders = await getJson(`${baseUrl}/api/orders`, customerCookie);
   assert.equal(customerOrders.orders[0].id, orderPayload.order.id);
   assert.equal(customerOrders.orders[0].paymentMethod, "bank_transfer");

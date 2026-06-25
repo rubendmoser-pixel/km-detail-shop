@@ -23,7 +23,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=36" />
+    <link rel="stylesheet" href="./styles.css?v=37" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -90,6 +90,7 @@
         <a href="#catalogo">Productos</a>
         <a href="#catalogo-pdf">Catalogo 2026</a>
         <a href="#distribuidores">Distribuidores</a>
+        <a href="#mis-compras" id="navPurchases" hidden>Mis compras</a>
         <a href="#contacto">Contacto</a>
       </nav>
       <div class="header-actions">
@@ -379,7 +380,9 @@
           <p class="form-message" id="shippingAddressMessage" role="status"></p>
         </form>
         <div class="order-result" id="orderResult" hidden></div>
-        <div class="customer-orders" id="customerOrders" hidden></div>
+      </section>
+
+      <section class="section purchases-section customer-orders" id="customerOrders" hidden>
       </section>
 
       <section class="section contact-section commercial-section" id="contacto">
@@ -508,6 +511,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=37" defer></script>
+    <script src="./app.js?v=38" defer></script>
   </body>
 </html>
