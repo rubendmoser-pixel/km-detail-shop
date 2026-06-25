@@ -677,12 +677,14 @@ function renderOrderDetail() {
     : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
   adminEls.orderDetailActions.insertAdjacentHTML("beforeend", `
     <button class="ghost-button" type="button" id="openPickingList">Imprimir preparacion</button>
+    <button class="ghost-button" type="button" id="openDeliveryNote">Detalle para caja</button>
     <form class="shipping-label-form">
       <label><span>Bultos</span><input name="packages" type="number" min="1" max="99" step="1" value="1" /></label>
       <button class="ghost-button" type="submit">Generar etiquetas A4</button>
     </form>
   `);
   adminEls.orderDetailActions.querySelector("#openPickingList").addEventListener("click", openPickingList);
+  adminEls.orderDetailActions.querySelector("#openDeliveryNote").addEventListener("click", openDeliveryNote);
   adminEls.orderDetailActions.querySelector(".shipping-label-form").addEventListener("submit", openShippingLabels);
   adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
     <tr data-order-item-id="${item.id}" data-unit-cents="${item.finalUnitPriceCents}">
@@ -717,6 +719,11 @@ function openShippingLabels(event) {
 function openPickingList() {
   if (!adminState.selectedOrder) return;
   window.open(`./picking.html?order=${adminState.selectedOrder.id}`, "_blank", "noopener,noreferrer");
+}
+
+function openDeliveryNote() {
+  if (!adminState.selectedOrder) return;
+  window.open(`./delivery-note.html?order=${adminState.selectedOrder.id}`, "_blank", "noopener,noreferrer");
 }
 
 function renderFulfillment(order) {

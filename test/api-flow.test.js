@@ -302,6 +302,12 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const availabilitySalesEmail = db.prepare("SELECT recipient, subject FROM email_outbox WHERE event_type = 'order_availability_sales_rep'").get();
   assert.equal(availabilitySalesEmail.recipient, "vendedor-api@km-detail.com");
   assert.match(availabilityEmail.text_body, /Total a pagar/);
+  const deliveryNotePayload = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/delivery-note`, adminCookie);
+  assert.equal(deliveryNotePayload.order.items.length, 2);
+  assert.equal(deliveryNotePayload.order.items[0].quantity, 1);
+  assert.equal(deliveryNotePayload.order.items[1].quantity, 3);
+  assert.equal(deliveryNotePayload.order.subtotalNetCents, 186_480);
+  assert.equal(deliveryNotePayload.order.totalCents, 225_641);
   const customerOrders = await getJson(`${baseUrl}/api/orders`, customerCookie);
   assert.equal(customerOrders.orders[0].id, orderPayload.order.id);
   assert.equal(customerOrders.orders[0].paymentMethod, "bank_transfer");

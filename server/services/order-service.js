@@ -158,6 +158,47 @@ export function createPickingList(db, orderId) {
   };
 }
 
+export function createDeliveryNote(db, orderId) {
+  const order = getOrder(db, orderId, null, true);
+  const items = order.items
+    .map((item) => {
+      const quantity = item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity;
+      const subtotalNetCents = item.confirmedQuantity > 0 ? item.confirmedSubtotalNetCents : item.subtotalNetCents;
+      return {
+        kmCode: item.kmCode,
+        ean13: item.ean13,
+        productName: item.productName,
+        quantity,
+        unitPriceCents: item.finalUnitPriceCents,
+        subtotalNetCents,
+        availabilityNote: item.availabilityNote || ""
+      };
+    })
+    .filter((item) => item.quantity > 0);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      businessName: order.businessName,
+      contactPerson: order.contactPerson,
+      customerWhatsapp: order.customerWhatsapp,
+      email: order.email,
+      shipping: order.shipping,
+      fulfillment: order.fulfillment,
+      currency: order.currency,
+      subtotalNetCents: order.subtotalNetCents,
+      vatBps: order.vatBps,
+      vatCents: order.vatCents,
+      totalCents: order.totalCents,
+      items
+    }
+  };
+}
+
 export function listCustomerOrders(db, customerId) {
   return db.prepare(`
     SELECT o.*, c.business_name, c.contact_person, c.whatsapp, u.email

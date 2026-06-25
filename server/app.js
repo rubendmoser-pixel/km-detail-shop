@@ -5,6 +5,7 @@ import {
   acceptModifiedOrder,
   addPaymentReceipt,
   confirmOrderAvailability,
+  createDeliveryNote,
   createOrder,
   createPickingList,
   createShippingLabels,
@@ -261,6 +262,10 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/picking-list$/);
       if (request.method === "GET" && match) {
         return sendJson(response, 200, createPickingList(db, Number(match[1])));
+      }
+      match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/delivery-note$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, createDeliveryNote(db, Number(match[1])));
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)$/);
       if (request.method === "GET" && match) {
