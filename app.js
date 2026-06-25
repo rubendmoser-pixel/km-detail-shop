@@ -122,7 +122,10 @@ function bindEvents() {
   els.goToOrder.addEventListener("click", closeCart);
   document.querySelector("#copyOrder").addEventListener("click", copyOrderSummary);
   els.orderForm.addEventListener("submit", submitOrder);
-  els.navPurchases?.addEventListener("click", openPurchases);
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest?.("a[href='#mis-compras']");
+    if (link) openPurchases(event);
+  });
   els.mobileMenuToggle?.addEventListener("click", toggleMobileMenu);
   els.topNav?.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => setMobileMenu(false));
@@ -879,12 +882,25 @@ function paymentHelperText(order) {
 async function openPurchases(event) {
   event?.preventDefault?.();
   if (!isApprovedCustomer()) return openAccount(false);
-  await loadCustomerOrders();
-  renderCustomerOrders();
-  els.customerOrders.hidden = false;
+  try {
+    await loadCustomerOrders();
+    renderCustomerOrders();
+  } catch (error) {
+    els.customerOrders.hidden = false;
+    els.customerOrders.innerHTML = `
+      <div class="purchases-header">
+        <div class="section-title compact">
+          <p class="eyebrow">Cuenta comercial</p>
+          <h2>Mis compras</h2>
+          <p>No pudimos cargar el historial en este momento. Volve a intentar en unos segundos.</p>
+        </div>
+      </div>
+    `;
+    showToast(error.message || "No se pudo abrir Mis compras.");
+  }
   setMobileMenu(false);
   history.replaceState(null, "", "#mis-compras");
-  els.customerOrders.scrollIntoView({ behavior: "smooth", block: "start" });
+  requestAnimationFrame(() => els.customerOrders.scrollIntoView({ behavior: "smooth", block: "start" }));
 }
 
 function toggleMobileMenu() {
