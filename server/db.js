@@ -284,7 +284,6 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
-    CREATE INDEX IF NOT EXISTS idx_customers_sales_rep ON customers(sales_rep_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON email_outbox(status, created_at);
@@ -313,6 +312,7 @@ function migrate(db) {
   ensureColumn(db, "customers", "postal_code", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "customers", "sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
   ensureColumn(db, "customers", "sales_commission_bps", "INTEGER");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_customers_sales_rep ON customers(sales_rep_id);");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);
 }
 
