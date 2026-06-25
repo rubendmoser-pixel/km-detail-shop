@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=17" />
+    <link rel="stylesheet" href="./admin.css?v=18" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -221,6 +221,10 @@
             <div class="payment-review-panel" id="paymentReviewPanel"></div>
             <form class="fulfillment-form" id="fulfillmentForm">
               <div class="panel-heading"><p class="eyebrow">Envio / despacho</p><h3>Datos de despacho</h3></div>
+              <div class="fulfillment-quick-actions">
+                <button class="ghost-button" type="button" data-fulfillment-preset="ready">Marcar listo para despacho</button>
+                <button class="ghost-button" type="button" data-fulfillment-preset="shipped">Marcar despachado</button>
+              </div>
               <label><span>Estado</span><select name="fulfillmentStatus">
                 <option value="pending">Pendiente</option>
                 <option value="ready">Listo para despacho</option>
@@ -322,6 +326,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=21" defer></script>
+    <script src="./admin.js?v=22" defer></script>
   </body>
 </html>

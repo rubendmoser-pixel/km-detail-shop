@@ -639,6 +639,16 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.fulfillment-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  grid-column: 1 / -1;
+  padding: 12px;
+  background: #17181b;
+  border: 1px solid #34363b;
+}
+
 .availability-form .orders-table-wrap {
   margin: -14px -14px 0;
   border-width: 0 0 1px;

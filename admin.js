@@ -703,6 +703,7 @@ function renderOrderDetail() {
   renderPaymentReceipts(order);
   renderFulfillment(order);
   renderOrderWorkflow(order);
+  adminEls.fulfillmentForm.querySelectorAll("[data-fulfillment-preset]").forEach((button) => button.addEventListener("click", setFulfillmentPreset));
   adminEls.orderStatusForm.elements.status.value = order.status;
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
@@ -746,7 +747,7 @@ function renderOrderWorkflow(order) {
   const canConfirmAvailability = order.status === "order_created";
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
   const hasReceipts = (order.paymentReceipts || []).length > 0;
-  const canReviewPayment = hasReceipts || availabilityConfirmed || ["receipt_uploaded", "paid", "rejected"].includes(order.paymentStatus);
+  const canReviewPayment = hasReceipts || ["receipt_uploaded", "rejected"].includes(order.paymentStatus);
   const canManageFulfillment = order.paymentStatus === "paid" && availabilityConfirmed && !isCancelled;
 
   adminEls.availabilityForm.hidden = !canConfirmAvailability;
@@ -783,6 +784,17 @@ function renderOrderWorkflow(order) {
     return;
   }
   renderNextStep("Pedido en seguimiento", "No hay una accion automatica sugerida para esta combinacion de estados. Usa ajustes avanzados solo si necesitas corregir el flujo.", "neutral");
+}
+
+function setFulfillmentPreset(event) {
+  const preset = event.currentTarget.dataset.fulfillmentPreset;
+  adminEls.fulfillmentForm.elements.fulfillmentStatus.value = preset;
+  if (preset === "ready" && !adminEls.fulfillmentForm.elements.fulfillmentNotes.value.trim()) {
+    adminEls.fulfillmentForm.elements.fulfillmentNotes.value = "Pedido listo para despacho.";
+  }
+  if (preset === "shipped" && !adminEls.fulfillmentForm.elements.fulfillmentNotes.value.trim()) {
+    adminEls.fulfillmentForm.elements.fulfillmentNotes.value = "Pedido despachado.";
+  }
 }
 
 function renderNextStep(title, body, tone = "neutral") {
