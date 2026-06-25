@@ -203,6 +203,64 @@
 .status-badge.rejected,
 .status-badge.suspended { color: #ee9797; border-color: #794242; }
 
+.state-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 9px;
+  border: 1px solid #55585e;
+  border-radius: 999px;
+  color: #d6d7d9;
+  background: #202226;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.state-badge.neutral {
+  color: #d6d7d9;
+  background: rgba(143, 146, 152, 0.14);
+  border-color: #55585e;
+}
+
+.state-badge.warning {
+  color: #ffe8a3;
+  background: rgba(186, 139, 28, 0.18);
+  border-color: #8b6a24;
+}
+
+.state-badge.info {
+  color: #a8dcff;
+  background: rgba(64, 151, 213, 0.16);
+  border-color: #3c769d;
+}
+
+.state-badge.progress {
+  color: #bdd0ff;
+  background: rgba(104, 128, 219, 0.18);
+  border-color: #586bad;
+}
+
+.state-badge.success {
+  color: #bcecb5;
+  background: rgba(83, 150, 76, 0.18);
+  border-color: #477746;
+}
+
+.state-badge.done {
+  color: #d5d8dc;
+  background: rgba(207, 213, 219, 0.16);
+  border-color: #7e858d;
+}
+
+.state-badge.danger {
+  color: #ffb3b3;
+  background: rgba(185, 65, 65, 0.17);
+  border-color: #8e4343;
+}
+
 .customer-data {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -339,6 +397,11 @@
   font-size: 0.78rem;
 }
 
+.admin-table td .state-badge {
+  color: inherit;
+  font-size: 0.68rem;
+}
+
 .row-button {
   min-height: 34px;
   padding: 6px 10px;
@@ -402,6 +465,19 @@
   margin-top: 5px;
   overflow-wrap: anywhere;
   font-size: 0.9rem;
+}
+
+.order-detail-grid .state-summary-card {
+  background: #14161a;
+}
+
+.order-detail-grid .state-summary-card strong {
+  margin-top: 8px;
+}
+
+.order-detail-grid .state-summary-card .state-badge {
+  display: inline-flex;
+  font-size: 0.76rem;
 }
 
 .order-detail-actions {

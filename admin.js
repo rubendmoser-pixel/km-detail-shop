@@ -32,6 +32,29 @@ const fulfillmentStatusLabels = {
   delivered: "Entregado"
 };
 
+const orderStateClasses = {
+  order_created: "neutral",
+  availability_confirmed: "info",
+  confirmed: "success",
+  in_preparation: "progress",
+  ready: "success",
+  delivered: "done",
+  cancelled: "danger"
+};
+const paymentStateClasses = {
+  pending_payment: "warning",
+  receipt_uploaded: "progress",
+  paid: "success",
+  rejected: "danger",
+  refunded: "neutral"
+};
+const fulfillmentStateClasses = {
+  pending: "neutral",
+  ready: "success",
+  shipped: "progress",
+  delivered: "done"
+};
+
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
@@ -603,8 +626,9 @@ async function loadOrders() {
   adminState.orders = orders;
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
     <tr><td><strong>${escapeAdmin(order.order_number)}</strong></td><td>${escapeAdmin(order.business_name)}</td>
-      <td>${escapeAdmin(orderStatusText(order.status))}</td><td>${escapeAdmin(paymentStatusText(order.payment_status))}</td>
-      <td>${escapeAdmin(fulfillmentStatusText(order.fulfillment_status || "pending"))}</td>
+      <td>${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}</td>
+      <td>${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
+      <td>${stateBadge(fulfillmentStatusText(order.fulfillment_status || "pending"), fulfillmentStateClasses[order.fulfillment_status || "pending"])}</td>
       <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
       <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
   `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
@@ -632,19 +656,21 @@ function renderOrderDetail() {
   adminEls.orderDetailPanel.hidden = false;
   adminEls.orderDetailTitle.textContent = `${order.orderNumber} - ${order.businessName}`;
   adminEls.orderDetailSummary.innerHTML = [
-    ["Cliente", `${order.businessName} (${order.email})`],
-    ["Contacto", `${order.contactPerson || "-"} | WhatsApp ${order.customerWhatsapp || "-"}`],
-    ["Estado", `${orderStatusText(order.status)} / ${paymentStatusText(order.paymentStatus)}`],
-    ["Descuentos", discountText(order.discountsBps)],
-    ["Subtotal neto", adminMoney.format(order.subtotalNetCents / 100)],
-    ["IVA", `${(order.vatBps / 100).toFixed(2)}% - ${adminMoney.format(order.vatCents / 100)}`],
-    ["Total", adminMoney.format(order.totalCents / 100)],
-    ["Vendedor", order.salesRep?.name ? `${order.salesRep.name} (${order.salesRep.email})` : "Sin vendedor"],
-    ["Comision", order.salesRep?.email ? `${formatBps(order.salesRep.commissionBps)} - ${adminMoney.format((order.salesRep.commissionCents || 0) / 100)}` : "Sin comision"],
-    ["Precio reservado", formatDate(order.priceReservedAt)],
-    ["Entrega solicitada", shippingText(order.shipping)],
-    ["Despacho", fulfillmentText(order.fulfillment)]
-  ].map(([label, value]) => `<div><span>${label}</span><strong>${escapeAdmin(value)}</strong></div>`).join("");
+    { label: "Comercial", value: stateBadge(orderStatusText(order.status), orderStateClasses[order.status]), html: true },
+    { label: "Pago", value: stateBadge(paymentStatusText(order.paymentStatus), paymentStateClasses[order.paymentStatus]), html: true },
+    { label: "Logistica", value: stateBadge(fulfillmentStatusText(order.fulfillment?.status || "pending"), fulfillmentStateClasses[order.fulfillment?.status || "pending"]), html: true },
+    { label: "Total", value: adminMoney.format(order.totalCents / 100) },
+    { label: "Cliente", value: `${order.businessName} (${order.email})` },
+    { label: "Contacto", value: `${order.contactPerson || "-"} | WhatsApp ${order.customerWhatsapp || "-"}` },
+    { label: "Descuentos", value: discountText(order.discountsBps) },
+    { label: "Subtotal neto", value: adminMoney.format(order.subtotalNetCents / 100) },
+    { label: "IVA", value: `${(order.vatBps / 100).toFixed(2)}% - ${adminMoney.format(order.vatCents / 100)}` },
+    { label: "Vendedor", value: order.salesRep?.name ? `${order.salesRep.name} (${order.salesRep.email})` : "Sin vendedor" },
+    { label: "Comision", value: order.salesRep?.email ? `${formatBps(order.salesRep.commissionBps)} - ${adminMoney.format((order.salesRep.commissionCents || 0) / 100)}` : "Sin comision" },
+    { label: "Precio reservado", value: formatDate(order.priceReservedAt) },
+    { label: "Entrega solicitada", value: shippingText(order.shipping) },
+    { label: "Despacho", value: fulfillmentText(order.fulfillment) }
+  ].map((item) => `<div class="${item.html ? "state-summary-card" : ""}"><span>${item.label}</span><strong>${item.html ? item.value : escapeAdmin(item.value)}</strong></div>`).join("");
   const customerWhatsapp = cleanPhone(order.customerWhatsapp);
   adminEls.orderDetailActions.innerHTML = customerWhatsapp
     ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
@@ -1041,6 +1067,10 @@ function paymentStatusText(status) {
 
 function fulfillmentStatusText(status) {
   return fulfillmentStatusLabels[status] || status || "";
+}
+
+function stateBadge(label, className = "neutral") {
+  return `<span class="state-badge ${escapeAdmin(className)}">${escapeAdmin(label)}</span>`;
 }
 
 function normalizeDateInput(value) {
