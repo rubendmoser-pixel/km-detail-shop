@@ -1165,6 +1165,12 @@ function formatPercent(bps) {
   return `${Number(bps) / 100}%`;
 }
 
+function formatDate(value) {
+  if (!value) return "";
+  const normalized = /z$/i.test(String(value)) ? String(value) : `${value}Z`;
+  return new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(normalized));
+}
+
 function tagClass(product) {
   const text = `${product.family.name} ${product.material}`.toLowerCase();
   if (text.includes("poliespuma")) return "poliespuma";
