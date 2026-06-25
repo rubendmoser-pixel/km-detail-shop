@@ -30,6 +30,7 @@ import {
 } from "./services/product-service.js";
 import { getCommercialSettings, getPublicSettings, updateCommercialSettings } from "./services/settings-service.js";
 import { assignSalesRepToCustomer, listSalesReps, upsertSalesRep } from "./services/sales-rep-service.js";
+import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
 import { createRateLimiter } from "./rate-limit.js";
@@ -140,6 +141,28 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       if (request.method === "GET" && url.pathname === "/api/orders") {
         const user = requireApprovedCustomer(currentUser);
         return sendJson(response, 200, { orders: listCustomerOrders(db, user.customerId) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/shipping-addresses") {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 200, { addresses: listShippingAddresses(db, user.customerId) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/shipping-addresses") {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 201, { address: upsertShippingAddress(db, user.customerId, await readJson(request)) });
+      }
+      let addressMatch = url.pathname.match(/^\/api\/shipping-addresses\/(\d+)$/);
+      if (request.method === "PUT" && addressMatch) {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 200, { address: upsertShippingAddress(db, user.customerId, { ...(await readJson(request)), id: Number(addressMatch[1]) }) });
+      }
+      if (request.method === "DELETE" && addressMatch) {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 200, deleteShippingAddress(db, user.customerId, Number(addressMatch[1])));
+      }
+      addressMatch = url.pathname.match(/^\/api\/shipping-addresses\/(\d+)\/default$/);
+      if (request.method === "POST" && addressMatch) {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 200, { address: setDefaultShippingAddress(db, user.customerId, Number(addressMatch[1])) });
       }
 
       let match = url.pathname.match(/^\/api\/orders\/(\d+)$/);

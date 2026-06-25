@@ -7,6 +7,7 @@ import { transaction } from "../db.js";
 import { getCustomerPricingContext } from "./customer-service.js";
 import { resolveCustomerSalesRep } from "./sales-rep-service.js";
 import { getCommercialSettings } from "./settings-service.js";
+import { getShippingAddress } from "./shipping-address-service.js";
 
 const RECEIPT_MIME_EXTENSIONS = new Map([
   ["application/pdf", ".pdf"],
@@ -24,7 +25,9 @@ export function createOrder(db, customerId, input) {
   const discounts = [customer.discount_1_bps, customer.discount_2_bps, customer.discount_3_bps];
   const salesRep = resolveCustomerSalesRep(db, customerId);
   const settings = getCommercialSettings(db);
-  const shipping = validateShipping(input.shipping || {});
+  const shipping = input.shippingAddressId
+    ? shippingFromAddress(getShippingAddress(db, customerId, positiveInteger(Number(input.shippingAddressId), "shippingAddressId")))
+    : validateShipping(input.shipping || {});
 
   return transaction(db, () => {
     const productQuery = db.prepare("SELECT * FROM products WHERE id = ? AND active = 1");
@@ -394,6 +397,19 @@ function validateShipping(input) {
     preferredTransport: optionalText(input.preferredTransport, "shipping.preferredTransport"),
     contactPhone: requiredText(input.contactPhone, "shipping.contactPhone", { max: 50 }),
     notes: optionalText(input.notes, "shipping.notes")
+  };
+}
+
+function shippingFromAddress(address) {
+  return {
+    recipient: address.recipient,
+    address: address.address,
+    city: address.city,
+    province: address.province,
+    postalCode: address.postalCode,
+    preferredTransport: address.preferredTransport,
+    contactPhone: address.contactPhone,
+    notes: address.notes
   };
 }
 

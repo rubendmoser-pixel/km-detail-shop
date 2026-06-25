@@ -1080,6 +1080,88 @@ body.modal-open {
   grid-column: 1 / -1;
 }
 
+.shipping-address-panel,
+.shipping-address-form {
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  padding: 18px;
+  background: #111214;
+  border: 1px solid #34363b;
+  border-radius: 8px;
+}
+
+.shipping-address-list {
+  display: grid;
+  gap: 10px;
+}
+
+.shipping-address-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  background: #17181b;
+  border: 1px solid #34363b;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.shipping-address-card.selected {
+  border-color: #d6d9dd;
+  box-shadow: inset 4px 0 0 #d6d9dd;
+}
+
+.shipping-address-card input {
+  margin-top: 3px;
+}
+
+.shipping-address-card strong,
+.shipping-address-card small {
+  display: block;
+}
+
+.shipping-address-card strong {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.shipping-address-card em {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 3px 7px;
+  color: #09090a;
+  background: #f2f3f2;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.shipping-address-card small {
+  margin-top: 5px;
+  color: #c4c7cc;
+  line-height: 1.35;
+}
+
+.shipping-address-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.shipping-address-form {
+  margin-top: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shipping-address-form .full,
+.shipping-address-form .form-actions,
+.shipping-address-form .form-message {
+  grid-column: 1 / -1;
+}
+
 .order-access {
   display: flex;
   align-items: center;
@@ -1298,14 +1380,19 @@ body.modal-open {
 }
 
 .order-form input,
-.order-form textarea {
+.order-form textarea,
+.shipping-address-form input,
+.shipping-address-form select,
+.shipping-address-form textarea {
   border-color: rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 
 .order-form input::placeholder,
-.order-form textarea::placeholder {
+.order-form textarea::placeholder,
+.shipping-address-form input::placeholder,
+.shipping-address-form textarea::placeholder {
   color: rgba(255, 255, 255, 0.52);
 }
 
@@ -1910,7 +1997,8 @@ body.modal-open {
     position: static;
   }
 
-  .order-form {
+  .order-form,
+  .shipping-address-form {
     grid-template-columns: 1fr;
   }
 

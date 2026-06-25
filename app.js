@@ -40,6 +40,8 @@ const state = {
   products: [],
   user: null,
   orders: [],
+  shippingAddresses: [],
+  selectedShippingAddressId: null,
   settings: { vatBps: 2100, whatsappNumber: "" },
   category: "Todos",
   search: "",
@@ -55,6 +57,7 @@ const els = Object.fromEntries([
   "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
   "cartEmpty", "cartSummaryText", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
+  "shippingAddressList", "shippingAddressForm", "shippingAddressFormTitle", "shippingAddressMessage",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
   "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus",
   "imageLightbox", "imageLightboxImage", "imageLightboxCaption", "closeImageLightbox", "closeImageLightboxBackdrop",
@@ -66,7 +69,7 @@ async function init() {
   bindEvents();
   await Promise.all([loadSession(), loadSettings()]);
   await loadProducts();
-  if (isApprovedCustomer()) await loadCustomerOrders();
+  if (isApprovedCustomer()) await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
   renderAll();
 
   if ("serviceWorker" in navigator) {
@@ -116,6 +119,12 @@ function bindEvents() {
   els.goToOrder.addEventListener("click", closeCart);
   document.querySelector("#copyOrder").addEventListener("click", copyOrderSummary);
   els.orderForm.addEventListener("submit", submitOrder);
+  document.querySelector("#newShippingAddress").addEventListener("click", () => openShippingAddressForm());
+  document.querySelector("#editShippingAddress").addEventListener("click", editSelectedShippingAddress);
+  document.querySelector("#defaultShippingAddress").addEventListener("click", setSelectedShippingDefault);
+  document.querySelector("#deleteShippingAddress").addEventListener("click", deleteSelectedShippingAddress);
+  document.querySelector("#cancelShippingAddress").addEventListener("click", closeShippingAddressForm);
+  els.shippingAddressForm.addEventListener("submit", saveShippingAddress);
   els.catalogPrev.addEventListener("click", () => setCatalogPage(state.catalogPage - 1));
   els.catalogNext.addEventListener("click", () => setCatalogPage(state.catalogPage + 1));
 
@@ -167,6 +176,7 @@ async function loadProducts() {
 
 function renderAll() {
   renderAccountState();
+  renderShippingAddresses();
   renderCategoryFilters();
   renderSelectOptions();
   renderCatalogBook();
@@ -459,7 +469,7 @@ async function submitLogin(event) {
   try {
     state.user = (await api("/api/auth/login", { method: "POST", body: values })).user;
     await loadProducts();
-    await loadCustomerOrders();
+    await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
     els.accountDialog.close();
     renderAll();
     showToast(`Bienvenido, ${state.user.businessName || state.user.email}.`);
@@ -481,7 +491,7 @@ async function submitRegistration(event) {
     await api("/api/auth/register", { method: "POST", body: values });
     state.user = (await api("/api/auth/login", { method: "POST", body: { email: values.email, password: values.password } })).user;
     await loadProducts();
-    await loadCustomerOrders();
+    await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
     els.registerForm.reset();
     els.accountDialog.close();
     renderAll();
@@ -497,6 +507,8 @@ async function logout() {
   await api("/api/auth/logout", { method: "POST" });
   state.user = null;
   state.orders = [];
+  state.shippingAddresses = [];
+  state.selectedShippingAddressId = null;
   clearCart();
   await loadProducts();
   els.accountDialog.close();
@@ -508,12 +520,15 @@ async function submitOrder(event) {
   event.preventDefault();
   const lines = cartLines();
   if (!lines.length) return showToast("Agrega productos antes de confirmar el pedido.");
-  const shipping = Object.fromEntries(new FormData(els.orderForm));
+  if (!state.selectedShippingAddressId) return showToast("Selecciona o carga un lugar de recepcion.");
   setFormBusy(els.orderForm, true);
   try {
     const result = await api("/api/orders", {
       method: "POST",
-      body: { items: lines.map(({ product, quantity }) => ({ productId: product.id, quantity })), shipping }
+      body: {
+        items: lines.map(({ product, quantity }) => ({ productId: product.id, quantity })),
+        shippingAddressId: state.selectedShippingAddressId
+      }
     });
     state.cart = {};
     saveCart();
@@ -539,6 +554,139 @@ async function loadCustomerOrders() {
   } catch {
     state.orders = [];
   }
+}
+
+async function loadShippingAddresses() {
+  if (!isApprovedCustomer()) {
+    state.shippingAddresses = [];
+    state.selectedShippingAddressId = null;
+    return;
+  }
+  try {
+    state.shippingAddresses = (await api("/api/shipping-addresses")).addresses;
+    const preferred = state.shippingAddresses.find((address) => address.isDefault) || state.shippingAddresses[0];
+    if (!state.shippingAddresses.some((address) => address.id === state.selectedShippingAddressId)) {
+      state.selectedShippingAddressId = preferred?.id || null;
+    }
+  } catch (error) {
+    state.shippingAddresses = [];
+    state.selectedShippingAddressId = null;
+    showToast(error.message);
+  }
+}
+
+function renderShippingAddresses() {
+  if (!els.shippingAddressList) return;
+  if (!isApprovedCustomer()) {
+    els.shippingAddressList.innerHTML = "";
+    els.shippingAddressForm.hidden = true;
+    return;
+  }
+  els.shippingAddressList.innerHTML = state.shippingAddresses.length ? state.shippingAddresses.map((address) => `
+    <label class="shipping-address-card ${address.id === state.selectedShippingAddressId ? "selected" : ""}">
+      <input type="radio" name="shippingAddressId" value="${address.id}" ${address.id === state.selectedShippingAddressId ? "checked" : ""} />
+      <span>
+        <strong>${escapeHtml(address.label)}${address.isDefault ? ` <em>Preferida</em>` : ""}</strong>
+        <small>${escapeHtml(address.recipient)} | ${escapeHtml(address.address)} | ${escapeHtml(address.city)}, ${escapeHtml(address.province)} | CP ${escapeHtml(address.postalCode)}</small>
+        <small>Tel: ${escapeHtml(address.contactPhone)}${address.preferredTransport ? ` | Transporte: ${escapeHtml(address.preferredTransport)}` : ""}</small>
+      </span>
+    </label>
+  `).join("") : `<p class="muted">Todavia no hay lugares de recepcion cargados.</p>`;
+  els.shippingAddressList.querySelectorAll("[name='shippingAddressId']").forEach((input) => {
+    input.addEventListener("change", () => {
+      state.selectedShippingAddressId = Number(input.value);
+      renderShippingAddresses();
+    });
+  });
+}
+
+function openShippingAddressForm(address = null) {
+  els.shippingAddressForm.hidden = false;
+  els.shippingAddressForm.reset();
+  els.shippingAddressMessage.textContent = "";
+  els.shippingAddressFormTitle.textContent = address ? "Editar lugar de recepcion" : "Nuevo lugar de recepcion";
+  const fields = els.shippingAddressForm.elements;
+  fields.id.value = address?.id || "";
+  fields.label.value = address?.label || "";
+  fields.recipient.value = address?.recipient || state.user?.businessName || "";
+  fields.contactPhone.value = address?.contactPhone || "";
+  fields.address.value = address?.address || "";
+  fields.city.value = address?.city || "";
+  fields.province.value = address?.province || "";
+  fields.postalCode.value = address?.postalCode || "";
+  fields.preferredTransport.value = address?.preferredTransport || "";
+  fields.notes.value = address?.notes || "";
+  fields.isDefault.checked = Boolean(address?.isDefault || !state.shippingAddresses.length);
+  els.shippingAddressForm.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function editSelectedShippingAddress() {
+  const address = selectedShippingAddress();
+  if (!address) return showToast("Selecciona un lugar de recepcion.");
+  openShippingAddressForm(address);
+}
+
+function closeShippingAddressForm() {
+  els.shippingAddressForm.hidden = true;
+  els.shippingAddressMessage.textContent = "";
+}
+
+async function saveShippingAddress(event) {
+  event.preventDefault();
+  const formData = new FormData(els.shippingAddressForm);
+  const values = Object.fromEntries(formData);
+  values.isDefault = formData.has("isDefault");
+  const id = Number(values.id || 0);
+  delete values.id;
+  setFormBusy(els.shippingAddressForm, true);
+  try {
+    const result = await api(id ? `/api/shipping-addresses/${id}` : "/api/shipping-addresses", {
+      method: id ? "PUT" : "POST",
+      body: values
+    });
+    state.selectedShippingAddressId = result.address.id;
+    await loadShippingAddresses();
+    renderShippingAddresses();
+    closeShippingAddressForm();
+    showToast("Lugar de recepcion guardado.");
+  } catch (error) {
+    els.shippingAddressMessage.textContent = error.message;
+  } finally {
+    setFormBusy(els.shippingAddressForm, false);
+  }
+}
+
+async function setSelectedShippingDefault() {
+  const address = selectedShippingAddress();
+  if (!address) return showToast("Selecciona un lugar de recepcion.");
+  try {
+    await api(`/api/shipping-addresses/${address.id}/default`, { method: "POST" });
+    await loadShippingAddresses();
+    state.selectedShippingAddressId = address.id;
+    renderShippingAddresses();
+    showToast("Direccion preferida actualizada.");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function deleteSelectedShippingAddress() {
+  const address = selectedShippingAddress();
+  if (!address) return showToast("Selecciona un lugar de recepcion.");
+  if (state.shippingAddresses.length <= 1) return showToast("Debe quedar al menos un lugar de recepcion.");
+  if (!confirm(`Eliminar ${address.label}?`)) return;
+  try {
+    await api(`/api/shipping-addresses/${address.id}`, { method: "DELETE" });
+    await loadShippingAddresses();
+    renderShippingAddresses();
+    showToast("Lugar eliminado.");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+function selectedShippingAddress() {
+  return state.shippingAddresses.find((address) => address.id === state.selectedShippingAddressId) || null;
 }
 
 function renderOrderResult(order) {

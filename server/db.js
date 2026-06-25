@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -70,6 +70,26 @@ function migrate(db) {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_by INTEGER REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS customer_shipping_addresses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      recipient TEXT NOT NULL,
+      address TEXT NOT NULL,
+      city TEXT NOT NULL,
+      province TEXT NOT NULL,
+      postal_code TEXT NOT NULL,
+      contact_phone TEXT NOT NULL,
+      preferred_transport TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      is_default INTEGER NOT NULL DEFAULT 0 CHECK (is_default IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_customer_shipping_addresses_customer
+      ON customer_shipping_addresses(customer_id, is_default, updated_at);
 
     CREATE TABLE IF NOT EXISTS sales_reps (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

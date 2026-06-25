@@ -215,20 +215,53 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(products.products[0].primaryImageUrl, images[0].url);
   assert.equal(products.products[0].images.length, 1);
   assert.equal(products.products[0].images[0].url, images[0].url);
+  const initialAddresses = await getJson(`${baseUrl}/api/shipping-addresses`, customerCookie);
+  assert.equal(initialAddresses.addresses.length, 1);
+  assert.equal(initialAddresses.addresses[0].label, "Principal");
+  assert.equal(initialAddresses.addresses[0].isDefault, true);
+  assert.equal(initialAddresses.addresses[0].city, "Cordoba");
+  const newAddressResponse = await fetch(`${baseUrl}/api/shipping-addresses`, {
+    method: "POST",
+    headers: jsonHeaders(customerCookie),
+    body: JSON.stringify({
+      label: "Deposito Cordoba",
+      recipient: "Cliente API",
+      address: "Ruta 9 123",
+      city: "Cordoba",
+      province: "Cordoba",
+      postalCode: "5000",
+      contactPhone: "3510000000",
+      preferredTransport: "Expreso API",
+      notes: "Primer pedido API",
+      isDefault: true
+    })
+  });
+  assert.equal(newAddressResponse.status, 201);
+  const createdAddress = (await newAddressResponse.json()).address;
+  assert.equal(createdAddress.isDefault, true);
+  const updatedAddressResponse = await fetch(`${baseUrl}/api/shipping-addresses/${createdAddress.id}`, {
+    method: "PUT",
+    headers: jsonHeaders(customerCookie),
+    body: JSON.stringify({
+      ...createdAddress,
+      label: "Deposito principal Cordoba",
+      notes: "Ingreso por porton principal",
+      isDefault: true
+    })
+  });
+  assert.equal(updatedAddressResponse.status, 200);
+  const updatedAddress = (await updatedAddressResponse.json()).address;
+  assert.equal(updatedAddress.label, "Deposito principal Cordoba");
+  const addressesAfterUpdate = await getJson(`${baseUrl}/api/shipping-addresses`, customerCookie);
+  assert.equal(addressesAfterUpdate.addresses.length, 2);
+  assert.equal(addressesAfterUpdate.addresses.filter((address) => address.isDefault).length, 1);
 
   const orderResponse = await fetch(`${baseUrl}/api/orders`, {
     method: "POST",
     headers: jsonHeaders(customerCookie),
     body: JSON.stringify({
       items: [{ productId: product.id, quantity: 2 }, { productId: relatedProduct.id, quantity: 5 }],
-      shipping: {
-        recipient: "Cliente API",
-        address: "Calle 123",
-        city: "Cordoba",
-        province: "Cordoba",
-        postalCode: "5000",
-        contactPhone: "3510000000"
-      }
+      shippingAddressId: updatedAddress.id
     })
   });
   assert.equal(orderResponse.status, 201);
@@ -261,7 +294,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(labelPayload.packages.length, 4);
   assert.equal(labelPayload.packages[0].code, `${orderPayload.order.orderNumber}-B01-04`);
   assert.equal(labelPayload.packages[3].code, `${orderPayload.order.orderNumber}-B04-04`);
-  assert.equal(labelPayload.order.shipping.address, "Calle 123");
+  assert.equal(labelPayload.order.shipping.address, "Ruta 9 123");
   const pickingPayload = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/picking-list`, adminCookie);
   assert.equal(pickingPayload.order.items.length, 2);
   assert.equal(pickingPayload.order.items[0].warehouseLocation, "A-03-02");

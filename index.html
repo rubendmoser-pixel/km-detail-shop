@@ -335,42 +335,48 @@
           </div>
         </div>
         <form class="order-form" id="orderForm" hidden>
-          <label>
-            <span>Destinatario</span>
-            <input name="recipient" required autocomplete="name" />
-          </label>
-          <label>
-            <span>Telefono de contacto</span>
-            <input name="contactPhone" required autocomplete="tel" />
-          </label>
-          <label>
-            <span>Direccion</span>
-            <input name="address" required autocomplete="street-address" />
-          </label>
-          <label>
-            <span>Localidad</span>
-            <input name="city" required autocomplete="address-level2" />
-          </label>
-          <label>
-            <span>Provincia</span>
-            <input name="province" required autocomplete="address-level1" />
-          </label>
-          <label>
-            <span>Codigo postal</span>
-            <input name="postalCode" required autocomplete="postal-code" />
-          </label>
-          <label>
-            <span>Transporte preferido</span>
-            <input name="preferredTransport" />
-          </label>
-          <label class="full">
-            <span>Observaciones de entrega</span>
-            <textarea name="notes" rows="3"></textarea>
-          </label>
+          <section class="shipping-address-panel">
+            <div class="section-title compact">
+              <p class="eyebrow">Recepcion</p>
+              <h3>Lugar de entrega</h3>
+            </div>
+            <div class="shipping-address-list" id="shippingAddressList"></div>
+            <div class="shipping-address-actions">
+              <button class="ghost-button" id="newShippingAddress" type="button">Agregar lugar</button>
+              <button class="ghost-button" id="editShippingAddress" type="button">Editar seleccionado</button>
+              <button class="ghost-button" id="defaultShippingAddress" type="button">Marcar preferido</button>
+              <button class="ghost-button danger" id="deleteShippingAddress" type="button">Eliminar</button>
+            </div>
+          </section>
           <div class="form-actions">
             <button class="primary-button" type="submit">Confirmar pedido</button>
             <button class="ghost-button" id="copyOrder" type="button">Copiar resumen</button>
           </div>
+        </form>
+        <form class="shipping-address-form" id="shippingAddressForm" hidden>
+          <input type="hidden" name="id" />
+          <div class="section-title compact"><p class="eyebrow">Direccion</p><h3 id="shippingAddressFormTitle">Nuevo lugar de recepcion</h3></div>
+          <label><span>Nombre del lugar</span><input name="label" required placeholder="Ej: Deposito Rosario" /></label>
+          <label><span>Destinatario</span><input name="recipient" required autocomplete="name" /></label>
+          <label><span>Telefono de contacto</span><input name="contactPhone" required autocomplete="tel" /></label>
+          <label class="full"><span>Direccion</span><input name="address" required autocomplete="street-address" /></label>
+          <label><span>Localidad</span><input name="city" required autocomplete="address-level2" /></label>
+          <label><span>Provincia</span><select name="province" required autocomplete="address-level1">
+            <option value="">Seleccionar</option>
+            <option>Buenos Aires</option><option>Ciudad Autonoma de Buenos Aires</option><option>Catamarca</option><option>Chaco</option><option>Chubut</option>
+            <option>Cordoba</option><option>Corrientes</option><option>Entre Rios</option><option>Formosa</option><option>Jujuy</option><option>La Pampa</option><option>La Rioja</option>
+            <option>Mendoza</option><option>Misiones</option><option>Neuquen</option><option>Rio Negro</option><option>Salta</option><option>San Juan</option><option>San Luis</option>
+            <option>Santa Cruz</option><option>Santa Fe</option><option>Santiago del Estero</option><option>Tierra del Fuego</option><option>Tucuman</option>
+          </select></label>
+          <label><span>Codigo postal</span><input name="postalCode" required autocomplete="postal-code" /></label>
+          <label><span>Transporte preferido</span><input name="preferredTransport" /></label>
+          <label class="checkbox-label"><input name="isDefault" type="checkbox" /><span>Usar como direccion preferida</span></label>
+          <label class="full"><span>Observaciones de entrega</span><textarea name="notes" rows="3"></textarea></label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit">Guardar lugar</button>
+            <button class="ghost-button" id="cancelShippingAddress" type="button">Cancelar</button>
+          </div>
+          <p class="form-message" id="shippingAddressMessage" role="status"></p>
         </form>
         <div class="order-result" id="orderResult" hidden></div>
         <div class="customer-orders" id="customerOrders" hidden></div>

@@ -21,7 +21,7 @@ const CUSTOMER_TYPES = new Set([
   "Mayorista"
 ]);
 
-const ARGENTINA_PROVINCES = new Set([
+export const ARGENTINA_PROVINCES = new Set([
   "Buenos Aires", "Ciudad Autonoma de Buenos Aires", "Catamarca", "Chaco", "Chubut",
   "Cordoba", "Corrientes", "Entre Rios", "Formosa", "Jujuy", "La Pampa", "La Rioja",
   "Mendoza", "Misiones", "Neuquen", "Rio Negro", "Salta", "San Juan", "San Luis",
@@ -77,7 +77,7 @@ export async function registerCustomer(db, input) {
   }
 }
 
-function allowedValue(value, allowed, field) {
+export function allowedValue(value, allowed, field) {
   if (!allowed.has(value)) throw new ValidationError(`${field} is invalid`);
   return value;
 }
@@ -96,13 +96,13 @@ function normalizeArgentineTaxId(value) {
   return `${digits.slice(0, 2)}-${digits.slice(2, 10)}-${digits.slice(10)}`;
 }
 
-function normalizePhone(value, field) {
+export function normalizePhone(value, field) {
   const digits = String(value || "").replace(/\D/g, "");
   if (digits.length < 8 || digits.length > 15) throw new ValidationError(`${field} debe tener entre 8 y 15 digitos`);
   return digits;
 }
 
-function normalizePostalCode(value) {
+export function normalizePostalCode(value) {
   const normalized = String(value || "").trim().toUpperCase();
   if (!/^([A-Z]\d{4}[A-Z]{3}|\d{4})$/.test(normalized)) throw new ValidationError("postalCode is invalid");
   return normalized;
