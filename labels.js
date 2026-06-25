@@ -85,18 +85,16 @@ function labelSheet(order, pack) {
               <span>Transporte / modalidad</span>
               <div class="notes">${escapeHtml(shipping.preferredTransport || order.fulfillment?.carrier || order.fulfillment?.method || "A coordinar")}</div>
             </section>
-            <section class="label-section">
-              <span>Contenido del pedido</span>
-              <ul class="items-list">${order.items.slice(0, 9).map((item) => (
-                `<li>${item.quantity} x ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}</li>`
-              )).join("")}${order.items.length > 9 ? `<li>Ver pedido completo en sistema KM.</li>` : ""}</ul>
-            </section>
           </div>
-          <aside class="barcode-panel">
-            ${code39Svg(pack.code)}
-            <div class="package-code">${escapeHtml(pack.code)}</div>
+          <aside class="dispatch-summary">
+            <div class="summary-card"><span>Bulto</span><strong>${pack.number} / ${pack.total}</strong><small>Orden de despacho</small></div>
+            <div class="summary-card"><span>Pedido</span><strong>${escapeHtml(order.orderNumber.replace(/^KM-/, ""))}</strong><small>Referencia KM</small></div>
           </aside>
         </div>
+        <aside class="barcode-panel">
+          ${code39Svg(pack.code)}
+          <div class="package-code">${escapeHtml(pack.code)}</div>
+        </aside>
         <footer class="label-footer">
           <div>Control deposito</div>
           <div>Firma / recepcion</div>
@@ -117,15 +115,15 @@ function code39Svg(value) {
     const pattern = CODE39[character] || CODE39["-"];
     for (let index = 0; index < pattern.length; index += 1) {
       const width = pattern[index] === "1" ? wide : narrow;
-      if (index % 2 === 0) bars.push(`<rect x="${x}" y="0" width="${width}" height="94" />`);
+      if (index % 2 === 0) bars.push(`<rect x="${x}" y="0" width="${width}" height="150" />`);
       x += width;
     }
     x += gap;
   }
-  return `<svg viewBox="0 0 ${x} 118" role="img" aria-label="Codigo de barras ${escapeHtml(value)}" xmlns="http://www.w3.org/2000/svg">
-    <rect width="${x}" height="118" fill="#fff" />
+  return `<svg viewBox="0 0 ${x} 180" role="img" aria-label="Codigo de barras ${escapeHtml(value)}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="${x}" height="180" fill="#fff" />
     <g fill="#0b0c0e">${bars.join("")}</g>
-    <text x="${x / 2}" y="112" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700">${escapeHtml(value)}</text>
+    <text x="${x / 2}" y="172" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">${escapeHtml(value)}</text>
   </svg>`;
 }
 

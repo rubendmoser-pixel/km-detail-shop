@@ -50,20 +50,23 @@ body {
 .label-sheet {
   display: grid;
   width: 210mm;
-  height: 297mm;
+  height: 296mm;
   margin: 18px auto;
-  padding: 13mm;
+  padding: 10mm;
   background: #fff;
   color: #0b0c0e;
   page-break-after: always;
   break-after: page;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  overflow: hidden;
 }
 
 .shipping-label {
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto auto;
   height: 100%;
-  border: 2.2mm solid #0b0c0e;
+  border: 1.35mm solid #0b0c0e;
 }
 
 .label-topbar {
@@ -71,7 +74,7 @@ body {
   grid-template-columns: 1fr auto;
   gap: 12mm;
   align-items: center;
-  padding: 8mm 9mm;
+  padding: 7mm 8mm;
   color: #fff;
   background: #0b0c0e;
 }
@@ -83,7 +86,7 @@ body {
 }
 
 .label-brand img {
-  width: 44mm;
+  width: 42mm;
   height: auto;
 }
 
@@ -111,7 +114,7 @@ body {
 
 .package-count strong {
   display: block;
-  font-size: 30pt;
+  font-size: 34pt;
   line-height: 1;
 }
 
@@ -120,8 +123,8 @@ body {
   grid-template-columns: 1fr auto;
   gap: 8mm;
   align-items: center;
-  padding: 5mm 9mm;
-  border-bottom: 0.7mm solid #0b0c0e;
+  padding: 5mm 8mm;
+  border-bottom: 0.45mm solid #0b0c0e;
 }
 
 .order-strip span,
@@ -142,22 +145,22 @@ body {
 
 .label-body {
   display: grid;
-  grid-template-columns: 1fr 54mm;
+  grid-template-columns: 1fr 62mm;
   gap: 8mm;
-  padding: 8mm 9mm;
+  padding: 8mm;
 }
 
 .label-section {
-  padding-bottom: 6mm;
+  padding-bottom: 5mm;
   border-bottom: 0.45mm solid #c8cbd0;
 }
 
 .label-section + .label-section {
-  padding-top: 6mm;
+  padding-top: 5mm;
 }
 
 .recipient {
-  font-size: 28pt;
+  font-size: 29pt;
   line-height: 1.08;
   font-weight: 900;
   text-transform: uppercase;
@@ -165,7 +168,7 @@ body {
 
 .address {
   margin-top: 5mm;
-  font-size: 18pt;
+  font-size: 18.5pt;
   line-height: 1.25;
   font-weight: 800;
 }
@@ -178,34 +181,58 @@ body {
 }
 
 .notes {
-  min-height: 22mm;
-  font-size: 12pt;
+  min-height: 18mm;
+  font-size: 15pt;
   line-height: 1.35;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
-.items-list {
-  margin: 0;
-  padding-left: 5mm;
-  font-size: 11pt;
-  line-height: 1.35;
+.dispatch-summary {
+  display: grid;
+  gap: 5mm;
+}
+
+.summary-card {
+  min-height: 31mm;
+  padding: 5mm;
+  border: 0.45mm solid #c8cbd0;
+}
+
+.summary-card strong {
+  display: block;
+  font-size: 26pt;
+  line-height: 1;
+}
+
+.summary-card small {
+  display: block;
+  margin-top: 2mm;
+  color: #4b4e55;
+  font-size: 8pt;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .barcode-panel {
   display: grid;
   align-content: start;
-  gap: 5mm;
-  padding: 5mm;
-  border: 0.8mm solid #0b0c0e;
+  gap: 4mm;
+  margin: 0 8mm 7mm;
+  padding: 6mm 8mm;
+  border: 0.65mm solid #0b0c0e;
 }
 
 .barcode-panel svg {
   width: 100%;
-  height: auto;
+  height: 42mm;
 }
 
 .package-code {
   overflow-wrap: anywhere;
-  font-size: 13pt;
+  font-size: 23pt;
+  line-height: 1.1;
   font-weight: 900;
   text-align: center;
 }
@@ -214,12 +241,12 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8mm;
-  padding: 6mm 9mm;
-  border-top: 0.7mm solid #0b0c0e;
+  padding: 5mm 8mm;
+  border-top: 0.45mm solid #0b0c0e;
 }
 
 .label-footer div {
-  min-height: 18mm;
+  min-height: 14mm;
   padding-top: 3mm;
   border-top: 0.45mm solid #0b0c0e;
   color: #4b4e55;
@@ -247,7 +274,7 @@ body {
 
   .label-sheet {
     width: 210mm;
-    height: 297mm;
+    height: 296mm;
     margin: 0;
     box-shadow: none;
     page-break-after: always;
