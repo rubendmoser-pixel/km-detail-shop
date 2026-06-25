@@ -59,9 +59,9 @@ const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter",
-  "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderItemsBody",
+  "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
   "availabilityForm", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentMessage",
-  "orderStatusForm", "orderStatusMessage",
+  "orderStatusForm", "orderStatusMessage", "orderAdvancedPanel",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
@@ -702,6 +702,7 @@ function renderOrderDetail() {
   adminEls.availabilityMessage.textContent = "";
   renderPaymentReceipts(order);
   renderFulfillment(order);
+  renderOrderWorkflow(order);
   adminEls.orderStatusForm.elements.status.value = order.status;
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
@@ -736,6 +737,57 @@ function renderFulfillment(order) {
   form.fulfillmentEstimatedDate.value = normalizeDateInput(fulfillment.estimatedDate);
   form.fulfillmentNotes.value = fulfillment.notes || "";
   adminEls.fulfillmentMessage.textContent = "";
+}
+
+function renderOrderWorkflow(order) {
+  const fulfillmentStatus = order.fulfillment?.status || "pending";
+  const isCancelled = order.status === "cancelled";
+  const isDelivered = order.status === "delivered" || fulfillmentStatus === "delivered";
+  const canConfirmAvailability = order.status === "order_created";
+  const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
+  const hasReceipts = (order.paymentReceipts || []).length > 0;
+  const canReviewPayment = hasReceipts || availabilityConfirmed || ["receipt_uploaded", "paid", "rejected"].includes(order.paymentStatus);
+  const canManageFulfillment = order.paymentStatus === "paid" && availabilityConfirmed && !isCancelled;
+
+  adminEls.availabilityForm.hidden = !canConfirmAvailability;
+  adminEls.paymentReviewPanel.hidden = isCancelled || !canReviewPayment;
+  adminEls.fulfillmentForm.hidden = !canManageFulfillment || isDelivered;
+  adminEls.orderAdvancedPanel.open = false;
+
+  if (isCancelled) {
+    renderNextStep("Pedido cancelado", "No hay acciones operativas pendientes. Solo se pueden revisar documentos o usar ajustes avanzados si hiciera falta.", "danger");
+    return;
+  }
+  if (isDelivered) {
+    renderNextStep("Pedido entregado", "El pedido ya figura como entregado. Los documentos quedan disponibles para consulta o reimpresion.", "done");
+    return;
+  }
+  if (canConfirmAvailability) {
+    renderNextStep("Proxima accion: confirmar disponibilidad", "Revisa cantidades disponibles por articulo, ajusta parciales si corresponde y envia la confirmacion al cliente.", "info");
+    return;
+  }
+  if (availabilityConfirmed && order.paymentStatus === "pending_payment") {
+    renderNextStep("Proxima accion: esperar comprobante de pago", "La disponibilidad ya fue confirmada. El cliente debe cargar o enviar el comprobante para avanzar con preparacion y despacho.", "warning");
+    return;
+  }
+  if (order.paymentStatus === "receipt_uploaded") {
+    renderNextStep("Proxima accion: revisar comprobante", "Hay un comprobante cargado. Aceptalo si el pago esta acreditado o rechazalo indicando el motivo.", "progress");
+    return;
+  }
+  if (order.paymentStatus === "rejected") {
+    renderNextStep("Proxima accion: corregir pago", "El ultimo comprobante fue rechazado. Espera una nueva carga del cliente o coordina la correccion por WhatsApp/email.", "danger");
+    return;
+  }
+  if (canManageFulfillment) {
+    renderNextStep("Proxima accion: preparar despacho", "El pago esta registrado. Completa transporte, guia/remito y estado logistico cuando corresponda.", "success");
+    return;
+  }
+  renderNextStep("Pedido en seguimiento", "No hay una accion automatica sugerida para esta combinacion de estados. Usa ajustes avanzados solo si necesitas corregir el flujo.", "neutral");
+}
+
+function renderNextStep(title, body, tone = "neutral") {
+  adminEls.orderNextStep.className = `order-next-step ${escapeAdmin(tone)}`;
+  adminEls.orderNextStep.innerHTML = `<strong>${escapeAdmin(title)}</strong><span>${escapeAdmin(body)}</span>`;
 }
 
 async function saveFulfillment(event) {

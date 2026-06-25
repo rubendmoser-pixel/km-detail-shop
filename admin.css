@@ -522,6 +522,51 @@
   min-height: 42px;
 }
 
+.order-next-step {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid #3b3d42;
+  border-left: 6px solid #8a8f98;
+  background: #14161a;
+}
+
+.order-next-step strong,
+.order-next-step span {
+  display: block;
+}
+
+.order-next-step strong {
+  color: #f5f6f7;
+  font-size: 1rem;
+}
+
+.order-next-step span {
+  color: #c4c7cc;
+  line-height: 1.45;
+}
+
+.order-next-step.warning {
+  border-left-color: #f1c94a;
+}
+
+.order-next-step.info {
+  border-left-color: #70b7ff;
+}
+
+.order-next-step.progress {
+  border-left-color: #a98df2;
+}
+
+.order-next-step.success,
+.order-next-step.done {
+  border-left-color: #86d69a;
+}
+
+.order-next-step.danger {
+  border-left-color: #ff7676;
+}
+
 .payment-review-panel {
   display: grid;
   gap: 10px;
@@ -562,6 +607,28 @@
   gap: 12px;
   padding: 14px;
   border: 1px solid #3b3d42;
+}
+
+.availability-form[hidden],
+.fulfillment-form[hidden],
+.payment-review-panel[hidden] {
+  display: none;
+}
+
+.advanced-order-panel {
+  padding: 12px 14px;
+  border: 1px solid #34363b;
+  background: #111214;
+}
+
+.advanced-order-panel summary {
+  cursor: pointer;
+  color: #c4c7cc;
+  font-weight: 900;
+}
+
+.advanced-order-panel .order-status-form {
+  margin-top: 12px;
 }
 
 .availability-form {
