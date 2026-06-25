@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -44,6 +44,7 @@ function migrate(db) {
       industry TEXT NOT NULL,
       city TEXT NOT NULL,
       province TEXT NOT NULL,
+      postal_code TEXT NOT NULL DEFAULT '',
       address TEXT NOT NULL,
       phone TEXT NOT NULL,
       whatsapp TEXT NOT NULL,
@@ -280,6 +281,7 @@ function migrate(db) {
   ensureColumn(db, "orders", "fulfillment_tracking", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "fulfillment_estimated_date", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "fulfillment_notes", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "customers", "postal_code", "TEXT NOT NULL DEFAULT ''");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);
 }
 

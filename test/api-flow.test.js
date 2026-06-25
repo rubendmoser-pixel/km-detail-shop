@@ -92,7 +92,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(reusedResetResponse.status, 400);
 
   const adminCookie = await loginCookie(baseUrl, "admin@km-detail.com", "admin-password-from-env");
-  const searchedCustomers = await getJson(`${baseUrl}/api/admin/customers?q=30-99999999-1`, adminCookie);
+  const searchedCustomers = await getJson(`${baseUrl}/api/admin/customers?q=30-71234567-1`, adminCookie);
   assert.equal(searchedCustomers.customers.length, 1);
   assert.equal(searchedCustomers.customers[0].business_name, "Comercio API");
   const emailsResponse = await getJson(`${baseUrl}/api/admin/emails`, adminCookie);
@@ -359,6 +359,39 @@ test("customer welcome email does not depend on internal notification email", as
   assert.deepEqual(outbox, [{ event_type: "customer_welcome", recipient: "cliente-api@example.com" }]);
 });
 
+test("commercial registration rejects invalid channel and tax data", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-registration-validation-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath });
+  const server = http.createServer(createApp({
+    db,
+    config: { sessionDays: 30, secureCookies: false, publicBaseUrl: baseUrlPlaceholder() }
+  }));
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const invalidTaxResponse = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...customerRegistration(), taxId: "30-00000000-0" })
+  });
+  assert.equal(invalidTaxResponse.status, 400);
+  assert.match((await invalidTaxResponse.json()).error, /CUIT/);
+
+  const invalidChannelResponse = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...customerRegistration(), email: "otro@example.com", taxId: "30-12345678-1", customerType: "Taller" })
+  });
+  assert.equal(invalidChannelResponse.status, 400);
+  assert.match((await invalidChannelResponse.json()).error, /customerType/);
+});
+
 test("configured admin can recover access when the account is missing", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-admin-reset-${Date.now()}.sqlite`);
   const config = {
@@ -473,12 +506,13 @@ function customerRegistration() {
     firstName: "Cliente",
     lastName: "API",
     businessName: "Comercio API",
-    taxId: "30-99999999-1",
+    taxId: "30-71234567-1",
     taxCondition: "Responsable inscripto",
-    customerType: "Taller",
+    customerType: "Comercio especializado",
     industry: "Detailing",
     city: "Cordoba",
     province: "Cordoba",
+    postalCode: "5000",
     address: "Calle 123",
     phone: "3510000000",
     whatsapp: "5493510000000",

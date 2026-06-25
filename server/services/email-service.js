@@ -17,7 +17,7 @@ export function createEmailService({ db, config }) {
   function queueCustomerRegistration(customerId) {
     const customer = db.prepare(`
       SELECT c.business_name, c.tax_id, c.tax_condition, c.customer_type, c.industry,
-             c.city, c.province, c.phone, c.whatsapp, c.contact_person, c.created_at, u.email
+             c.city, c.province, c.postal_code, c.phone, c.whatsapp, c.contact_person, c.created_at, u.email
       FROM customers c JOIN users u ON u.id = c.user_id
       WHERE c.id = ?
     `).get(customerId);
@@ -32,7 +32,7 @@ export function createEmailService({ db, config }) {
         `Condición fiscal: ${customer.tax_condition}`,
         `Tipo de cliente: ${customer.customer_type}`,
         `Rubro: ${customer.industry}`,
-        `Ubicación: ${customer.city}, ${customer.province}`,
+        `Ubicación: ${customer.city}, ${customer.province} ${customer.postal_code}`,
         `Contacto: ${customer.contact_person}`,
         `Email: ${customer.email}`,
         `Teléfono: ${customer.phone}`,

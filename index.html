@@ -463,15 +463,18 @@
         <label><span>Nombre</span><input name="firstName" required autocomplete="given-name" /></label>
         <label><span>Apellido</span><input name="lastName" required autocomplete="family-name" /></label>
         <label><span>Razon social o comercio</span><input name="businessName" required autocomplete="organization" /></label>
-        <label><span>CUIT</span><input name="taxId" required /></label>
-        <label><span>Condicion fiscal</span><input name="taxCondition" required /></label>
-        <label><span>Tipo de cliente</span><select name="customerType" required><option value="">Seleccionar</option><option>Pintureria</option><option>Distribuidor</option><option>Taller</option><option>Comercio especializado</option></select></label>
-        <label><span>Rubro</span><input name="industry" required /></label>
+        <label><span>CUIT</span><input name="taxId" required inputmode="numeric" placeholder="30-12345678-1" /></label>
+        <label><span>Condicion fiscal</span><select name="taxCondition" required><option value="">Seleccionar</option><option>Responsable inscripto</option><option>Monotributo</option><option>Exento</option><option>No responsable</option></select></label>
+        <label><span>Tipo de cliente</span><select name="customerType" required><option value="">Seleccionar</option><option>Distribuidor</option><option>Pintureria</option><option>Comercio especializado</option><option>Mayorista</option></select></label>
+        <label><span>Rubro</span><input name="industry" list="industryOptions" required placeholder="Ej: repintado automotriz" /></label>
         <label><span>Ciudad</span><input name="city" required autocomplete="address-level2" /></label>
-        <label><span>Provincia</span><input name="province" required autocomplete="address-level1" /></label>
+        <label><span>Provincia</span><select name="province" required autocomplete="address-level1">
+          <option value="">Seleccionar</option><option>Buenos Aires</option><option>Ciudad Autonoma de Buenos Aires</option><option>Catamarca</option><option>Chaco</option><option>Chubut</option><option>Cordoba</option><option>Corrientes</option><option>Entre Rios</option><option>Formosa</option><option>Jujuy</option><option>La Pampa</option><option>La Rioja</option><option>Mendoza</option><option>Misiones</option><option>Neuquen</option><option>Rio Negro</option><option>Salta</option><option>San Juan</option><option>San Luis</option><option>Santa Cruz</option><option>Santa Fe</option><option>Santiago del Estero</option><option>Tierra del Fuego</option><option>Tucuman</option>
+        </select></label>
+        <label><span>Codigo postal</span><input name="postalCode" required autocomplete="postal-code" placeholder="2000" /></label>
         <label class="wide"><span>Direccion</span><input name="address" required autocomplete="street-address" /></label>
-        <label><span>Telefono</span><input name="phone" required autocomplete="tel" /></label>
-        <label><span>WhatsApp</span><input name="whatsapp" required /></label>
+        <label><span>Telefono</span><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="3412531269" /></label>
+        <label><span>WhatsApp</span><input name="whatsapp" required inputmode="tel" placeholder="5493412531269" /></label>
         <label><span>Persona de contacto</span><input name="contactPerson" required /></label>
         <label><span>Email</span><input name="email" type="email" required autocomplete="email" /></label>
         <label class="wide"><span>Contrasena</span><input name="password" type="password" minlength="12" required autocomplete="new-password" /></label>
@@ -479,6 +482,7 @@
         <label class="check-field wide"><input name="acceptTerms" type="checkbox" required /><span>Acepto los terminos comerciales.</span></label>
         <label class="check-field wide"><input name="acceptPrivacy" type="checkbox" required /><span>Acepto la politica de privacidad.</span></label>
         <button class="primary-button wide" type="submit">Enviar solicitud</button>
+        <datalist id="industryOptions"><option value="Distribucion mayorista"></option><option value="Pintureria automotor"></option><option value="Repintado automotriz"></option><option value="Detailing profesional"></option><option value="Chapa y pintura"></option><option value="Reventa de insumos profesionales"></option></datalist>
       </form>
       <p class="form-message" id="accountMessage" role="status"></p>
     </dialog>

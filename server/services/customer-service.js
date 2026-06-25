@@ -14,9 +14,9 @@ export function listCustomers(db, filters = "") {
   if (search) {
     where.push(`(
       c.business_name LIKE ? OR c.contact_person LIKE ? OR c.tax_id LIKE ? OR
-      c.phone LIKE ? OR c.whatsapp LIKE ? OR c.city LIKE ? OR c.province LIKE ? OR u.email LIKE ?
+      c.phone LIKE ? OR c.whatsapp LIKE ? OR c.city LIKE ? OR c.province LIKE ? OR c.postal_code LIKE ? OR u.email LIKE ?
     )`);
-    params.push(...Array(8).fill(`%${search}%`));
+    params.push(...Array(9).fill(`%${search}%`));
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   return db.prepare(`

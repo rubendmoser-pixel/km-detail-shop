@@ -4,8 +4,29 @@ import { AuthError, ValidationError, normalizeEmail, optionalText, requiredText 
 
 const CUSTOMER_FIELDS = [
   "firstName", "lastName", "businessName", "taxId", "taxCondition", "customerType",
-  "industry", "city", "province", "address", "phone", "whatsapp", "contactPerson"
+  "industry", "city", "province", "postalCode", "address", "phone", "whatsapp", "contactPerson"
 ];
+
+const TAX_CONDITIONS = new Set([
+  "Responsable inscripto",
+  "Monotributo",
+  "Exento",
+  "No responsable"
+]);
+
+const CUSTOMER_TYPES = new Set([
+  "Distribuidor",
+  "Pintureria",
+  "Comercio especializado",
+  "Mayorista"
+]);
+
+const ARGENTINA_PROVINCES = new Set([
+  "Buenos Aires", "Ciudad Autonoma de Buenos Aires", "Catamarca", "Chaco", "Chubut",
+  "Cordoba", "Corrientes", "Entre Rios", "Formosa", "Jujuy", "La Pampa", "La Rioja",
+  "Mendoza", "Misiones", "Neuquen", "Rio Negro", "Salta", "San Juan", "San Luis",
+  "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucuman"
+]);
 
 export async function registerCustomer(db, input) {
   const email = normalizeEmail(input.email);
@@ -15,6 +36,14 @@ export async function registerCustomer(db, input) {
   }
 
   const customer = Object.fromEntries(CUSTOMER_FIELDS.map((field) => [field, requiredText(input[field], field)]));
+  customer.taxId = normalizeArgentineTaxId(customer.taxId);
+  customer.taxCondition = allowedValue(customer.taxCondition, TAX_CONDITIONS, "taxCondition");
+  customer.customerType = allowedValue(customer.customerType, CUSTOMER_TYPES, "customerType");
+  customer.province = allowedValue(customer.province, ARGENTINA_PROVINCES, "province");
+  customer.city = requiredText(customer.city, "city", { min: 2, max: 80 });
+  customer.postalCode = normalizePostalCode(customer.postalCode);
+  customer.phone = normalizePhone(customer.phone, "phone");
+  customer.whatsapp = normalizePhone(customer.whatsapp, "whatsapp");
   customer.notes = optionalText(input.notes, "notes");
   const acceptedAt = new Date().toISOString();
 
@@ -27,14 +56,14 @@ export async function registerCustomer(db, input) {
       const created = db.prepare(`
         INSERT INTO customers (
           user_id, first_name, last_name, business_name, tax_id, tax_condition, customer_type,
-          industry, city, province, address, phone, whatsapp, contact_person, notes,
+          industry, city, province, postal_code, address, phone, whatsapp, contact_person, notes,
           terms_accepted_at, privacy_accepted_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id, approval_status
       `).get(
         user.id, customer.firstName, customer.lastName, customer.businessName, customer.taxId,
         customer.taxCondition, customer.customerType, customer.industry, customer.city,
-        customer.province, customer.address, customer.phone, customer.whatsapp,
+        customer.province, customer.postalCode, customer.address, customer.phone, customer.whatsapp,
         customer.contactPerson, customer.notes, acceptedAt, acceptedAt
       );
       db.prepare("INSERT INTO customer_discounts (customer_id) VALUES (?)").run(created.id);
@@ -46,6 +75,37 @@ export async function registerCustomer(db, input) {
     }
     throw error;
   }
+}
+
+function allowedValue(value, allowed, field) {
+  if (!allowed.has(value)) throw new ValidationError(`${field} is invalid`);
+  return value;
+}
+
+function normalizeArgentineTaxId(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!/^\d{11}$/.test(digits)) throw new ValidationError("CUIT debe tener 11 digitos");
+  const prefix = digits.slice(0, 2);
+  if (!["20", "23", "24", "27", "30", "33", "34"].includes(prefix)) throw new ValidationError("CUIT tiene un prefijo invalido");
+  const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const sum = weights.reduce((total, weight, index) => total + Number(digits[index]) * weight, 0);
+  let expected = 11 - (sum % 11);
+  if (expected === 11) expected = 0;
+  if (expected === 10) expected = 9;
+  if (expected !== Number(digits[10])) throw new ValidationError("CUIT no es valido");
+  return `${digits.slice(0, 2)}-${digits.slice(2, 10)}-${digits.slice(10)}`;
+}
+
+function normalizePhone(value, field) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length < 8 || digits.length > 15) throw new ValidationError(`${field} debe tener entre 8 y 15 digitos`);
+  return digits;
+}
+
+function normalizePostalCode(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!/^([A-Z]\d{4}[A-Z]{3}|\d{4})$/.test(normalized)) throw new ValidationError("postalCode is invalid");
+  return normalized;
 }
 
 export async function login(db, { email: rawEmail, password }, sessionDays, config = {}) {
