@@ -50,18 +50,19 @@ body {
 .label-sheet {
   display: grid;
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;
   margin: 18px auto;
   padding: 13mm;
   background: #fff;
   color: #0b0c0e;
   page-break-after: always;
+  break-after: page;
 }
 
 .shipping-label {
   display: grid;
   grid-template-rows: auto auto 1fr auto;
-  min-height: 271mm;
+  height: 100%;
   border: 2.2mm solid #0b0c0e;
 }
 
@@ -246,8 +247,15 @@ body {
 
   .label-sheet {
     width: 210mm;
-    min-height: 297mm;
+    height: 297mm;
     margin: 0;
     box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .label-sheet:last-child {
+    page-break-after: auto;
+    break-after: auto;
   }
 }

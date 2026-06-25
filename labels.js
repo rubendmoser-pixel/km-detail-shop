@@ -43,7 +43,7 @@ function renderLabels(payload) {
   root.innerHTML = `
     <div class="screen-actions">
       <a href="./admin.html#orders">Volver al panel</a>
-      <div><strong>${escapeHtml(order.orderNumber)}</strong> · ${packages.length} bulto${packages.length === 1 ? "" : "s"}</div>
+      <div><strong>${escapeHtml(order.orderNumber)}</strong> - ${packages.length} bulto${packages.length === 1 ? "" : "s"}</div>
       <button type="button" id="printLabels">Imprimir etiquetas</button>
     </div>
     ${packages.map((pack) => labelSheet(order, pack)).join("")}
@@ -53,12 +53,12 @@ function renderLabels(payload) {
 
 function labelSheet(order, pack) {
   const shipping = order.shipping || {};
-  const cityLine = [shipping.city, shipping.province, shipping.postalCode ? `CP ${shipping.postalCode}` : ""].filter(Boolean).join(" · ");
+  const cityLine = [shipping.city, shipping.province, shipping.postalCode ? `CP ${shipping.postalCode}` : ""].filter(Boolean).join(" - ");
   const contactLine = [
     shipping.recipient ? `Recibe: ${shipping.recipient}` : "",
     shipping.contactPhone ? `Tel: ${shipping.contactPhone}` : "",
     order.customerWhatsapp ? `WhatsApp: ${order.customerWhatsapp}` : ""
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(" - ");
   return `
     <section class="label-sheet">
       <article class="shipping-label">
@@ -88,7 +88,7 @@ function labelSheet(order, pack) {
             <section class="label-section">
               <span>Contenido del pedido</span>
               <ul class="items-list">${order.items.slice(0, 9).map((item) => (
-                `<li>${item.quantity} x ${escapeHtml(item.kmCode)} · ${escapeHtml(item.productName)}</li>`
+                `<li>${item.quantity} x ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}</li>`
               )).join("")}${order.items.length > 9 ? `<li>Ver pedido completo en sistema KM.</li>` : ""}</ul>
             </section>
           </div>
