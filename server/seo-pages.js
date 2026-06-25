@@ -4,10 +4,10 @@ const DEFAULT_IMAGE = `${SITE_URL}/assets/km-linea-profesional.png`;
 export const seoLandingPages = new Map([
   ["/panos-para-pulir-autos", {
     title: "Panos para pulir autos | KM Detail Line",
-    description: "Panos, boinas y pads para pulido automotriz profesional. Corte, correccion, abrillantado y terminacion para distribuidores y pinturerias.",
+    description: "Panos, boinas y pads fabricados para pulido automotriz profesional. Corte, correccion, abrillantado y terminacion KM Detail Line.",
     eyebrow: "Pulido automotriz",
     heading: "Panos para pulir autos",
-    lead: "Linea profesional de panos, boinas y pads para pulido automotriz, correccion, abrillantado y terminacion. Productos orientados al canal comercial de distribuidores, pinturerias y comercios especializados.",
+    lead: "Linea profesional de panos, boinas y pads fabricados para pulido automotriz, correccion, abrillantado y terminacion. Comercializacion a traves de distribuidores, pinturerias y comercios especializados.",
     sections: [
       {
         title: "Corte, correccion y terminacion",
@@ -19,12 +19,12 @@ export const seoLandingPages = new Map([
       },
       {
         title: "Canal comercial especializado",
-        body: "La venta esta orientada a distribuidores, pinturerias y comercios especializados. Los clientes aprobados pueden acceder al catalogo operativo, precios netos y condiciones comerciales desde la plataforma."
+        body: "Los productos son para uso profesional y la comercializacion se realiza a traves de distribuidores, pinturerias y comercios especializados. Los clientes comerciales aprobados acceden al catalogo operativo, precios netos y condiciones comerciales desde la plataforma."
       }
     ],
     faq: [
       ["Que diferencia hay entre pano, boina y pad?", "Son nombres que el mercado usa para productos de pulido. La diferencia concreta depende de material, medida, sistema de sujecion y funcion dentro del proceso."],
-      ["KM Detail Line vende al consumidor final?", "No. La venta esta orientada exclusivamente a distribuidores, pinturerias y comercios especializados."]
+      ["KM Detail Line vende al consumidor final?", "No. KM fabrica productos para uso profesional y los comercializa a traves de distribuidores, pinturerias y comercios especializados."]
     ],
     keywords: ["pano para pulir auto", "panos para pulido automotriz", "boina para pulidora", "gorro de lana", "pad de lana", "pano de corte", "pano de abrillantado", "pano de terminacion", "pulido automotriz profesional"]
   }],
@@ -41,7 +41,7 @@ export const seoLandingPages = new Map([
       },
       {
         title: "Gorro, boina, pad o pano",
-        body: "En el mercado se usan distintos nombres para productos similares: gorro de lana, boina de lana, pad de lana o pano de lana. KM estructura la informacion para que el canal comercial pueda identificar rapido la funcion, medida y sistema de sujecion."
+        body: "En el mercado se usan distintos nombres para productos similares: gorro de lana, boina de lana, pad de lana o pano de lana. KM estructura la informacion para identificar rapido la funcion, medida y sistema de sujecion de cada producto profesional."
       },
       {
         title: "Aplicacion profesional",
@@ -56,7 +56,7 @@ export const seoLandingPages = new Map([
   }],
   ["/pads-de-espuma-para-pulido", {
     title: "Pads de espuma para pulido | KM Detail Line",
-    description: "Pads de espuma, poliespumas y esponjas para pulido, abrillantado y terminacion automotriz. Linea profesional para canal comercial.",
+    description: "Pads de espuma, poliespumas y esponjas fabricadas para pulido, abrillantado y terminacion automotriz profesional.",
     eyebrow: "Poliespumas",
     heading: "Pads de espuma para pulido",
     lead: "Poliespumas, pads de espuma y esponjas para etapas de corte medio, pulido intermedio, abrillantado y terminacion sin hologramas en procesos profesionales.",
@@ -67,16 +67,16 @@ export const seoLandingPages = new Map([
       },
       {
         title: "Corte, brillo y acabado final",
-        body: "El canal profesional busca pads de corte, pads de pulido, pads de terminacion, esponjas para pulidora, poliespumas de abrillantado y accesorios para detailing. KM agrupa estas variantes dentro de una linea tecnica."
+        body: "El mercado profesional busca pads de corte, pads de pulido, pads de terminacion, esponjas para pulidora, poliespumas de abrillantado y accesorios para detailing. KM agrupa estas variantes dentro de una linea tecnica fabricada para procesos profesionales."
       },
       {
         title: "Detalle tecnico para el canal",
-        body: "Cada producto puede identificarse por familia, medida, corte, sistema de sujecion y uso recomendado. El objetivo es que distribuidores y comercios especializados tengan una linea clara para vender y asesorar."
+        body: "Cada producto puede identificarse por familia, medida, corte, sistema de sujecion y uso recomendado. El objetivo es que el canal comercial pueda vender y asesorar una linea tecnica pensada para usuarios profesionales."
       }
     ],
     faq: [
       ["Como elegir un pad de espuma?", "La eleccion depende de la etapa de trabajo: corte, correccion, pulido intermedio, abrillantado o terminacion."],
-      ["Las poliespumas son para uso profesional?", "Si. La linea esta pensada para talleres, pinturerias, distribuidores y comercios especializados."]
+      ["Las poliespumas son para uso profesional?", "Si. La linea esta fabricada para procesos profesionales de pulido, abrillantado y terminacion automotriz."]
     ],
     keywords: ["pad de espuma para pulido", "poliespuma para pulido", "esponja para pulidora", "pad de abrillantado", "pad de terminacion", "pad para eliminar hologramas", "pad para detailing", "pad de corte medio"]
   }],
@@ -119,7 +119,7 @@ export const seoLandingPages = new Map([
       },
       {
         title: "Compatibilidad con sistemas abrasivos",
-        body: "La linea contempla soluciones para lija, velcro, adhesivo reposicionable y formatos tecnicos orientados al uso profesional en talleres y comercios especializados."
+        body: "La linea contempla soluciones para lija, velcro, adhesivo reposicionable y formatos tecnicos orientados al uso profesional en preparacion de superficies y repintado automotriz."
       },
       {
         title: "Preparacion y terminacion",
@@ -137,7 +137,7 @@ export const seoLandingPages = new Map([
     description: "Insumos profesionales para chapa-pintura, repintado automotriz, pulido, lijado y terminacion. Venta por canal especializado.",
     eyebrow: "Chapa-pintura",
     heading: "Insumos para chapa y pintura",
-    lead: "Linea tecnica de productos para talleres, pinturerias y comercios especializados que trabajan procesos de repintado, correccion, pulido y terminacion.",
+    lead: "Linea tecnica fabricada para procesos profesionales de repintado, correccion, pulido y terminacion en chapa-pintura.",
     sections: [
       {
         title: "Productos para repintado automotriz",
@@ -149,33 +149,33 @@ export const seoLandingPages = new Map([
       },
       {
         title: "Venta exclusiva por canal",
-        body: "La plataforma esta pensada para cuentas comerciales aprobadas. No se orienta a venta minorista directa, sino al desarrollo de distribuidores, pinturerias y comercios especializados."
+        body: "La plataforma esta pensada para cuentas comerciales aprobadas. KM fabrica productos para uso profesional y desarrolla su comercializacion a traves de distribuidores, pinturerias y comercios especializados."
       }
     ],
     faq: [
-      ["KM vende insumos para talleres de pintura?", "KM trabaja con distribuidores, pinturerias y comercios especializados que abastecen el canal profesional."],
+      ["KM fabrica insumos para uso profesional?", "Si. KM Detail Line fabrica una linea tecnica para procesos profesionales de pulido, chapa-pintura, repintado y detailing."],
       ["Los precios publicados incluyen IVA?", "Los precios comerciales de la plataforma no incluyen IVA y se muestran solo a cuentas aprobadas."]
     ],
     keywords: ["productos para chapa y pintura", "insumos para chapa y pintura", "productos para repintado automotriz", "pads para chapa y pintura", "interfaces para lijado", "productos para talleres de pintura", "insumos para pinturerias", "pulido para repintado"]
   }],
   ["/productos-para-detailing-profesional", {
     title: "Productos para detailing profesional | KM Detail Line",
-    description: "Productos e insumos para detailing profesional, pulido automotriz, abrillantado, terminacion y aplicacion. Canal comercial KM Detail Line.",
+    description: "Productos e insumos fabricados para detailing profesional, pulido automotriz, abrillantado, terminacion y aplicacion.",
     eyebrow: "Detailing profesional",
     heading: "Productos para detailing profesional",
     lead: "Insumos profesionales para detailing, pulido, abrillantado, terminacion, aplicacion y mantenimiento de procesos tecnicos sobre pintura automotriz.",
     sections: [
       {
         title: "Sistema para procesos de detailing",
-        body: "La linea KM permite ordenar productos por funcion: corte, correccion, pulido intermedio, brillo, terminacion, soporte y aplicacion. Esto ayuda al canal comercial a asesorar con criterio tecnico."
+        body: "La linea KM permite ordenar productos por funcion: corte, correccion, pulido intermedio, brillo, terminacion, soporte y aplicacion. Esto ayuda a trabajar procesos profesionales con criterio tecnico."
       },
       {
         title: "No son productos aislados",
-        body: "El objetivo es construir una lectura por proceso: que producto usar, en que etapa, con que soporte y para que nivel de acabado. Esa organizacion mejora la venta tecnica en comercios especializados."
+        body: "El objetivo es construir una lectura por proceso: que producto usar, en que etapa, con que soporte y para que nivel de acabado. Esa organizacion mejora el uso profesional y la venta tecnica en comercios especializados."
       },
       {
-        title: "Distribuidores y comercios especializados",
-        body: "KM Detail Line busca fortalecer su red comercial en Argentina y Sudamerica con una propuesta clara, trazable y preparada para crecer junto a distribuidores del rubro."
+        title: "Fabricante y canal especializado",
+        body: "KM Detail Line fabrica productos para uso profesional y busca fortalecer su red comercial en Argentina y Sudamerica junto a distribuidores, pinturerias y comercios especializados."
       }
     ],
     faq: [
@@ -254,7 +254,7 @@ export function renderProductPage(product) {
     product.measure,
     product.attachmentSystem,
     product.ean13 ? `EAN ${product.ean13}` : "",
-    "Producto profesional KM Detail Line para canal comercial."
+    "Producto profesional fabricado por KM Detail Line."
   ].filter(Boolean).join(" - ");
   const specs = [
     ["Codigo KM", product.kmCode],
@@ -291,6 +291,7 @@ export function renderProductPage(product) {
       sku: product.kmCode,
       gtin13: product.ean13,
       brand: { "@type": "Brand", name: "KM Detail Line" },
+      manufacturer: { "@id": `${SITE_URL}/#organization` },
       category: product.family?.name,
       description,
       image: gallery.map((item) => absoluteUrl(item.url)).filter(Boolean),
@@ -302,7 +303,7 @@ export function renderProductPage(product) {
       })),
       audience: {
         "@type": "BusinessAudience",
-        audienceType: "Distribuidores, pinturerias y comercios especializados"
+        audienceType: "Usuarios profesionales de pulido automotriz, chapa-pintura, repintado y detailing"
       }
     },
     relatedProducts.length ? {
@@ -346,8 +347,8 @@ export function renderProductPage(product) {
             ${product.recommendedUse ? `<h2>Uso recomendado</h2><p>${escapeHtml(product.recommendedUse)}</p>` : ""}
             ${product.technicalDescription ? `<h2>Descripcion tecnica</h2><p>${escapeHtml(product.technicalDescription)}</p>` : ""}
             <div class="seo-commercial-note">
-              <strong>Venta por canal profesional</strong>
-              <p>Producto orientado a distribuidores, pinturerias y comercios especializados. Los precios comerciales se muestran solo con cuenta aprobada y no incluyen IVA.</p>
+              <strong>Producto de uso profesional</strong>
+              <p>Producto fabricado por KM Detail Line para procesos profesionales. La comercializacion se realiza por canal especializado y los precios comerciales se muestran solo con cuenta aprobada. No incluyen IVA.</p>
               <a class="primary-link" href="/productos">Ver catalogo operativo</a>
             </div>
             ${renderRelatedProducts(relatedProducts)}
@@ -477,9 +478,10 @@ function renderRelatedProducts(products = []) {
 
 function organizationSchema() {
   return {
-    "@type": "Organization",
+    "@type": ["Organization", "Brand"],
     "@id": `${SITE_URL}/#organization`,
     name: "KM Detail Line",
+    description: "Fabricante de insumos profesionales para pulido automotriz, chapa-pintura, repintado y detailing.",
     url: `${SITE_URL}/`,
     logo: `${SITE_URL}/assets/km-metal-logo.png`,
     email: "ventas@km-detail.com",

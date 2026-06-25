@@ -35,19 +35,19 @@ export const SEO_SECURITY_HEADERS = {
 const SEO_ROUTES = new Map([
   ["/empresa", {
     title: "Empresa | KM Detail Line",
-    description: "KM Detail Line como canal profesional de insumos para pulido automotriz, chapa-pintura y detailing."
+    description: "KM Detail Line como fabricante de insumos profesionales para pulido automotriz, chapa-pintura y detailing."
   }],
   ["/productos", {
     title: "Productos y pedidos | KM Detail Line",
-    description: "Catalogo operativo de productos KM Detail Line para distribuidores, pinturerias y comercios especializados."
+    description: "Catalogo operativo de productos KM Detail Line fabricados para uso profesional en pulido automotriz, chapa-pintura y detailing."
   }],
   ["/catalogo-2026", {
     title: "Catalogo 2026 | KM Detail Line",
-    description: "Catalogo profesional KM Detail Line 2026 para distribuidores, pinturerias y comercios especializados."
+    description: "Catalogo profesional KM Detail Line 2026: insumos fabricados para pulido automotriz, chapa-pintura y detailing."
   }],
   ["/distribuidores", {
     title: "Distribuidores KM Detail Line | Alta de cuentas comerciales",
-    description: "Alta comercial KM Detail Line para distribuidores, pinturerias y comercios especializados en pulido automotriz, chapa-pintura y detailing."
+    description: "Alta comercial para distribuidores, pinturerias y comercios especializados que comercializan productos KM Detail Line para uso profesional."
   }],
   ["/contacto", {
     title: "Contacto | KM Detail Line",
