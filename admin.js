@@ -9,6 +9,28 @@ const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
 };
+const orderStatusLabels = {
+  order_created: "Pedido recibido",
+  availability_confirmed: "Disponibilidad confirmada",
+  confirmed: "Pedido confirmado",
+  in_preparation: "En preparacion",
+  ready: "Listo para despacho",
+  delivered: "Entregado",
+  cancelled: "Cancelado"
+};
+const paymentStatusLabels = {
+  pending_payment: "Pago pendiente",
+  receipt_uploaded: "Comprobante cargado",
+  paid: "Pago acreditado",
+  rejected: "Pago rechazado",
+  refunded: "Pago reintegrado"
+};
+const fulfillmentStatusLabels = {
+  pending: "Despacho pendiente",
+  ready: "Listo para despacho",
+  shipped: "Despachado",
+  delivered: "Entregado"
+};
 
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
@@ -448,8 +470,8 @@ async function loadOrders() {
   adminState.orders = orders;
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
     <tr><td><strong>${escapeAdmin(order.order_number)}</strong></td><td>${escapeAdmin(order.business_name)}</td>
-      <td>${escapeAdmin(order.status)}</td><td>${escapeAdmin(order.payment_status)}</td>
-      <td>${escapeAdmin(order.fulfillment_status || "pending")}</td>
+      <td>${escapeAdmin(orderStatusText(order.status))}</td><td>${escapeAdmin(paymentStatusText(order.payment_status))}</td>
+      <td>${escapeAdmin(fulfillmentStatusText(order.fulfillment_status || "pending"))}</td>
       <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
       <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
   `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
@@ -479,7 +501,7 @@ function renderOrderDetail() {
   adminEls.orderDetailSummary.innerHTML = [
     ["Cliente", `${order.businessName} (${order.email})`],
     ["Contacto", `${order.contactPerson || "-"} | WhatsApp ${order.customerWhatsapp || "-"}`],
-    ["Estado", `${order.status} / ${order.paymentStatus}`],
+    ["Estado", `${orderStatusText(order.status)} / ${paymentStatusText(order.paymentStatus)}`],
     ["Descuentos", discountText(order.discountsBps)],
     ["Subtotal neto", adminMoney.format(order.subtotalNetCents / 100)],
     ["IVA", `${(order.vatBps / 100).toFixed(2)}% - ${adminMoney.format(order.vatCents / 100)}`],
@@ -821,7 +843,7 @@ function shippingText(shipping = {}) {
 
 function fulfillmentText(fulfillment = {}) {
   return [
-    fulfillment.status && fulfillment.status !== "pending" ? fulfillment.status : "Pendiente",
+    fulfillmentStatusText(fulfillment.status || "pending"),
     fulfillment.method,
     fulfillment.carrier,
     fulfillment.tracking ? `Guia/remito: ${fulfillment.tracking}` : "",
@@ -839,12 +861,25 @@ function orderCustomerWhatsappText(order) {
     `Hola ${order.contactPerson || order.businessName}, te contactamos de KM Detail Line.`,
     "",
     `Pedido: ${order.orderNumber}`,
-    `Estado: ${order.status}`,
-    `Pago: ${order.paymentStatus}`,
+    `Estado: ${orderStatusText(order.status)}`,
+    `Pago: ${paymentStatusText(order.paymentStatus)}`,
+    `Despacho: ${fulfillmentStatusText(order.fulfillment?.status || "pending")}`,
     `Total: ${adminMoney.format(order.totalCents / 100)}`,
     "",
     "Cualquier informacion adicional la coordinamos por este medio."
   ].join("\n");
+}
+
+function orderStatusText(status) {
+  return orderStatusLabels[status] || status || "";
+}
+
+function paymentStatusText(status) {
+  return paymentStatusLabels[status] || status || "";
+}
+
+function fulfillmentStatusText(status) {
+  return fulfillmentStatusLabels[status] || status || "";
 }
 
 function normalizeDateInput(value) {

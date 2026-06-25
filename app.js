@@ -662,7 +662,7 @@ function fileToBase64(file) {
 
 function customerFulfillmentText(fulfillment = {}) {
   return [
-    fulfillment.status,
+    fulfillmentStatusText(fulfillment.status),
     fulfillment.method,
     fulfillment.carrier,
     fulfillment.tracking ? `Guia/remito: ${fulfillment.tracking}` : "",
@@ -691,6 +691,15 @@ function paymentStatusText(status) {
     rejected: "Pago rechazado",
     refunded: "Reintegrado"
   })[status] || status;
+}
+
+function fulfillmentStatusText(status) {
+  return ({
+    pending: "Despacho pendiente",
+    ready: "Listo para despacho",
+    shipped: "Despachado",
+    delivered: "Entregado"
+  })[status] || status || "";
 }
 
 function orderSummary(order) {
