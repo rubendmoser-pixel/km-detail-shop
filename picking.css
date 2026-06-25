@@ -109,7 +109,6 @@ h1 {
 }
 
 .pick-meta span,
-.pick-table th,
 .control-box span {
   display: block;
   color: #55585e;
@@ -160,6 +159,11 @@ h1 {
 
 .pick-table th {
   background: #f1f2f4;
+  color: #55585e;
+  font-size: 7.5pt;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .pick-table thead {
