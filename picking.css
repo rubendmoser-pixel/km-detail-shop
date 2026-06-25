@@ -150,6 +150,7 @@ h1 {
 
 .pick-table th,
 .pick-table td {
+  display: table-cell !important;
   padding: 2.6mm 2.3mm;
   border: 0.35mm solid #c8cbd0;
   text-align: left;
