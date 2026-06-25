@@ -418,19 +418,23 @@
           <div>
             <p class="eyebrow">Carrito</p>
             <h2>Pedido actual</h2>
+            <span class="cart-summary-text" id="cartSummaryText">Sin productos cargados</span>
           </div>
           <button class="icon-button" id="closeCart" type="button" aria-label="Cerrar carrito">x</button>
         </div>
-        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-items" id="cartItems" aria-label="Productos del pedido"></div>
         <div class="cart-empty" id="cartEmpty">Todavia no agregaste productos.</div>
-        <dl class="cart-totals" id="cartTotals" hidden>
-          <div><dt>Subtotal neto</dt><dd id="cartSubtotal">$ 0,00</dd></div>
-          <div><dt id="cartVatLabel">IVA 21%</dt><dd id="cartVat">$ 0,00</dd></div>
-          <div class="grand-total"><dt>Total</dt><dd id="cartTotal">$ 0,00</dd></div>
-        </dl>
-        <div class="cart-actions">
-          <a class="primary-link disabled" id="goToOrder" href="#distribuidores">Continuar pedido</a>
-          <button class="text-button" id="clearCart" type="button">Vaciar carrito</button>
+        <div class="cart-footer">
+          <dl class="cart-totals" id="cartTotals" hidden>
+            <div><dt>Subtotal neto</dt><dd id="cartSubtotal">$ 0,00</dd></div>
+            <div><dt id="cartVatLabel">IVA 21%</dt><dd id="cartVat">$ 0,00</dd></div>
+            <div class="grand-total"><dt>Total</dt><dd id="cartTotal">$ 0,00</dd></div>
+          </dl>
+          <p class="cart-note">Precios netos en pesos argentinos. IVA discriminado. Pedido sujeto a confirmacion de disponibilidad.</p>
+          <div class="cart-actions">
+            <a class="primary-link disabled" id="goToOrder" href="#distribuidores">Continuar pedido</a>
+            <button class="text-button" id="clearCart" type="button">Vaciar carrito</button>
+          </div>
         </div>
       </div>
     </aside>
@@ -498,6 +502,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=35" defer></script>
+    <script src="./app.js?v=36" defer></script>
   </body>
 </html>

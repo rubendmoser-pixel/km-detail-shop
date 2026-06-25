@@ -53,7 +53,7 @@ const state = {
 const els = Object.fromEntries([
   "categoryFilters", "cutFilter", "sizeFilter", "searchInput", "sortSelect", "productGrid",
   "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
-  "cartEmpty", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
+  "cartEmpty", "cartSummaryText", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
   "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus",
@@ -370,15 +370,47 @@ function renderCart() {
   const lines = cartLines();
   const totalQuantity = lines.reduce((sum, line) => sum + line.quantity, 0);
   els.cartCount.textContent = totalQuantity;
+  els.cartSummaryText.textContent = lines.length
+    ? `${lines.length} referencias | ${totalQuantity} unidades`
+    : "Sin productos cargados";
   els.cartEmpty.hidden = lines.length > 0;
   els.cartItems.innerHTML = lines.map(({ product, quantity }) => `
     <div class="cart-line">
-      <div><strong>${quantity} x ${escapeHtml(product.kmCode)}</strong><span>${escapeHtml(product.name)}</span>
-      <b>${money.format(product.finalPriceCents * quantity / 100)}</b></div>
-      <button type="button" data-remove="${product.id}" aria-label="Quitar ${escapeHtml(product.kmCode)}">x</button>
+      <div class="cart-line-main">
+        <span class="product-code">${escapeHtml(product.kmCode)}</span>
+        <strong>${escapeHtml(product.name)}</strong>
+        <span>${escapeHtml(product.family.name)}${product.measure ? ` | ${escapeHtml(product.measure)}` : ""}${product.ean13 ? ` | EAN ${escapeHtml(product.ean13)}` : ""}</span>
+      </div>
+      <div class="cart-line-controls">
+        <div class="qty-control cart-qty">
+          <button type="button" data-cart-step="-1" data-product-id="${product.id}" aria-label="Restar ${escapeHtml(product.kmCode)}">-</button>
+          <input data-cart-qty="${product.id}" value="${quantity}" inputmode="numeric" aria-label="Cantidad en carrito para ${escapeHtml(product.kmCode)}" />
+          <button type="button" data-cart-step="1" data-product-id="${product.id}" aria-label="Sumar ${escapeHtml(product.kmCode)}">+</button>
+        </div>
+        <div class="cart-line-price">
+          <span>${money.format(product.finalPriceCents / 100)} c/u</span>
+          <b>${money.format(product.finalPriceCents * quantity / 100)}</b>
+        </div>
+        <button class="cart-remove" type="button" data-remove="${product.id}" aria-label="Quitar ${escapeHtml(product.kmCode)}">Quitar</button>
+      </div>
     </div>`).join("");
   els.cartItems.querySelectorAll("[data-remove]").forEach((button) => {
     button.addEventListener("click", () => removeFromCart(Number(button.dataset.remove)));
+  });
+  els.cartItems.querySelectorAll("[data-cart-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const productId = Number(button.dataset.productId);
+      updateCartQuantity(productId, (state.cart[productId] || 0) + Number(button.dataset.cartStep));
+    });
+  });
+  els.cartItems.querySelectorAll("[data-cart-qty]").forEach((input) => {
+    input.addEventListener("change", () => updateCartQuantity(Number(input.dataset.cartQty), input.value));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        updateCartQuantity(Number(input.dataset.cartQty), input.value);
+      }
+    });
   });
 
   const subtotal = lines.reduce((sum, line) => sum + line.product.finalPriceCents * line.quantity, 0);
@@ -685,6 +717,17 @@ function addToCart(productId, quantity) {
 
 function removeFromCart(productId) {
   delete state.cart[productId];
+  saveCart();
+  renderCart();
+}
+
+function updateCartQuantity(productId, quantity) {
+  const normalized = Math.floor(Number(quantity));
+  if (!Number.isFinite(normalized) || normalized <= 0) {
+    removeFromCart(productId);
+    return;
+  }
+  state.cart[productId] = Math.min(normalized, 9999);
   saveCart();
   renderCart();
 }
