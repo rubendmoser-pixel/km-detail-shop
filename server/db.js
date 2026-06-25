@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -242,6 +242,21 @@ function migrate(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS security_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      email TEXT NOT NULL DEFAULT '',
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      role TEXT NOT NULL DEFAULT '',
+      ip_address TEXT NOT NULL DEFAULT '',
+      user_agent TEXT NOT NULL DEFAULT '',
+      method TEXT NOT NULL DEFAULT '',
+      path TEXT NOT NULL DEFAULT '',
+      status_code INTEGER NOT NULL DEFAULT 0,
+      metadata_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_products_family_active ON products(family_id, active);
     CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id, sort_order, id);
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
@@ -249,6 +264,8 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON email_outbox(status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_security_events_created ON security_events(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_security_events_email ON security_events(email, created_at DESC);
   `);
 
   const migration = db.prepare("SELECT version FROM schema_migrations WHERE version = ?").get(SCHEMA_VERSION);

@@ -1,9 +1,10 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
-  orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: ""
+  orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
+  securityEvents: [], securitySummary: null
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const adminViews = new Set(["customers", "products", "orders", "settings", "emails"]);
+const adminViews = new Set(["customers", "products", "orders", "settings", "emails", "security"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -19,7 +20,8 @@ const adminEls = Object.fromEntries([
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
-  "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody", "adminToast"
+  "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
+  "securitySearch", "securityStats", "securityTableBody", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -62,6 +64,8 @@ function bindAdminEvents() {
   adminEls.emailSearch.addEventListener("input", debounce(loadEmails, 250));
   document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
+  adminEls.securitySearch.addEventListener("input", debounce(loadSecurityEvents, 250));
+  document.querySelector("#reloadSecurity").addEventListener("click", loadSecurityEvents);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
 }
 
@@ -90,7 +94,7 @@ async function enterWorkspace() {
   adminEls.adminWorkspace.hidden = false;
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
-  await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails()]);
+  await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents()]);
   showAdminView(currentAdminView(), false);
   resetProductForm();
 }
@@ -694,6 +698,60 @@ function renderEmails() {
       <td class="email-error">${escapeAdmin(email.last_error || "")}</td>
     </tr>
   `).join("") : `<tr><td colspan="7">Todavia no hay emails registrados.</td></tr>`;
+}
+
+async function loadSecurityEvents() {
+  const params = new URLSearchParams();
+  const search = adminEls.securitySearch.value.trim();
+  if (search) params.set("q", search);
+  const { summary, events } = await adminApi(`/api/admin/security-events${params.size ? `?${params}` : ""}`);
+  adminState.securitySummary = summary || {};
+  adminState.securityEvents = events || [];
+  renderSecurityEvents();
+}
+
+function renderSecurityEvents() {
+  const summary = adminState.securitySummary || {};
+  adminEls.securityStats.innerHTML = [
+    ["Ingresos correctos 24h", summary.login_success || 0],
+    ["Fallidos 24h", summary.login_failed || 0],
+    ["Bloqueados 24h", summary.rate_limited || 0],
+    ["Eventos listados", adminState.securityEvents.length || 0]
+  ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
+  adminEls.securityTableBody.innerHTML = adminState.securityEvents.length ? adminState.securityEvents.map((event) => `
+    <tr>
+      <td>${formatDate(event.created_at)}</td>
+      <td><span class="status-badge ${securityEventClass(event.event_type)}">${securityEventLabel(event.event_type)}</span></td>
+      <td>${escapeAdmin(event.email || "")}</td>
+      <td>${escapeAdmin(event.role || "")}</td>
+      <td>${escapeAdmin(event.ip_address || "")}</td>
+      <td>${escapeAdmin(`${event.method || ""} ${event.path || ""}`.trim())}</td>
+      <td class="security-agent">${escapeAdmin(shortUserAgent(event.user_agent || ""))}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="7">Todavia no hay eventos de seguridad registrados.</td></tr>`;
+}
+
+function securityEventLabel(type) {
+  return ({
+    login_success: "Ingreso correcto",
+    login_failed: "Login fallido",
+    rate_limited: "Bloqueado"
+  })[type] || type;
+}
+
+function securityEventClass(type) {
+  return ({
+    login_success: "approved",
+    login_failed: "rejected",
+    rate_limited: "suspended"
+  })[type] || "pending";
+}
+
+function shortUserAgent(value) {
+  return value
+    .replace(/\s+/g, " ")
+    .replace(/Mozilla\/5\.0\s*/i, "")
+    .slice(0, 120);
 }
 
 async function saveSettings(event) {

@@ -30,6 +30,7 @@ import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSessionCookie, parseCookie
 import { createEmailService } from "./services/email-service.js";
 import { createRateLimiter } from "./rate-limit.js";
 import { renderProductPage, renderSitemap } from "./seo-pages.js";
+import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -43,7 +44,16 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
 
     try {
       const retryAfter = checkRateLimit(request, url.pathname);
-      if (retryAfter) return sendJson(response, 429, { error: "Too many requests. Try again later." }, { "retry-after": String(retryAfter) });
+      if (retryAfter) {
+        if (url.pathname.startsWith("/api/auth/")) {
+          recordSecurityEvent(db, request, {
+            eventType: "rate_limited",
+            statusCode: 429,
+            metadata: { retryAfter, route: url.pathname }
+          });
+        }
+        return sendJson(response, 429, { error: "Too many requests. Try again later." }, { "retry-after": String(retryAfter) });
+      }
       if (request.method === "GET" && url.pathname === "/api/health") {
         return sendJson(response, 200, { status: "ok", service: "km-detail-b2b", time: new Date().toISOString() });
       }
@@ -65,7 +75,26 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         return sendJson(response, 201, result);
       }
       if (request.method === "POST" && url.pathname === "/api/auth/login") {
-        const result = await login(db, await readJson(request), config.sessionDays, config);
+        const body = await readJson(request);
+        let result;
+        try {
+          result = await login(db, body, config.sessionDays, config);
+        } catch (error) {
+          recordSecurityEvent(db, request, {
+            eventType: "login_failed",
+            email: body.email,
+            statusCode: error.statusCode || 401,
+            metadata: { reason: error.message || "login failed" }
+          });
+          throw error;
+        }
+        recordSecurityEvent(db, request, {
+          eventType: "login_success",
+          email: result.user.email,
+          userId: result.user.id,
+          role: result.user.role,
+          statusCode: 200
+        });
         return sendJson(response, 200, { user: result.user, expiresAt: result.expiresAt }, {
           "set-cookie": sessionCookie(result.token, {
             secure: config.secureCookies,
@@ -238,6 +267,15 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
           emails: emailService.listOutbox({
             limit: Number(url.searchParams.get("limit") || 50),
             search: url.searchParams.get("q") || ""
+          })
+        });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/security-events") {
+        return sendJson(response, 200, {
+          summary: summarizeSecurityEvents(db),
+          events: listSecurityEvents(db, {
+            q: url.searchParams.get("q") || "",
+            limit: url.searchParams.get("limit") || 150
           })
         });
       }

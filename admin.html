@@ -41,6 +41,7 @@
           <button type="button" data-admin-view="orders">Pedidos</button>
           <button type="button" data-admin-view="settings">Configuracion</button>
           <button type="button" data-admin-view="emails">Emails</button>
+          <button type="button" data-admin-view="security">Seguridad</button>
         </nav>
 
         <section class="admin-view" id="customersView">
@@ -254,9 +255,27 @@
           <p class="admin-note" id="emailConfigStatus"></p>
           <div class="orders-table-wrap"><table class="admin-table email-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Destinatario</th><th>Asunto</th><th>Estado</th><th>Intentos</th><th>Ultimo error</th></tr></thead><tbody id="emailsTableBody"></tbody></table></div>
         </section>
+
+        <section class="admin-view" id="securityView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Auditoria</p><h1>Seguridad y accesos</h1></div>
+            <div class="admin-toolbar">
+              <input id="securitySearch" type="search" placeholder="Buscar email, IP, evento o navegador" aria-label="Buscar eventos de seguridad" />
+              <button class="ghost-button" id="reloadSecurity" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="admin-stats" id="securityStats"></div>
+          <p class="admin-note">Los eventos empiezan a registrarse desde esta version. No se guardan contrasenas, solo resultado, email, IP y navegador.</p>
+          <div class="orders-table-wrap">
+            <table class="admin-table security-table">
+              <thead><tr><th>Fecha</th><th>Evento</th><th>Email</th><th>Rol</th><th>IP</th><th>Ruta</th><th>Navegador</th></tr></thead>
+              <tbody id="securityTableBody"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=17" defer></script>
+    <script src="./admin.js?v=18" defer></script>
   </body>
 </html>

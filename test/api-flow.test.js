@@ -102,6 +102,10 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const filteredEmailsResponse = await getJson(`${baseUrl}/api/admin/emails?q=password_reset`, adminCookie);
   assert.equal(filteredEmailsResponse.emails.length, 1);
   assert.equal(filteredEmailsResponse.emails[0].event_type, "password_reset");
+  const securityResponse = await getJson(`${baseUrl}/api/admin/security-events`, adminCookie);
+  assert.equal(securityResponse.summary.login_failed, 1);
+  assert.ok(securityResponse.summary.login_success >= 1);
+  assert.equal(securityResponse.events.some((event) => event.event_type === "login_failed" && event.email === "admin@km-detail.com"), true);
   assert.equal((await fetch(`${baseUrl}/api/admin/emails/flush`, {
     method: "POST", headers: jsonHeaders(adminCookie)
   })).status, 200);
