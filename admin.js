@@ -646,6 +646,13 @@ function renderOrderDetail() {
   adminEls.orderDetailActions.innerHTML = customerWhatsapp
     ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
     : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
+  adminEls.orderDetailActions.insertAdjacentHTML("beforeend", `
+    <form class="shipping-label-form">
+      <label><span>Bultos</span><input name="packages" type="number" min="1" max="99" step="1" value="1" /></label>
+      <button class="ghost-button" type="submit">Generar etiquetas A4</button>
+    </form>
+  `);
+  adminEls.orderDetailActions.querySelector(".shipping-label-form").addEventListener("submit", openShippingLabels);
   adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
     <tr data-order-item-id="${item.id}" data-unit-cents="${item.finalUnitPriceCents}">
       <td><strong>${escapeAdmin(item.kmCode)}</strong><br><span>EAN ${escapeAdmin(item.ean13)}</span></td>
@@ -666,6 +673,14 @@ function renderOrderDetail() {
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
   adminEls.orderStatusMessage.textContent = "";
+}
+
+function openShippingLabels(event) {
+  event.preventDefault();
+  if (!adminState.selectedOrder) return;
+  const values = Object.fromEntries(new FormData(event.currentTarget));
+  const packages = Math.max(1, Math.min(99, Number(values.packages || 1)));
+  window.open(`./labels.html?order=${adminState.selectedOrder.id}&packages=${packages}`, "_blank", "noopener,noreferrer");
 }
 
 function renderFulfillment(order) {

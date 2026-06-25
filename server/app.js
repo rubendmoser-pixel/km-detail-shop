@@ -6,6 +6,7 @@ import {
   addPaymentReceipt,
   confirmOrderAvailability,
   createOrder,
+  createShippingLabels,
   getOrder,
   listAdminOrders,
   listCustomerOrders,
@@ -251,6 +252,10 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         const order = updateOrderFulfillment(db, Number(match[1]), await readJson(request), currentUser.id);
         emailService.queueOrderFulfillmentUpdated(order.id);
         return sendJson(response, 200, { order });
+      }
+      match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/shipping-labels$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, createShippingLabels(db, Number(match[1]), Number(url.searchParams.get("packages") || 1)));
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)$/);
       if (request.method === "GET" && match) {

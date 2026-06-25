@@ -90,6 +90,37 @@ export function getOrder(db, orderId, customerId = null, isAdmin = false) {
   return mapOrder(order, items, receipts);
 }
 
+export function createShippingLabels(db, orderId, packageCount) {
+  const order = getOrder(db, orderId, null, true);
+  const packages = normalizePackageCount(packageCount);
+  const labelItems = order.items
+    .filter((item) => item.confirmedQuantity > 0 || order.status === "order_created")
+    .map((item) => ({
+      kmCode: item.kmCode,
+      productName: item.productName,
+      quantity: item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity
+    }));
+  return {
+    generatedAt: new Date().toISOString(),
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      businessName: order.businessName,
+      contactPerson: order.contactPerson,
+      customerWhatsapp: order.customerWhatsapp,
+      email: order.email,
+      shipping: order.shipping,
+      fulfillment: order.fulfillment,
+      items: labelItems
+    },
+    packages: Array.from({ length: packages }, (_, index) => ({
+      number: index + 1,
+      total: packages,
+      code: `${order.orderNumber}-B${String(index + 1).padStart(2, "0")}-${String(packages).padStart(2, "0")}`
+    }))
+  };
+}
+
 export function listCustomerOrders(db, customerId) {
   return db.prepare(`
     SELECT o.*, c.business_name, c.contact_person, c.whatsapp, u.email
@@ -308,6 +339,14 @@ function lineStatusFor(orderedQuantity, confirmedQuantity, requestedStatus = "")
   if (confirmedQuantity === 0) return "unavailable";
   if (confirmedQuantity < orderedQuantity) return "partial";
   return "confirmed";
+}
+
+function normalizePackageCount(value) {
+  const packages = Number(value || 1);
+  if (!Number.isInteger(packages) || packages < 1 || packages > 99) {
+    throw new ValidationError("packages must be between 1 and 99");
+  }
+  return packages;
 }
 
 function calculateCommission(baseCents, commissionBps) {

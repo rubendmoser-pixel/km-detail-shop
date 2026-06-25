@@ -253,6 +253,11 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(adminOrderDetail.order.shipping.city, "Cordoba");
   assert.equal(adminOrderDetail.order.customerWhatsapp, "5493510000000");
   assert.equal(adminOrderDetail.order.contactPerson, "Cliente API");
+  const labelPayload = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/shipping-labels?packages=4`, adminCookie);
+  assert.equal(labelPayload.packages.length, 4);
+  assert.equal(labelPayload.packages[0].code, `${orderPayload.order.orderNumber}-B01-04`);
+  assert.equal(labelPayload.packages[3].code, `${orderPayload.order.orderNumber}-B04-04`);
+  assert.equal(labelPayload.order.shipping.address, "Calle 123");
   const availabilityResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/availability`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

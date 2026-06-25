@@ -423,6 +423,29 @@
   text-decoration: none;
 }
 
+.shipping-label-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  padding: 10px;
+  background: #17181b;
+  border: 1px solid #34363b;
+}
+
+.shipping-label-form label {
+  display: grid;
+  gap: 6px;
+  color: #a7a9ae;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.shipping-label-form input {
+  width: 92px;
+  min-height: 42px;
+}
+
 .payment-review-panel {
   display: grid;
   gap: 10px;
