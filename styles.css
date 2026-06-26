@@ -1302,6 +1302,13 @@ body.modal-open {
   border-bottom: 1px solid #34363b;
 }
 
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .order-result dt,
 .order-result dd,
 .cart-totals dt,

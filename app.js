@@ -73,7 +73,7 @@ async function init() {
   await loadProducts();
   if (isApprovedCustomer()) await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
   renderAll();
-  if (window.location.hash === "#mis-compras" && isApprovedCustomer()) await openPurchases();
+  await handleHashNavigation();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js").catch(() => {});
@@ -129,6 +129,9 @@ function bindEvents() {
   els.mobileMenuToggle?.addEventListener("click", toggleMobileMenu);
   els.topNav?.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => setMobileMenu(false));
+  });
+  window.addEventListener("hashchange", () => {
+    handleHashNavigation().catch((error) => showToast(error.message || "No se pudo abrir la seccion."));
   });
   document.querySelector("#newShippingAddress").addEventListener("click", () => openShippingAddressForm());
   document.querySelector("#editShippingAddress").addEventListener("click", editSelectedShippingAddress);
@@ -484,6 +487,7 @@ async function submitLogin(event) {
     await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
     els.accountDialog.close();
     renderAll();
+    if (isApprovedCustomer()) await handleHashNavigation();
     showToast(`Bienvenido, ${state.user.businessName || state.user.email}.`);
   } catch (error) {
     els.accountMessage.textContent = error.message;
@@ -716,7 +720,10 @@ function renderOrderResult(order) {
     </dl>
     <p>No realices el pago hasta recibir la confirmacion comercial de disponibilidad.</p>
     ${whatsapp ? `<p>Para agilizar la gestion, envia el resumen por WhatsApp.</p>` : ""}
-    ${whatsapp}`;
+    <div class="result-actions">
+      ${whatsapp}
+      <a class="secondary-link" href="#mis-compras">Ver mis compras</a>
+    </div>`;
 }
 
 function renderCustomerOrders() {
@@ -901,6 +908,11 @@ async function openPurchases(event) {
   setMobileMenu(false);
   history.replaceState(null, "", "#mis-compras");
   requestAnimationFrame(() => els.customerOrders.scrollIntoView({ behavior: "smooth", block: "start" }));
+}
+
+async function handleHashNavigation() {
+  if (window.location.hash !== "#mis-compras") return;
+  await openPurchases();
 }
 
 function toggleMobileMenu() {
