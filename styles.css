@@ -1345,11 +1345,11 @@ body.modal-open {
 .purchases-header h2 {
   margin: 0;
   color: #fff;
-  font-size: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(1.8rem, 4vw, 3rem);
 }
 
 .purchases-header p {
-  margin: 8px 0 0;
+  margin: 4px 0 0;
   color: #b8bcc3;
 }
 
@@ -1381,9 +1381,10 @@ body.modal-open {
 }
 
 .purchase-metrics article {
-  display: grid;
-  gap: 3px;
-  padding: 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 14px;
   border-right: 1px solid #34363b;
 }
 
@@ -1394,17 +1395,18 @@ body.modal-open {
 .purchase-metrics strong {
   color: #fff;
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-size: clamp(1.18rem, 2vw, 1.55rem);
 }
 
 .purchase-metrics span {
   color: #aeb4bb;
+  font-size: 0.84rem;
   font-weight: 800;
 }
 
 .purchase-list {
   display: grid;
-  gap: 16px;
+  gap: 8px;
 }
 
 .customer-order-card {
@@ -1437,10 +1439,10 @@ body.modal-open {
 
 .customer-order-summary {
   display: grid;
-  grid-template-columns: minmax(240px, 1.2fr) minmax(240px, auto) minmax(150px, auto);
+  grid-template-columns: minmax(260px, 1fr) minmax(310px, auto) minmax(170px, auto);
   align-items: center;
-  gap: 18px;
-  padding: 18px;
+  gap: 14px;
+  padding: 12px 16px;
   cursor: pointer;
   list-style: none;
 }
@@ -1451,45 +1453,48 @@ body.modal-open {
 
 .purchase-summary-main {
   display: grid;
-  gap: 4px;
+  gap: 2px;
+}
+
+.purchase-summary-main strong {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.1;
 }
 
 .purchase-summary-main small {
   color: #9ca2ab;
-  font-size: 0.86rem;
-  line-height: 1.35;
+  overflow: hidden;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .purchase-summary-total {
   display: grid;
   justify-items: end;
-  gap: 4px;
-}
-
-.purchase-summary-total > span {
-  color: #aeb4bb;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 6px;
 }
 
 .purchase-summary-total strong {
   color: #fff;
   font-family: var(--font-display);
-  font-size: 1.18rem;
+  font-size: 1rem;
+  line-height: 1.1;
 }
 
 .purchase-toggle {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 28px;
   align-items: center;
   justify-content: center;
-  padding: 7px 12px;
+  padding: 5px 10px;
   color: #09090a;
   background: linear-gradient(180deg, #f8f9fa, #c7ccd1);
   border-radius: 6px;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
@@ -1508,23 +1513,23 @@ body.modal-open {
 .purchase-detail-body {
   display: grid;
   gap: 16px;
-  padding: 0 18px 18px;
+  padding: 4px 16px 16px;
 }
 
 .order-status-pills {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
 }
 
 .order-status-pills span {
-  padding: 6px 10px;
+  padding: 5px 9px;
   color: #e9edf2;
   background: #22252b;
   border: 1px solid #42464e;
   border-radius: 999px;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1692,6 +1697,12 @@ body.modal-open {
 
 .empty-purchases strong {
   color: #fff;
+}
+
+.purchase-more {
+  justify-self: center;
+  margin-top: 10px;
+  min-width: min(260px, 100%);
 }
 
 .grand-total {
@@ -2388,6 +2399,10 @@ body.modal-open {
 
   .purchase-timeline {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .purchase-summary-main small {
+    white-space: normal;
   }
 
   .order-access {

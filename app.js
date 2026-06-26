@@ -43,6 +43,7 @@ const state = {
   shippingAddresses: [],
   selectedShippingAddressId: null,
   purchaseFilter: "all",
+  purchaseVisibleCount: 10,
   settings: { vatBps: 2100, whatsappNumber: "" },
   category: "Todos",
   search: "",
@@ -735,7 +736,9 @@ function renderCustomerOrders() {
   }
   const metrics = purchaseMetrics(state.orders);
   const filteredOrders = filterPurchases(state.orders);
-  const orderCards = filteredOrders.map(renderCustomerOrder).join("");
+  const visibleOrders = filteredOrders.slice(0, state.purchaseVisibleCount);
+  const orderCards = visibleOrders.map(renderCustomerOrder).join("");
+  const remainingOrders = Math.max(0, filteredOrders.length - visibleOrders.length);
   els.customerOrders.innerHTML = `
     <div class="purchases-header">
       <div class="section-title compact">
@@ -763,9 +766,15 @@ function renderCustomerOrders() {
     <div class="purchase-list">
       ${filteredOrders.length ? orderCards : `<article class="empty-purchases"><strong>Sin compras para este filtro</strong><span>Cambia el filtro o arma un pedido desde Productos.</span></article>`}
     </div>
+    ${remainingOrders ? `<button class="secondary-link purchase-more" type="button" id="loadMorePurchases">Ver ${Math.min(10, remainingOrders)} compras mas</button>` : ""}
   `;
   els.customerOrders.querySelector("#purchaseStatusFilter")?.addEventListener("change", (event) => {
     state.purchaseFilter = event.currentTarget.value;
+    state.purchaseVisibleCount = 10;
+    renderCustomerOrders();
+  });
+  els.customerOrders.querySelector("#loadMorePurchases")?.addEventListener("click", () => {
+    state.purchaseVisibleCount += 10;
     renderCustomerOrders();
   });
   els.customerOrders.querySelectorAll("[data-receipt-input]").forEach((input) => input.addEventListener("change", uploadReceipt));
@@ -792,7 +801,6 @@ function renderCustomerOrder(order) {
       <details class="purchase-detail">
         <summary class="customer-order-summary">
           <div class="purchase-summary-main">
-            <p class="eyebrow">Compra</p>
             <strong>${escapeHtml(order.orderNumber)}</strong>
             <span>${formatDate(order.createdAt)} | ${itemCount} unidad${itemCount === 1 ? "" : "es"}</span>
             <small>${firstItem ? `${escapeHtml(firstItem.kmCode)} - ${escapeHtml(firstItem.productName)}` : "Sin articulos"}</small>
@@ -803,7 +811,6 @@ function renderCustomerOrder(order) {
             <span class="${fulfillmentStatusClass(fulfillment.status)}">${escapeHtml(fulfillmentStatusText(fulfillment.status))}</span>
           </div>
           <div class="purchase-summary-total">
-            <span>Total</span>
             <strong>${money.format(order.totalCents / 100)}</strong>
             <b class="purchase-toggle"><span class="toggle-closed">Ver detalle</span><span class="toggle-open">Cerrar detalle</span></b>
           </div>
