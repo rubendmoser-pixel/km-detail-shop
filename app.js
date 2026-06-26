@@ -786,47 +786,58 @@ function renderCustomerOrder(order) {
   const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
   const statusClass = purchaseStatusClass(order);
   const itemCount = items.reduce((sum, item) => sum + (Number(item.confirmedQuantity) > 0 ? Number(item.confirmedQuantity) : Number(item.quantity || 0)), 0);
+  const firstItem = items[0];
   return `
     <article class="customer-order-card ${statusClass}">
-      <div class="customer-order-head">
-        <div>
-          <p class="eyebrow">Compra</p>
-          <strong>${escapeHtml(order.orderNumber)}</strong>
-          <span>${formatDate(order.createdAt)} | ${itemCount} unidad${itemCount === 1 ? "" : "es"}</span>
+      <details class="purchase-detail">
+        <summary class="customer-order-summary">
+          <div class="purchase-summary-main">
+            <p class="eyebrow">Compra</p>
+            <strong>${escapeHtml(order.orderNumber)}</strong>
+            <span>${formatDate(order.createdAt)} | ${itemCount} unidad${itemCount === 1 ? "" : "es"}</span>
+            <small>${firstItem ? `${escapeHtml(firstItem.kmCode)} - ${escapeHtml(firstItem.productName)}` : "Sin articulos"}</small>
+          </div>
+          <div class="order-status-pills">
+            <span class="${statusClass}">${escapeHtml(orderStatusText(order.status))}</span>
+            <span class="${paymentStatusClass(order.paymentStatus)}">${escapeHtml(paymentStatusText(order.paymentStatus))}</span>
+            <span class="${fulfillmentStatusClass(fulfillment.status)}">${escapeHtml(fulfillmentStatusText(fulfillment.status))}</span>
+          </div>
+          <div class="purchase-summary-total">
+            <span>Total</span>
+            <strong>${money.format(order.totalCents / 100)}</strong>
+            <b class="purchase-toggle"><span class="toggle-closed">Ver detalle</span><span class="toggle-open">Cerrar detalle</span></b>
+          </div>
+        </summary>
+        <div class="purchase-detail-body">
+          ${renderPurchaseTimeline(order)}
+          <div class="purchase-card-grid">
+            <dl>
+              <div><dt>Total</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
+              <div><dt>Subtotal neto</dt><dd>${money.format(order.subtotalNetCents / 100)}</dd></div>
+              <div><dt>IVA ${formatPercent(order.vatBps)}</dt><dd>${money.format(order.vatCents / 100)}</dd></div>
+            </dl>
+            <div class="purchase-shipping">
+              <strong>Entrega</strong>
+              <span>${escapeHtml(shipping.recipient || "-")}</span>
+              <span>${escapeHtml(shipping.address || "-")}</span>
+              <span>${escapeHtml([shipping.city, shipping.province].filter(Boolean).join(", "))}</span>
+            </div>
+          </div>
+          <div class="customer-order-lines">
+            <strong>${order.status === "order_created" ? "Articulos solicitados" : "Articulos confirmados"}</strong>
+            ${visibleItems.length ? visibleItems.map(renderPurchaseLine).join("") : `<span>Pendiente de confirmacion comercial.</span>`}
+            ${items.length > visibleItems.length ? `<span>+ ${items.length - visibleItems.length} articulo${items.length - visibleItems.length === 1 ? "" : "s"} mas</span>` : ""}
+            ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
+          </div>
+          <div class="purchase-actions">
+            ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}">Aceptar disponibilidad</button>` : ""}
+            ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : paymentHelperText(order)}
+            ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
+          </div>
+          ${canUpload ? renderBankSummary(bank) : ""}
+          ${fulfillment.status && fulfillment.status !== "pending" ? `<p class="purchase-note">Despacho: ${escapeHtml(customerFulfillmentText(fulfillment))}</p>` : ""}
         </div>
-        <div class="order-status-pills">
-          <span class="${statusClass}">${escapeHtml(orderStatusText(order.status))}</span>
-          <span class="${paymentStatusClass(order.paymentStatus)}">${escapeHtml(paymentStatusText(order.paymentStatus))}</span>
-          <span class="${fulfillmentStatusClass(fulfillment.status)}">${escapeHtml(fulfillmentStatusText(fulfillment.status))}</span>
-        </div>
-      </div>
-      ${renderPurchaseTimeline(order)}
-      <div class="purchase-card-grid">
-        <dl>
-          <div><dt>Total</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
-          <div><dt>Subtotal neto</dt><dd>${money.format(order.subtotalNetCents / 100)}</dd></div>
-          <div><dt>IVA ${formatPercent(order.vatBps)}</dt><dd>${money.format(order.vatCents / 100)}</dd></div>
-        </dl>
-        <div class="purchase-shipping">
-          <strong>Entrega</strong>
-          <span>${escapeHtml(shipping.recipient || "-")}</span>
-          <span>${escapeHtml(shipping.address || "-")}</span>
-          <span>${escapeHtml([shipping.city, shipping.province].filter(Boolean).join(", "))}</span>
-        </div>
-      </div>
-      <div class="customer-order-lines">
-        <strong>${order.status === "order_created" ? "Articulos solicitados" : "Articulos confirmados"}</strong>
-        ${visibleItems.length ? visibleItems.map(renderPurchaseLine).join("") : `<span>Pendiente de confirmacion comercial.</span>`}
-        ${items.length > visibleItems.length ? `<span>+ ${items.length - visibleItems.length} articulo${items.length - visibleItems.length === 1 ? "" : "s"} mas</span>` : ""}
-        ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
-      </div>
-      <div class="purchase-actions">
-        ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}">Aceptar disponibilidad</button>` : ""}
-        ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : paymentHelperText(order)}
-        ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
-      </div>
-      ${canUpload ? renderBankSummary(bank) : ""}
-      ${fulfillment.status && fulfillment.status !== "pending" ? `<p class="purchase-note">Despacho: ${escapeHtml(customerFulfillmentText(fulfillment))}</p>` : ""}
+      </details>
     </article>
   `;
 }
