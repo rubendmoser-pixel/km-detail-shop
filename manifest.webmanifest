@@ -1,21 +1,53 @@
 {
-  "name": "KM Detail Line Compras",
-  "short_name": "KM Compras",
-  "description": "Catalogo, promociones y pedidos KM Detail Line 2026.",
-  "start_url": "./index.html",
+  "id": "/",
+  "name": "KM Detail Line",
+  "short_name": "KM Detail",
+  "description": "Plataforma comercial de KM Detail Line para distribuidores, pinturerias y comercios especializados.",
+  "start_url": "/",
+  "scope": "/",
+  "lang": "es-AR",
+  "dir": "ltr",
   "display": "standalone",
-  "background_color": "#fbfcfd",
-  "theme_color": "#111318",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#050607",
+  "theme_color": "#050607",
+  "orientation": "portrait-primary",
+  "categories": ["business", "shopping", "productivity"],
   "icons": [
     {
-      "src": "./assets/icon-192.png",
+      "src": "/assets/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "./assets/icon-512.png",
+      "src": "/assets/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Productos",
+      "short_name": "Productos",
+      "description": "Abrir catalogo operativo de productos",
+      "url": "/productos",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mis compras",
+      "short_name": "Compras",
+      "description": "Consultar historial de pedidos",
+      "url": "/#mis-compras",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Contacto",
+      "short_name": "Contacto",
+      "description": "Contactar a KM Detail Line",
+      "url": "/contacto",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
