@@ -64,6 +64,25 @@ Las pruebas cubren:
 - creación de pedidos,
 - reserva de precio, IVA y datos bancarios.
 
+## Backup operativo
+
+La plataforma guarda base de datos e imagenes/comprobantes en rutas configurables.
+En produccion deben apuntar a un volumen persistente:
+
+```text
+DATABASE_PATH=/data/km-detail.sqlite
+UPLOADS_PATH=/data/uploads
+BACKUP_PATH=/data/backups
+```
+
+Para crear una copia de seguridad manual:
+
+```powershell
+npm run backup
+```
+
+El procedimiento completo esta en [Backup y persistencia](./docs/BACKUP_Y_PERSISTENCIA.md).
+
 ## Arquitectura inicial
 
 - Node.js ESM y servidor HTTP nativo.

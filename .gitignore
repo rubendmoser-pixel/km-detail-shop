@@ -3,6 +3,7 @@
 node_modules/
 /data/
 /uploads/
+/backups/
 *.log
 ADMIN_PASSWORD_TEMP.txt
 .DS_Store

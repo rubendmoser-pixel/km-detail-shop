@@ -9,6 +9,7 @@
     "start:production": "node server/scripts/import-catalog.js && node server/index.js",
     "test": "node --test",
     "db:check": "node server/scripts/check-database.js",
+    "backup": "node --env-file-if-exists=.env server/scripts/backup-data.js",
     "catalog:import": "node --env-file-if-exists=.env server/scripts/import-catalog.js",
     "customers:pending": "node --env-file-if-exists=.env server/scripts/list-pending-customers.js",
     "email:check": "node --env-file-if-exists=.env server/scripts/check-email.js",
