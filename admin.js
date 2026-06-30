@@ -849,6 +849,10 @@ function renderPaymentReceipts(order) {
   const receipts = order.paymentReceipts || [];
   const balanceCents = order.balanceCents ?? Math.max(0, order.totalCents - (order.paidCents || 0));
   const defaultPaymentAmount = Math.max(0, balanceCents || order.totalCents);
+  const pendingReceipts = receipts.filter((receipt) => receipt.status === "received");
+  const reviewedReceipts = receipts.filter((receipt) => receipt.status !== "received");
+  const needsAmountRegularization = reviewedReceipts.some((receipt) => receipt.status === "accepted" && !receipt.amountCents);
+  const canAuthorizeBalance = balanceCents > 0 && !pendingReceipts.length && !needsAmountRegularization;
   adminEls.paymentReviewPanel.innerHTML = `
     <div class="panel-heading"><p class="eyebrow">Pago</p><h3>Comprobantes</h3></div>
     <div class="payment-balance-grid">
@@ -857,21 +861,22 @@ function renderPaymentReceipts(order) {
       <div><span>Saldo</span><strong>${adminMoney.format(balanceCents / 100)}</strong></div>
       <div><span>Vencimiento</span><strong>${order.paymentDueDate ? formatAdminDate(order.paymentDueDate) : "Sin fecha"}</strong></div>
     </div>
-    ${receipts.length ? receipts.map((receipt) => `
-      <article class="payment-receipt-row">
-        <div><strong>${escapeAdmin(receipt.originalFilename)}</strong><span>${escapeAdmin(receiptStatusText(receipt.status))} - ${formatDate(receipt.createdAt)}${receipt.amountCents ? ` - ${adminMoney.format(receipt.amountCents / 100)}` : ""}</span></div>
-        <form class="receipt-review-form">
-          <input type="hidden" name="receiptId" value="${receipt.id}" />
-          <label><span>Importe acreditado</span><input name="amount" type="number" min="0" step="0.01" value="${(receipt.amountCents || defaultPaymentAmount) / 100}" ${receipt.status === "accepted" ? "disabled" : ""} /></label>
-          <label><span>Vencimiento saldo</span><input name="paymentDueDate" type="date" value="${escapeAdmin(order.paymentDueDate || "")}" ${receipt.status === "accepted" ? "disabled" : ""} /></label>
-          <label><span>Dias</span><input name="paymentTermsDays" type="number" min="0" max="365" step="1" placeholder="15" ${receipt.status === "accepted" ? "disabled" : ""} /></label>
-          <a class="ghost-button receipt-view-link" href="/api/admin/payment-receipts/${receipt.id}/file" target="_blank" rel="noreferrer">Ver comprobante</a>
-          <button class="ghost-button" type="submit" name="status" value="accepted" ${receipt.status === "accepted" ? "disabled" : ""}>Aceptar pago</button>
-          <button class="ghost-button danger" type="submit" name="status" value="rejected" ${receipt.status === "rejected" ? "disabled" : ""}>Rechazar</button>
-        </form>
-      </article>
-    `).join("") : `<p class="admin-note">Todavia no hay comprobantes cargados.</p>`}
-    ${balanceCents > 0 ? `
+    ${pendingReceipts.length ? `
+      <section class="payment-section">
+        <p class="eyebrow">Pendiente de revision</p>
+        ${pendingReceipts.map((receipt) => renderPendingReceipt(receipt, order, defaultPaymentAmount)).join("")}
+      </section>
+    ` : ""}
+    ${reviewedReceipts.length ? `
+      <section class="payment-section">
+        <p class="eyebrow">Historial de comprobantes</p>
+        ${reviewedReceipts.map((receipt) => renderReviewedReceipt(receipt, order, defaultPaymentAmount)).join("")}
+      </section>
+    ` : ""}
+    ${!receipts.length ? `<p class="admin-note">Todavia no hay comprobantes cargados.</p>` : ""}
+    ${pendingReceipts.length ? `<p class="admin-note">Primero revisa el comprobante cargado. Si queda saldo, despues podes autorizar vencimiento o cuenta corriente.</p>` : ""}
+    ${needsAmountRegularization ? `<p class="admin-note warning">Hay un comprobante aceptado sin importe acreditado. Regulariza el importe antes de autorizar saldo.</p>` : ""}
+    ${canAuthorizeBalance ? `
       <form class="payment-terms-form">
         <div>
           <p class="eyebrow">Cuenta corriente / saldo</p>
@@ -888,6 +893,57 @@ function renderPaymentReceipts(order) {
   adminEls.paymentReviewPanel.querySelectorAll(".receipt-review-form").forEach((form) => form.addEventListener("submit", reviewReceipt));
   const termsForm = adminEls.paymentReviewPanel.querySelector(".payment-terms-form");
   if (termsForm) termsForm.addEventListener("submit", authorizePaymentTerms);
+}
+
+function renderPendingReceipt(receipt, order, defaultPaymentAmount) {
+  return `
+    <article class="payment-receipt-row pending">
+      ${renderReceiptInfo(receipt)}
+      <form class="receipt-review-form">
+        <input type="hidden" name="receiptId" value="${receipt.id}" />
+        <label><span>Importe acreditado</span><input name="amount" type="number" min="0" step="0.01" value="${defaultPaymentAmount / 100}" /></label>
+        <label><span>Vencimiento saldo</span><input name="paymentDueDate" type="date" value="${escapeAdmin(order.paymentDueDate || "")}" /></label>
+        <label><span>Dias</span><input name="paymentTermsDays" type="number" min="0" max="365" step="1" placeholder="15" /></label>
+        <a class="ghost-button receipt-view-link" href="/api/admin/payment-receipts/${receipt.id}/file" target="_blank" rel="noreferrer">Ver comprobante</a>
+        <button class="ghost-button" type="submit" name="status" value="accepted">Aceptar pago</button>
+        <button class="ghost-button danger" type="submit" name="status" value="rejected">Rechazar</button>
+      </form>
+    </article>
+  `;
+}
+
+function renderReviewedReceipt(receipt, order, defaultPaymentAmount) {
+  const needsAmount = receipt.status === "accepted" && !receipt.amountCents;
+  return `
+    <article class="payment-receipt-row reviewed ${needsAmount ? "needs-amount" : ""}">
+      ${renderReceiptInfo(receipt, needsAmount ? "Importe pendiente de regularizar" : "")}
+      ${needsAmount ? `
+        <form class="receipt-review-form compact">
+          <input type="hidden" name="receiptId" value="${receipt.id}" />
+          <label><span>Importe acreditado</span><input name="amount" type="number" min="0" step="0.01" value="${defaultPaymentAmount / 100}" /></label>
+          <label><span>Vencimiento saldo</span><input name="paymentDueDate" type="date" value="${escapeAdmin(order.paymentDueDate || "")}" /></label>
+          <a class="ghost-button receipt-view-link" href="/api/admin/payment-receipts/${receipt.id}/file" target="_blank" rel="noreferrer">Ver comprobante</a>
+          <button class="ghost-button" type="submit" name="status" value="accepted">Regularizar importe</button>
+        </form>
+      ` : `
+        <div class="receipt-reviewed-actions">
+          <a class="ghost-button receipt-view-link" href="/api/admin/payment-receipts/${receipt.id}/file" target="_blank" rel="noreferrer">Ver comprobante</a>
+        </div>
+      `}
+    </article>
+  `;
+}
+
+function renderReceiptInfo(receipt, note = "") {
+  const status = receiptStatusText(receipt.status);
+  const amount = receipt.amountCents ? ` - ${adminMoney.format(receipt.amountCents / 100)}` : "";
+  return `
+    <div class="receipt-info">
+      <strong>${escapeAdmin(receipt.originalFilename)}</strong>
+      <span>${escapeAdmin(status)} - ${formatDate(receipt.createdAt)}${amount}</span>
+      ${note ? `<em>${escapeAdmin(note)}</em>` : ""}
+    </div>
+  `;
 }
 
 async function reviewReceipt(event) {

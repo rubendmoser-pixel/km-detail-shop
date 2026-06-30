@@ -588,8 +588,18 @@
   border: 1px solid #34363b;
 }
 
+.payment-section {
+  display: grid;
+  gap: 10px;
+}
+
+.payment-section .eyebrow {
+  margin: 4px 0 0;
+}
+
 .payment-receipt-row strong,
-.payment-receipt-row span {
+.payment-receipt-row span,
+.payment-receipt-row em {
   display: block;
 }
 
@@ -597,6 +607,27 @@
   margin-top: 4px;
   color: #a7a9ae;
   font-size: 0.8rem;
+}
+
+.payment-receipt-row em {
+  margin-top: 8px;
+  color: #f4df8d;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.payment-receipt-row.reviewed {
+  align-items: center;
+  background: #131417;
+}
+
+.payment-receipt-row.needs-amount {
+  border-color: rgba(244, 223, 141, 0.55);
+}
+
+.receipt-reviewed-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .payment-balance-grid {
@@ -636,9 +667,17 @@
   grid-template-columns: repeat(3, minmax(0, 1fr)) repeat(3, auto);
 }
 
+.receipt-review-form.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(2, auto);
+}
+
 .receipt-review-form .ghost-button,
 .receipt-review-form .receipt-view-link {
   min-height: 46px;
+}
+
+.admin-note.warning {
+  color: #f4df8d;
 }
 
 .payment-terms-form {
