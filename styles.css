@@ -1437,75 +1437,40 @@ body.modal-open {
   color: #b8bcc3;
 }
 
-.purchase-filter {
-  display: grid;
-  min-width: min(520px, 100%);
-  gap: 8px;
-}
-
-.purchase-filter span {
-  color: #b8bcc3;
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.purchase-filter-tabs {
+.purchase-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  padding: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: #101114;
+  gap: 10px;
 }
 
-.purchase-filter-tabs button {
-  min-height: 42px;
-  padding: 9px 10px;
-  color: #c5c9cf;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  font-family: var(--font-display);
-  font-size: 0.86rem;
-  font-weight: 900;
+.purchase-metrics button {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 72px;
+  padding: 14px 16px;
+  color: #aeb4bb;
+  background: #15161a;
+  border: 1px solid #34363b;
+  border-radius: 6px;
   cursor: pointer;
+  text-align: left;
 }
 
-.purchase-filter-tabs button.active {
-  color: #070708;
+.purchase-metrics button.active {
+  color: #09090a;
   background: linear-gradient(180deg, #f8f9fa, #c8ccd1);
   border-color: #f2f4f5;
 }
 
-.purchase-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border: 1px solid #34363b;
-  background: #15161a;
-}
-
-.purchase-metrics article {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 10px 14px;
-  border-right: 1px solid #34363b;
-}
-
-.purchase-metrics article:last-child {
-  border-right: 0;
-}
-
 .purchase-metrics strong {
-  color: #fff;
+  color: inherit;
   font-family: var(--font-display);
   font-size: clamp(1.18rem, 2vw, 1.55rem);
 }
 
 .purchase-metrics span {
-  color: #aeb4bb;
+  color: inherit;
   font-size: 0.84rem;
   font-weight: 800;
 }
@@ -2503,10 +2468,6 @@ body.modal-open {
     justify-items: start;
   }
 
-  .purchase-filter-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .order-status-pills {
     justify-content: flex-start;
   }
@@ -2515,15 +2476,6 @@ body.modal-open {
   .purchase-card-grid,
   .customer-order-card dl {
     grid-template-columns: 1fr;
-  }
-
-  .purchase-metrics article {
-    border-right: 0;
-    border-bottom: 1px solid #34363b;
-  }
-
-  .purchase-metrics article:last-child {
-    border-bottom: 0;
   }
 
   .order-access {

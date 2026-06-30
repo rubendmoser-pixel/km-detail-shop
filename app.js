@@ -794,21 +794,12 @@ function renderCustomerOrders() {
         <h2>Mis compras</h2>
         <p>Seguimiento de compras activas. Las finalizadas quedan en historial.</p>
       </div>
-      <div class="purchase-filter" aria-label="Filtrar compras">
-        <span>Ver</span>
-        <div class="purchase-filter-tabs">
-          <button class="${state.purchaseFilter === "open" ? "active" : ""}" type="button" data-purchase-filter="open">Activas</button>
-          <button class="${state.purchaseFilter === "pay" ? "active" : ""}" type="button" data-purchase-filter="pay">Para pagar</button>
-          <button class="${state.purchaseFilter === "shipment" ? "active" : ""}" type="button" data-purchase-filter="shipment">Despacho</button>
-          <button class="${state.purchaseFilter === "closed" ? "active" : ""}" type="button" data-purchase-filter="closed">Historial</button>
-        </div>
-      </div>
     </div>
     <div class="purchase-metrics" aria-label="Resumen de compras">
-      <article><strong>${metrics.open}</strong><span>activas</span></article>
-      <article><strong>${metrics.closed}</strong><span>historial</span></article>
-      <article><strong>${metrics.toPay}</strong><span>para pagar</span></article>
-      <article><strong>${metrics.shipments}</strong><span>en despacho</span></article>
+      <button class="${state.purchaseFilter === "open" ? "active" : ""}" type="button" data-purchase-filter="open"><strong>${metrics.open}</strong><span>activas</span></button>
+      <button class="${state.purchaseFilter === "closed" ? "active" : ""}" type="button" data-purchase-filter="closed"><strong>${metrics.closed}</strong><span>historial</span></button>
+      <button class="${state.purchaseFilter === "pay" ? "active" : ""}" type="button" data-purchase-filter="pay"><strong>${metrics.toPay}</strong><span>para pagar</span></button>
+      <button class="${state.purchaseFilter === "shipment" ? "active" : ""}" type="button" data-purchase-filter="shipment"><strong>${metrics.shipments}</strong><span>en despacho</span></button>
     </div>
     <div class="purchase-list">
       ${filteredOrders.length ? orderCards : `<article class="empty-purchases"><strong>${state.purchaseFilter === "closed" ? "Sin compras finalizadas" : "Sin compras activas para este filtro"}</strong><span>${state.purchaseFilter === "closed" ? "Cuando confirmes la recepcion, las compras cerradas quedan aca." : "Cambia el filtro o arma un pedido desde Productos."}</span></article>`}
