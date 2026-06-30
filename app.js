@@ -43,7 +43,7 @@ const state = {
   shippingAddresses: [],
   selectedShippingAddressId: null,
   shippingAddressConfigOpen: false,
-  purchaseFilter: "all",
+  purchaseFilter: "open",
   purchaseVisibleCount: 10,
   settings: { vatBps: 2100, whatsappNumber: "" },
   category: "Todos",
@@ -792,34 +792,35 @@ function renderCustomerOrders() {
       <div class="section-title compact">
         <p class="eyebrow">Cuenta comercial</p>
         <h2>Mis compras</h2>
-        <p>Historial de pedidos, disponibilidad, pagos y despacho.</p>
+        <p>Seguimiento de compras activas. Las finalizadas quedan en historial.</p>
       </div>
-      <label class="purchase-filter">
+      <div class="purchase-filter" aria-label="Filtrar compras">
         <span>Ver</span>
-        <select id="purchaseStatusFilter">
-          <option value="all" ${state.purchaseFilter === "all" ? "selected" : ""}>Todas las compras</option>
-          <option value="active" ${state.purchaseFilter === "active" ? "selected" : ""}>En curso</option>
-          <option value="pay" ${state.purchaseFilter === "pay" ? "selected" : ""}>Para pagar</option>
-          <option value="shipment" ${state.purchaseFilter === "shipment" ? "selected" : ""}>Despacho</option>
-          <option value="closed" ${state.purchaseFilter === "closed" ? "selected" : ""}>Finalizadas</option>
-        </select>
-      </label>
+        <div class="purchase-filter-tabs">
+          <button class="${state.purchaseFilter === "open" ? "active" : ""}" type="button" data-purchase-filter="open">Activas</button>
+          <button class="${state.purchaseFilter === "pay" ? "active" : ""}" type="button" data-purchase-filter="pay">Para pagar</button>
+          <button class="${state.purchaseFilter === "shipment" ? "active" : ""}" type="button" data-purchase-filter="shipment">Despacho</button>
+          <button class="${state.purchaseFilter === "closed" ? "active" : ""}" type="button" data-purchase-filter="closed">Historial</button>
+        </div>
+      </div>
     </div>
     <div class="purchase-metrics" aria-label="Resumen de compras">
-      <article><strong>${metrics.total}</strong><span>compras</span></article>
-      <article><strong>${metrics.active}</strong><span>en curso</span></article>
+      <article><strong>${metrics.open}</strong><span>activas</span></article>
+      <article><strong>${metrics.closed}</strong><span>historial</span></article>
       <article><strong>${metrics.toPay}</strong><span>para pagar</span></article>
       <article><strong>${metrics.shipments}</strong><span>en despacho</span></article>
     </div>
     <div class="purchase-list">
-      ${filteredOrders.length ? orderCards : `<article class="empty-purchases"><strong>Sin compras para este filtro</strong><span>Cambia el filtro o arma un pedido desde Productos.</span></article>`}
+      ${filteredOrders.length ? orderCards : `<article class="empty-purchases"><strong>${state.purchaseFilter === "closed" ? "Sin compras finalizadas" : "Sin compras activas para este filtro"}</strong><span>${state.purchaseFilter === "closed" ? "Cuando confirmes la recepcion, las compras cerradas quedan aca." : "Cambia el filtro o arma un pedido desde Productos."}</span></article>`}
     </div>
     ${remainingOrders ? `<button class="secondary-link purchase-more" type="button" id="loadMorePurchases">Ver ${Math.min(10, remainingOrders)} compras mas</button>` : ""}
   `;
-  els.customerOrders.querySelector("#purchaseStatusFilter")?.addEventListener("change", (event) => {
-    state.purchaseFilter = event.currentTarget.value;
-    state.purchaseVisibleCount = 10;
-    renderCustomerOrders();
+  els.customerOrders.querySelectorAll("[data-purchase-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.purchaseFilter = button.dataset.purchaseFilter || "open";
+      state.purchaseVisibleCount = 10;
+      renderCustomerOrders();
+    });
   });
   els.customerOrders.querySelector("#loadMorePurchases")?.addEventListener("click", () => {
     state.purchaseVisibleCount += 10;
@@ -956,8 +957,11 @@ function customerOrderState(order) {
 }
 
 function purchaseMetrics(orders) {
+  const closed = orders.filter((order) => purchaseGroup(order) === "closed").length;
   return {
     total: orders.length,
+    open: orders.length - closed,
+    closed,
     active: orders.filter((order) => purchaseGroup(order) === "active").length,
     toPay: orders.filter((order) => purchaseGroup(order) === "pay").length,
     shipments: orders.filter((order) => purchaseGroup(order) === "shipment").length
@@ -966,6 +970,7 @@ function purchaseMetrics(orders) {
 
 function filterPurchases(orders) {
   if (state.purchaseFilter === "all") return orders;
+  if (state.purchaseFilter === "open") return orders.filter((order) => purchaseGroup(order) !== "closed");
   return orders.filter((order) => purchaseGroup(order) === state.purchaseFilter);
 }
 

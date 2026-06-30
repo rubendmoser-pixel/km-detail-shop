@@ -1439,7 +1439,7 @@ body.modal-open {
 
 .purchase-filter {
   display: grid;
-  min-width: min(300px, 100%);
+  min-width: min(520px, 100%);
   gap: 8px;
 }
 
@@ -1451,10 +1451,32 @@ body.modal-open {
   text-transform: uppercase;
 }
 
-.purchase-filter select {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: #17181b;
-  color: #fff;
+.purchase-filter-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #101114;
+}
+
+.purchase-filter-tabs button {
+  min-height: 42px;
+  padding: 9px 10px;
+  color: #c5c9cf;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.purchase-filter-tabs button.active {
+  color: #070708;
+  background: linear-gradient(180deg, #f8f9fa, #c8ccd1);
+  border-color: #f2f4f5;
 }
 
 .purchase-metrics {
@@ -2479,6 +2501,10 @@ body.modal-open {
 
   .purchase-summary-status {
     justify-items: start;
+  }
+
+  .purchase-filter-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .order-status-pills {
