@@ -255,6 +255,12 @@
   border-color: #7e858d;
 }
 
+.state-badge.closed {
+  color: #ffd2a1;
+  background: rgba(196, 108, 35, 0.2);
+  border-color: #a9632f;
+}
+
 .state-badge.danger {
   color: #ffb3b3;
   background: rgba(185, 65, 65, 0.17);
@@ -478,6 +484,27 @@
 .order-detail-grid .state-summary-card .state-badge {
   display: inline-flex;
   font-size: 0.76rem;
+}
+
+.order-detail-grid .summary-section-heading {
+  grid-column: 1 / -1;
+  padding: 9px 12px;
+  background: #0f1012;
+  border-top: 1px solid #34363b;
+}
+
+.order-detail-grid .summary-section-heading:first-child {
+  border-top: 0;
+}
+
+.order-detail-grid .summary-section-heading span {
+  color: #d4b673;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.order-detail-grid .summary-wide {
+  grid-column: span 2;
 }
 
 .order-detail-actions {

@@ -15,7 +15,7 @@ const orderStatusLabels = {
   confirmed: "Pedido confirmado",
   in_preparation: "Disponibilidad confirmada",
   ready: "Preparado para despacho",
-  delivered: "Recibido por cliente",
+  delivered: "Operacion cerrada",
   cancelled: "Cancelado"
 };
 const paymentStatusLabels = {
@@ -41,7 +41,7 @@ const orderStateClasses = {
   confirmed: "success",
   in_preparation: "progress",
   ready: "success",
-  delivered: "done",
+  delivered: "closed",
   cancelled: "danger"
 };
 const paymentStateClasses = {
@@ -663,25 +663,7 @@ function renderOrderDetail() {
   if (!order) return closeOrderDetail();
   adminEls.orderDetailPanel.hidden = false;
   adminEls.orderDetailTitle.textContent = `${order.orderNumber} - ${order.businessName}`;
-  adminEls.orderDetailSummary.innerHTML = [
-    { label: "Comercial", value: stateBadge(orderStatusText(order.status), orderStateClasses[order.status]), html: true },
-    { label: "Pago", value: stateBadge(paymentStatusText(order.paymentStatus), paymentStateClasses[order.paymentStatus]), html: true },
-    { label: "Logistica", value: stateBadge(fulfillmentStatusText(normalizedFulfillmentStatus(order.fulfillment?.status)), fulfillmentStateClasses[normalizedFulfillmentStatus(order.fulfillment?.status)]), html: true },
-    { label: "Total", value: adminMoney.format(order.totalCents / 100) },
-    { label: "Pagado", value: adminMoney.format((order.paidCents || 0) / 100) },
-    { label: "Saldo", value: adminMoney.format((order.balanceCents || 0) / 100) },
-    { label: "Vencimiento", value: order.paymentDueDate ? formatAdminDate(order.paymentDueDate) : "Sin vencimiento" },
-    { label: "Cliente", value: `${order.businessName} (${order.email})` },
-    { label: "Contacto", value: `${order.contactPerson || "-"} | WhatsApp ${order.customerWhatsapp || "-"}` },
-    { label: "Descuentos", value: discountText(order.discountsBps) },
-    { label: "Subtotal neto", value: adminMoney.format(order.subtotalNetCents / 100) },
-    { label: "IVA", value: `${(order.vatBps / 100).toFixed(2)}% - ${adminMoney.format(order.vatCents / 100)}` },
-    { label: "Vendedor", value: order.salesRep?.name ? `${order.salesRep.name} (${order.salesRep.email})` : "Sin vendedor" },
-    { label: "Comision", value: order.salesRep?.email ? `${formatBps(order.salesRep.commissionBps)} - ${adminMoney.format((order.salesRep.commissionCents || 0) / 100)}` : "Sin comision" },
-    { label: "Precio reservado", value: formatDate(order.priceReservedAt) },
-    { label: "Entrega solicitada", value: shippingText(order.shipping) },
-    { label: "Despacho", value: fulfillmentText(order.fulfillment) }
-  ].map((item) => `<div class="${item.html ? "state-summary-card" : ""}"><span>${item.label}</span><strong>${item.html ? item.value : escapeAdmin(item.value)}</strong></div>`).join("");
+  adminEls.orderDetailSummary.innerHTML = renderOrderSummary(order);
   renderOrderActionBar(order);
   adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
     <tr data-order-item-id="${item.id}" data-unit-cents="${item.finalUnitPriceCents}">
@@ -704,6 +686,59 @@ function renderOrderDetail() {
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
   adminEls.orderStatusMessage.textContent = "";
+}
+
+function renderOrderSummary(order) {
+  const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
+  const sections = [
+    {
+      title: "Estado de operacion",
+      items: [
+        { label: "Comercial", value: stateBadge(orderStatusText(order.status), orderStateClasses[order.status]), html: true },
+        { label: "Pago", value: stateBadge(paymentStatusText(order.paymentStatus), paymentStateClasses[order.paymentStatus]), html: true },
+        { label: "Logistica", value: stateBadge(fulfillmentStatusText(fulfillmentStatus), fulfillmentStateClasses[fulfillmentStatus]), html: true },
+        { label: "Precio reservado", value: formatDate(order.priceReservedAt) }
+      ]
+    },
+    {
+      title: "Cliente y entrega",
+      items: [
+        { label: "Cliente", value: `${order.businessName} (${order.email})` },
+        { label: "Contacto", value: `${order.contactPerson || "-"} | WhatsApp ${order.customerWhatsapp || "-"}` },
+        { label: "Entrega solicitada", value: shippingText(order.shipping), wide: true },
+        { label: "Despacho", value: fulfillmentText(order.fulfillment), wide: true }
+      ]
+    },
+    {
+      title: "Importes",
+      items: [
+        { label: "Total", value: adminMoney.format(order.totalCents / 100) },
+        { label: "Pagado", value: adminMoney.format((order.paidCents || 0) / 100) },
+        { label: "Saldo", value: adminMoney.format((order.balanceCents || 0) / 100) },
+        { label: "Vencimiento", value: order.paymentDueDate ? formatAdminDate(order.paymentDueDate) : "Sin vencimiento" },
+        { label: "Subtotal neto", value: adminMoney.format(order.subtotalNetCents / 100) },
+        { label: "IVA", value: `${(order.vatBps / 100).toFixed(2)}% - ${adminMoney.format(order.vatCents / 100)}` },
+        { label: "Descuentos", value: discountText(order.discountsBps) }
+      ]
+    },
+    {
+      title: "Equipo comercial",
+      items: [
+        { label: "Vendedor", value: order.salesRep?.name ? `${order.salesRep.name} (${order.salesRep.email})` : "Sin vendedor" },
+        { label: "Comision", value: order.salesRep?.email ? `${formatBps(order.salesRep.commissionBps)} - ${adminMoney.format((order.salesRep.commissionCents || 0) / 100)}` : "Sin comision" }
+      ]
+    }
+  ];
+
+  return sections.map((section) => `
+    <div class="summary-section-heading"><span>${escapeAdmin(section.title)}</span></div>
+    ${section.items.map((item) => `
+      <div class="${item.html ? "state-summary-card" : ""}${item.wide ? " summary-wide" : ""}">
+        <span>${escapeAdmin(item.label)}</span>
+        <strong>${item.html ? item.value : escapeAdmin(item.value)}</strong>
+      </div>
+    `).join("")}
+  `).join("");
 }
 
 function renderOrderActionBar(order) {
