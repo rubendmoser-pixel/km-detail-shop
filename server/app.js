@@ -12,6 +12,7 @@ import {
   createOrder,
   createPickingList,
   createShippingLabels,
+  deleteTestOrders,
   getOrder,
   getPaymentReceiptFile,
   listAdminOrders,
@@ -362,6 +363,9 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
             limit: url.searchParams.get("limit") || 150
           })
         });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/operation/delete-test-orders") {
+        return sendJson(response, 200, { result: deleteTestOrders(db, uploadsPath, await readJson(request)) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/emails/flush") {
         const result = await emailService.flush();

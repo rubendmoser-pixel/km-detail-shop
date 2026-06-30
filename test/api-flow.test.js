@@ -453,6 +453,30 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(statusEmail.recipient, "cliente-api@example.com");
   assert.equal(statusEmail.subject.includes(orderPayload.order.orderNumber), true);
   assert.match(statusEmail.text_body, /confirmado/);
+
+  const badCleanupResponse = await fetch(`${baseUrl}/api/admin/operation/delete-test-orders`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({ confirmation: "NO" })
+  });
+  assert.equal(badCleanupResponse.status, 400);
+
+  const cleanupResponse = await fetch(`${baseUrl}/api/admin/operation/delete-test-orders`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({ confirmation: "BORRAR PEDIDOS" })
+  });
+  assert.equal(cleanupResponse.status, 200);
+  const cleanup = await cleanupResponse.json();
+  assert.equal(cleanup.result.deleted.orders, 1);
+  assert.equal(cleanup.result.deleted.items, 2);
+  assert.equal(cleanup.result.deleted.receipts, 1);
+  assert.equal(cleanup.result.files.deleted, 1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM orders").get().count, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM order_items").get().count, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM payment_receipts").get().count, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM customers").get().count, 1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM products").get().count, 2);
 });
 
 test("customer welcome email does not depend on internal notification email", async (t) => {

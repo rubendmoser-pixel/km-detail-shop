@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=24" />
+    <link rel="stylesheet" href="./admin.css?v=25" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -43,6 +43,7 @@
           <button type="button" data-admin-view="settings">Configuracion</button>
           <button type="button" data-admin-view="emails">Emails</button>
           <button type="button" data-admin-view="security">Seguridad</button>
+          <button type="button" data-admin-view="operation">Operacion</button>
         </nav>
 
         <section class="admin-view" id="customersView">
@@ -327,9 +328,32 @@
             </table>
           </div>
         </section>
+
+        <section class="admin-view" id="operationView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Operacion</p><h1>Herramientas de prueba</h1></div>
+          </div>
+          <form class="settings-form" id="deleteTestOrdersForm">
+            <fieldset>
+              <legend>Borrar pedidos de prueba</legend>
+              <p class="admin-note">
+                Elimina todos los pedidos, articulos del pedido, eventos, comprobantes de pago, archivos de comprobantes y correos operativos asociados.
+                No borra clientes, vendedores, productos, imagenes de productos ni configuracion comercial.
+              </p>
+              <label class="wide">
+                <span>Confirmacion obligatoria</span>
+                <input name="confirmation" autocomplete="off" placeholder="BORRAR PEDIDOS" />
+              </label>
+              <div class="form-actions">
+                <button class="ghost-button danger-button" type="submit">Borrar pedidos de prueba</button>
+              </div>
+              <p class="form-message" id="deleteTestOrdersMessage" role="status"></p>
+            </fieldset>
+          </form>
+        </section>
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=33" defer></script>
+    <script src="./admin.js?v=34" defer></script>
   </body>
 </html>

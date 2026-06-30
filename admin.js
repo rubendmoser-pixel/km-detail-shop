@@ -4,7 +4,7 @@ const adminState = {
   securityEvents: [], securitySummary: null, salesReps: []
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const adminViews = new Set(["customers", "sales", "products", "orders", "settings", "emails", "security"]);
+const adminViews = new Set(["customers", "sales", "products", "orders", "settings", "emails", "security", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -74,7 +74,7 @@ const adminEls = Object.fromEntries([
   "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
-  "securitySearch", "securityStats", "securityTableBody", "adminToast"
+  "securitySearch", "securityStats", "securityTableBody", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -126,6 +126,7 @@ function bindAdminEvents() {
   adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
   document.querySelector("#resetSalesRepForm").addEventListener("click", resetSalesRepForm);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
+  adminEls.deleteTestOrdersForm.addEventListener("submit", deleteTestOrders);
 }
 
 async function loginAdmin(event) {
@@ -1295,6 +1296,36 @@ async function saveSettings(event) {
     adminEls.settingsMessage.textContent = error.message;
   } finally {
     setBusy(adminEls.settingsForm, false);
+  }
+}
+
+async function deleteTestOrders(event) {
+  event.preventDefault();
+  const confirmation = String(new FormData(adminEls.deleteTestOrdersForm).get("confirmation") || "").trim();
+  if (confirmation !== "BORRAR PEDIDOS") {
+    adminEls.deleteTestOrdersMessage.textContent = "Escribi BORRAR PEDIDOS para confirmar.";
+    return;
+  }
+  const accepted = window.confirm("Esta accion borra todos los pedidos de prueba y sus comprobantes. Clientes, productos y configuracion quedan intactos. ¿Continuar?");
+  if (!accepted) return;
+
+  setBusy(adminEls.deleteTestOrdersForm, true);
+  try {
+    const { result } = await adminApi("/api/admin/operation/delete-test-orders", { method: "POST", body: { confirmation } });
+    adminEls.deleteTestOrdersForm.reset();
+    adminEls.deleteTestOrdersMessage.textContent = [
+      `Pedidos borrados: ${result.deleted.orders}.`,
+      `Articulos: ${result.deleted.items}.`,
+      `Comprobantes: ${result.deleted.receipts}.`,
+      `Correos operativos: ${result.deleted.emails}.`
+    ].join(" ");
+    showAdminToast("Pedidos de prueba eliminados.");
+    await loadOrders();
+    closeOrderDetail();
+  } catch (error) {
+    adminEls.deleteTestOrdersMessage.textContent = error.message;
+  } finally {
+    setBusy(adminEls.deleteTestOrdersForm, false);
   }
 }
 

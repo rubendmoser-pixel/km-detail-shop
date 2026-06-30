@@ -882,6 +882,17 @@
   gap: 10px;
 }
 
+.danger-button {
+  color: #ff9a9a;
+  border-color: rgba(255, 106, 106, 0.55);
+}
+
+.danger-button:hover {
+  color: #ffffff;
+  background: #5d1c22;
+  border-color: #ff7d7d;
+}
+
 .product-gallery-fieldset {
   grid-template-columns: 1fr;
 }

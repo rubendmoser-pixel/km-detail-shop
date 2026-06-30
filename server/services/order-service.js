@@ -15,6 +15,24 @@ const RECEIPT_MIME_EXTENSIONS = new Map([
   ["image/png", ".png"]
 ]);
 const MAX_RECEIPT_BYTES = 8 * 1024 * 1024;
+const DELETE_TEST_ORDERS_CONFIRMATION = "BORRAR PEDIDOS";
+const ORDER_EMAIL_EVENTS = [
+  "order_internal",
+  "order_customer",
+  "order_sales_rep",
+  "order_status_customer",
+  "order_availability_customer",
+  "order_availability_sales_rep",
+  "payment_receipt_internal",
+  "payment_receipt_customer",
+  "payment_receipt_sales_rep",
+  "payment_terms_customer",
+  "payment_terms_sales_rep",
+  "order_fulfillment_customer",
+  "order_fulfillment_sales_rep",
+  "payment_due_soon",
+  "payment_overdue"
+];
 
 export function createOrder(db, customerId, input) {
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("Order requires at least one item");
@@ -458,6 +476,32 @@ export function getPaymentReceiptFile(db, receiptId, uploadsPath) {
   };
 }
 
+export function deleteTestOrders(db, uploadsPath, input = {}) {
+  if (String(input.confirmation || "").trim() !== DELETE_TEST_ORDERS_CONFIRMATION) {
+    throw new ValidationError(`Para borrar pedidos de prueba escribi exactamente: ${DELETE_TEST_ORDERS_CONFIRMATION}`);
+  }
+
+  const receiptFiles = db.prepare("SELECT stored_filename FROM payment_receipts").all().map((row) => row.stored_filename);
+  const deleted = transaction(db, () => {
+    const emailPlaceholders = ORDER_EMAIL_EVENTS.map(() => "?").join(", ");
+    const counts = {
+      orders: countRows(db, "orders"),
+      items: countRows(db, "order_items"),
+      events: countRows(db, "order_events"),
+      receipts: countRows(db, "payment_receipts"),
+      emails: db.prepare(`SELECT COUNT(*) AS count FROM email_outbox WHERE event_type IN (${emailPlaceholders})`).get(...ORDER_EMAIL_EVENTS).count
+    };
+    db.prepare(`DELETE FROM email_outbox WHERE event_type IN (${emailPlaceholders})`).run(...ORDER_EMAIL_EVENTS);
+    db.prepare("DELETE FROM payment_receipts").run();
+    db.prepare("DELETE FROM order_events").run();
+    db.prepare("DELETE FROM order_items").run();
+    db.prepare("DELETE FROM orders").run();
+    return counts;
+  });
+
+  return { deleted, files: deleteReceiptFiles(uploadsPath, receiptFiles) };
+}
+
 export function updateOrderFulfillment(db, orderId, input, adminUserId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
   if (!order) throw new NotFoundError("Order not found");
@@ -636,6 +680,29 @@ function addDaysIsoDate(date, days) {
   const next = new Date(date);
   next.setUTCDate(next.getUTCDate() + days);
   return next.toISOString().slice(0, 10);
+}
+
+function countRows(db, tableName) {
+  return db.prepare(`SELECT COUNT(*) AS count FROM ${tableName}`).get().count;
+}
+
+function deleteReceiptFiles(uploadsPath, filenames) {
+  const receiptsRoot = path.resolve(uploadsPath, "receipts");
+  const result = { deleted: 0, failed: [] };
+  for (const filename of filenames) {
+    const target = path.resolve(receiptsRoot, filename);
+    if (!target.startsWith(`${receiptsRoot}${path.sep}`)) {
+      result.failed.push(filename);
+      continue;
+    }
+    try {
+      fs.rmSync(target, { force: true });
+      result.deleted += 1;
+    } catch {
+      result.failed.push(filename);
+    }
+  }
+  return result;
 }
 
 function mapOrder(order, items, receipts = []) {
