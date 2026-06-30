@@ -831,6 +831,7 @@ function renderPaymentReceipts(order) {
       <article class="payment-receipt-row">
         <div><strong>${escapeAdmin(receipt.originalFilename)}</strong><span>${escapeAdmin(receipt.status)} - ${formatDate(receipt.createdAt)}</span></div>
         <div class="image-actions">
+          <a class="ghost-button receipt-view-link" href="/api/admin/payment-receipts/${receipt.id}/file" target="_blank" rel="noreferrer">Ver comprobante</a>
           <button class="ghost-button" type="button" data-review-receipt="${receipt.id}" data-receipt-status="accepted" ${receipt.status === "accepted" ? "disabled" : ""}>Aceptar</button>
           <button class="ghost-button danger" type="button" data-review-receipt="${receipt.id}" data-receipt-status="rejected" ${receipt.status === "rejected" ? "disabled" : ""}>Rechazar</button>
         </div>

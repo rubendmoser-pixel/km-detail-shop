@@ -345,6 +345,22 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
   return getOrder(db, receipt.order_id, null, true);
 }
 
+export function getPaymentReceiptFile(db, receiptId, uploadsPath) {
+  const receipt = db.prepare("SELECT * FROM payment_receipts WHERE id = ?").get(receiptId);
+  if (!receipt) throw new NotFoundError("Payment receipt not found");
+  const receiptsRoot = path.resolve(uploadsPath, "receipts");
+  const target = path.resolve(receiptsRoot, receipt.stored_filename);
+  if (!target.startsWith(`${receiptsRoot}${path.sep}`) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
+    throw new NotFoundError("Payment receipt file not found");
+  }
+  return {
+    filePath: target,
+    originalFilename: receipt.original_filename,
+    mimeType: receipt.mime_type || "application/octet-stream",
+    sizeBytes: receipt.size_bytes || fs.statSync(target).size
+  };
+}
+
 export function updateOrderFulfillment(db, orderId, input, adminUserId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
   if (!order) throw new NotFoundError("Order not found");

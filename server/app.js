@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import { listCustomers, setCustomerDiscounts, setCustomerStatus } from "./services/customer-service.js";
@@ -10,6 +11,7 @@ import {
   createPickingList,
   createShippingLabels,
   getOrder,
+  getPaymentReceiptFile,
   listAdminOrders,
   listCustomerOrders,
   reviewPaymentReceipt,
@@ -306,6 +308,20 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
         const order = reviewPaymentReceipt(db, Number(match[1]), body, currentUser.id);
         emailService.queuePaymentReceiptReviewed(order.id, body.status, body.reason);
         return sendJson(response, 200, { order });
+      }
+      match = url.pathname.match(/^\/api\/admin\/payment-receipts\/(\d+)\/file$/);
+      if (request.method === "GET" && match) {
+        const receiptFile = getPaymentReceiptFile(db, Number(match[1]), uploadsPath);
+        const content = fs.readFileSync(receiptFile.filePath);
+        response.writeHead(200, {
+          "content-type": receiptFile.mimeType,
+          "content-length": content.length,
+          "content-disposition": `inline; filename="${encodeURIComponent(receiptFile.originalFilename)}"`,
+          "cache-control": "no-store",
+          ...SECURITY_HEADERS
+        });
+        response.end(content);
+        return;
       }
       if (request.method === "GET" && url.pathname === "/api/admin/settings") {
         return sendJson(response, 200, { settings: getCommercialSettings(db) });

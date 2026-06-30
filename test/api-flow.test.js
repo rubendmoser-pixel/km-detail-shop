@@ -365,6 +365,12 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(receiptOrder.paymentStatus, "receipt_uploaded");
   assert.equal(receiptOrder.paymentReceipts[0].status, "received");
   const receiptId = receiptOrder.paymentReceipts[0].id;
+  const receiptFileResponse = await fetch(`${baseUrl}/api/admin/payment-receipts/${receiptId}/file`, {
+    headers: { cookie: adminCookie }
+  });
+  assert.equal(receiptFileResponse.status, 200);
+  assert.equal(receiptFileResponse.headers.get("content-type"), "image/png");
+  assert.equal(Buffer.from(await receiptFileResponse.arrayBuffer()).length > 0, true);
   const receiptEmail = db.prepare("SELECT recipient FROM email_outbox WHERE event_type = 'payment_receipt_internal'").get();
   assert.equal(receiptEmail.recipient, "ventas@km-detail.com");
   const reviewReceiptResponse = await fetch(`${baseUrl}/api/admin/payment-receipts/${receiptId}`, {

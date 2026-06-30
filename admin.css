@@ -599,6 +599,10 @@
   font-size: 0.8rem;
 }
 
+.payment-receipt-row .image-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .availability-form,
 .fulfillment-form,
 .order-status-form {
