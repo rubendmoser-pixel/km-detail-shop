@@ -6,6 +6,7 @@ import {
   acceptModifiedOrder,
   addPaymentReceipt,
   authorizeOrderCredit,
+  confirmOrderReceived,
   confirmOrderAvailability,
   createDeliveryNote,
   createOrder,
@@ -186,6 +187,11 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       if (request.method === "POST" && match) {
         const user = requireApprovedCustomer(currentUser);
         return sendJson(response, 200, { order: acceptModifiedOrder(db, Number(match[1]), user.customerId, user.id) });
+      }
+      match = url.pathname.match(/^\/api\/orders\/(\d+)\/received$/);
+      if (request.method === "POST" && match) {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 200, { order: confirmOrderReceived(db, Number(match[1]), user.customerId, user.id) });
       }
 
       if (url.pathname.startsWith("/api/admin/")) requireAdmin(currentUser);

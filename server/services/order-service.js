@@ -469,6 +469,22 @@ export function acceptModifiedOrder(db, orderId, customerId, userId) {
   return getOrder(db, orderId, customerId, false);
 }
 
+export function confirmOrderReceived(db, orderId, customerId, userId) {
+  const order = db.prepare("SELECT * FROM orders WHERE id = ? AND customer_id = ?").get(orderId, customerId);
+  if (!order) throw new NotFoundError("Order not found");
+  if (order.fulfillment_status === "delivered") return getOrder(db, orderId, customerId, false);
+  if (order.fulfillment_status !== "shipped") throw new ValidationError("Order is not shipped yet");
+  const receivedAt = new Date().toISOString();
+  db.prepare(`
+    UPDATE orders SET fulfillment_status = 'delivered', status = 'delivered',
+      fulfillment_notes = CASE WHEN fulfillment_notes = '' THEN 'Recepcion confirmada por el cliente.' ELSE fulfillment_notes END,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(orderId);
+  addOrderEvent(db, orderId, userId, "customer_received", "Recepcion confirmada por el cliente", order, { receivedAt });
+  return getOrder(db, orderId, customerId, false);
+}
+
 function validateShipping(input) {
   return {
     recipient: requiredText(input.recipient, "shipping.recipient"),

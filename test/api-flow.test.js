@@ -422,6 +422,14 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const filteredOrders = await getJson(`${baseUrl}/api/admin/orders?payment=paid&fulfillment=shipped&q=Comercio`, adminCookie);
   assert.equal(filteredOrders.orders.length, 1);
   assert.equal(filteredOrders.orders[0].fulfillment_status, "shipped");
+  const receivedResponse = await fetch(`${baseUrl}/api/orders/${orderPayload.order.id}/received`, {
+    method: "POST",
+    headers: jsonHeaders(customerCookie)
+  });
+  assert.equal(receivedResponse.status, 200);
+  const receivedOrder = (await receivedResponse.json()).order;
+  assert.equal(receivedOrder.status, "delivered");
+  assert.equal(receivedOrder.fulfillment.status, "delivered");
   const updatedOrderResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

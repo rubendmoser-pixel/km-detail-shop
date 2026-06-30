@@ -829,6 +829,9 @@ function renderCustomerOrders() {
   els.customerOrders.querySelectorAll("[data-accept-order]").forEach((button) => {
     button.addEventListener("click", () => acceptOrder(Number(button.dataset.acceptOrder)));
   });
+  els.customerOrders.querySelectorAll("[data-confirm-received]").forEach((button) => {
+    button.addEventListener("click", () => confirmReceived(Number(button.dataset.confirmReceived)));
+  });
 }
 
 function renderCustomerOrder(order) {
@@ -843,6 +846,7 @@ function renderCustomerOrder(order) {
   const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
   const statusClass = purchaseStatusClass(order);
   const itemCount = items.reduce((sum, item) => sum + (Number(item.confirmedQuantity) > 0 ? Number(item.confirmedQuantity) : Number(item.quantity || 0)), 0);
+  const canConfirmReceived = fulfillment.status === "shipped";
   return `
     <article class="customer-order-card ${statusClass}">
       <details class="purchase-detail">
@@ -887,6 +891,7 @@ function renderCustomerOrder(order) {
           </div>
           <div class="purchase-actions">
             ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}">Aceptar disponibilidad</button>` : ""}
+            ${canConfirmReceived ? `<button class="primary-button" type="button" data-confirm-received="${order.id}">Confirmar pedido recibido</button>` : ""}
             ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : paymentHelperText(order)}
             ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
           </div>
@@ -920,7 +925,8 @@ function renderPurchaseTimeline(order) {
     { key: "received", label: "Pedido recibido", done: true },
     { key: "availability", label: "Disponibilidad", done: ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status) },
     { key: "payment", label: "Pago", done: ["paid", "partial_payment", "credit_account"].includes(order.paymentStatus) },
-    { key: "shipment", label: "Despacho", done: ["shipped", "delivered"].includes(order.fulfillment?.status) }
+    { key: "shipment", label: "Despacho", done: ["shipped", "delivered"].includes(order.fulfillment?.status) },
+    { key: "customer-received", label: "Recibido", done: order.fulfillment?.status === "delivered" }
   ];
   return `<ol class="purchase-timeline">${steps.map((step) => `<li class="${step.done ? "done" : ""}"><span></span>${step.label}</li>`).join("")}</ol>`;
 }
@@ -1001,6 +1007,19 @@ async function acceptOrder(orderId) {
     await loadCustomerOrders();
     renderCustomerOrders();
     showToast("Disponibilidad aceptada. Ya podes continuar con el pago.");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function confirmReceived(orderId) {
+  if (!orderId) return;
+  if (!confirm("Confirmar que recibiste este pedido?")) return;
+  try {
+    await api(`/api/orders/${orderId}/received`, { method: "POST" });
+    await loadCustomerOrders();
+    renderCustomerOrders();
+    showToast("Pedido marcado como recibido.");
   } catch (error) {
     showToast(error.message);
   }
