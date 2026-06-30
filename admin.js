@@ -708,6 +708,11 @@ function renderOrderDetail() {
 function renderOrderActionBar(order) {
   const customerWhatsapp = cleanPhone(order.customerWhatsapp);
   const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
+  const isClosed = order.status === "delivered" || fulfillmentStatus === "delivered" || order.status === "cancelled";
+  if (isClosed) {
+    adminEls.orderDetailActions.innerHTML = `<p class="admin-note">Pedido cerrado. No hay acciones operativas pendientes.</p>`;
+    return;
+  }
   const canOperateDocuments = canFulfillOrder(order);
   const isInitialReview = order.status === "order_created";
   const preparationAction = (isInitialReview || canOperateDocuments)
