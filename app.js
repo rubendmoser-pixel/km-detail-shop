@@ -795,7 +795,6 @@ function renderCustomerOrder(order) {
   const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
   const statusClass = purchaseStatusClass(order);
   const itemCount = items.reduce((sum, item) => sum + (Number(item.confirmedQuantity) > 0 ? Number(item.confirmedQuantity) : Number(item.quantity || 0)), 0);
-  const firstItem = items[0];
   return `
     <article class="customer-order-card ${statusClass}">
       <details class="purchase-detail">
@@ -803,7 +802,6 @@ function renderCustomerOrder(order) {
           <div class="purchase-summary-main">
             <strong>${escapeHtml(order.orderNumber)}</strong>
             <span>${formatDate(order.createdAt)} | ${itemCount} unidad${itemCount === 1 ? "" : "es"}</span>
-            <small>${firstItem ? `${escapeHtml(firstItem.kmCode)} - ${escapeHtml(firstItem.productName)}` : "Sin articulos"}</small>
           </div>
           <div class="order-status-pills">
             <span class="${statusClass}">${escapeHtml(orderStatusText(order.status))}</span>

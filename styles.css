@@ -1463,15 +1463,6 @@ body.modal-open {
   line-height: 1.1;
 }
 
-.purchase-summary-main small {
-  color: #9ca2ab;
-  overflow: hidden;
-  font-size: 0.8rem;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .purchase-summary-total {
   display: grid;
   justify-items: end;
@@ -2399,10 +2390,6 @@ body.modal-open {
 
   .purchase-timeline {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .purchase-summary-main small {
-    white-space: normal;
   }
 
   .order-access {
