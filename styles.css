@@ -1118,6 +1118,11 @@ body.modal-open {
   gap: 10px;
 }
 
+.active-shipping-address {
+  display: grid;
+  gap: 10px;
+}
+
 .shipping-address-card {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1128,6 +1133,11 @@ body.modal-open {
   border: 1px solid #34363b;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.shipping-address-card.active {
+  grid-template-columns: 1fr;
+  cursor: default;
 }
 
 .shipping-address-card.selected {
@@ -1171,6 +1181,17 @@ body.modal-open {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.shipping-config-button {
+  justify-self: start;
+}
+
+.shipping-address-manager {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #2c2e33;
 }
 
 .shipping-address-form {
@@ -2352,6 +2373,11 @@ body.modal-open {
   .order-form,
   .shipping-address-form {
     grid-template-columns: 1fr;
+  }
+
+  .shipping-config-button,
+  .shipping-address-actions .ghost-button {
+    width: 100%;
   }
 
   .purchases-header,

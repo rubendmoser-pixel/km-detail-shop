@@ -23,7 +23,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=42" />
+    <link rel="stylesheet" href="./styles.css?v=43" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -342,12 +342,16 @@
               <p class="eyebrow">Recepcion</p>
               <h3>Lugar de entrega</h3>
             </div>
-            <div class="shipping-address-list" id="shippingAddressList"></div>
-            <div class="shipping-address-actions">
-              <button class="ghost-button" id="newShippingAddress" type="button">Agregar lugar</button>
-              <button class="ghost-button" id="editShippingAddress" type="button">Editar seleccionado</button>
-              <button class="ghost-button" id="defaultShippingAddress" type="button">Marcar preferido</button>
-              <button class="ghost-button danger" id="deleteShippingAddress" type="button">Eliminar</button>
+            <div class="active-shipping-address" id="activeShippingAddress"></div>
+            <button class="ghost-button shipping-config-button" id="configureShippingAddresses" type="button">Configurar entrega</button>
+            <div class="shipping-address-manager" id="shippingAddressManager" hidden>
+              <div class="shipping-address-list" id="shippingAddressList"></div>
+              <div class="shipping-address-actions">
+                <button class="ghost-button" id="newShippingAddress" type="button">Agregar lugar</button>
+                <button class="ghost-button" id="editShippingAddress" type="button">Editar seleccionado</button>
+                <button class="ghost-button" id="defaultShippingAddress" type="button">Marcar preferido</button>
+                <button class="ghost-button danger" id="deleteShippingAddress" type="button">Eliminar</button>
+              </div>
             </div>
           </section>
           <div class="form-actions">
@@ -513,6 +517,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=48" defer></script>
+    <script src="./app.js?v=49" defer></script>
   </body>
 </html>

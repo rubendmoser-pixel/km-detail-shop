@@ -42,6 +42,7 @@ const state = {
   orders: [],
   shippingAddresses: [],
   selectedShippingAddressId: null,
+  shippingAddressConfigOpen: false,
   purchaseFilter: "all",
   purchaseVisibleCount: 10,
   settings: { vatBps: 2100, whatsappNumber: "" },
@@ -60,6 +61,7 @@ const els = Object.fromEntries([
   "cartEmpty", "cartSummaryText", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
   "navPurchases", "topNav", "mobileMenuToggle",
+  "activeShippingAddress", "configureShippingAddresses", "shippingAddressManager",
   "shippingAddressList", "shippingAddressForm", "shippingAddressFormTitle", "shippingAddressMessage",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
   "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus",
@@ -134,6 +136,7 @@ function bindEvents() {
   window.addEventListener("hashchange", () => {
     handleHashNavigation().catch((error) => showToast(error.message || "No se pudo abrir la seccion."));
   });
+  document.querySelector("#configureShippingAddresses").addEventListener("click", toggleShippingAddressManager);
   document.querySelector("#newShippingAddress").addEventListener("click", () => openShippingAddressForm());
   document.querySelector("#editShippingAddress").addEventListener("click", editSelectedShippingAddress);
   document.querySelector("#defaultShippingAddress").addEventListener("click", setSelectedShippingDefault);
@@ -595,10 +598,25 @@ async function loadShippingAddresses() {
 function renderShippingAddresses() {
   if (!els.shippingAddressList) return;
   if (!isApprovedCustomer()) {
+    els.activeShippingAddress.innerHTML = "";
     els.shippingAddressList.innerHTML = "";
+    els.shippingAddressManager.hidden = true;
     els.shippingAddressForm.hidden = true;
     return;
   }
+  const selected = selectedShippingAddress();
+  if (!state.shippingAddresses.length) state.shippingAddressConfigOpen = true;
+  els.activeShippingAddress.innerHTML = selected ? `
+    <div class="shipping-address-card active">
+      <span>
+        <strong>${escapeHtml(selected.label)}${selected.isDefault ? ` <em>Preferida</em>` : ""}</strong>
+        <small>${escapeHtml(selected.recipient)} | ${escapeHtml(selected.address)} | ${escapeHtml(selected.city)}, ${escapeHtml(selected.province)} | CP ${escapeHtml(selected.postalCode)}</small>
+        <small>Tel: ${escapeHtml(selected.contactPhone)}${selected.preferredTransport ? ` | Transporte: ${escapeHtml(selected.preferredTransport)}` : ""}</small>
+      </span>
+    </div>
+  ` : `<p class="muted">Todavia no hay lugares de recepcion cargados.</p>`;
+  els.configureShippingAddresses.textContent = state.shippingAddressConfigOpen ? "Cerrar configuracion" : (selected ? "Configurar entrega" : "Agregar lugar de entrega");
+  els.shippingAddressManager.hidden = !state.shippingAddressConfigOpen;
   els.shippingAddressList.innerHTML = state.shippingAddresses.length ? state.shippingAddresses.map((address) => `
     <label class="shipping-address-card ${address.id === state.selectedShippingAddressId ? "selected" : ""}">
       <input type="radio" name="shippingAddressId" value="${address.id}" ${address.id === state.selectedShippingAddressId ? "checked" : ""} />
@@ -617,7 +635,16 @@ function renderShippingAddresses() {
   });
 }
 
+function toggleShippingAddressManager() {
+  state.shippingAddressConfigOpen = !state.shippingAddressConfigOpen;
+  if (!state.shippingAddressConfigOpen) closeShippingAddressForm();
+  renderShippingAddresses();
+  if (state.shippingAddressConfigOpen && !state.shippingAddresses.length) openShippingAddressForm();
+}
+
 function openShippingAddressForm(address = null) {
+  state.shippingAddressConfigOpen = true;
+  els.shippingAddressManager.hidden = false;
   els.shippingAddressForm.hidden = false;
   els.shippingAddressForm.reset();
   els.shippingAddressMessage.textContent = "";
@@ -663,6 +690,7 @@ async function saveShippingAddress(event) {
     });
     state.selectedShippingAddressId = result.address.id;
     await loadShippingAddresses();
+    state.shippingAddressConfigOpen = false;
     renderShippingAddresses();
     closeShippingAddressForm();
     showToast("Lugar de recepcion guardado.");
