@@ -467,6 +467,7 @@ export function createEmailService({ db, config }) {
     `).get(orderId);
     if (!order) return;
     const labels = { pending: "pendiente de preparacion", ready: "preparado para despacho", shipped: "despachado", delivered: "recibido" };
+    if (order.fulfillment_status !== "shipped") return;
     queue("order_fulfillment_customer", order.email, `Despacho ${order.order_number} | KM Detail Line`, [
       `Hola ${order.contact_person},`,
       "",
