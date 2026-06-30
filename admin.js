@@ -708,18 +708,24 @@ function renderOrderActionBar(order) {
   const customerWhatsapp = cleanPhone(order.customerWhatsapp);
   const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
   const canOperateDocuments = canFulfillOrder(order);
+  const isInitialReview = order.status === "order_created";
+  const preparationAction = (isInitialReview || canOperateDocuments)
+    ? `<button class="ghost-button" type="button" id="openPickingList">Imprimir preparacion</button>`
+    : "";
   const documentActions = canOperateDocuments ? `
-    <button class="ghost-button" type="button" id="openPickingList">Imprimir preparacion</button>
+    ${preparationAction}
     <button class="ghost-button" type="button" id="openDeliveryNote">Detalle para caja</button>
     <form class="shipping-label-form">
       <label><span>Bultos</span><input name="packages" type="number" min="1" max="99" step="1" value="1" /></label>
       <button class="ghost-button" type="submit">Generar etiquetas A4</button>
     </form>
-  ` : "";
+  ` : preparationAction;
   const whatsappAction = customerWhatsapp
     ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
     : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
-  adminEls.orderDetailActions.innerHTML = fulfillmentStatus === "shipped"
+  adminEls.orderDetailActions.innerHTML = isInitialReview
+    ? documentActions
+    : fulfillmentStatus === "shipped"
     ? `${whatsappAction}${documentActions}`
     : `${documentActions}${customerWhatsapp && canOperateDocuments ? whatsappAction : ""}${!canOperateDocuments ? whatsappAction : ""}`;
   const pickingButton = adminEls.orderDetailActions.querySelector("#openPickingList");
@@ -798,7 +804,7 @@ function renderOrderWorkflow(order) {
     return;
   }
   if (canConfirmAvailability) {
-    renderNextStep("Proxima accion: confirmar disponibilidad", "Revisa cantidades disponibles por articulo, ajusta parciales si corresponde y envia la confirmacion al cliente.", "info");
+    renderNextStep("Proxima accion: preparar y confirmar disponibilidad", "Imprimi la preparacion, controla articulos disponibles, ajusta parciales si corresponde y confirma disponibilidad al cliente.", "info");
     return;
   }
   if (availabilityConfirmed && order.paymentStatus === "pending_payment") {
