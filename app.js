@@ -866,7 +866,6 @@ function renderCustomerOrder(order) {
           </div>
         </summary>
         <div class="purchase-detail-body">
-          ${renderPurchaseTimeline(order)}
           <div class="purchase-card-grid">
             <dl>
               <div><dt>Total</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
@@ -920,17 +919,6 @@ function renderBankSummary(bank = {}) {
   `;
 }
 
-function renderPurchaseTimeline(order) {
-  const steps = [
-    { key: "received", label: "KM recibio pedido", done: true },
-    { key: "availability", label: "KM confirmo disponibilidad", done: ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status) },
-    { key: "payment", label: "Pago registrado", done: ["paid", "partial_payment", "credit_account"].includes(order.paymentStatus) },
-    { key: "shipment", label: "KM despacho pedido", done: ["shipped", "delivered"].includes(order.fulfillment?.status) },
-    { key: "customer-received", label: "Cliente confirmo recepcion", done: order.fulfillment?.status === "delivered" }
-  ];
-  return `<ol class="purchase-timeline">${steps.map((step) => `<li class="${step.done ? "done" : ""}"><span></span>${step.label}</li>`).join("")}</ol>`;
-}
-
 function customerOrderState(order) {
   const fulfillmentStatus = order.fulfillment?.status;
   const balance = money.format((order.balanceCents || 0) / 100);
@@ -939,10 +927,10 @@ function customerOrderState(order) {
     return { label: "Pedido cancelado", detail: "La compra quedo sin efecto.", className: "status-danger" };
   }
   if (fulfillmentStatus === "delivered") {
-    return { label: "Pedido recibido por el cliente", detail: "Compra finalizada.", className: "status-success" };
+    return { label: "Compra finalizada", detail: "Confirmaste la recepcion del pedido.", className: "status-success" };
   }
   if (fulfillmentStatus === "shipped") {
-    return { label: "KM despacho el pedido", detail: "Confirma la recepcion cuando llegue.", className: "status-info" };
+    return { label: "Pedido despachado", detail: "Presiona confirmar cuando recibas el pedido.", className: "status-info" };
   }
   if (fulfillmentStatus === "ready") {
     return { label: "KM prepara el despacho", detail: "Pedido listo internamente para salir.", className: "status-warn" };

@@ -1689,38 +1689,6 @@ body.modal-open {
   color: var(--muted);
 }
 
-.purchase-timeline {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.purchase-timeline li {
-  display: grid;
-  gap: 7px;
-  color: #858b94;
-  font-size: 0.82rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.purchase-timeline li span {
-  height: 4px;
-  background: #2a2d33;
-  border-radius: 999px;
-}
-
-.purchase-timeline li.done {
-  color: #f2f3f2;
-}
-
-.purchase-timeline li.done span {
-  background: linear-gradient(90deg, var(--metal), #fff);
-}
-
 .purchase-card-grid {
   display: grid;
   grid-template-columns: 1.25fr 1fr;
@@ -2530,10 +2498,6 @@ body.modal-open {
 
   .purchase-metrics article:last-child {
     border-bottom: 0;
-  }
-
-  .purchase-timeline {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .order-access {
