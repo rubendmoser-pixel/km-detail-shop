@@ -568,6 +568,10 @@ export function createEmailService({ db, config }) {
         flushParagraph();
         continue;
       }
+      if (isStandaloneBrandLine(trimmed)) {
+        flushParagraph();
+        continue;
+      }
       if (isEmailSectionTitle(trimmed)) {
         flushParagraph();
         blocks.push(`<h2 style="margin:24px 0 12px;color:#f4f5f6;font-size:16px;line-height:1.25;text-transform:uppercase;letter-spacing:.08em;">${escapeHtml(trimmed)}</h2>`);
@@ -613,7 +617,7 @@ export function createEmailService({ db, config }) {
             </tr>
             <tr>
               <td style="padding:28px;">
-                <h1 style="margin:0 0 18px;color:#ffffff;font-size:26px;line-height:1.15;">${escapeHtml(shortenBrandText(subject))}</h1>
+                <h1 style="margin:0 0 18px;color:#ffffff;font-size:26px;line-height:1.15;">${escapeHtml(cleanEmailTitle(subject))}</h1>
                 ${blocks.join("\n")}
               </td>
             </tr>
@@ -659,6 +663,14 @@ export function createEmailService({ db, config }) {
 
   function shortenBrandText(value) {
     return String(value || "").replace(/\bKM Detail Line\b/g, "KM");
+  }
+
+  function cleanEmailTitle(value) {
+    return shortenBrandText(value).replace(/\s+\|\s+KM$/i, "").trim();
+  }
+
+  function isStandaloneBrandLine(value) {
+    return /^(KM|KM Detail Line)$/i.test(shortenBrandText(value).trim());
   }
 
   function isKeyValueLine(line) {
