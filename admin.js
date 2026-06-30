@@ -766,6 +766,9 @@ function renderFulfillment(order) {
   form.fulfillmentEstimatedDate.value = normalizeDateInput(fulfillment.estimatedDate);
   form.fulfillmentNotes.value = fulfillment.notes || "";
   adminEls.fulfillmentForm.dataset.stage = status;
+  setFulfillmentFormReadonly(false);
+  adminEls.fulfillmentSubmit.hidden = false;
+  adminEls.fulfillmentSubmit.disabled = false;
   const statusField = adminEls.fulfillmentForm.querySelector(".fulfillment-status-field");
   if (statusField) statusField.hidden = true;
   const dispatchFields = adminEls.fulfillmentForm.querySelectorAll(".dispatch-field");
@@ -784,11 +787,19 @@ function renderFulfillment(order) {
     adminEls.fulfillmentQuickActions.innerHTML = `<p class="admin-note">Completa modalidad, transporte, guia/remito y fecha para registrar la salida del pedido.</p>`;
   } else {
     form.fulfillmentStatus.value = "shipped";
-    adminEls.fulfillmentSubmit.textContent = "Actualizar datos de despacho";
+    adminEls.fulfillmentSubmit.hidden = true;
+    adminEls.fulfillmentSubmit.disabled = true;
+    setFulfillmentFormReadonly(true);
     adminEls.fulfillmentQuickActions.hidden = false;
-    adminEls.fulfillmentQuickActions.innerHTML = `<p class="admin-note">Pedido despachado. Estos datos quedan como consulta y seguimiento.</p>`;
+    adminEls.fulfillmentQuickActions.innerHTML = `<p class="admin-note">Pedido despachado. Esperando que el cliente confirme la recepcion. Los datos quedan como consulta y seguimiento.</p>`;
   }
   adminEls.fulfillmentMessage.textContent = "";
+}
+
+function setFulfillmentFormReadonly(readonly) {
+  adminEls.fulfillmentForm.querySelectorAll("input, select, textarea").forEach((field) => {
+    field.disabled = readonly;
+  });
 }
 
 function renderOrderWorkflow(order) {
@@ -848,7 +859,7 @@ function renderOrderWorkflow(order) {
       return;
     }
     if (fulfillmentStatus === "shipped") {
-      renderNextStep("Pedido despachado", "La operacion interna de KM esta cerrada. Quedan disponibles WhatsApp, documentos y datos de seguimiento.", "done");
+      renderNextStep("Esperando recepcion del cliente", "El pedido ya fue despachado. No hay acciones de despacho pendientes hasta que el cliente confirme la recepcion.", "done");
       return;
     }
     renderNextStep("Proxima accion: preparar despacho", "El pedido esta habilitado para logistica.", "success");
