@@ -766,21 +766,26 @@ function renderFulfillment(order) {
   form.fulfillmentEstimatedDate.value = normalizeDateInput(fulfillment.estimatedDate);
   form.fulfillmentNotes.value = fulfillment.notes || "";
   adminEls.fulfillmentForm.dataset.stage = status;
+  const statusField = adminEls.fulfillmentForm.querySelector(".fulfillment-status-field");
+  if (statusField) statusField.hidden = true;
   const dispatchFields = adminEls.fulfillmentForm.querySelectorAll(".dispatch-field");
   dispatchFields.forEach((field) => {
     field.hidden = status === "pending";
   });
   adminEls.fulfillmentQuickActions.innerHTML = "";
+  adminEls.fulfillmentQuickActions.hidden = true;
   if (status === "pending") {
     form.fulfillmentStatus.value = "ready";
     adminEls.fulfillmentSubmit.textContent = "Marcar preparado para despacho";
   } else if (status === "ready") {
     form.fulfillmentStatus.value = "shipped";
     adminEls.fulfillmentSubmit.textContent = "Marcar despachado";
+    adminEls.fulfillmentQuickActions.hidden = false;
     adminEls.fulfillmentQuickActions.innerHTML = `<p class="admin-note">Completa modalidad, transporte, guia/remito y fecha para registrar la salida del pedido.</p>`;
   } else {
     form.fulfillmentStatus.value = "shipped";
     adminEls.fulfillmentSubmit.textContent = "Actualizar datos de despacho";
+    adminEls.fulfillmentQuickActions.hidden = false;
     adminEls.fulfillmentQuickActions.innerHTML = `<p class="admin-note">Pedido despachado. Estos datos quedan como consulta y seguimiento.</p>`;
   }
   adminEls.fulfillmentMessage.textContent = "";
