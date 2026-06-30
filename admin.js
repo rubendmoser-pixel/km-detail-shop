@@ -13,9 +13,9 @@ const orderStatusLabels = {
   order_created: "Pedido recibido",
   availability_confirmed: "Disponibilidad confirmada",
   confirmed: "Pedido confirmado",
-  in_preparation: "En preparacion",
-  ready: "Listo para despacho",
-  delivered: "Entregado",
+  in_preparation: "Disponibilidad confirmada",
+  ready: "Preparado para despacho",
+  delivered: "Despachado",
   cancelled: "Cancelado"
 };
 const paymentStatusLabels = {
@@ -29,10 +29,10 @@ const paymentStatusLabels = {
   refunded: "Pago reintegrado"
 };
 const fulfillmentStatusLabels = {
-  pending: "Despacho pendiente",
-  ready: "Listo para despacho",
+  pending: "Pendiente de preparacion",
+  ready: "Preparado para despacho",
   shipped: "Despachado",
-  delivered: "Entregado"
+  delivered: "Despachado"
 };
 
 const orderStateClasses = {
@@ -66,7 +66,7 @@ const adminEls = Object.fromEntries([
   "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
-  "availabilityForm", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentMessage",
+  "availabilityForm", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
   "orderStatusForm", "orderStatusMessage", "orderAdvancedPanel",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
@@ -634,7 +634,7 @@ async function loadOrders() {
     <tr><td><strong>${escapeAdmin(order.order_number)}</strong></td><td>${escapeAdmin(order.business_name)}</td>
       <td>${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}</td>
       <td>${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
-      <td>${stateBadge(fulfillmentStatusText(order.fulfillment_status || "pending"), fulfillmentStateClasses[order.fulfillment_status || "pending"])}</td>
+      <td>${stateBadge(fulfillmentStatusText(normalizedFulfillmentStatus(order.fulfillment_status)), fulfillmentStateClasses[normalizedFulfillmentStatus(order.fulfillment_status)])}</td>
       <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
       <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
   `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
@@ -664,7 +664,7 @@ function renderOrderDetail() {
   adminEls.orderDetailSummary.innerHTML = [
     { label: "Comercial", value: stateBadge(orderStatusText(order.status), orderStateClasses[order.status]), html: true },
     { label: "Pago", value: stateBadge(paymentStatusText(order.paymentStatus), paymentStateClasses[order.paymentStatus]), html: true },
-    { label: "Logistica", value: stateBadge(fulfillmentStatusText(order.fulfillment?.status || "pending"), fulfillmentStateClasses[order.fulfillment?.status || "pending"]), html: true },
+    { label: "Logistica", value: stateBadge(fulfillmentStatusText(normalizedFulfillmentStatus(order.fulfillment?.status)), fulfillmentStateClasses[normalizedFulfillmentStatus(order.fulfillment?.status)]), html: true },
     { label: "Total", value: adminMoney.format(order.totalCents / 100) },
     { label: "Pagado", value: adminMoney.format((order.paidCents || 0) / 100) },
     { label: "Saldo", value: adminMoney.format((order.balanceCents || 0) / 100) },
@@ -680,21 +680,7 @@ function renderOrderDetail() {
     { label: "Entrega solicitada", value: shippingText(order.shipping) },
     { label: "Despacho", value: fulfillmentText(order.fulfillment) }
   ].map((item) => `<div class="${item.html ? "state-summary-card" : ""}"><span>${item.label}</span><strong>${item.html ? item.value : escapeAdmin(item.value)}</strong></div>`).join("");
-  const customerWhatsapp = cleanPhone(order.customerWhatsapp);
-  adminEls.orderDetailActions.innerHTML = customerWhatsapp
-    ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
-    : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
-  adminEls.orderDetailActions.insertAdjacentHTML("beforeend", `
-    <button class="ghost-button" type="button" id="openPickingList">Imprimir preparacion</button>
-    <button class="ghost-button" type="button" id="openDeliveryNote">Detalle para caja</button>
-    <form class="shipping-label-form">
-      <label><span>Bultos</span><input name="packages" type="number" min="1" max="99" step="1" value="1" /></label>
-      <button class="ghost-button" type="submit">Generar etiquetas A4</button>
-    </form>
-  `);
-  adminEls.orderDetailActions.querySelector("#openPickingList").addEventListener("click", openPickingList);
-  adminEls.orderDetailActions.querySelector("#openDeliveryNote").addEventListener("click", openDeliveryNote);
-  adminEls.orderDetailActions.querySelector(".shipping-label-form").addEventListener("submit", openShippingLabels);
+  renderOrderActionBar(order);
   adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
     <tr data-order-item-id="${item.id}" data-unit-cents="${item.finalUnitPriceCents}">
       <td><strong>${escapeAdmin(item.kmCode)}</strong><br><span>EAN ${escapeAdmin(item.ean13)}</span></td>
@@ -712,11 +698,36 @@ function renderOrderDetail() {
   renderPaymentReceipts(order);
   renderFulfillment(order);
   renderOrderWorkflow(order);
-  adminEls.fulfillmentForm.querySelectorAll("[data-fulfillment-preset]").forEach((button) => button.addEventListener("click", setFulfillmentPreset));
   adminEls.orderStatusForm.elements.status.value = order.status;
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
   adminEls.orderStatusMessage.textContent = "";
+}
+
+function renderOrderActionBar(order) {
+  const customerWhatsapp = cleanPhone(order.customerWhatsapp);
+  const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
+  const canOperateDocuments = canFulfillOrder(order);
+  const documentActions = canOperateDocuments ? `
+    <button class="ghost-button" type="button" id="openPickingList">Imprimir preparacion</button>
+    <button class="ghost-button" type="button" id="openDeliveryNote">Detalle para caja</button>
+    <form class="shipping-label-form">
+      <label><span>Bultos</span><input name="packages" type="number" min="1" max="99" step="1" value="1" /></label>
+      <button class="ghost-button" type="submit">Generar etiquetas A4</button>
+    </form>
+  ` : "";
+  const whatsappAction = customerWhatsapp
+    ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
+    : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
+  adminEls.orderDetailActions.innerHTML = fulfillmentStatus === "shipped"
+    ? `${whatsappAction}${documentActions}`
+    : `${documentActions}${customerWhatsapp && canOperateDocuments ? whatsappAction : ""}${!canOperateDocuments ? whatsappAction : ""}`;
+  const pickingButton = adminEls.orderDetailActions.querySelector("#openPickingList");
+  if (pickingButton) pickingButton.addEventListener("click", openPickingList);
+  const deliveryButton = adminEls.orderDetailActions.querySelector("#openDeliveryNote");
+  if (deliveryButton) deliveryButton.addEventListener("click", openDeliveryNote);
+  const labelsForm = adminEls.orderDetailActions.querySelector(".shipping-label-form");
+  if (labelsForm) labelsForm.addEventListener("submit", openShippingLabels);
 }
 
 function openShippingLabels(event) {
@@ -740,37 +751,50 @@ function openDeliveryNote() {
 function renderFulfillment(order) {
   const form = adminEls.fulfillmentForm.elements;
   const fulfillment = order.fulfillment || {};
-  form.fulfillmentStatus.value = fulfillment.status || "pending";
+  const status = normalizedFulfillmentStatus(fulfillment.status);
+  form.fulfillmentStatus.value = status;
   form.fulfillmentMethod.value = fulfillment.method || "";
   form.fulfillmentCarrier.value = fulfillment.carrier || "";
   form.fulfillmentTracking.value = fulfillment.tracking || "";
   form.fulfillmentEstimatedDate.value = normalizeDateInput(fulfillment.estimatedDate);
   form.fulfillmentNotes.value = fulfillment.notes || "";
+  adminEls.fulfillmentForm.dataset.stage = status;
+  const dispatchFields = adminEls.fulfillmentForm.querySelectorAll(".dispatch-field");
+  dispatchFields.forEach((field) => {
+    field.hidden = status === "pending";
+  });
+  adminEls.fulfillmentQuickActions.innerHTML = "";
+  if (status === "pending") {
+    form.fulfillmentStatus.value = "ready";
+    adminEls.fulfillmentSubmit.textContent = "Marcar preparado para despacho";
+  } else if (status === "ready") {
+    form.fulfillmentStatus.value = "shipped";
+    adminEls.fulfillmentSubmit.textContent = "Marcar despachado";
+    adminEls.fulfillmentQuickActions.innerHTML = `<p class="admin-note">Completa modalidad, transporte, guia/remito y fecha para registrar la salida del pedido.</p>`;
+  } else {
+    form.fulfillmentStatus.value = "shipped";
+    adminEls.fulfillmentSubmit.textContent = "Actualizar datos de despacho";
+    adminEls.fulfillmentQuickActions.innerHTML = `<p class="admin-note">Pedido despachado. Estos datos quedan como consulta y seguimiento.</p>`;
+  }
   adminEls.fulfillmentMessage.textContent = "";
 }
 
 function renderOrderWorkflow(order) {
-  const fulfillmentStatus = order.fulfillment?.status || "pending";
+  const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
   const isCancelled = order.status === "cancelled";
-  const isDelivered = order.status === "delivered" || fulfillmentStatus === "delivered";
   const canConfirmAvailability = order.status === "order_created";
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
   const hasReceipts = (order.paymentReceipts || []).length > 0;
   const canReviewPayment = hasReceipts || ["receipt_uploaded", "rejected"].includes(order.paymentStatus);
-  const paymentAllowsFulfillment = ["paid", "partial_payment", "credit_account"].includes(order.paymentStatus);
-  const canManageFulfillment = paymentAllowsFulfillment && availabilityConfirmed && !isCancelled;
+  const canManageFulfillment = canFulfillOrder(order);
 
   adminEls.availabilityForm.hidden = !canConfirmAvailability;
   adminEls.paymentReviewPanel.hidden = isCancelled || !canReviewPayment;
-  adminEls.fulfillmentForm.hidden = !canManageFulfillment || isDelivered;
+  adminEls.fulfillmentForm.hidden = !canManageFulfillment;
   adminEls.orderAdvancedPanel.open = false;
 
   if (isCancelled) {
     renderNextStep("Pedido cancelado", "No hay acciones operativas pendientes. Solo se pueden revisar documentos o usar ajustes avanzados si hiciera falta.", "danger");
-    return;
-  }
-  if (isDelivered) {
-    renderNextStep("Pedido entregado", "El pedido ya figura como entregado. Los documentos quedan disponibles para consulta o reimpresion.", "done");
     return;
   }
   if (canConfirmAvailability) {
@@ -779,14 +803,6 @@ function renderOrderWorkflow(order) {
   }
   if (availabilityConfirmed && order.paymentStatus === "pending_payment") {
     renderNextStep("Proxima accion: esperar comprobante de pago", "La disponibilidad ya fue confirmada. El cliente debe cargar o enviar el comprobante para avanzar con preparacion y despacho.", "warning");
-    return;
-  }
-  if (order.paymentStatus === "partial_payment") {
-    renderNextStep("Proxima accion: seguir saldo", `Hay un saldo pendiente de ${adminMoney.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? ` con vencimiento ${formatAdminDate(order.paymentDueDate)}` : ""}. El pedido puede avanzar si KM lo autorizo comercialmente.`, "warning");
-    return;
-  }
-  if (order.paymentStatus === "credit_account") {
-    renderNextStep("Proxima accion: preparar despacho", `Pedido autorizado en cuenta corriente. Saldo pendiente ${adminMoney.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? ` con vencimiento ${formatAdminDate(order.paymentDueDate)}` : ""}.`, "info");
     return;
   }
   if (order.paymentStatus === "overdue") {
@@ -801,8 +817,24 @@ function renderOrderWorkflow(order) {
     renderNextStep("Proxima accion: corregir pago", "El ultimo comprobante fue rechazado. Espera una nueva carga del cliente o coordina la correccion por WhatsApp/email.", "danger");
     return;
   }
+  if (order.paymentStatus === "partial_payment" && !order.paymentDueDate) {
+    renderNextStep("Proxima accion: autorizar saldo o solicitar pago", `Hay un saldo pendiente de ${adminMoney.format((order.balanceCents || 0) / 100)}. Autoriza un plazo o solicita el pago restante antes de preparar.`, "warning");
+    return;
+  }
   if (canManageFulfillment) {
-    renderNextStep("Proxima accion: preparar despacho", "El pago esta registrado. Completa transporte, guia/remito y estado logistico cuando corresponda.", "success");
+    if (fulfillmentStatus === "pending") {
+      renderNextStep("Proxima accion: preparar pedido", "Imprimi preparacion, controla articulos y bultos, y marca el pedido como preparado para despacho.", "success");
+      return;
+    }
+    if (fulfillmentStatus === "ready") {
+      renderNextStep("Proxima accion: despachar pedido", "Carga modalidad, transporte, guia/remito y fecha de salida. Luego marca el pedido como despachado.", "progress");
+      return;
+    }
+    if (fulfillmentStatus === "shipped") {
+      renderNextStep("Pedido despachado", "La operacion interna de KM esta cerrada. Quedan disponibles WhatsApp, documentos y datos de seguimiento.", "done");
+      return;
+    }
+    renderNextStep("Proxima accion: preparar despacho", "El pedido esta habilitado para logistica.", "success");
     return;
   }
   renderNextStep("Pedido en seguimiento", "No hay una accion automatica sugerida para esta combinacion de estados. Usa ajustes avanzados solo si necesitas corregir el flujo.", "neutral");
@@ -817,6 +849,18 @@ function setFulfillmentPreset(event) {
   if (preset === "shipped" && !adminEls.fulfillmentForm.elements.fulfillmentNotes.value.trim()) {
     adminEls.fulfillmentForm.elements.fulfillmentNotes.value = "Pedido despachado.";
   }
+}
+
+function canFulfillOrder(order) {
+  const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
+  const paymentAllowsFulfillment = ["paid", "credit_account"].includes(order.paymentStatus)
+    || (order.paymentStatus === "partial_payment" && Boolean(order.paymentDueDate));
+  return paymentAllowsFulfillment && availabilityConfirmed && order.status !== "cancelled";
+}
+
+function normalizedFulfillmentStatus(status) {
+  if (status === "delivered") return "shipped";
+  return status || "pending";
 }
 
 function renderNextStep(title, body, tone = "neutral") {

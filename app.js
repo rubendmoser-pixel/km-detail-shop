@@ -1072,9 +1072,9 @@ function orderStatusText(status) {
     order_created: "Recibido",
     availability_confirmed: "Disponibilidad confirmada",
     confirmed: "Confirmado",
-    in_preparation: "En preparacion",
-    ready: "Listo",
-    delivered: "Entregado",
+    in_preparation: "En proceso",
+    ready: "Preparado para despacho",
+    delivered: "Recibido",
     cancelled: "Cancelado"
   })[status] || status;
 }
@@ -1115,10 +1115,10 @@ function paymentStatusClass(status) {
 
 function fulfillmentStatusText(status) {
   return ({
-    pending: "Despacho pendiente",
-    ready: "Listo para despacho",
+    pending: "Pendiente de preparacion",
+    ready: "Preparado para despacho",
     shipped: "Despachado",
-    delivered: "Entregado"
+    delivered: "Recibido"
   })[status] || status || "";
 }
 

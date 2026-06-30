@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=22" />
+    <link rel="stylesheet" href="./admin.css?v=23" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -179,9 +179,7 @@
                 <option value="order_created">Recibido</option>
                 <option value="availability_confirmed">Disponibilidad confirmada</option>
                 <option value="confirmed">Confirmado</option>
-                <option value="in_preparation">En preparacion</option>
-                <option value="ready">Listo</option>
-                <option value="delivered">Entregado</option>
+                <option value="ready">Preparado para despacho</option>
                 <option value="cancelled">Cancelado</option>
               </select>
               <select id="orderPaymentFilter" aria-label="Filtrar estado de pago">
@@ -197,10 +195,9 @@
               </select>
               <select id="orderFulfillmentFilter" aria-label="Filtrar despacho">
                 <option value="">Todos los despachos</option>
-                <option value="pending">Pendiente</option>
-                <option value="ready">Listo</option>
+                <option value="pending">Pendiente de preparacion</option>
+                <option value="ready">Preparado para despacho</option>
                 <option value="shipped">Despachado</option>
-                <option value="delivered">Entregado</option>
               </select>
               <button class="ghost-button" id="reloadOrders" type="button">Actualizar</button>
             </div>
@@ -224,17 +221,13 @@
             <div class="payment-review-panel" id="paymentReviewPanel"></div>
             <form class="fulfillment-form" id="fulfillmentForm">
               <div class="panel-heading"><p class="eyebrow">Envio / despacho</p><h3>Datos de despacho</h3></div>
-              <div class="fulfillment-quick-actions">
-                <button class="ghost-button" type="button" data-fulfillment-preset="ready">Marcar listo para despacho</button>
-                <button class="ghost-button" type="button" data-fulfillment-preset="shipped">Marcar despachado</button>
-              </div>
-              <label><span>Estado</span><select name="fulfillmentStatus">
-                <option value="pending">Pendiente</option>
-                <option value="ready">Listo para despacho</option>
+              <div class="fulfillment-quick-actions" id="fulfillmentQuickActions"></div>
+              <label class="fulfillment-status-field"><span>Estado</span><select name="fulfillmentStatus">
+                <option value="pending">Pendiente de preparacion</option>
+                <option value="ready">Preparado para despacho</option>
                 <option value="shipped">Despachado</option>
-                <option value="delivered">Entregado</option>
               </select></label>
-              <label><span>Modalidad</span><select name="fulfillmentMethod">
+              <label class="dispatch-field"><span>Modalidad</span><select name="fulfillmentMethod">
                 <option value="">Seleccionar</option>
                 <option value="Retira en local">Retira en local</option>
                 <option value="Transporte">Transporte</option>
@@ -243,11 +236,11 @@
                 <option value="Entrega propia">Entrega propia</option>
                 <option value="Otro">Otro</option>
               </select></label>
-              <label><span>Transporte / responsable</span><input name="fulfillmentCarrier" /></label>
-              <label><span>Guia / remito</span><input name="fulfillmentTracking" /></label>
-              <label><span>Fecha estimada</span><input name="fulfillmentEstimatedDate" type="date" /></label>
-              <label class="wide"><span>Observaciones para el cliente</span><textarea name="fulfillmentNotes" rows="2"></textarea></label>
-              <button class="primary-button" type="submit">Guardar despacho</button>
+              <label class="dispatch-field"><span>Transporte / responsable</span><input name="fulfillmentCarrier" /></label>
+              <label class="dispatch-field"><span>Guia / remito</span><input name="fulfillmentTracking" /></label>
+              <label class="dispatch-field"><span>Fecha de despacho</span><input name="fulfillmentEstimatedDate" type="date" /></label>
+              <label class="wide dispatch-field"><span>Observaciones para el cliente</span><textarea name="fulfillmentNotes" rows="2"></textarea></label>
+              <button class="primary-button" id="fulfillmentSubmit" type="submit">Guardar despacho</button>
               <p class="form-message" id="fulfillmentMessage" role="status"></p>
             </form>
             <details class="advanced-order-panel" id="orderAdvancedPanel">
@@ -257,9 +250,7 @@
                   <option value="order_created">Pedido creado</option>
                   <option value="availability_confirmed">Disponibilidad confirmada</option>
                   <option value="confirmed">Confirmado</option>
-                  <option value="in_preparation">En preparacion</option>
-                  <option value="ready">Listo</option>
-                  <option value="delivered">Entregado</option>
+                  <option value="ready">Preparado para despacho</option>
                   <option value="cancelled">Cancelado</option>
                 </select></label>
                 <label><span>Estado pago</span><select name="paymentStatus">
@@ -332,6 +323,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=26" defer></script>
+    <script src="./admin.js?v=27" defer></script>
   </body>
 </html>

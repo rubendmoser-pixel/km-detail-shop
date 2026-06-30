@@ -196,9 +196,9 @@ export function createEmailService({ db, config }) {
       order_created: "pedido creado",
       availability_confirmed: "disponibilidad confirmada",
       confirmed: "confirmado",
-      in_preparation: "en preparacion",
-      ready: "listo",
-      delivered: "entregado",
+      in_preparation: "en proceso",
+      ready: "preparado para despacho",
+      delivered: "recibido",
       cancelled: "cancelado"
     };
     const paymentLabels = {
@@ -466,7 +466,7 @@ export function createEmailService({ db, config }) {
       WHERE o.id = ?
     `).get(orderId);
     if (!order) return;
-    const labels = { pending: "pendiente", ready: "listo para despacho", shipped: "despachado", delivered: "entregado" };
+    const labels = { pending: "pendiente de preparacion", ready: "preparado para despacho", shipped: "despachado", delivered: "recibido" };
     queue("order_fulfillment_customer", order.email, `Despacho ${order.order_number} | KM Detail Line`, [
       `Hola ${order.contact_person},`,
       "",
