@@ -847,6 +847,7 @@ function renderCustomerOrder(order) {
   const statusClass = purchaseStatusClass(order);
   const itemCount = items.reduce((sum, item) => sum + (Number(item.confirmedQuantity) > 0 ? Number(item.confirmedQuantity) : Number(item.quantity || 0)), 0);
   const canConfirmReceived = fulfillment.status === "shipped";
+  const customerState = customerOrderState(order);
   return `
     <article class="customer-order-card ${statusClass}">
       <details class="purchase-detail">
@@ -855,10 +856,9 @@ function renderCustomerOrder(order) {
             <strong>${escapeHtml(order.orderNumber)}</strong>
             <span>${formatDate(order.createdAt)} | ${itemCount} unidad${itemCount === 1 ? "" : "es"}</span>
           </div>
-          <div class="order-status-pills">
-            <span class="${statusClass}">${escapeHtml(orderStatusText(order.status))}</span>
-            <span class="${paymentStatusClass(order.paymentStatus)}">${escapeHtml(paymentStatusText(order.paymentStatus))}</span>
-            <span class="${fulfillmentStatusClass(fulfillment.status)}">${escapeHtml(fulfillmentStatusText(fulfillment.status))}</span>
+          <div class="purchase-summary-status">
+            <span class="${customerState.className}">${escapeHtml(customerState.label)}</span>
+            <small>${escapeHtml(customerState.detail)}</small>
           </div>
           <div class="purchase-summary-total">
             <strong>${money.format(order.totalCents / 100)}</strong>
@@ -922,13 +922,50 @@ function renderBankSummary(bank = {}) {
 
 function renderPurchaseTimeline(order) {
   const steps = [
-    { key: "received", label: "Pedido recibido", done: true },
-    { key: "availability", label: "Disponibilidad", done: ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status) },
-    { key: "payment", label: "Pago", done: ["paid", "partial_payment", "credit_account"].includes(order.paymentStatus) },
-    { key: "shipment", label: "Despacho", done: ["shipped", "delivered"].includes(order.fulfillment?.status) },
-    { key: "customer-received", label: "Recibido", done: order.fulfillment?.status === "delivered" }
+    { key: "received", label: "KM recibio pedido", done: true },
+    { key: "availability", label: "KM confirmo disponibilidad", done: ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status) },
+    { key: "payment", label: "Pago registrado", done: ["paid", "partial_payment", "credit_account"].includes(order.paymentStatus) },
+    { key: "shipment", label: "KM despacho pedido", done: ["shipped", "delivered"].includes(order.fulfillment?.status) },
+    { key: "customer-received", label: "Cliente confirmo recepcion", done: order.fulfillment?.status === "delivered" }
   ];
   return `<ol class="purchase-timeline">${steps.map((step) => `<li class="${step.done ? "done" : ""}"><span></span>${step.label}</li>`).join("")}</ol>`;
+}
+
+function customerOrderState(order) {
+  const fulfillmentStatus = order.fulfillment?.status;
+  const balance = money.format((order.balanceCents || 0) / 100);
+  const due = order.paymentDueDate ? ` Vence ${formatShortDate(order.paymentDueDate)}.` : "";
+  if (order.status === "cancelled") {
+    return { label: "Pedido cancelado", detail: "La compra quedo sin efecto.", className: "status-danger" };
+  }
+  if (fulfillmentStatus === "delivered") {
+    return { label: "Pedido recibido por el cliente", detail: "Compra finalizada.", className: "status-success" };
+  }
+  if (fulfillmentStatus === "shipped") {
+    return { label: "KM despacho el pedido", detail: "Confirma la recepcion cuando llegue.", className: "status-info" };
+  }
+  if (fulfillmentStatus === "ready") {
+    return { label: "KM prepara el despacho", detail: "Pedido listo internamente para salir.", className: "status-warn" };
+  }
+  if (order.paymentStatus === "overdue") {
+    return { label: "Saldo vencido", detail: `Saldo pendiente: ${balance}.`, className: "status-danger" };
+  }
+  if (order.paymentStatus === "partial_payment") {
+    return { label: "Pago parcial registrado", detail: `Saldo pendiente: ${balance}.${due}`, className: "status-warn" };
+  }
+  if (order.paymentStatus === "credit_account") {
+    return { label: "Cuenta corriente autorizada", detail: `Pedido autorizado con saldo a fecha.${due}`, className: "status-info" };
+  }
+  if (order.paymentStatus === "receipt_uploaded") {
+    return { label: "KM revisa el comprobante", detail: "El pago esta pendiente de acreditacion.", className: "status-info" };
+  }
+  if (order.paymentStatus === "paid") {
+    return { label: "Pago acreditado", detail: "KM continuara con preparacion y despacho.", className: "status-success" };
+  }
+  if (["availability_confirmed", "confirmed"].includes(order.status)) {
+    return { label: "KM confirmo disponibilidad", detail: "Ya podes pagar o cargar comprobante.", className: "status-info" };
+  }
+  return { label: "KM recibio tu pedido", detail: "Pendiente de confirmacion de disponibilidad.", className: "status-neutral" };
 }
 
 function purchaseMetrics(orders) {
