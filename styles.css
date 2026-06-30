@@ -1138,10 +1138,25 @@ body.modal-open {
   display: grid;
   gap: 16px;
   grid-column: 1 / -1;
-  padding: 18px;
-  background: #111214;
-  border: 1px solid #34363b;
+  padding: clamp(20px, 3vw, 30px);
+  background:
+    linear-gradient(135deg, rgba(95, 155, 210, 0.14), rgba(17, 18, 20, 0.98) 42%),
+    #111214;
+  border: 1px solid #46505b;
   border-radius: 8px;
+  box-shadow: inset 4px 0 0 #7fb7e6, 0 18px 42px rgba(0, 0, 0, 0.24);
+}
+
+.shipping-address-panel .section-title {
+  gap: 8px;
+}
+
+.shipping-address-panel .section-title h3 {
+  color: #f7f7f5;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.8vw, 2.9rem);
+  font-weight: 780;
+  line-height: 1.05;
 }
 
 .shipping-address-list {
@@ -1159,9 +1174,9 @@ body.modal-open {
   grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: start;
-  padding: 14px;
-  background: #17181b;
-  border: 1px solid #34363b;
+  padding: 18px;
+  background: linear-gradient(135deg, #1a1c20, #121316);
+  border: 1px solid #59636e;
   border-radius: 8px;
   cursor: pointer;
 }
@@ -1169,6 +1184,8 @@ body.modal-open {
 .shipping-address-card.active {
   grid-template-columns: 1fr;
   cursor: default;
+  border-color: #9fc8ec;
+  box-shadow: inset 4px 0 0 #9fc8ec;
 }
 
 .shipping-address-card.selected {
@@ -1187,7 +1204,7 @@ body.modal-open {
 
 .shipping-address-card strong {
   color: #fff;
-  font-size: 1rem;
+  font-size: 1.18rem;
 }
 
 .shipping-address-card em {
@@ -1203,9 +1220,10 @@ body.modal-open {
 }
 
 .shipping-address-card small {
-  margin-top: 5px;
-  color: #c4c7cc;
-  line-height: 1.35;
+  margin-top: 7px;
+  color: #d0d5dc;
+  font-size: 0.96rem;
+  line-height: 1.42;
 }
 
 .shipping-address-actions {
@@ -1216,6 +1234,20 @@ body.modal-open {
 
 .shipping-config-button {
   justify-self: start;
+  min-width: min(100%, 320px);
+  border-color: #6f879b;
+}
+
+.order-form > .form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.order-form > .form-actions .primary-button {
+  min-height: 58px;
+  font-size: 1.08rem;
+  box-shadow: 0 14px 32px rgba(174, 180, 187, 0.16);
 }
 
 .shipping-address-manager {
@@ -2481,6 +2513,18 @@ body.modal-open {
 
   .cart-pill {
     padding: 8px 12px;
+  }
+
+  .shipping-address-panel {
+    padding: 22px 18px;
+  }
+
+  .shipping-address-card {
+    padding: 16px;
+  }
+
+  .order-form > .form-actions {
+    grid-template-columns: 1fr;
   }
 
   .account-button {
