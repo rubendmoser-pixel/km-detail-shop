@@ -557,7 +557,7 @@ export function createEmailService({ db, config }) {
     let paragraph = [];
     const flushParagraph = () => {
       if (!paragraph.length) return;
-      blocks.push(`<p style="margin:0 0 16px;color:#d6d9de;line-height:1.58;font-size:15px;">${paragraph.map(escapeHtml).join("<br>")}</p>`);
+      blocks.push(`<p style="margin:0 0 16px;color:#d6d9de;line-height:1.58;font-size:15px;">${paragraph.map(shortenBrandText).map(escapeHtml).join("<br>")}</p>`);
       paragraph = [];
     };
 
@@ -581,14 +581,14 @@ export function createEmailService({ db, config }) {
       if (isKeyValueLine(trimmed)) {
         flushParagraph();
         const [label, ...rest] = trimmed.split(":");
-        const value = rest.join(":").trim();
+        const value = shortenBrandText(rest.join(":").trim());
         const important = /total|pago|estado|subtotal|iva/i.test(label);
         blocks.push(renderKeyValueRow(label, value, important));
         continue;
       }
       if (/^\d+\.\s+/.test(trimmed) || /^-\s+/.test(trimmed)) {
         flushParagraph();
-        blocks.push(`<div style="margin:10px 0;padding:14px 16px;background:#14161a;border:1px solid #30343a;border-left:4px solid #8fb7d6;border-radius:4px;color:#f2f4f6;font-size:15px;line-height:1.48;">${escapeHtml(trimmed)}</div>`);
+        blocks.push(`<div style="margin:10px 0;padding:14px 16px;background:#14161a;border:1px solid #30343a;border-left:4px solid #8fb7d6;border-radius:4px;color:#f2f4f6;font-size:15px;line-height:1.48;">${escapeHtml(shortenBrandText(trimmed))}</div>`);
         continue;
       }
       paragraph.push(trimmed);
@@ -608,12 +608,12 @@ export function createEmailService({ db, config }) {
             <tr>
               <td style="padding:24px 28px;background:#050506;border-bottom:1px solid #30343a;">
                 <div style="color:#f4f5f6;font-size:26px;font-weight:900;letter-spacing:.02em;">KM <span style="color:#b6bcc4;font-weight:700;">Detail Line</span></div>
-                <div style="margin-top:8px;color:#aeb4bb;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;">Canal profesional</div>
+                <div style="margin-top:8px;color:#aeb4bb;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;">Canal comercial</div>
               </td>
             </tr>
             <tr>
               <td style="padding:28px;">
-                <h1 style="margin:0 0 18px;color:#ffffff;font-size:26px;line-height:1.15;">${escapeHtml(subject)}</h1>
+                <h1 style="margin:0 0 18px;color:#ffffff;font-size:26px;line-height:1.15;">${escapeHtml(shortenBrandText(subject))}</h1>
                 ${blocks.join("\n")}
               </td>
             </tr>
@@ -655,6 +655,10 @@ export function createEmailService({ db, config }) {
         </tr>
       </table>
     `;
+  }
+
+  function shortenBrandText(value) {
+    return String(value || "").replace(/\bKM Detail Line\b/g, "KM");
   }
 
   function isKeyValueLine(line) {
