@@ -252,26 +252,38 @@ export function createEmailService({ db, config }) {
     const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
     const confirmed = items.filter((item) => item.confirmed_quantity > 0);
     const unavailable = items.filter((item) => item.confirmed_quantity === 0);
-    queue("order_availability_customer", order.email, `Disponibilidad confirmada ${order.order_number} | KM Detail Line`, [
+    const customerConfirmedLines = confirmed.length ? confirmed.flatMap((item, index) => [
+      `${index + 1}. ${item.km_code} - ${item.product_name}`,
+      `   Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity}`,
+      `   Subtotal neto: ${money.format(item.confirmed_subtotal_net_cents / 100)}`,
+      item.availability_note ? `   Observacion: ${item.availability_note}` : ""
+    ]).filter(Boolean) : ["No hay articulos disponibles para despacho en esta confirmacion."];
+    const unavailableLines = unavailable.flatMap((item, index) => [
+      `${index + 1}. ${item.km_code} - ${item.product_name}`,
+      `   Cantidad solicitada: ${item.quantity}`,
+      item.availability_note ? `   Observacion: ${item.availability_note}` : ""
+    ]).filter(Boolean);
+    queue("order_availability_customer", order.email, `Pedido ${order.order_number}: disponibilidad confirmada`, [
       `Hola ${order.contact_person},`,
       "",
       `Confirmamos la disponibilidad comercial de tu pedido ${order.order_number}.`,
       "El importe final para pago y despacho corresponde solo a los articulos confirmados.",
       "",
-      "Articulos confirmados:",
-      ...(confirmed.length ? confirmed.map((item) => (
-        `- ${item.km_code} | ${item.product_name} | Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity} | Precio unitario neto: ${money.format(item.final_unit_price_cents / 100)} | Subtotal confirmado: ${money.format(item.confirmed_subtotal_net_cents / 100)}`
-      )) : ["- No hay articulos disponibles para despacho en esta confirmacion."]),
-      unavailable.length ? "" : null,
-      unavailable.length ? "Articulos no disponibles:" : null,
-      ...unavailable.map((item) => `- ${item.quantity} x ${item.km_code} | ${item.product_name}${item.availability_note ? ` | ${item.availability_note}` : ""}`),
-      "",
+      "Resumen del pedido",
+      `Articulos confirmados: ${confirmed.length}`,
       `Subtotal neto confirmado: ${money.format(order.subtotal_net_cents / 100)}`,
       `IVA ${(order.vat_bps / 100).toFixed(2)}%: ${money.format(order.vat_cents / 100)}`,
-      `Total a pagar: ${money.format(order.total_cents / 100)}`,
+      `Total para pago y despacho: ${money.format(order.total_cents / 100)}`,
+      "",
+      "Detalle de articulos confirmados",
+      ...customerConfirmedLines,
+      unavailable.length ? "" : null,
+      unavailable.length ? "Articulos no disponibles:" : null,
+      ...unavailableLines,
       reason ? `Nota: ${reason}` : "",
       "",
-      "Si necesitas consultar algo, podes responder este correo o comunicarte por WhatsApp.",
+      "Podes responder este correo si necesitas consultar algo.",
+      "Tambien podes ingresar a la plataforma para revisar el pedido y cargar el comprobante de pago.",
       "",
       "KM Detail Line",
       config.publicBaseUrl
@@ -283,7 +295,7 @@ export function createEmailService({ db, config }) {
       "",
       "Articulos confirmados:",
       ...(confirmed.length ? confirmed.map((item) => (
-        `- ${item.km_code} | ${item.product_name} | Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity} | Precio unitario neto: ${money.format(item.final_unit_price_cents / 100)} | Subtotal confirmado: ${money.format(item.confirmed_subtotal_net_cents / 100)}`
+        `- ${item.km_code} - ${item.product_name}. Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity}. Subtotal neto: ${money.format(item.confirmed_subtotal_net_cents / 100)}`
       )) : ["- No hay articulos disponibles para despacho en esta confirmacion."]),
       "",
       `Total confirmado: ${money.format(order.total_cents / 100)}`,
