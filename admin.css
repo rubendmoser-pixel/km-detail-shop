@@ -580,9 +580,9 @@
 
 .payment-receipt-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.6fr);
   gap: 12px;
-  align-items: center;
+  align-items: start;
   padding: 12px;
   background: #17181b;
   border: 1px solid #34363b;
@@ -599,8 +599,58 @@
   font-size: 0.8rem;
 }
 
-.payment-receipt-row .image-actions {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.payment-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #34363b;
+}
+
+.payment-balance-grid div {
+  padding: 12px;
+  border-right: 1px solid #34363b;
+}
+
+.payment-balance-grid div:last-child {
+  border-right: 0;
+}
+
+.payment-balance-grid span,
+.payment-terms-form p {
+  color: #a7a9ae;
+}
+
+.payment-balance-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.05rem;
+}
+
+.receipt-review-form,
+.payment-terms-form {
+  display: grid;
+  gap: 10px;
+  align-items: end;
+}
+
+.receipt-review-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) repeat(3, auto);
+}
+
+.receipt-review-form .ghost-button,
+.receipt-review-form .receipt-view-link {
+  min-height: 46px;
+}
+
+.payment-terms-form {
+  grid-template-columns: minmax(240px, 1fr) repeat(2, minmax(120px, 0.35fr)) minmax(180px, 0.7fr) auto;
+  padding: 14px;
+  background: #101114;
+  border: 1px solid #3b3d42;
+}
+
+.payment-terms-form h4,
+.payment-terms-form p {
+  margin: 0;
 }
 
 .availability-form,
@@ -957,6 +1007,12 @@
   .sales-admin-layout {
     grid-template-columns: 1fr;
   }
+
+  .payment-receipt-row,
+  .receipt-review-form,
+  .payment-terms-form {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 680px) {
@@ -989,7 +1045,8 @@
   .order-detail-grid,
   .availability-form,
   .fulfillment-form,
-  .order-status-form {
+  .order-status-form,
+  .payment-balance-grid {
     grid-template-columns: 1fr 1fr;
   }
 

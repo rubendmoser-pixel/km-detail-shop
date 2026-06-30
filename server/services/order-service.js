@@ -50,16 +50,16 @@ export function createOrder(db, customerId, input) {
         customer_id, status, payment_status, discount_1_bps, discount_2_bps, discount_3_bps,
         sales_rep_id, sales_rep_name, sales_rep_email, sales_commission_bps,
         sales_commission_base_cents, sales_commission_cents,
-        subtotal_net_cents, vat_bps, vat_cents, total_cents, bank_snapshot_json,
+        subtotal_net_cents, vat_bps, vat_cents, total_cents, paid_cents, balance_cents, bank_snapshot_json,
         shipping_snapshot_json, price_reserved_at, customer_accepted_at
-      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
       RETURNING id
     `).get(
       customerId, ...discounts,
       salesRep.id, salesRep.name, salesRep.email, salesRep.commissionBps,
       totals.subtotalNetCents, commissionCents,
       totals.subtotalNetCents, totals.vatBps, totals.vatCents,
-      totals.totalCents, JSON.stringify(settings.bank), JSON.stringify(shipping), now, now
+      totals.totalCents, totals.totalCents, JSON.stringify(settings.bank), JSON.stringify(shipping), now, now
     );
     const orderNumber = `KM-${new Date().getUTCFullYear()}-${String(order.id).padStart(6, "0")}`;
     db.prepare("UPDATE orders SET order_number = ? WHERE id = ?").run(orderNumber, order.id);
@@ -238,7 +238,8 @@ export function listAdminOrders(db, filters = {}) {
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   return db.prepare(`
-    SELECT o.id, o.order_number, o.status, o.payment_status, o.total_cents, o.currency,
+    SELECT o.id, o.order_number, o.status, o.payment_status, o.total_cents, o.paid_cents, o.balance_cents,
+           o.payment_due_date, o.currency,
            o.fulfillment_status, o.created_at, c.business_name, c.tax_id
     FROM orders o JOIN customers c ON c.id = o.customer_id
     ${whereSql} ORDER BY o.created_at DESC
@@ -293,9 +294,10 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
     db.prepare(`
       UPDATE orders SET status = ?, subtotal_net_cents = ?, vat_cents = ?, total_cents = ?,
         sales_commission_base_cents = ?, sales_commission_cents = ?,
+        balance_cents = CASE WHEN payment_status = 'paid' THEN 0 ELSE ? - paid_cents END,
         modified_acceptance_required = 1, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(newStatus, confirmedSubtotalNetCents, vatCents, totalCents, confirmedSubtotalNetCents, commissionCents, orderId);
+    `).run(newStatus, confirmedSubtotalNetCents, vatCents, totalCents, confirmedSubtotalNetCents, commissionCents, totalCents, orderId);
     addOrderEvent(db, orderId, adminUserId, "availability_confirmed", reason, { order, items: currentItems }, {
       subtotalNetCents: confirmedSubtotalNetCents,
       vatCents,
@@ -335,14 +337,73 @@ export function addPaymentReceipt(db, orderId, customerId, userId, input, upload
 export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
   const receipt = db.prepare("SELECT * FROM payment_receipts WHERE id = ?").get(receiptId);
   if (!receipt) throw new NotFoundError("Payment receipt not found");
+  const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(receipt.order_id);
+  if (!order) throw new NotFoundError("Order not found");
   const status = requiredText(input.status, "status", { max: 30 });
   if (!["accepted", "rejected"].includes(status)) throw new ValidationError("status must be accepted or rejected");
   const reason = optionalText(input.reason, "reason", { max: 1000 });
-  db.prepare("UPDATE payment_receipts SET status = ? WHERE id = ?").run(status, receiptId);
-  const paymentStatus = status === "accepted" ? "paid" : "rejected";
-  db.prepare("UPDATE orders SET payment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(paymentStatus, receipt.order_id);
-  addOrderEvent(db, receipt.order_id, adminUserId, "payment_receipt_reviewed", reason, receipt, { status });
-  return getOrder(db, receipt.order_id, null, true);
+  const pendingBeforeReview = Math.max(0, order.total_cents - sumAcceptedPayments(db, receipt.order_id));
+  const requestedAmount = input.amountCents ?? input.amount ?? pendingBeforeReview;
+  const amountCents = status === "accepted"
+    ? normalizeMoneyCents(requestedAmount, "amountCents", order.total_cents)
+    : 0;
+  if (status === "accepted" && amountCents > pendingBeforeReview) {
+    throw new ValidationError("amountCents cannot exceed pending balance");
+  }
+  const termsDays = normalizeTermsDays(input.paymentTermsDays);
+  const dueDate = normalizeDueDate(input.paymentDueDate);
+  return transaction(db, () => {
+    db.prepare(`
+      UPDATE payment_receipts
+      SET status = ?, amount_cents = ?, review_reason = ?, reviewed_at = ?, reviewed_by = ?
+      WHERE id = ?
+    `).run(status, amountCents, reason, new Date().toISOString(), adminUserId, receiptId);
+    const paidCents = sumAcceptedPayments(db, receipt.order_id);
+    const balanceCents = Math.max(0, order.total_cents - paidCents);
+    const paymentStatus = status === "rejected"
+      ? "rejected"
+      : balanceCents === 0 ? "paid" : "partial_payment";
+    updateOrderCommercialBalance(db, receipt.order_id, {
+      paymentStatus,
+      paidCents,
+      balanceCents,
+      termsDays,
+      dueDate,
+      creditAuthorized: false,
+      adminUserId
+    });
+    addOrderEvent(db, receipt.order_id, adminUserId, "payment_receipt_reviewed", reason, receipt, {
+      status, amountCents, paidCents, balanceCents, paymentStatus, paymentDueDate: dueDate, paymentTermsDays: termsDays
+    });
+    return getOrder(db, receipt.order_id, null, true);
+  });
+}
+
+export function authorizeOrderCredit(db, orderId, input, adminUserId) {
+  const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
+  if (!order) throw new NotFoundError("Order not found");
+  const paidCents = sumAcceptedPayments(db, orderId);
+  const balanceCents = Math.max(0, order.total_cents - paidCents);
+  if (balanceCents <= 0) throw new ValidationError("Order has no pending balance");
+  const termsDays = normalizeTermsDays(input.paymentTermsDays);
+  const dueDate = normalizeDueDate(input.paymentDueDate);
+  if (!termsDays && !dueDate) throw new ValidationError("paymentDueDate or paymentTermsDays is required");
+  const reason = optionalText(input.reason, "reason", { max: 1000 }) || "Cuenta corriente autorizada";
+  const finalDueDate = dueDate || addDaysIsoDate(new Date(), termsDays);
+  const paymentStatus = paidCents > 0 ? "partial_payment" : "credit_account";
+  updateOrderCommercialBalance(db, orderId, {
+    paymentStatus,
+    paidCents,
+    balanceCents,
+    termsDays,
+    dueDate: finalDueDate,
+    creditAuthorized: true,
+    adminUserId
+  });
+  addOrderEvent(db, orderId, adminUserId, "credit_authorized", reason, order, {
+    paidCents, balanceCents, paymentDueDate: finalDueDate, paymentTermsDays: termsDays, paymentStatus
+  });
+  return getOrder(db, orderId, null, true);
 }
 
 export function getPaymentReceiptFile(db, receiptId, uploadsPath) {
@@ -463,6 +524,68 @@ function calculateCommission(baseCents, commissionBps) {
   return Math.round((baseCents * commissionBps) / 10_000);
 }
 
+function normalizeMoneyCents(value, fieldName, maxCents) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) throw new ValidationError(`${fieldName} must be a positive amount`);
+  const cents = Number.isInteger(numeric) ? numeric : Math.round(numeric * 100);
+  if (cents <= 0) throw new ValidationError(`${fieldName} must be greater than zero`);
+  if (cents > maxCents) throw new ValidationError(`${fieldName} cannot exceed order total`);
+  return cents;
+}
+
+function normalizeTermsDays(value) {
+  if (value === undefined || value === null || value === "") return 0;
+  const days = Number(value);
+  if (!Number.isInteger(days) || days < 0 || days > 365) throw new ValidationError("paymentTermsDays must be between 0 and 365");
+  return days;
+}
+
+function normalizeDueDate(value) {
+  if (!value) return "";
+  const date = String(value).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00.000Z`))) {
+    throw new ValidationError("paymentDueDate must be YYYY-MM-DD");
+  }
+  return date;
+}
+
+function sumAcceptedPayments(db, orderId) {
+  return db.prepare(`
+    SELECT COALESCE(SUM(amount_cents), 0) AS paid_cents
+    FROM payment_receipts
+    WHERE order_id = ? AND status = 'accepted'
+  `).get(orderId).paid_cents || 0;
+}
+
+function updateOrderCommercialBalance(db, orderId, { paymentStatus, paidCents, balanceCents, termsDays, dueDate, creditAuthorized, adminUserId }) {
+  db.prepare(`
+    UPDATE orders
+    SET payment_status = ?, paid_cents = ?, balance_cents = ?,
+      payment_terms_days = CASE WHEN ? > 0 THEN ? ELSE payment_terms_days END,
+      payment_due_date = CASE WHEN ? <> '' THEN ? ELSE payment_due_date END,
+      credit_authorized_at = CASE WHEN ? THEN ? ELSE credit_authorized_at END,
+      credit_authorized_by = CASE WHEN ? THEN ? ELSE credit_authorized_by END,
+      due_reminder_sent_at = CASE WHEN ? <> payment_due_date THEN NULL ELSE due_reminder_sent_at END,
+      overdue_reminder_sent_date = CASE WHEN ? <> payment_due_date THEN '' ELSE overdue_reminder_sent_date END,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(
+    paymentStatus, paidCents, balanceCents,
+    termsDays, termsDays,
+    dueDate, dueDate,
+    creditAuthorized ? 1 : 0, new Date().toISOString(),
+    creditAuthorized ? 1 : 0, adminUserId,
+    dueDate, dueDate,
+    orderId
+  );
+}
+
+function addDaysIsoDate(date, days) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next.toISOString().slice(0, 10);
+}
+
 function mapOrder(order, items, receipts = []) {
   return {
     id: order.id,
@@ -475,6 +598,11 @@ function mapOrder(order, items, receipts = []) {
     status: order.status,
     paymentStatus: order.payment_status,
     paymentMethod: order.payment_method || "bank_transfer",
+    paidCents: order.paid_cents || 0,
+    balanceCents: order.balance_cents || Math.max(0, order.total_cents - (order.paid_cents || 0)),
+    paymentTermsDays: order.payment_terms_days || 0,
+    paymentDueDate: order.payment_due_date || "",
+    creditAuthorizedAt: order.credit_authorized_at || "",
     fulfillment: {
       status: order.fulfillment_status || "pending",
       method: order.fulfillment_method || "",
@@ -510,6 +638,9 @@ function mapOrder(order, items, receipts = []) {
       mimeType: receipt.mime_type,
       sizeBytes: receipt.size_bytes,
       status: receipt.status,
+      amountCents: receipt.amount_cents || 0,
+      reviewReason: receipt.review_reason || "",
+      reviewedAt: receipt.reviewed_at || "",
       createdAt: receipt.created_at
     })),
     items: items.map((item) => ({

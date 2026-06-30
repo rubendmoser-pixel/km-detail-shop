@@ -201,6 +201,14 @@ function migrate(db) {
       vat_bps INTEGER NOT NULL,
       vat_cents INTEGER NOT NULL,
       total_cents INTEGER NOT NULL,
+      paid_cents INTEGER NOT NULL DEFAULT 0 CHECK (paid_cents >= 0),
+      balance_cents INTEGER NOT NULL DEFAULT 0 CHECK (balance_cents >= 0),
+      payment_terms_days INTEGER NOT NULL DEFAULT 0 CHECK (payment_terms_days >= 0),
+      payment_due_date TEXT NOT NULL DEFAULT '',
+      credit_authorized_at TEXT,
+      credit_authorized_by INTEGER REFERENCES users(id),
+      due_reminder_sent_at TEXT,
+      overdue_reminder_sent_date TEXT NOT NULL DEFAULT '',
       bank_snapshot_json TEXT NOT NULL,
       shipping_snapshot_json TEXT NOT NULL,
       price_reserved_at TEXT NOT NULL,
@@ -251,6 +259,10 @@ function migrate(db) {
       mime_type TEXT NOT NULL CHECK (mime_type IN ('application/pdf', 'image/jpeg', 'image/png')),
       size_bytes INTEGER NOT NULL CHECK (size_bytes > 0),
       status TEXT NOT NULL DEFAULT 'received' CHECK (status IN ('received', 'accepted', 'rejected')),
+      amount_cents INTEGER NOT NULL DEFAULT 0 CHECK (amount_cents >= 0),
+      review_reason TEXT NOT NULL DEFAULT '',
+      reviewed_at TEXT,
+      reviewed_by INTEGER REFERENCES users(id),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -333,10 +345,29 @@ function migrate(db) {
   ensureColumn(db, "orders", "sales_commission_bps", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "orders", "sales_commission_base_cents", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "orders", "sales_commission_cents", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "paid_cents", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "balance_cents", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "payment_terms_days", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "payment_due_date", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "credit_authorized_at", "TEXT");
+  ensureColumn(db, "orders", "credit_authorized_by", "INTEGER REFERENCES users(id)");
+  ensureColumn(db, "orders", "due_reminder_sent_at", "TEXT");
+  ensureColumn(db, "orders", "overdue_reminder_sent_date", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "payment_receipts", "amount_cents", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "payment_receipts", "review_reason", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "payment_receipts", "reviewed_at", "TEXT");
+  ensureColumn(db, "payment_receipts", "reviewed_by", "INTEGER REFERENCES users(id)");
   ensureColumn(db, "email_outbox", "html_body", "TEXT");
   ensureColumn(db, "customers", "postal_code", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "customers", "sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
   ensureColumn(db, "customers", "sales_commission_bps", "INTEGER");
+  ensureColumn(db, "customers", "payment_condition", "TEXT NOT NULL DEFAULT 'prepaid'");
+  ensureColumn(db, "customers", "payment_terms_days", "INTEGER NOT NULL DEFAULT 0");
+  db.exec(`
+    UPDATE orders
+    SET balance_cents = CASE WHEN payment_status = 'paid' THEN 0 ELSE total_cents - paid_cents END
+    WHERE balance_cents = 0 AND total_cents > 0 AND payment_status <> 'paid';
+  `);
   db.exec("CREATE INDEX IF NOT EXISTS idx_customers_sales_rep ON customers(sales_rep_id);");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);
 }

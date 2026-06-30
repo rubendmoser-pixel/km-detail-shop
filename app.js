@@ -837,7 +837,7 @@ function renderCustomerOrder(order) {
   const shipping = order.shipping || {};
   const latestReceipt = order.paymentReceipts?.[0];
   const needsAcceptance = order.modifiedAcceptanceRequired && ["availability_confirmed", "confirmed"].includes(order.status);
-  const canUpload = ["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid" && !needsAcceptance;
+  const canUpload = ["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid" && !needsAcceptance && (order.balanceCents || order.totalCents) > 0;
   const bank = order.bank || {};
   const visibleItems = items.filter((item) => order.status === "order_created" || item.confirmedQuantity > 0).slice(0, 5);
   const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
@@ -866,6 +866,9 @@ function renderCustomerOrder(order) {
           <div class="purchase-card-grid">
             <dl>
               <div><dt>Total</dt><dd>${money.format(order.totalCents / 100)}</dd></div>
+              <div><dt>Pagado</dt><dd>${money.format((order.paidCents || 0) / 100)}</dd></div>
+              <div><dt>Saldo</dt><dd>${money.format((order.balanceCents || 0) / 100)}</dd></div>
+              ${order.paymentDueDate ? `<div><dt>Vencimiento</dt><dd>${formatShortDate(order.paymentDueDate)}</dd></div>` : ""}
               <div><dt>Subtotal neto</dt><dd>${money.format(order.subtotalNetCents / 100)}</dd></div>
               <div><dt>IVA ${formatPercent(order.vatBps)}</dt><dd>${money.format(order.vatCents / 100)}</dd></div>
             </dl>
@@ -916,7 +919,7 @@ function renderPurchaseTimeline(order) {
   const steps = [
     { key: "received", label: "Pedido recibido", done: true },
     { key: "availability", label: "Disponibilidad", done: ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status) },
-    { key: "payment", label: "Pago", done: order.paymentStatus === "paid" },
+    { key: "payment", label: "Pago", done: ["paid", "partial_payment", "credit_account"].includes(order.paymentStatus) },
     { key: "shipment", label: "Despacho", done: ["shipped", "delivered"].includes(order.fulfillment?.status) }
   ];
   return `<ol class="purchase-timeline">${steps.map((step) => `<li class="${step.done ? "done" : ""}"><span></span>${step.label}</li>`).join("")}</ol>`;
@@ -939,12 +942,16 @@ function filterPurchases(orders) {
 function purchaseGroup(order) {
   if (["delivered", "cancelled"].includes(order.status) || order.fulfillment?.status === "delivered") return "closed";
   if (["shipped", "ready"].includes(order.fulfillment?.status)) return "shipment";
-  if (["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid") return "pay";
+  if (order.paymentStatus === "overdue") return "pay";
+  if (["availability_confirmed", "confirmed"].includes(order.status) && !["paid", "credit_account"].includes(order.paymentStatus)) return "pay";
   return "active";
 }
 
 function paymentHelperText(order) {
   if (order.paymentStatus === "paid") return `<p>Pago acreditado.</p>`;
+  if (order.paymentStatus === "credit_account") return `<p>Pedido autorizado en cuenta corriente${order.paymentDueDate ? ` con vencimiento ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
+  if (order.paymentStatus === "partial_payment") return `<p>Pago parcial acreditado. Saldo pendiente: ${money.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? `, vence ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
+  if (order.paymentStatus === "overdue") return `<p>Saldo vencido: ${money.format((order.balanceCents || 0) / 100)}.</p>`;
   if (order.modifiedAcceptanceRequired) return `<p>Revisa y acepta la disponibilidad confirmada para continuar.</p>`;
   if (!["availability_confirmed", "confirmed"].includes(order.status)) return `<p>KM confirmara disponibilidad antes de habilitar el pago.</p>`;
   return "";
@@ -1084,6 +1091,9 @@ function paymentStatusText(status) {
   return ({
     pending_payment: "Pago pendiente",
     receipt_uploaded: "Comprobante cargado",
+    partial_payment: "Pago parcial",
+    credit_account: "Cuenta corriente",
+    overdue: "Vencido",
     paid: "Pagado",
     rejected: "Pago rechazado",
     refunded: "Reintegrado"
@@ -1094,6 +1104,9 @@ function paymentStatusClass(status) {
   return ({
     pending_payment: "status-warn",
     receipt_uploaded: "status-info",
+    partial_payment: "status-warn",
+    credit_account: "status-info",
+    overdue: "status-danger",
     paid: "status-success",
     rejected: "status-danger",
     refunded: "status-neutral"
@@ -1245,6 +1258,12 @@ function formatDate(value) {
   if (!value) return "";
   const normalized = /z$/i.test(String(value)) ? String(value) : `${value}Z`;
   return new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(normalized));
+}
+
+function formatShortDate(value) {
+  if (!value) return "";
+  const [year, month, day] = String(value).slice(0, 10).split("-");
+  return year && month && day ? `${day}/${month}/${year}` : value;
 }
 
 function tagClass(product) {

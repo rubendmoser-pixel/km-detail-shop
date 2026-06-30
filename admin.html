@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=19" />
+    <link rel="stylesheet" href="./admin.css?v=20" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -188,6 +188,9 @@
                 <option value="">Todos los pagos</option>
                 <option value="pending_payment">Pendiente</option>
                 <option value="receipt_uploaded">Comprobante cargado</option>
+                <option value="partial_payment">Pago parcial</option>
+                <option value="credit_account">Cuenta corriente</option>
+                <option value="overdue">Vencido</option>
                 <option value="paid">Pagado</option>
                 <option value="rejected">Rechazado</option>
                 <option value="refunded">Reintegrado</option>
@@ -262,6 +265,9 @@
                 <label><span>Estado pago</span><select name="paymentStatus">
                   <option value="pending_payment">Pendiente</option>
                   <option value="receipt_uploaded">Comprobante cargado</option>
+                  <option value="partial_payment">Pago parcial</option>
+                  <option value="credit_account">Cuenta corriente</option>
+                  <option value="overdue">Vencido</option>
                   <option value="paid">Pagado</option>
                   <option value="rejected">Rechazado</option>
                   <option value="refunded">Reintegrado</option>
@@ -326,6 +332,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=23" defer></script>
+    <script src="./admin.js?v=24" defer></script>
   </body>
 </html>

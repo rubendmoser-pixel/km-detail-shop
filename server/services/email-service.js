@@ -331,17 +331,28 @@ export function createEmailService({ db, config }) {
     `).get(orderId);
     if (!order) return;
     const accepted = status === "accepted";
+    const balanceCents = Math.max(0, order.balance_cents || 0);
+    const paidCents = order.paid_cents || (accepted ? order.total_cents : 0);
+    const dueDate = order.payment_due_date || "";
+    const paymentLine = balanceCents > 0
+      ? `Saldo pendiente: ${money.format(balanceCents / 100)}`
+      : "Saldo pendiente: $ 0,00";
     queue("payment_receipt_customer", order.email, `${accepted ? "Pago acreditado" : "Comprobante observado"} ${order.order_number} | KM Detail Line`, [
       `Hola ${order.contact_person},`,
       "",
       accepted
-        ? `Acreditamos el pago del pedido ${order.order_number}.`
+        ? `Acreditamos un pago del pedido ${order.order_number}.`
         : `Revisamos el comprobante del pedido ${order.order_number} y necesita revision.`,
       "",
       `Total: ${money.format(order.total_cents / 100)}`,
+      accepted ? `Pago acreditado: ${money.format(paidCents / 100)}` : "",
+      accepted ? paymentLine : "",
+      accepted && dueDate && balanceCents > 0 ? `Vencimiento del saldo: ${formatDateForEmail(dueDate)}` : "",
       reason ? `Nota: ${reason}` : "",
       "",
-      accepted ? "KM continuara con la preparacion y despacho del pedido." : "Podes responder este correo o comunicarte por WhatsApp para corregirlo.",
+      accepted && balanceCents > 0
+        ? "El saldo queda registrado para seguimiento comercial."
+        : accepted ? "KM continuara con la preparacion y despacho del pedido." : "Podes responder este correo o comunicarte por WhatsApp para corregirlo.",
       "",
       "KM Detail Line",
       config.publicBaseUrl
@@ -352,11 +363,100 @@ export function createEmailService({ db, config }) {
       `Cliente: ${order.business_name}`,
       `Estado: ${accepted ? "Pago acreditado" : "Comprobante observado"}`,
       `Total: ${money.format(order.total_cents / 100)}`,
+      accepted ? `Pagado: ${money.format(paidCents / 100)}` : "",
+      accepted ? `Saldo: ${money.format(balanceCents / 100)}` : "",
+      dueDate && balanceCents > 0 ? `Vencimiento: ${formatDateForEmail(dueDate)}` : "",
       `Comision estimada: ${formatCommission(order)}`,
       reason ? `Nota: ${reason}` : "",
       "",
       `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
     ].filter(Boolean).join("\n"));
+  }
+
+  function queueOrderPaymentTermsUpdated(orderId) {
+    const order = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.id = ?
+    `).get(orderId);
+    if (!order || !order.balance_cents) return;
+    const dueDate = order.payment_due_date ? formatDateForEmail(order.payment_due_date) : "a definir";
+    const mode = order.payment_status === "credit_account" ? "cuenta corriente" : "saldo a plazo";
+    queue("payment_terms_customer", order.email, `Condicion de pago ${order.order_number} | KM Detail Line`, [
+      `Hola ${order.contact_person},`,
+      "",
+      `El pedido ${order.order_number} quedo autorizado bajo ${mode}.`,
+      "",
+      `Total: ${money.format(order.total_cents / 100)}`,
+      `Pagado: ${money.format((order.paid_cents || 0) / 100)}`,
+      `Saldo pendiente: ${money.format(order.balance_cents / 100)}`,
+      `Vencimiento: ${dueDate}`,
+      "",
+      "La preparacion y despacho se coordinan segun disponibilidad operativa.",
+      "",
+      "KM Detail Line",
+      config.publicBaseUrl
+    ].join("\n"));
+    queueSalesRep(order, "payment_terms_sales_rep", `Cuenta corriente ${order.order_number} | ${order.business_name}`, [
+      `Pedido autorizado bajo ${mode}.`,
+      "",
+      `Cliente: ${order.business_name}`,
+      `Pedido: ${order.order_number}`,
+      `Saldo: ${money.format(order.balance_cents / 100)}`,
+      `Vencimiento: ${dueDate}`,
+      "",
+      `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
+    ].join("\n"));
+  }
+
+  function queuePaymentDueReminders(now = new Date()) {
+    const today = isoDate(now);
+    const inTwoDays = addDays(now, 2);
+    let queued = 0;
+    const upcoming = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.balance_cents > 0 AND o.payment_due_date <> ''
+        AND o.payment_due_date <= ? AND o.payment_due_date >= ?
+        AND o.due_reminder_sent_at IS NULL
+    `).all(isoDate(inTwoDays), today);
+    for (const order of upcoming) {
+      queuePaymentDueReminder(order, "payment_due_soon", `Vencimiento de saldo ${order.order_number} | KM Detail Line`, false);
+      db.prepare("UPDATE orders SET due_reminder_sent_at = ? WHERE id = ?").run(now.toISOString(), order.id);
+      queued += 1;
+    }
+    const overdue = db.prepare(`
+      SELECT o.*, c.business_name, c.contact_person, u.email
+      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
+      WHERE o.balance_cents > 0 AND o.payment_due_date <> ''
+        AND o.payment_due_date < ? AND o.overdue_reminder_sent_date <> ?
+    `).all(today, today);
+    for (const order of overdue) {
+      queuePaymentDueReminder(order, "payment_overdue", `Saldo vencido ${order.order_number} | KM Detail Line`, true);
+      db.prepare("UPDATE orders SET payment_status = 'overdue', overdue_reminder_sent_date = ? WHERE id = ?").run(today, order.id);
+      queued += 1;
+    }
+    return { queued };
+  }
+
+  function queuePaymentDueReminder(order, eventType, subject, overdue) {
+    const dueDate = formatDateForEmail(order.payment_due_date);
+    queue(eventType, order.email, subject, [
+      `Hola ${order.contact_person},`,
+      "",
+      overdue
+        ? `Registramos un saldo vencido del pedido ${order.order_number}.`
+        : `Te recordamos que el saldo del pedido ${order.order_number} vence el día ${dueDate}.`,
+      "",
+      `Pedido: ${order.order_number}`,
+      `Saldo pendiente: ${money.format(order.balance_cents / 100)}`,
+      `Vencimiento: ${dueDate}`,
+      "",
+      "Si ya realizaste el pago, podes responder este correo o comunicarte por WhatsApp.",
+      "",
+      "KM Detail Line",
+      config.publicBaseUrl
+    ].join("\n"));
   }
 
   function queueOrderFulfillmentUpdated(orderId) {
@@ -686,7 +786,26 @@ export function createEmailService({ db, config }) {
     if (eventType === "order_customer") return "Recibimos tu pedido en KM Detail Line.";
     if (eventType === "payment_receipt_customer") return "Actualizacion del pago de tu pedido.";
     if (eventType === "order_fulfillment_customer") return "Actualizacion de despacho de tu pedido.";
+    if (eventType === "payment_due_soon") return "Recordatorio de vencimiento de saldo.";
+    if (eventType === "payment_overdue") return "Saldo vencido pendiente de regularizacion.";
     return "Notificacion de KM Detail Line.";
+  }
+
+  function formatDateForEmail(value) {
+    if (!value) return "";
+    const [year, month, day] = String(value).slice(0, 10).split("-");
+    if (!year || !month || !day) return value;
+    return `${day}/${month}/${year}`;
+  }
+
+  function isoDate(date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  function addDays(date, days) {
+    const next = new Date(date);
+    next.setUTCDate(next.getUTCDate() + days);
+    return next;
   }
 
   function escapeHtml(value) {
@@ -711,6 +830,8 @@ export function createEmailService({ db, config }) {
     queueOrderAvailabilityConfirmed,
     queuePaymentReceiptUploaded,
     queuePaymentReceiptReviewed,
+    queueOrderPaymentTermsUpdated,
+    queuePaymentDueReminders,
     queueOrderFulfillmentUpdated,
     flush,
     verify,

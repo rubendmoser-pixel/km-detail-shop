@@ -21,6 +21,9 @@ const orderStatusLabels = {
 const paymentStatusLabels = {
   pending_payment: "Pago pendiente",
   receipt_uploaded: "Comprobante cargado",
+  partial_payment: "Pago parcial",
+  credit_account: "Cuenta corriente",
+  overdue: "Vencido",
   paid: "Pago acreditado",
   rejected: "Pago rechazado",
   refunded: "Pago reintegrado"
@@ -44,6 +47,9 @@ const orderStateClasses = {
 const paymentStateClasses = {
   pending_payment: "warning",
   receipt_uploaded: "progress",
+  partial_payment: "warning",
+  credit_account: "info",
+  overdue: "danger",
   paid: "success",
   rejected: "danger",
   refunded: "neutral"
@@ -660,6 +666,9 @@ function renderOrderDetail() {
     { label: "Pago", value: stateBadge(paymentStatusText(order.paymentStatus), paymentStateClasses[order.paymentStatus]), html: true },
     { label: "Logistica", value: stateBadge(fulfillmentStatusText(order.fulfillment?.status || "pending"), fulfillmentStateClasses[order.fulfillment?.status || "pending"]), html: true },
     { label: "Total", value: adminMoney.format(order.totalCents / 100) },
+    { label: "Pagado", value: adminMoney.format((order.paidCents || 0) / 100) },
+    { label: "Saldo", value: adminMoney.format((order.balanceCents || 0) / 100) },
+    { label: "Vencimiento", value: order.paymentDueDate ? formatAdminDate(order.paymentDueDate) : "Sin vencimiento" },
     { label: "Cliente", value: `${order.businessName} (${order.email})` },
     { label: "Contacto", value: `${order.contactPerson || "-"} | WhatsApp ${order.customerWhatsapp || "-"}` },
     { label: "Descuentos", value: discountText(order.discountsBps) },
@@ -748,7 +757,8 @@ function renderOrderWorkflow(order) {
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
   const hasReceipts = (order.paymentReceipts || []).length > 0;
   const canReviewPayment = hasReceipts || ["receipt_uploaded", "rejected"].includes(order.paymentStatus);
-  const canManageFulfillment = order.paymentStatus === "paid" && availabilityConfirmed && !isCancelled;
+  const paymentAllowsFulfillment = ["paid", "partial_payment", "credit_account"].includes(order.paymentStatus);
+  const canManageFulfillment = paymentAllowsFulfillment && availabilityConfirmed && !isCancelled;
 
   adminEls.availabilityForm.hidden = !canConfirmAvailability;
   adminEls.paymentReviewPanel.hidden = isCancelled || !canReviewPayment;
@@ -769,6 +779,18 @@ function renderOrderWorkflow(order) {
   }
   if (availabilityConfirmed && order.paymentStatus === "pending_payment") {
     renderNextStep("Proxima accion: esperar comprobante de pago", "La disponibilidad ya fue confirmada. El cliente debe cargar o enviar el comprobante para avanzar con preparacion y despacho.", "warning");
+    return;
+  }
+  if (order.paymentStatus === "partial_payment") {
+    renderNextStep("Proxima accion: seguir saldo", `Hay un saldo pendiente de ${adminMoney.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? ` con vencimiento ${formatAdminDate(order.paymentDueDate)}` : ""}. El pedido puede avanzar si KM lo autorizo comercialmente.`, "warning");
+    return;
+  }
+  if (order.paymentStatus === "credit_account") {
+    renderNextStep("Proxima accion: preparar despacho", `Pedido autorizado en cuenta corriente. Saldo pendiente ${adminMoney.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? ` con vencimiento ${formatAdminDate(order.paymentDueDate)}` : ""}.`, "info");
+    return;
+  }
+  if (order.paymentStatus === "overdue") {
+    renderNextStep("Saldo vencido", `El pedido tiene saldo vencido por ${adminMoney.format((order.balanceCents || 0) / 100)}. Revisar condicion comercial antes de avanzar.`, "danger");
     return;
   }
   if (order.paymentStatus === "receipt_uploaded") {
@@ -825,30 +847,67 @@ async function saveFulfillment(event) {
 
 function renderPaymentReceipts(order) {
   const receipts = order.paymentReceipts || [];
+  const balanceCents = order.balanceCents ?? Math.max(0, order.totalCents - (order.paidCents || 0));
+  const defaultPaymentAmount = Math.max(0, balanceCents || order.totalCents);
   adminEls.paymentReviewPanel.innerHTML = `
     <div class="panel-heading"><p class="eyebrow">Pago</p><h3>Comprobantes</h3></div>
+    <div class="payment-balance-grid">
+      <div><span>Total</span><strong>${adminMoney.format(order.totalCents / 100)}</strong></div>
+      <div><span>Acreditado</span><strong>${adminMoney.format((order.paidCents || 0) / 100)}</strong></div>
+      <div><span>Saldo</span><strong>${adminMoney.format(balanceCents / 100)}</strong></div>
+      <div><span>Vencimiento</span><strong>${order.paymentDueDate ? formatAdminDate(order.paymentDueDate) : "Sin fecha"}</strong></div>
+    </div>
     ${receipts.length ? receipts.map((receipt) => `
       <article class="payment-receipt-row">
-        <div><strong>${escapeAdmin(receipt.originalFilename)}</strong><span>${escapeAdmin(receipt.status)} - ${formatDate(receipt.createdAt)}</span></div>
-        <div class="image-actions">
+        <div><strong>${escapeAdmin(receipt.originalFilename)}</strong><span>${escapeAdmin(receiptStatusText(receipt.status))} - ${formatDate(receipt.createdAt)}${receipt.amountCents ? ` - ${adminMoney.format(receipt.amountCents / 100)}` : ""}</span></div>
+        <form class="receipt-review-form">
+          <input type="hidden" name="receiptId" value="${receipt.id}" />
+          <label><span>Importe acreditado</span><input name="amount" type="number" min="0" step="0.01" value="${(receipt.amountCents || defaultPaymentAmount) / 100}" ${receipt.status === "accepted" ? "disabled" : ""} /></label>
+          <label><span>Vencimiento saldo</span><input name="paymentDueDate" type="date" value="${escapeAdmin(order.paymentDueDate || "")}" ${receipt.status === "accepted" ? "disabled" : ""} /></label>
+          <label><span>Dias</span><input name="paymentTermsDays" type="number" min="0" max="365" step="1" placeholder="15" ${receipt.status === "accepted" ? "disabled" : ""} /></label>
           <a class="ghost-button receipt-view-link" href="/api/admin/payment-receipts/${receipt.id}/file" target="_blank" rel="noreferrer">Ver comprobante</a>
-          <button class="ghost-button" type="button" data-review-receipt="${receipt.id}" data-receipt-status="accepted" ${receipt.status === "accepted" ? "disabled" : ""}>Aceptar</button>
-          <button class="ghost-button danger" type="button" data-review-receipt="${receipt.id}" data-receipt-status="rejected" ${receipt.status === "rejected" ? "disabled" : ""}>Rechazar</button>
-        </div>
+          <button class="ghost-button" type="submit" name="status" value="accepted" ${receipt.status === "accepted" ? "disabled" : ""}>Aceptar pago</button>
+          <button class="ghost-button danger" type="submit" name="status" value="rejected" ${receipt.status === "rejected" ? "disabled" : ""}>Rechazar</button>
+        </form>
       </article>
     `).join("") : `<p class="admin-note">Todavia no hay comprobantes cargados.</p>`}
+    ${balanceCents > 0 ? `
+      <form class="payment-terms-form">
+        <div>
+          <p class="eyebrow">Cuenta corriente / saldo</p>
+          <h4>Autorizar saldo pendiente</h4>
+          <p>Usar cuando el pedido puede prepararse con cuenta corriente o pago parcial con saldo a fecha.</p>
+        </div>
+        <label><span>Vencimiento</span><input name="paymentDueDate" type="date" value="${escapeAdmin(order.paymentDueDate || defaultDueDate(15))}" /></label>
+        <label><span>Dias</span><input name="paymentTermsDays" type="number" min="0" max="365" step="1" value="${order.paymentTermsDays || 15}" /></label>
+        <label class="wide"><span>Nota interna</span><input name="reason" value="Cuenta corriente autorizada" /></label>
+        <button class="primary-button" type="submit">Autorizar saldo</button>
+      </form>
+    ` : ""}
   `;
-  adminEls.paymentReviewPanel.querySelectorAll("[data-review-receipt]").forEach((button) => button.addEventListener("click", reviewReceipt));
+  adminEls.paymentReviewPanel.querySelectorAll(".receipt-review-form").forEach((form) => form.addEventListener("submit", reviewReceipt));
+  const termsForm = adminEls.paymentReviewPanel.querySelector(".payment-terms-form");
+  if (termsForm) termsForm.addEventListener("submit", authorizePaymentTerms);
 }
 
 async function reviewReceipt(event) {
-  const receiptId = Number(event.currentTarget.dataset.reviewReceipt);
-  const status = event.currentTarget.dataset.receiptStatus;
-  event.currentTarget.disabled = true;
+  event.preventDefault();
+  const submitter = event.submitter;
+  const form = event.currentTarget;
+  const values = Object.fromEntries(new FormData(form));
+  const receiptId = Number(values.receiptId);
+  const status = submitter?.value || "accepted";
+  setBusy(form, true);
   try {
     const { order } = await adminApi(`/api/admin/payment-receipts/${receiptId}`, {
       method: "PATCH",
-      body: { status, reason: status === "accepted" ? "Comprobante aceptado por administracion" : "Comprobante rechazado por administracion" }
+      body: {
+        status,
+        amountCents: Math.round(Number(values.amount || 0) * 100),
+        paymentDueDate: values.paymentDueDate || "",
+        paymentTermsDays: values.paymentTermsDays ? Number(values.paymentTermsDays) : 0,
+        reason: status === "accepted" ? "Comprobante aceptado por administracion" : "Comprobante rechazado por administracion"
+      }
     });
     adminState.selectedOrder = order;
     await loadOrders();
@@ -856,6 +915,34 @@ async function reviewReceipt(event) {
     showAdminToast(status === "accepted" ? "Pago aceptado." : "Comprobante rechazado.");
   } catch (error) {
     showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
+  }
+}
+
+async function authorizePaymentTerms(event) {
+  event.preventDefault();
+  if (!adminState.selectedOrder) return;
+  const form = event.currentTarget;
+  const values = Object.fromEntries(new FormData(form));
+  setBusy(form, true);
+  try {
+    const { order } = await adminApi(`/api/admin/orders/${adminState.selectedOrder.id}/payment-terms`, {
+      method: "PATCH",
+      body: {
+        paymentDueDate: values.paymentDueDate || "",
+        paymentTermsDays: values.paymentTermsDays ? Number(values.paymentTermsDays) : 0,
+        reason: values.reason || "Cuenta corriente autorizada"
+      }
+    });
+    adminState.selectedOrder = order;
+    await loadOrders();
+    renderOrderDetail();
+    showAdminToast("Saldo autorizado.");
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
   }
 }
 
@@ -1077,6 +1164,22 @@ function formatDate(value) {
   if (!value) return "";
   const normalized = /z$/i.test(String(value)) ? String(value) : `${value}Z`;
   return new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(normalized));
+}
+
+function formatAdminDate(value) {
+  if (!value) return "";
+  const [year, month, day] = String(value).slice(0, 10).split("-");
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
+function defaultDueDate(days = 15) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function receiptStatusText(status) {
+  return ({ received: "Recibido", accepted: "Aceptado", rejected: "Rechazado" })[status] || status || "";
 }
 
 function discountText(discountsBps = []) {

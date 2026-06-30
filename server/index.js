@@ -9,6 +9,10 @@ fs.mkdirSync(config.uploadsPath, { recursive: true });
 const db = await openDatabase(config);
 const emailService = createEmailService({ db, config });
 void emailService.flush();
+void emailService.queuePaymentDueReminders();
+const paymentReminderInterval = setInterval(() => {
+  void emailService.queuePaymentDueReminders();
+}, 60 * 60 * 1000);
 const server = http.createServer(createApp({ db, config, emailService }));
 
 server.listen(config.port, config.host, () => {
@@ -16,6 +20,7 @@ server.listen(config.port, config.host, () => {
 });
 
 function shutdown() {
+  clearInterval(paymentReminderInterval);
   server.close(() => {
     db.close();
     process.exit(0);

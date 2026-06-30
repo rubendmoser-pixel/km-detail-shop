@@ -6,7 +6,8 @@ import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import { registerCustomer } from "../server/services/auth-service.js";
 import { setCustomerDiscounts, setCustomerStatus } from "../server/services/customer-service.js";
-import { createOrder, getOrder } from "../server/services/order-service.js";
+import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, reviewPaymentReceipt } from "../server/services/order-service.js";
+import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
 
@@ -79,4 +80,41 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
   assert.equal(persisted.items[0].basePriceCents, 10_000_000);
   assert.equal(persisted.vatBps, 2100);
   assert.equal(persisted.bank.alias, "KM.TEST");
+
+  const confirmed = confirmOrderAvailability(db, order.id, {
+    reason: "Disponibilidad total",
+    items: persisted.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity }))
+  }, admin.id);
+  assert.equal(confirmed.totalCents, 12_196_800);
+  const receipt = db.prepare(`
+    INSERT INTO payment_receipts (order_id, uploaded_by, original_filename, stored_filename, mime_type, size_bytes)
+    VALUES (?, ?, 'parcial.png', 'parcial-test.png', 'image/png', 100)
+    RETURNING id
+  `).get(order.id, registration.user.id);
+  const partial = reviewPaymentReceipt(db, receipt.id, {
+    status: "accepted",
+    amountCents: 5_000_000,
+    paymentDueDate: "2026-07-02",
+    reason: "Pago parcial acreditado"
+  }, admin.id);
+  assert.equal(partial.paymentStatus, "partial_payment");
+  assert.equal(partial.paidCents, 5_000_000);
+  assert.equal(partial.balanceCents, 7_196_800);
+  assert.equal(partial.paymentDueDate, "2026-07-02");
+
+  const credit = authorizeOrderCredit(db, order.id, {
+    paymentDueDate: "2026-07-02",
+    reason: "Saldo autorizado a fecha"
+  }, admin.id);
+  assert.equal(credit.paymentStatus, "partial_payment");
+  assert.equal(credit.balanceCents, 7_196_800);
+
+  const emailService = createEmailService({
+    db,
+    config: { publicBaseUrl: "https://www.km-detail.com", notificationEmail: "ventas@km-detail.com" }
+  });
+  const reminder = emailService.queuePaymentDueReminders(new Date("2026-06-30T12:00:00.000Z"));
+  assert.equal(reminder.queued, 1);
+  const reminderEmail = db.prepare("SELECT text_body FROM email_outbox WHERE event_type = 'payment_due_soon'").get();
+  assert.match(reminderEmail.text_body, /vence el día 02\/07\/2026/);
 });
