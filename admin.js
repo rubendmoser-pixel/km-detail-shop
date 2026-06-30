@@ -15,7 +15,7 @@ const orderStatusLabels = {
   confirmed: "Pedido confirmado",
   in_preparation: "Disponibilidad confirmada",
   ready: "Preparado para despacho",
-  delivered: "Despachado",
+  delivered: "Recibido por cliente",
   cancelled: "Cancelado"
 };
 const paymentStatusLabels = {
@@ -32,7 +32,7 @@ const fulfillmentStatusLabels = {
   pending: "Pendiente de preparacion",
   ready: "Preparado para despacho",
   shipped: "Despachado",
-  delivered: "Despachado"
+  delivered: "Recibido por cliente"
 };
 
 const orderStateClasses = {
@@ -809,6 +809,10 @@ function renderOrderWorkflow(order) {
     renderNextStep("Pedido cancelado", "No hay acciones operativas pendientes. Solo se pueden revisar documentos o usar ajustes avanzados si hiciera falta.", "danger");
     return;
   }
+  if (order.status === "delivered" || fulfillmentStatus === "delivered") {
+    renderNextStep("Pedido recibido por el cliente", "El cliente confirmo la recepcion. La operacion queda cerrada como historial y no hay acciones de despacho pendientes.", "done");
+    return;
+  }
   if (canConfirmAvailability) {
     resetAvailabilityPaymentFields(order);
     renderNextStep("Proxima accion: preparar y confirmar disponibilidad", "Imprimi la preparacion, controla articulos disponibles, ajusta parciales si corresponde y confirma disponibilidad al cliente.", "info");
@@ -865,10 +869,11 @@ function setFulfillmentPreset(event) {
 }
 
 function canFulfillOrder(order) {
-  const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
+  const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready"].includes(order.status);
+  const isReceivedByCustomer = order.status === "delivered" || order.fulfillment?.status === "delivered";
   const paymentAllowsFulfillment = ["paid", "credit_account"].includes(order.paymentStatus)
     || (order.paymentStatus === "partial_payment" && Boolean(order.paymentDueDate));
-  return paymentAllowsFulfillment && availabilityConfirmed && order.status !== "cancelled";
+  return paymentAllowsFulfillment && availabilityConfirmed && !isReceivedByCustomer && order.status !== "cancelled";
 }
 
 function resetAvailabilityPaymentFields(order) {
@@ -885,7 +890,6 @@ function syncAvailabilityPaymentFields() {
 }
 
 function normalizedFulfillmentStatus(status) {
-  if (status === "delivered") return "shipped";
   return status || "pending";
 }
 
