@@ -260,6 +260,7 @@ function migrate(db) {
       recipient TEXT NOT NULL,
       subject TEXT NOT NULL,
       text_body TEXT NOT NULL,
+      html_body TEXT,
       status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent')),
       attempts INTEGER NOT NULL DEFAULT 0,
       last_error TEXT,
@@ -332,6 +333,7 @@ function migrate(db) {
   ensureColumn(db, "orders", "sales_commission_bps", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "orders", "sales_commission_base_cents", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "orders", "sales_commission_cents", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "email_outbox", "html_body", "TEXT");
   ensureColumn(db, "customers", "postal_code", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "customers", "sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
   ensureColumn(db, "customers", "sales_commission_bps", "INTEGER");

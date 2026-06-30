@@ -41,10 +41,7 @@ export function createEmailService({ db, config }) {
         "Estado: pendiente de aprobación"
       ].join("\n");
 
-      db.prepare(`
-        INSERT INTO email_outbox (event_type, recipient, subject, text_body)
-        VALUES ('customer_registration', ?, ?, ?)
-      `).run(config.notificationEmail, `Nueva alta comercial: ${customer.business_name}`, textBody);
+      queue("customer_registration", config.notificationEmail, `Nueva alta comercial: ${customer.business_name}`, textBody);
     }
 
     const welcomeBody = [
@@ -412,9 +409,16 @@ export function createEmailService({ db, config }) {
 
   function queue(eventType, recipient, subject, textBody) {
     if (!recipient) return;
+    const normalizedText = Array.isArray(textBody) ? textBody.filter(Boolean).join("\n") : String(textBody || "");
+    const htmlBody = renderEmailHtml({
+      subject,
+      textBody: normalizedText,
+      eventType,
+      publicBaseUrl: config.publicBaseUrl
+    });
     db.prepare(`
-      INSERT INTO email_outbox (event_type, recipient, subject, text_body) VALUES (?, ?, ?, ?)
-    `).run(eventType, recipient, subject, textBody);
+      INSERT INTO email_outbox (event_type, recipient, subject, text_body, html_body) VALUES (?, ?, ?, ?, ?)
+    `).run(eventType, recipient, subject, normalizedText, htmlBody);
     void flush();
   }
 
@@ -477,7 +481,13 @@ export function createEmailService({ db, config }) {
       from: `KM Detail Line <${config.smtpUser}>`,
       to: message.recipient,
       subject: message.subject,
-      text: message.text_body
+      text: message.text_body,
+      html: message.html_body || renderEmailHtml({
+        subject: message.subject,
+        textBody: message.text_body,
+        eventType: message.event_type,
+        publicBaseUrl: config.publicBaseUrl
+      })
     });
     return { provider, messageId: result.messageId, accepted: result.accepted, rejected: result.rejected };
   }
@@ -487,7 +497,13 @@ export function createEmailService({ db, config }) {
       from: config.resendFrom,
       to: [message.recipient],
       subject: message.subject,
-      text: message.text_body
+      text: message.text_body,
+      html: message.html_body || renderEmailHtml({
+        subject: message.subject,
+        textBody: message.text_body,
+        eventType: message.event_type,
+        publicBaseUrl: config.publicBaseUrl
+      })
     };
     if (config.resendReplyTo) payload.reply_to = config.resendReplyTo;
     const response = await fetch("https://api.resend.com/emails", {
@@ -533,6 +549,131 @@ export function createEmailService({ db, config }) {
         SUM(CASE WHEN status = 'pending' AND last_error IS NOT NULL THEN 1 ELSE 0 END) AS withErrors
       FROM email_outbox
     `).get();
+  }
+
+  function renderEmailHtml({ subject, textBody, eventType, publicBaseUrl }) {
+    const lines = String(textBody || "").split("\n");
+    const blocks = [];
+    let paragraph = [];
+    const flushParagraph = () => {
+      if (!paragraph.length) return;
+      blocks.push(`<p style="margin:0 0 16px;color:#d6d9de;line-height:1.58;font-size:15px;">${paragraph.map(escapeHtml).join("<br>")}</p>`);
+      paragraph = [];
+    };
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      const trimmed = line.trim();
+      if (!trimmed) {
+        flushParagraph();
+        continue;
+      }
+      if (isEmailSectionTitle(trimmed)) {
+        flushParagraph();
+        blocks.push(`<h2 style="margin:24px 0 12px;color:#f4f5f6;font-size:16px;line-height:1.25;text-transform:uppercase;letter-spacing:.08em;">${escapeHtml(trimmed)}</h2>`);
+        continue;
+      }
+      if (isUrlLine(trimmed)) {
+        flushParagraph();
+        blocks.push(`<p style="margin:22px 0 0;"><a href="${escapeAttribute(trimmed)}" style="display:inline-block;padding:13px 18px;background:#d8dde3;color:#09090a;text-decoration:none;font-weight:800;border-radius:4px;">Ingresar a KM Detail Line</a></p>`);
+        continue;
+      }
+      if (isKeyValueLine(trimmed)) {
+        flushParagraph();
+        const [label, ...rest] = trimmed.split(":");
+        const value = rest.join(":").trim();
+        const important = /total|pago|estado|subtotal|iva/i.test(label);
+        blocks.push(`
+          <div style="display:flex;justify-content:space-between;gap:16px;padding:${important ? "14px 0" : "9px 0"};border-bottom:1px solid #30343a;">
+            <span style="color:#9fa5ad;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;">${escapeHtml(label)}</span>
+            <strong style="color:${important ? "#ffffff" : "#d6d9de"};font-size:${important ? "18px" : "15px"};text-align:right;">${escapeHtml(value)}</strong>
+          </div>
+        `);
+        continue;
+      }
+      if (/^\d+\.\s+/.test(trimmed) || /^-\s+/.test(trimmed)) {
+        flushParagraph();
+        blocks.push(`<div style="margin:10px 0;padding:14px 16px;background:#14161a;border:1px solid #30343a;border-left:4px solid #8fb7d6;border-radius:4px;color:#f2f4f6;font-size:15px;line-height:1.48;">${escapeHtml(trimmed)}</div>`);
+        continue;
+      }
+      paragraph.push(trimmed);
+    }
+    flushParagraph();
+
+    const preheader = emailPreheader(eventType);
+    const year = new Date().getFullYear();
+    return `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#09090a;color:#f4f5f6;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(preheader)}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#09090a;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#101114;border:1px solid #30343a;border-radius:8px;overflow:hidden;">
+            <tr>
+              <td style="padding:24px 28px;background:#050506;border-bottom:1px solid #30343a;">
+                <div style="color:#f4f5f6;font-size:26px;font-weight:900;letter-spacing:.02em;">KM <span style="color:#b6bcc4;font-weight:700;">Detail Line</span></div>
+                <div style="margin-top:8px;color:#aeb4bb;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;">Canal comercial profesional</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px;">
+                <h1 style="margin:0 0 18px;color:#ffffff;font-size:26px;line-height:1.15;">${escapeHtml(subject)}</h1>
+                ${blocks.join("\n")}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 28px;background:#0b0c0e;border-top:1px solid #30343a;color:#aeb4bb;font-size:12px;line-height:1.55;">
+                KM Detail Line<br>
+                Productos profesionales para pulido automotriz, chapa-pintura y detailing.<br>
+                ${escapeHtml((publicBaseUrl || "").replace(/\/$/, ""))}<br>
+                &copy; ${year}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+  }
+
+  function isEmailSectionTitle(line) {
+    return [
+      "Resumen del pedido",
+      "Detalle de articulos confirmados",
+      "Articulos confirmados",
+      "Articulos no disponibles:",
+      "Detalle:",
+      "Items:"
+    ].includes(line);
+  }
+
+  function isKeyValueLine(line) {
+    return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 /().-]{2,45}:\s+.+/.test(line) && !/^https?:\/\//i.test(line);
+  }
+
+  function isUrlLine(line) {
+    return /^https?:\/\/\S+$/i.test(line);
+  }
+
+  function emailPreheader(eventType) {
+    if (eventType === "order_availability_customer") return "Disponibilidad confirmada y total para pago.";
+    if (eventType === "order_customer") return "Recibimos tu pedido en KM Detail Line.";
+    if (eventType === "payment_receipt_customer") return "Actualizacion del pago de tu pedido.";
+    if (eventType === "order_fulfillment_customer") return "Actualizacion de despacho de tu pedido.";
+    return "Notificacion de KM Detail Line.";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function escapeAttribute(value) {
+    return escapeHtml(value).replace(/"/g, "&quot;");
   }
 
   return {

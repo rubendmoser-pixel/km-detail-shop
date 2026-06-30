@@ -326,12 +326,15 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(availabilityOrder.vatCents, 39_161);
   assert.equal(availabilityOrder.totalCents, 225_641);
   assert.equal(availabilityOrder.salesRep.commissionCents, 6527);
-  const availabilityEmail = db.prepare("SELECT recipient, subject, text_body FROM email_outbox WHERE event_type = 'order_availability_customer'").get();
+  const availabilityEmail = db.prepare("SELECT recipient, subject, text_body, html_body FROM email_outbox WHERE event_type = 'order_availability_customer'").get();
   assert.equal(availabilityEmail.recipient, "cliente-api@example.com");
   assert.equal(availabilityEmail.subject.includes(orderPayload.order.orderNumber), true);
   assert.match(availabilityEmail.text_body, /Cantidad confirmada: 3 de 5/);
   assert.match(availabilityEmail.text_body, /Subtotal neto confirmado/);
   assert.match(availabilityEmail.text_body, /Total para pago y despacho: \$\s*2\.256,41/);
+  assert.match(availabilityEmail.html_body, /<!doctype html>/);
+  assert.match(availabilityEmail.html_body, /KM Detail Line/);
+  assert.match(availabilityEmail.html_body, /Total para pago y despacho/);
   const availabilitySalesEmail = db.prepare("SELECT recipient, subject FROM email_outbox WHERE event_type = 'order_availability_sales_rep'").get();
   assert.equal(availabilitySalesEmail.recipient, "vendedor-api@km-detail.com");
   assert.match(availabilityEmail.text_body, /Total para pago y despacho/);
@@ -572,6 +575,9 @@ test("email service sends pending messages through Resend API", async (t) => {
   assert.equal(payload.from, "KM Detail Line <notificaciones@send.km-detail.com>");
   assert.equal(payload.reply_to, "ventas@km-detail.com");
   assert.deepEqual(payload.to, ["cliente@example.com"]);
+  assert.equal(payload.text, "Contenido de prueba");
+  assert.match(payload.html, /<!doctype html>/);
+  assert.match(payload.html, /Asunto de prueba/);
   assert.equal(db.prepare("SELECT status FROM email_outbox").get().status, "sent");
 });
 
