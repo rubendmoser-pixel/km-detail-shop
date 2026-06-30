@@ -1444,41 +1444,45 @@ body.modal-open {
 }
 
 .purchase-metrics button {
+  appearance: none;
+  -webkit-appearance: none;
   display: grid;
-  gap: 8px;
-  min-height: 88px;
-  padding: 16px;
-  color: #aeb4bb;
+  align-content: center;
+  gap: 10px;
+  min-height: 96px;
+  width: 100%;
+  padding: 16px 18px;
+  color: #d4d8dd;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
-    #111214;
-  border: 1px solid #32363d;
-  border-left: 4px solid #777d86;
-  border-radius: 8px;
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 35%),
+    linear-gradient(145deg, #181a1e, #0f1012);
+  border: 1px solid #3b3f47;
+  border-left: 5px solid #858b94;
+  border-radius: 10px;
   cursor: pointer;
   text-align: left;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
 }
 
 .purchase-metrics button.active {
   color: #f6f8fa;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01)),
-    #181a1f;
-  border-color: rgba(255, 255, 255, 0.3);
+    radial-gradient(circle at top right, rgba(255, 221, 68, 0.16), transparent 35%),
+    linear-gradient(145deg, #202226, #121316);
+  border-color: rgba(255, 255, 255, 0.36);
   border-left-color: var(--signal);
 }
 
 .purchase-metrics strong {
   color: inherit;
   font-family: var(--font-display);
-  font-size: clamp(1.7rem, 3vw, 2.25rem);
+  font-size: clamp(2rem, 4vw, 2.7rem);
   line-height: 0.95;
 }
 
 .purchase-metrics span {
   color: inherit;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-weight: 900;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -2492,8 +2496,8 @@ body.modal-open {
   }
 
   .purchase-metrics button {
-    min-height: 86px;
-    padding: 14px;
+    min-height: 94px;
+    padding: 14px 15px;
   }
 
   .order-access {
