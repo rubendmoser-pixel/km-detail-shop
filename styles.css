@@ -607,6 +607,37 @@ textarea:focus {
   justify-content: flex-end;
 }
 
+.catalog-download-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 28px;
+  padding: clamp(20px, 3vw, 32px);
+  background: #111214;
+  border: 1px solid #3f4146;
+  border-radius: 8px;
+}
+
+.catalog-download-card strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.catalog-download-card p {
+  max-width: 680px;
+  margin: 0;
+  color: #b7bac0;
+  line-height: 1.55;
+}
+
+.catalog-download-card .primary-button {
+  flex: 0 0 auto;
+}
+
 .catalog-book {
   margin-top: 24px;
   background: #111214;
@@ -2474,6 +2505,11 @@ body.modal-open {
   }
 
   .catalog-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .catalog-download-card {
     align-items: stretch;
     flex-direction: column;
   }

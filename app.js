@@ -143,8 +143,8 @@ function bindEvents() {
   document.querySelector("#deleteShippingAddress").addEventListener("click", deleteSelectedShippingAddress);
   document.querySelector("#cancelShippingAddress").addEventListener("click", closeShippingAddressForm);
   els.shippingAddressForm.addEventListener("submit", saveShippingAddress);
-  els.catalogPrev.addEventListener("click", () => setCatalogPage(state.catalogPage - 1));
-  els.catalogNext.addEventListener("click", () => setCatalogPage(state.catalogPage + 1));
+  els.catalogPrev?.addEventListener("click", () => setCatalogPage(state.catalogPage - 1));
+  els.catalogNext?.addEventListener("click", () => setCatalogPage(state.catalogPage + 1));
 
   [els.openAccount, document.querySelector("#openAccountHero"), document.querySelector("#orderLogin")]
     .filter(Boolean)
@@ -250,6 +250,22 @@ function renderAccountState() {
   els.orderAccess.hidden = approved;
   els.orderForm.hidden = !approved;
   if (els.navPurchases) els.navPurchases.hidden = !approved;
+  document.querySelectorAll("[data-nav-audience='public']").forEach((link) => {
+    link.hidden = approved;
+  });
+  document.querySelectorAll("[data-nav-audience='operational']").forEach((link) => {
+    link.hidden = link.id === "navPurchases" ? !approved : false;
+  });
+  document.querySelectorAll(".public-section").forEach((section) => {
+    section.hidden = approved;
+  });
+  if (approved && isPublicHash(window.location.hash)) {
+    history.replaceState(null, "", "#catalogo");
+  }
+}
+
+function isPublicHash(hash) {
+  return !hash || ["#inicio", "#empresa", "#distribuidores", "#contacto"].includes(hash);
 }
 
 function renderCategoryFilters() {
@@ -491,7 +507,11 @@ async function submitLogin(event) {
     await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
     els.accountDialog.close();
     renderAll();
-    if (isApprovedCustomer()) await handleHashNavigation();
+    if (isApprovedCustomer()) {
+      history.replaceState(null, "", "#catalogo");
+      document.querySelector("#catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      await handleHashNavigation();
+    }
     showToast(`Bienvenido, ${state.user.businessName || state.user.email}.`);
   } catch (error) {
     els.accountMessage.textContent = error.message;

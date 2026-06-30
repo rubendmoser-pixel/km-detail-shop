@@ -23,7 +23,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=43" />
+    <link rel="stylesheet" href="./styles.css?v=44" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -85,13 +85,13 @@
         </span>
       </a>
       <nav class="top-nav" id="topNav" aria-label="Principal">
-        <a href="#inicio">Inicio</a>
-        <a href="#empresa">Empresa</a>
-        <a href="#catalogo">Productos</a>
-        <a href="#catalogo-pdf">Catalogo 2026</a>
-        <a href="#distribuidores">Distribuidores</a>
-        <a href="#mis-compras" id="navPurchases" hidden>Mis compras</a>
-        <a href="#contacto">Contacto</a>
+        <a href="#inicio" data-nav-audience="public">Inicio</a>
+        <a href="#empresa" data-nav-audience="public">Empresa</a>
+        <a href="#catalogo" data-nav-audience="operational">Productos</a>
+        <a href="#catalogo-pdf" data-nav-audience="operational">Catalogo 2026</a>
+        <a href="#distribuidores" data-nav-audience="public">Distribuidores</a>
+        <a href="#mis-compras" id="navPurchases" data-nav-audience="operational" hidden>Mis compras</a>
+        <a href="#contacto" data-nav-audience="public">Contacto</a>
       </nav>
       <div class="header-actions">
         <button class="mobile-menu-button" id="mobileMenuToggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="topNav">Menu</button>
@@ -104,7 +104,7 @@
     </header>
 
     <main>
-      <section class="shop-hero" id="inicio">
+      <section class="shop-hero public-section" id="inicio">
         <div class="hero-copy">
           <p class="eyebrow">KM Detail Line | Fabricante argentino</p>
           <h1>Productos profesionales para terminacion automotriz</h1>
@@ -116,7 +116,7 @@
         </div>
       </section>
 
-      <section class="section company-section commercial-section" id="empresa">
+      <section class="section company-section commercial-section public-section" id="empresa">
         <div class="section-visual company-visual">
           <img src="./assets/km-empresa.png" alt="Empresa KM Detail Line" loading="lazy" />
           <div class="section-visual-content">
@@ -235,29 +235,22 @@
             <p class="eyebrow">Catalogo digital</p>
             <h2>Catalogo profesional KM Detail Line 2026</h2>
           </div>
-          <div class="pdf-actions">
-            <a class="secondary-link" href="./assets/catalogo-km-detail-2026.pdf" download>Descargar catalogo PDF</a>
-          </div>
         </div>
         <p class="section-lead">
           Material de presentacion para distribuidores, pinturerias y comercios
           especializados. La compra operativa se realiza desde Productos
           con cuenta comercial aprobada.
         </p>
-        <div class="catalog-book" aria-label="Visor del catalogo KM Detail Line 2026">
-          <div class="catalog-book-toolbar">
-            <button class="ghost-button" id="catalogPrev" type="button">Anterior</button>
-            <strong id="catalogPageLabel">Pagina 1 de 25</strong>
-            <button class="ghost-button" id="catalogNext" type="button">Siguiente</button>
+        <div class="catalog-download-card">
+          <div>
+            <strong>Catalogo KM Detail Line 2026</strong>
+            <p>Archivo PDF para consulta comercial, presentacion de linea y descarga.</p>
           </div>
-          <figure class="catalog-page-frame">
-            <img id="catalogPageImage" src="./assets/catalogo-2026/1_DETAIL-LINE.png" alt="Pagina 1 del catalogo KM Detail Line 2026" loading="lazy" />
-          </figure>
-          <div class="catalog-thumbs" id="catalogThumbs" aria-label="Paginas del catalogo"></div>
+          <a class="primary-button" href="./assets/catalogo-km-detail-2026.pdf" download>Descargar PDF</a>
         </div>
       </section>
 
-      <section class="section seo-topic-section" aria-label="Temas profesionales KM Detail Line">
+      <section class="section seo-topic-section public-section" aria-label="Temas profesionales KM Detail Line">
         <div class="section-title">
           <div>
             <p class="eyebrow">Busquedas profesionales</p>
@@ -280,7 +273,7 @@
         </div>
       </section>
 
-      <section class="section order-section commercial-section" id="distribuidores">
+      <section class="section order-section commercial-section public-section" id="distribuidores">
         <div class="section-visual distributor-visual">
           <img src="./assets/km-distribuidores.png" alt="Distribuidores KM Detail Line" loading="lazy" />
           <div class="section-visual-content">
@@ -391,7 +384,7 @@
       <section class="section purchases-section customer-orders" id="customerOrders" hidden>
       </section>
 
-      <section class="section contact-section commercial-section" id="contacto">
+      <section class="section contact-section commercial-section public-section" id="contacto">
         <div class="section-visual">
           <img src="./assets/km-contacto-final.png" alt="Contacto KM Detail Line" loading="lazy" />
           <div class="section-visual-content">
@@ -517,6 +510,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=49" defer></script>
+    <script src="./app.js?v=50" defer></script>
   </body>
 </html>
