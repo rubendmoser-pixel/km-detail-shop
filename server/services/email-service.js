@@ -583,12 +583,7 @@ export function createEmailService({ db, config }) {
         const [label, ...rest] = trimmed.split(":");
         const value = rest.join(":").trim();
         const important = /total|pago|estado|subtotal|iva/i.test(label);
-        blocks.push(`
-          <div style="display:flex;justify-content:space-between;gap:16px;padding:${important ? "14px 0" : "9px 0"};border-bottom:1px solid #30343a;">
-            <span style="color:#9fa5ad;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;">${escapeHtml(label)}</span>
-            <strong style="color:${important ? "#ffffff" : "#d6d9de"};font-size:${important ? "18px" : "15px"};text-align:right;">${escapeHtml(value)}</strong>
-          </div>
-        `);
+        blocks.push(renderKeyValueRow(label, value, important));
         continue;
       }
       if (/^\d+\.\s+/.test(trimmed) || /^-\s+/.test(trimmed)) {
@@ -613,7 +608,7 @@ export function createEmailService({ db, config }) {
             <tr>
               <td style="padding:24px 28px;background:#050506;border-bottom:1px solid #30343a;">
                 <div style="color:#f4f5f6;font-size:26px;font-weight:900;letter-spacing:.02em;">KM <span style="color:#b6bcc4;font-weight:700;">Detail Line</span></div>
-                <div style="margin-top:8px;color:#aeb4bb;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;">Canal comercial profesional</div>
+                <div style="margin-top:8px;color:#aeb4bb;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;">Canal profesional</div>
               </td>
             </tr>
             <tr>
@@ -647,6 +642,19 @@ export function createEmailService({ db, config }) {
       "Detalle:",
       "Items:"
     ].includes(line);
+  }
+
+  function renderKeyValueRow(label, value, important) {
+    const labelStyle = "padding:12px 12px 12px 0;border-bottom:1px solid #30343a;color:#9fa5ad;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;line-height:1.35;vertical-align:top;";
+    const valueStyle = `padding:12px 0 12px 12px;border-bottom:1px solid #30343a;color:${important ? "#ffffff" : "#d6d9de"};font-size:${important ? "18px" : "15px"};font-weight:800;line-height:1.35;text-align:right;vertical-align:top;`;
+    return `
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+        <tr>
+          <td width="52%" style="${labelStyle}">${escapeHtml(label)}</td>
+          <td width="48%" style="${valueStyle}">${escapeHtml(value)}</td>
+        </tr>
+      </table>
+    `;
   }
 
   function isKeyValueLine(line) {
