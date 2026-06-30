@@ -1444,35 +1444,44 @@ body.modal-open {
 }
 
 .purchase-metrics button {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  min-height: 72px;
-  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  min-height: 88px;
+  padding: 16px;
   color: #aeb4bb;
-  background: #15161a;
-  border: 1px solid #34363b;
-  border-radius: 6px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    #111214;
+  border: 1px solid #32363d;
+  border-left: 4px solid #777d86;
+  border-radius: 8px;
   cursor: pointer;
   text-align: left;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
 }
 
 .purchase-metrics button.active {
-  color: #09090a;
-  background: linear-gradient(180deg, #f8f9fa, #c8ccd1);
-  border-color: #f2f4f5;
+  color: #f6f8fa;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01)),
+    #181a1f;
+  border-color: rgba(255, 255, 255, 0.3);
+  border-left-color: var(--signal);
 }
 
 .purchase-metrics strong {
   color: inherit;
   font-family: var(--font-display);
-  font-size: clamp(1.18rem, 2vw, 1.55rem);
+  font-size: clamp(1.7rem, 3vw, 2.25rem);
+  line-height: 0.95;
 }
 
 .purchase-metrics span {
   color: inherit;
-  font-size: 0.84rem;
-  font-weight: 800;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .purchase-list {
@@ -2472,10 +2481,19 @@ body.modal-open {
     justify-content: flex-start;
   }
 
-  .purchase-metrics,
   .purchase-card-grid,
   .customer-order-card dl {
     grid-template-columns: 1fr;
+  }
+
+  .purchase-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .purchase-metrics button {
+    min-height: 86px;
+    padding: 14px;
   }
 
   .order-access {
