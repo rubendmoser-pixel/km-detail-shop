@@ -352,6 +352,11 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
   }
   const termsDays = normalizeTermsDays(input.paymentTermsDays);
   const dueDate = normalizeDueDate(input.paymentDueDate);
+  const calculatedDueDate = dueDate || (termsDays ? addDaysIsoDate(new Date(), termsDays) : "");
+  const expectedBalanceCents = Math.max(0, pendingBeforeReview - amountCents);
+  if (status === "accepted" && expectedBalanceCents > 0 && !calculatedDueDate) {
+    throw new ValidationError("paymentTermsDays is required when a payment leaves pending balance");
+  }
   return transaction(db, () => {
     db.prepare(`
       UPDATE payment_receipts
@@ -368,12 +373,12 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
       paidCents,
       balanceCents,
       termsDays,
-      dueDate,
+      dueDate: balanceCents > 0 ? calculatedDueDate : "",
       creditAuthorized: false,
       adminUserId
     });
     addOrderEvent(db, receipt.order_id, adminUserId, "payment_receipt_reviewed", reason, receipt, {
-      status, amountCents, paidCents, balanceCents, paymentStatus, paymentDueDate: dueDate, paymentTermsDays: termsDays
+      status, amountCents, paidCents, balanceCents, paymentStatus, paymentDueDate: calculatedDueDate, paymentTermsDays: termsDays
     });
     return getOrder(db, receipt.order_id, null, true);
   });

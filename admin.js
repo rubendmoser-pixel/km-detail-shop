@@ -853,6 +853,8 @@ function renderPaymentReceipts(order) {
   const reviewedReceipts = receipts.filter((receipt) => receipt.status !== "received");
   const needsAmountRegularization = reviewedReceipts.some((receipt) => receipt.status === "accepted" && !receipt.amountCents);
   const canAuthorizeBalance = balanceCents > 0 && !pendingReceipts.length && !needsAmountRegularization;
+  const defaultTermsDays = order.paymentTermsDays || 15;
+  const defaultTermsDueDate = calculateDueDateFromDays(defaultTermsDays);
   adminEls.paymentReviewPanel.innerHTML = `
     <div class="panel-heading"><p class="eyebrow">Pago</p><h3>Comprobantes</h3></div>
     <div class="payment-balance-grid">
@@ -883,8 +885,8 @@ function renderPaymentReceipts(order) {
           <h4>Autorizar saldo pendiente</h4>
           <p>Usar cuando el pedido puede prepararse con cuenta corriente o pago parcial con saldo a fecha.</p>
         </div>
-        <label><span>Vencimiento</span><input name="paymentDueDate" type="date" value="${escapeAdmin(order.paymentDueDate || defaultDueDate(15))}" /></label>
-        <label><span>Dias</span><input name="paymentTermsDays" type="number" min="0" max="365" step="1" value="${order.paymentTermsDays || 15}" /></label>
+        <label><span>Dias de plazo</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${defaultTermsDays}" data-due-days /></label>
+        <div class="due-preview"><span>Vence</span><strong data-due-preview>${formatAdminDate(defaultTermsDueDate)}</strong></div>
         <label class="wide"><span>Nota interna</span><input name="reason" value="Cuenta corriente autorizada" /></label>
         <button class="primary-button" type="submit">Autorizar saldo</button>
       </form>
@@ -893,17 +895,23 @@ function renderPaymentReceipts(order) {
   adminEls.paymentReviewPanel.querySelectorAll(".receipt-review-form").forEach((form) => form.addEventListener("submit", reviewReceipt));
   const termsForm = adminEls.paymentReviewPanel.querySelector(".payment-terms-form");
   if (termsForm) termsForm.addEventListener("submit", authorizePaymentTerms);
+  adminEls.paymentReviewPanel.querySelectorAll("[data-due-days]").forEach((input) => {
+    input.addEventListener("input", updateDuePreview);
+    updateDuePreview({ currentTarget: input });
+  });
 }
 
 function renderPendingReceipt(receipt, order, defaultPaymentAmount) {
+  const defaultTermsDays = order.paymentTermsDays || 15;
+  const dueDate = calculateDueDateFromDays(defaultTermsDays);
   return `
     <article class="payment-receipt-row pending">
       ${renderReceiptInfo(receipt)}
       <form class="receipt-review-form">
         <input type="hidden" name="receiptId" value="${receipt.id}" />
         <label><span>Importe acreditado</span><input name="amount" type="number" min="0" step="0.01" value="${defaultPaymentAmount / 100}" /></label>
-        <label><span>Vencimiento saldo</span><input name="paymentDueDate" type="date" value="${escapeAdmin(order.paymentDueDate || "")}" /></label>
-        <label><span>Dias</span><input name="paymentTermsDays" type="number" min="0" max="365" step="1" placeholder="15" /></label>
+        <label><span>Dias saldo</span><input name="paymentTermsDays" type="number" min="0" max="365" step="1" value="${defaultTermsDays}" data-due-days /></label>
+        <div class="due-preview"><span>Vence</span><strong data-due-preview>${formatAdminDate(dueDate)}</strong></div>
         <a class="ghost-button receipt-view-link" href="/api/admin/payment-receipts/${receipt.id}/file" target="_blank" rel="noreferrer">Ver comprobante</a>
         <button class="ghost-button" type="submit" name="status" value="accepted">Aceptar pago</button>
         <button class="ghost-button danger" type="submit" name="status" value="rejected">Rechazar</button>
@@ -914,6 +922,8 @@ function renderPendingReceipt(receipt, order, defaultPaymentAmount) {
 
 function renderReviewedReceipt(receipt, order, defaultPaymentAmount) {
   const needsAmount = receipt.status === "accepted" && !receipt.amountCents;
+  const defaultTermsDays = order.paymentTermsDays || 15;
+  const dueDate = calculateDueDateFromDays(defaultTermsDays);
   return `
     <article class="payment-receipt-row reviewed ${needsAmount ? "needs-amount" : ""}">
       ${renderReceiptInfo(receipt, needsAmount ? "Importe pendiente de regularizar" : "")}
@@ -921,7 +931,8 @@ function renderReviewedReceipt(receipt, order, defaultPaymentAmount) {
         <form class="receipt-review-form compact">
           <input type="hidden" name="receiptId" value="${receipt.id}" />
           <label><span>Importe acreditado</span><input name="amount" type="number" min="0" step="0.01" value="${defaultPaymentAmount / 100}" /></label>
-          <label><span>Vencimiento saldo</span><input name="paymentDueDate" type="date" value="${escapeAdmin(order.paymentDueDate || "")}" /></label>
+          <label><span>Dias saldo</span><input name="paymentTermsDays" type="number" min="0" max="365" step="1" value="${defaultTermsDays}" data-due-days /></label>
+          <div class="due-preview"><span>Vence</span><strong data-due-preview>${formatAdminDate(dueDate)}</strong></div>
           <a class="ghost-button receipt-view-link" href="/api/admin/payment-receipts/${receipt.id}/file" target="_blank" rel="noreferrer">Ver comprobante</a>
           <button class="ghost-button" type="submit" name="status" value="accepted">Regularizar importe</button>
         </form>
@@ -960,7 +971,6 @@ async function reviewReceipt(event) {
       body: {
         status,
         amountCents: Math.round(Number(values.amount || 0) * 100),
-        paymentDueDate: values.paymentDueDate || "",
         paymentTermsDays: values.paymentTermsDays ? Number(values.paymentTermsDays) : 0,
         reason: status === "accepted" ? "Comprobante aceptado por administracion" : "Comprobante rechazado por administracion"
       }
@@ -986,7 +996,6 @@ async function authorizePaymentTerms(event) {
     const { order } = await adminApi(`/api/admin/orders/${adminState.selectedOrder.id}/payment-terms`, {
       method: "PATCH",
       body: {
-        paymentDueDate: values.paymentDueDate || "",
         paymentTermsDays: values.paymentTermsDays ? Number(values.paymentTermsDays) : 0,
         reason: values.reason || "Cuenta corriente autorizada"
       }
@@ -1232,6 +1241,20 @@ function defaultDueDate(days = 15) {
   const date = new Date();
   date.setDate(date.getDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+function calculateDueDateFromDays(days = 0) {
+  const numericDays = Math.max(0, Number(days || 0));
+  return defaultDueDate(numericDays);
+}
+
+function updateDuePreview(event) {
+  const input = event.currentTarget;
+  const container = input.closest("form");
+  const preview = container?.querySelector("[data-due-preview]");
+  if (!preview) return;
+  const days = Number(input.value || 0);
+  preview.textContent = days > 0 ? formatAdminDate(calculateDueDateFromDays(days)) : "Sin plazo";
 }
 
 function receiptStatusText(status) {

@@ -668,7 +668,7 @@
 }
 
 .receipt-review-form.compact {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(2, auto);
+  grid-template-columns: repeat(3, minmax(0, 1fr)) repeat(2, auto);
 }
 
 .receipt-review-form .ghost-button,
@@ -678,6 +678,27 @@
 
 .admin-note.warning {
   color: #f4df8d;
+}
+
+.due-preview {
+  display: grid;
+  min-height: 46px;
+  align-content: center;
+  padding: 9px 12px;
+  border: 1px solid #3b3d42;
+  background: #15161a;
+}
+
+.due-preview span {
+  color: #a7a9ae;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.due-preview strong {
+  margin-top: 3px;
+  font-size: 0.95rem;
 }
 
 .payment-terms-form {
