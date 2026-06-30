@@ -266,6 +266,14 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
   if (!order) throw new NotFoundError("Order not found");
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("items are required");
   const reason = requiredText(input.reason, "reason", { min: 3, max: 1000 });
+  const paymentCondition = optionalText(input.paymentCondition, "paymentCondition", { max: 40 }) || "advance_payment";
+  if (!["advance_payment", "credit_account"].includes(paymentCondition)) {
+    throw new ValidationError("paymentCondition must be advance_payment or credit_account");
+  }
+  const termsDays = paymentCondition === "credit_account" ? normalizeTermsDays(input.paymentTermsDays) : 0;
+  if (paymentCondition === "credit_account" && !termsDays) {
+    throw new ValidationError("paymentTermsDays is required for credit account");
+  }
 
   return transaction(db, () => {
     const currentItems = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
@@ -291,17 +299,40 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
     const totalCents = confirmedSubtotalNetCents + vatCents;
     const commissionCents = calculateCommission(confirmedSubtotalNetCents, order.sales_commission_bps || 0);
     const newStatus = confirmedSubtotalNetCents > 0 ? "availability_confirmed" : "cancelled";
+    const dueDate = confirmedSubtotalNetCents > 0 && paymentCondition === "credit_account"
+      ? addDaysIsoDate(new Date(), termsDays)
+      : "";
+    const paidCents = order.payment_status === "paid" ? totalCents : 0;
+    const balanceCents = Math.max(0, totalCents - paidCents);
+    const paymentStatus = confirmedSubtotalNetCents <= 0
+      ? order.payment_status
+      : paymentCondition === "credit_account" ? "credit_account" : "pending_payment";
     db.prepare(`
       UPDATE orders SET status = ?, subtotal_net_cents = ?, vat_cents = ?, total_cents = ?,
         sales_commission_base_cents = ?, sales_commission_cents = ?,
-        balance_cents = CASE WHEN payment_status = 'paid' THEN 0 ELSE ? - paid_cents END,
+        payment_status = ?, paid_cents = ?, balance_cents = ?,
+        payment_terms_days = ?, payment_due_date = ?,
+        credit_authorized_at = CASE WHEN ? THEN ? ELSE credit_authorized_at END,
+        credit_authorized_by = CASE WHEN ? THEN ? ELSE credit_authorized_by END,
+        due_reminder_sent_at = NULL, overdue_reminder_sent_date = '',
         modified_acceptance_required = 1, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(newStatus, confirmedSubtotalNetCents, vatCents, totalCents, confirmedSubtotalNetCents, commissionCents, totalCents, orderId);
+    `).run(
+      newStatus, confirmedSubtotalNetCents, vatCents, totalCents,
+      confirmedSubtotalNetCents, commissionCents,
+      paymentStatus, paidCents, balanceCents,
+      termsDays, dueDate,
+      paymentCondition === "credit_account" ? 1 : 0, new Date().toISOString(),
+      paymentCondition === "credit_account" ? 1 : 0, adminUserId,
+      orderId
+    );
     addOrderEvent(db, orderId, adminUserId, "availability_confirmed", reason, { order, items: currentItems }, {
       subtotalNetCents: confirmedSubtotalNetCents,
       vatCents,
-      totalCents
+      totalCents,
+      paymentCondition,
+      paymentDueDate: dueDate,
+      paymentTermsDays: termsDays
     });
     return getOrder(db, orderId, null, true);
   });
@@ -367,7 +398,7 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
     const balanceCents = Math.max(0, order.total_cents - paidCents);
     const paymentStatus = status === "rejected"
       ? "rejected"
-      : balanceCents === 0 ? "paid" : "partial_payment";
+      : balanceCents === 0 ? "paid" : "credit_account";
     updateOrderCommercialBalance(db, receipt.order_id, {
       paymentStatus,
       paidCents,
@@ -395,7 +426,7 @@ export function authorizeOrderCredit(db, orderId, input, adminUserId) {
   if (!termsDays && !dueDate) throw new ValidationError("paymentDueDate or paymentTermsDays is required");
   const reason = optionalText(input.reason, "reason", { max: 1000 }) || "Cuenta corriente autorizada";
   const finalDueDate = dueDate || addDaysIsoDate(new Date(), termsDays);
-  const paymentStatus = paidCents > 0 ? "partial_payment" : "credit_account";
+  const paymentStatus = "credit_account";
   updateOrderCommercialBalance(db, orderId, {
     paymentStatus,
     paidCents,

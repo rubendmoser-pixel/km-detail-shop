@@ -249,6 +249,16 @@ export function createEmailService({ db, config }) {
     const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
     const confirmed = items.filter((item) => item.confirmed_quantity > 0);
     const unavailable = items.filter((item) => item.confirmed_quantity === 0);
+    const paymentConditionLines = order.payment_status === "credit_account"
+      ? [
+          "Condicion de pago: Cuenta corriente",
+          order.payment_terms_days ? `Plazo autorizado: ${order.payment_terms_days} dias` : "",
+          order.payment_due_date ? `Vencimiento: ${formatDateForEmail(order.payment_due_date)}` : ""
+        ].filter(Boolean)
+      : [
+          "Condicion de pago: Pago anticipado",
+          "El despacho se realiza una vez acreditado el pago."
+        ];
     const customerConfirmedLines = confirmed.length ? confirmed.flatMap((item, index) => [
       `${index + 1}. ${item.km_code} - ${item.product_name}`,
       `   Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity}`,
@@ -271,6 +281,7 @@ export function createEmailService({ db, config }) {
       `Subtotal neto confirmado: ${money.format(order.subtotal_net_cents / 100)}`,
       `IVA ${(order.vat_bps / 100).toFixed(2)}%: ${money.format(order.vat_cents / 100)}`,
       `Total para pago y despacho: ${money.format(order.total_cents / 100)}`,
+      ...paymentConditionLines,
       "",
       "Detalle de articulos confirmados",
       ...customerConfirmedLines,
@@ -296,6 +307,7 @@ export function createEmailService({ db, config }) {
       )) : ["- No hay articulos disponibles para despacho en esta confirmacion."]),
       "",
       `Total confirmado: ${money.format(order.total_cents / 100)}`,
+      ...paymentConditionLines,
       `Comision estimada: ${formatCommission(order)}`,
       reason ? `Nota: ${reason}` : "",
       "",
@@ -381,7 +393,7 @@ export function createEmailService({ db, config }) {
     `).get(orderId);
     if (!order || !order.balance_cents) return;
     const dueDate = order.payment_due_date ? formatDateForEmail(order.payment_due_date) : "a definir";
-    const mode = order.payment_status === "credit_account" ? "cuenta corriente" : "saldo a plazo";
+    const mode = "cuenta corriente";
     queue("payment_terms_customer", order.email, `Condicion de pago ${order.order_number} | KM Detail Line`, [
       `Hola ${order.contact_person},`,
       "",

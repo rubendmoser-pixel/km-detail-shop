@@ -930,7 +930,7 @@ function customerOrderState(order) {
     return { label: "Saldo vencido", detail: `Saldo pendiente: ${balance}.`, className: "status-danger" };
   }
   if (order.paymentStatus === "partial_payment") {
-    return { label: "Pago parcial registrado", detail: `Saldo pendiente: ${balance}.${due}`, className: "status-warn" };
+    return { label: "Cuenta corriente con saldo", detail: `Saldo pendiente: ${balance}.${due}`, className: "status-info" };
   }
   if (order.paymentStatus === "credit_account") {
     return { label: "Cuenta corriente autorizada", detail: `Pedido autorizado con saldo a fecha.${due}`, className: "status-info" };
@@ -969,14 +969,14 @@ function purchaseGroup(order) {
   if (["delivered", "cancelled"].includes(order.status) || order.fulfillment?.status === "delivered") return "closed";
   if (["shipped", "ready"].includes(order.fulfillment?.status)) return "shipment";
   if (order.paymentStatus === "overdue") return "pay";
-  if (["availability_confirmed", "confirmed"].includes(order.status) && !["paid", "credit_account"].includes(order.paymentStatus)) return "pay";
+  if (["availability_confirmed", "confirmed"].includes(order.status) && !["paid", "credit_account", "partial_payment"].includes(order.paymentStatus)) return "pay";
   return "active";
 }
 
 function paymentHelperText(order) {
   if (order.paymentStatus === "paid") return `<p>Pago acreditado.</p>`;
   if (order.paymentStatus === "credit_account") return `<p>Pedido autorizado en cuenta corriente${order.paymentDueDate ? ` con vencimiento ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
-  if (order.paymentStatus === "partial_payment") return `<p>Pago parcial acreditado. Saldo pendiente: ${money.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? `, vence ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
+  if (order.paymentStatus === "partial_payment") return `<p>Cuenta corriente con saldo pendiente: ${money.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? `, vence ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
   if (order.paymentStatus === "overdue") return `<p>Saldo vencido: ${money.format((order.balanceCents || 0) / 100)}.</p>`;
   if (order.modifiedAcceptanceRequired) return `<p>Revisa y acepta la disponibilidad confirmada para continuar.</p>`;
   if (!["availability_confirmed", "confirmed"].includes(order.status)) return `<p>KM confirmara disponibilidad antes de habilitar el pago.</p>`;
@@ -1130,7 +1130,7 @@ function paymentStatusText(status) {
   return ({
     pending_payment: "Pago pendiente",
     receipt_uploaded: "Comprobante cargado",
-    partial_payment: "Pago parcial",
+    partial_payment: "Cuenta corriente con saldo",
     credit_account: "Cuenta corriente",
     overdue: "Vencido",
     paid: "Pagado",

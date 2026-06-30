@@ -21,7 +21,7 @@ const orderStatusLabels = {
 const paymentStatusLabels = {
   pending_payment: "Pago pendiente",
   receipt_uploaded: "Comprobante cargado",
-  partial_payment: "Pago parcial",
+  partial_payment: "Cuenta corriente con saldo",
   credit_account: "Cuenta corriente",
   overdue: "Vencido",
   paid: "Pago acreditado",
@@ -66,7 +66,7 @@ const adminEls = Object.fromEntries([
   "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
-  "availabilityForm", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
+  "availabilityForm", "availabilityPaymentCondition", "availabilityTermsField", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
   "orderStatusForm", "orderStatusMessage", "orderAdvancedPanel",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
@@ -112,6 +112,7 @@ function bindAdminEvents() {
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
   document.querySelector("#closeOrderDetail").addEventListener("click", closeOrderDetail);
   adminEls.availabilityForm.addEventListener("submit", saveAvailability);
+  adminEls.availabilityPaymentCondition?.addEventListener("change", syncAvailabilityPaymentFields);
   adminEls.fulfillmentForm.addEventListener("submit", saveFulfillment);
   adminEls.orderStatusForm.addEventListener("submit", saveOrderStatus);
   adminEls.emailSearch.addEventListener("input", debounce(loadEmails, 250));
@@ -804,6 +805,7 @@ function renderOrderWorkflow(order) {
     return;
   }
   if (canConfirmAvailability) {
+    resetAvailabilityPaymentFields(order);
     renderNextStep("Proxima accion: preparar y confirmar disponibilidad", "Imprimi la preparacion, controla articulos disponibles, ajusta parciales si corresponde y confirma disponibilidad al cliente.", "info");
     return;
   }
@@ -824,7 +826,7 @@ function renderOrderWorkflow(order) {
     return;
   }
   if (order.paymentStatus === "partial_payment" && !order.paymentDueDate) {
-    renderNextStep("Proxima accion: autorizar saldo o solicitar pago", `Hay un saldo pendiente de ${adminMoney.format((order.balanceCents || 0) / 100)}. Autoriza un plazo o solicita el pago restante antes de preparar.`, "warning");
+    renderNextStep("Proxima accion: autorizar cuenta corriente o solicitar pago", `Hay un saldo pendiente de ${adminMoney.format((order.balanceCents || 0) / 100)}. Autoriza cuenta corriente con plazo o solicita el pago restante antes de preparar.`, "warning");
     return;
   }
   if (canManageFulfillment) {
@@ -862,6 +864,19 @@ function canFulfillOrder(order) {
   const paymentAllowsFulfillment = ["paid", "credit_account"].includes(order.paymentStatus)
     || (order.paymentStatus === "partial_payment" && Boolean(order.paymentDueDate));
   return paymentAllowsFulfillment && availabilityConfirmed && order.status !== "cancelled";
+}
+
+function resetAvailabilityPaymentFields(order) {
+  if (!adminEls.availabilityForm?.elements) return;
+  adminEls.availabilityForm.elements.paymentCondition.value = "advance_payment";
+  adminEls.availabilityForm.elements.paymentTermsDays.value = order.paymentTermsDays || 15;
+  syncAvailabilityPaymentFields();
+}
+
+function syncAvailabilityPaymentFields() {
+  if (!adminEls.availabilityPaymentCondition || !adminEls.availabilityTermsField) return;
+  const isCredit = adminEls.availabilityPaymentCondition.value === "credit_account";
+  adminEls.availabilityTermsField.hidden = !isCredit;
 }
 
 function normalizedFulfillmentStatus(status) {
@@ -932,8 +947,8 @@ function renderPaymentReceipts(order) {
       <form class="payment-terms-form">
         <div>
           <p class="eyebrow">Cuenta corriente / saldo</p>
-          <h4>Autorizar saldo pendiente</h4>
-          <p>Usar cuando el pedido puede prepararse con cuenta corriente o pago parcial con saldo a fecha.</p>
+          <h4>Autorizar cuenta corriente</h4>
+          <p>Usar cuando el pedido puede prepararse con saldo pendiente autorizado a fecha.</p>
         </div>
         <label><span>Dias de plazo</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${defaultTermsDays}" data-due-days /></label>
         <div class="due-preview"><span>Vence</span><strong data-due-preview>${formatAdminDate(defaultTermsDueDate)}</strong></div>
@@ -1081,7 +1096,12 @@ async function saveAvailability(event) {
   try {
     const { order } = await adminApi(`/api/admin/orders/${adminState.selectedOrder.id}/availability`, {
       method: "PATCH",
-      body: { items, reason: values.reason }
+      body: {
+        items,
+        reason: values.reason,
+        paymentCondition: values.paymentCondition || "advance_payment",
+        paymentTermsDays: values.paymentTermsDays ? Number(values.paymentTermsDays) : 0
+      }
     });
     adminState.selectedOrder = order;
     await loadOrders();

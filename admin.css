@@ -749,6 +749,19 @@
   grid-template-columns: 1fr;
 }
 
+.availability-payment-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 260px);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #34363b;
+  background: #15161a;
+}
+
+.availability-payment-row label[hidden] {
+  display: none;
+}
+
 .fulfillment-form {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1071,6 +1084,10 @@
   .payment-receipt-row,
   .receipt-review-form,
   .payment-terms-form {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-payment-row {
     grid-template-columns: 1fr;
   }
 }

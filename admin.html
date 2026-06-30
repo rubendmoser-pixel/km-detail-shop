@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=23" />
+    <link rel="stylesheet" href="./admin.css?v=24" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -186,7 +186,7 @@
                 <option value="">Todos los pagos</option>
                 <option value="pending_payment">Pendiente</option>
                 <option value="receipt_uploaded">Comprobante cargado</option>
-                <option value="partial_payment">Pago parcial</option>
+                <option value="partial_payment">Cuenta corriente con saldo</option>
                 <option value="credit_account">Cuenta corriente</option>
                 <option value="overdue">Vencido</option>
                 <option value="paid">Pagado</option>
@@ -214,6 +214,13 @@
             <form class="availability-form" id="availabilityForm">
               <div class="panel-heading"><p class="eyebrow">Disponibilidad</p><h3>Confirmar articulos disponibles</h3></div>
               <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>KM</th><th>Producto</th><th>Pedido</th><th>Disponible</th><th>Precio final</th><th>Subtotal confirmado</th><th>Nota</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
+              <div class="availability-payment-row">
+                <label><span>Forma de pago</span><select name="paymentCondition" id="availabilityPaymentCondition">
+                  <option value="advance_payment">Pago anticipado</option>
+                  <option value="credit_account">Cuenta corriente</option>
+                </select></label>
+                <label id="availabilityTermsField"><span>Dias cuenta corriente</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="15" /></label>
+              </div>
               <label class="wide"><span>Nota para el cliente</span><textarea name="reason" rows="2" required placeholder="Ej: confirmamos disponibilidad parcial para despacho"></textarea></label>
               <button class="primary-button" type="submit">Confirmar disponibilidad</button>
               <p class="form-message" id="availabilityMessage" role="status"></p>
@@ -256,7 +263,7 @@
                 <label><span>Estado pago</span><select name="paymentStatus">
                   <option value="pending_payment">Pendiente</option>
                   <option value="receipt_uploaded">Comprobante cargado</option>
-                  <option value="partial_payment">Pago parcial</option>
+                  <option value="partial_payment">Cuenta corriente con saldo</option>
                   <option value="credit_account">Cuenta corriente</option>
                   <option value="overdue">Vencido</option>
                   <option value="paid">Pagado</option>
@@ -323,6 +330,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=28" defer></script>
+    <script src="./admin.js?v=29" defer></script>
   </body>
 </html>

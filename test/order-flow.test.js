@@ -95,9 +95,9 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
     status: "accepted",
     amountCents: 5_000_000,
     paymentDueDate: "2026-07-02",
-    reason: "Pago parcial acreditado"
+    reason: "Pago acreditado con saldo en cuenta corriente"
   }, admin.id);
-  assert.equal(partial.paymentStatus, "partial_payment");
+  assert.equal(partial.paymentStatus, "credit_account");
   assert.equal(partial.paidCents, 5_000_000);
   assert.equal(partial.balanceCents, 7_196_800);
   assert.equal(partial.paymentDueDate, "2026-07-02");
@@ -106,7 +106,7 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
     paymentDueDate: "2026-07-02",
     reason: "Saldo autorizado a fecha"
   }, admin.id);
-  assert.equal(credit.paymentStatus, "partial_payment");
+  assert.equal(credit.paymentStatus, "credit_account");
   assert.equal(credit.balanceCents, 7_196_800);
 
   const emailService = createEmailService({

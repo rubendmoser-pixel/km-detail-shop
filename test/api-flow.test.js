@@ -304,6 +304,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     headers: jsonHeaders(adminCookie),
     body: JSON.stringify({
       reason: "Confirmacion parcial por disponibilidad",
+      paymentCondition: "advance_payment",
       items: [{
         id: adminOrderDetail.order.items[0].id,
         confirmedQuantity: 1,
@@ -332,6 +333,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.match(availabilityEmail.text_body, /Cantidad confirmada: 3 de 5/);
   assert.match(availabilityEmail.text_body, /Subtotal neto confirmado/);
   assert.match(availabilityEmail.text_body, /Total para pago y despacho: \$\s*2\.256,41/);
+  assert.match(availabilityEmail.text_body, /Condicion de pago: Pago anticipado/);
   assert.match(availabilityEmail.html_body, /<!doctype html>/);
   assert.match(availabilityEmail.html_body, /KM Detail Line/);
   assert.match(availabilityEmail.html_body, /Total para pago y despacho/);
