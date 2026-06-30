@@ -861,7 +861,6 @@ function renderCustomerOrder(order) {
             <small>${escapeHtml(customerState.detail)}</small>
           </div>
           <div class="purchase-summary-total">
-            <strong>${money.format(order.totalCents / 100)}</strong>
             <b class="purchase-toggle"><span class="toggle-closed">Ver detalle</span><span class="toggle-open">Cerrar detalle</span></b>
           </div>
         </summary>
