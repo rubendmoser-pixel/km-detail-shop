@@ -265,7 +265,7 @@ function renderAccountState() {
 }
 
 function isPublicHash(hash) {
-  return !hash || ["#inicio", "#empresa", "#distribuidores", "#contacto"].includes(hash);
+  return !hash || ["#inicio", "#empresa", "#contacto"].includes(hash);
 }
 
 function renderCategoryFilters() {
