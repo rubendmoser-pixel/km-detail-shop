@@ -253,6 +253,9 @@
             </form>
             <details class="advanced-order-panel" id="orderAdvancedPanel">
               <summary>Ajustes manuales avanzados</summary>
+              <p class="admin-note warning">
+                Uso excepcional. Estos cambios modifican estados del pedido fuera del flujo operativo normal y deben tener una nota interna clara.
+              </p>
               <form class="order-status-form" id="orderStatusForm">
                 <label><span>Estado pedido</span><select name="status">
                   <option value="order_created">Pedido creado</option>
@@ -354,6 +357,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=35" defer></script>
+    <script src="./admin.js?v=36" defer></script>
   </body>
 </html>

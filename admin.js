@@ -846,6 +846,7 @@ function setFulfillmentFormReadonly(readonly) {
 function renderOrderWorkflow(order) {
   const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
   const isCancelled = order.status === "cancelled";
+  const isClosed = order.status === "delivered" || fulfillmentStatus === "delivered";
   const canConfirmAvailability = order.status === "order_created";
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
   const hasReceipts = (order.paymentReceipts || []).length > 0;
@@ -855,13 +856,14 @@ function renderOrderWorkflow(order) {
   adminEls.availabilityForm.hidden = !canConfirmAvailability;
   adminEls.paymentReviewPanel.hidden = isCancelled || !canReviewPayment;
   adminEls.fulfillmentForm.hidden = !canManageFulfillment;
+  adminEls.orderAdvancedPanel.hidden = isCancelled || isClosed;
   adminEls.orderAdvancedPanel.open = false;
 
   if (isCancelled) {
-    renderNextStep("Pedido cancelado", "No hay acciones operativas pendientes. Solo se pueden revisar documentos o usar ajustes avanzados si hiciera falta.", "danger");
+    renderNextStep("Pedido cancelado", "No hay acciones operativas pendientes. Los ajustes manuales quedan bloqueados para preservar el historial.", "danger");
     return;
   }
-  if (order.status === "delivered" || fulfillmentStatus === "delivered") {
+  if (isClosed) {
     renderNextStep("Pedido recibido por el cliente", "El cliente confirmo la recepcion. La operacion queda cerrada como historial y no hay acciones de despacho pendientes.", "done");
     return;
   }
