@@ -23,6 +23,7 @@ const paymentStatusLabels = {
   receipt_uploaded: "Comprobante cargado",
   partial_payment: "Cuenta corriente con saldo",
   credit_account: "Cuenta corriente",
+  settled_adjustment: "Cerrado con ajuste",
   overdue: "Vencido",
   paid: "Pago acreditado",
   rejected: "Pago rechazado",
@@ -49,6 +50,7 @@ const paymentStateClasses = {
   receipt_uploaded: "progress",
   partial_payment: "warning",
   credit_account: "info",
+  settled_adjustment: "closed",
   overdue: "danger",
   paid: "success",
   rejected: "danger",
@@ -714,6 +716,9 @@ function renderOrderSummary(order) {
       items: [
         { label: "Total", value: adminMoney.format(order.totalCents / 100) },
         { label: "Pagado", value: adminMoney.format((order.paidCents || 0) / 100) },
+        ...(order.commercialAdjustmentCents > 0
+          ? [{ label: "Ajuste comercial", value: adminMoney.format(order.commercialAdjustmentCents / 100) }]
+          : []),
         { label: "Saldo", value: adminMoney.format((order.balanceCents || 0) / 100) },
         { label: "Vencimiento", value: order.paymentDueDate ? formatAdminDate(order.paymentDueDate) : "Sin vencimiento" },
         { label: "Subtotal neto", value: adminMoney.format(order.subtotalNetCents / 100) },
@@ -850,7 +855,8 @@ function renderOrderWorkflow(order) {
   const canConfirmAvailability = order.status === "order_created";
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
   const hasReceipts = (order.paymentReceipts || []).length > 0;
-  const canReviewPayment = hasReceipts || ["receipt_uploaded", "rejected"].includes(order.paymentStatus);
+  const canManageOpenBalance = availabilityConfirmed && (order.balanceCents || 0) > 0;
+  const canReviewPayment = hasReceipts || ["receipt_uploaded", "rejected"].includes(order.paymentStatus) || canManageOpenBalance;
   const canManageFulfillment = canFulfillOrder(order);
 
   adminEls.availabilityForm.hidden = !canConfirmAvailability;
@@ -925,7 +931,7 @@ function setFulfillmentPreset(event) {
 function canFulfillOrder(order) {
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready"].includes(order.status);
   const isReceivedByCustomer = order.status === "delivered" || order.fulfillment?.status === "delivered";
-  const paymentAllowsFulfillment = ["paid", "credit_account"].includes(order.paymentStatus)
+  const paymentAllowsFulfillment = ["paid", "credit_account", "settled_adjustment"].includes(order.paymentStatus)
     || (order.paymentStatus === "partial_payment" && Boolean(order.paymentDueDate));
   return paymentAllowsFulfillment && availabilityConfirmed && !isReceivedByCustomer && order.status !== "cancelled";
 }
@@ -976,11 +982,13 @@ async function saveFulfillment(event) {
 function renderPaymentReceipts(order) {
   const receipts = order.paymentReceipts || [];
   const balanceCents = order.balanceCents ?? Math.max(0, order.totalCents - (order.paidCents || 0));
+  const commercialAdjustmentCents = order.commercialAdjustmentCents || 0;
   const defaultPaymentAmount = Math.max(0, balanceCents || order.totalCents);
   const pendingReceipts = receipts.filter((receipt) => receipt.status === "received");
   const reviewedReceipts = receipts.filter((receipt) => receipt.status !== "received");
   const needsAmountRegularization = reviewedReceipts.some((receipt) => receipt.status === "accepted" && !receipt.amountCents);
   const canAuthorizeBalance = balanceCents > 0 && !pendingReceipts.length && !needsAmountRegularization;
+  const canApplyCommercialAdjustment = canAuthorizeBalance && order.paymentStatus !== "settled_adjustment";
   const defaultTermsDays = order.paymentTermsDays || 15;
   const defaultTermsDueDate = calculateDueDateFromDays(defaultTermsDays);
   adminEls.paymentReviewPanel.innerHTML = `
@@ -988,6 +996,7 @@ function renderPaymentReceipts(order) {
     <div class="payment-balance-grid">
       <div><span>Total</span><strong>${adminMoney.format(order.totalCents / 100)}</strong></div>
       <div><span>Acreditado</span><strong>${adminMoney.format((order.paidCents || 0) / 100)}</strong></div>
+      <div><span>Ajuste comercial</span><strong>${adminMoney.format(commercialAdjustmentCents / 100)}</strong></div>
       <div><span>Saldo</span><strong>${adminMoney.format(balanceCents / 100)}</strong></div>
       <div><span>Vencimiento</span><strong>${order.paymentDueDate ? formatAdminDate(order.paymentDueDate) : "Sin fecha"}</strong></div>
     </div>
@@ -1019,10 +1028,25 @@ function renderPaymentReceipts(order) {
         <button class="primary-button" type="submit">Autorizar saldo</button>
       </form>
     ` : ""}
+    ${canApplyCommercialAdjustment ? `
+      <form class="commercial-adjustment-form">
+        <div>
+          <p class="eyebrow">Ajuste comercial</p>
+          <h4>Compensar saldo interno</h4>
+          <p>Uso interno KM. Cierra el saldo pendiente sin registrar pago ni enviar email al cliente.</p>
+        </div>
+        <div class="due-preview"><span>Saldo a compensar</span><strong>${adminMoney.format(balanceCents / 100)}</strong></div>
+        <input type="hidden" name="amountCents" value="${balanceCents}" />
+        <label class="wide"><span>Motivo interno</span><input name="reason" value="Ajuste comercial autorizado" required /></label>
+        <button class="ghost-button" type="submit">Aplicar ajuste</button>
+      </form>
+    ` : ""}
   `;
   adminEls.paymentReviewPanel.querySelectorAll(".receipt-review-form").forEach((form) => form.addEventListener("submit", reviewReceipt));
   const termsForm = adminEls.paymentReviewPanel.querySelector(".payment-terms-form");
   if (termsForm) termsForm.addEventListener("submit", authorizePaymentTerms);
+  const adjustmentForm = adminEls.paymentReviewPanel.querySelector(".commercial-adjustment-form");
+  if (adjustmentForm) adjustmentForm.addEventListener("submit", applyCommercialAdjustment);
   adminEls.paymentReviewPanel.querySelectorAll("[data-due-days]").forEach((input) => {
     input.addEventListener("input", updateDuePreview);
     updateDuePreview({ currentTarget: input });
@@ -1132,6 +1156,31 @@ async function authorizePaymentTerms(event) {
     await loadOrders();
     renderOrderDetail();
     showAdminToast("Saldo autorizado.");
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
+  }
+}
+
+async function applyCommercialAdjustment(event) {
+  event.preventDefault();
+  if (!adminState.selectedOrder) return;
+  const form = event.currentTarget;
+  const values = Object.fromEntries(new FormData(form));
+  setBusy(form, true);
+  try {
+    const { order } = await adminApi(`/api/admin/orders/${adminState.selectedOrder.id}/commercial-adjustment`, {
+      method: "PATCH",
+      body: {
+        amountCents: Number(values.amountCents || 0),
+        reason: values.reason || "Ajuste comercial autorizado"
+      }
+    });
+    adminState.selectedOrder = order;
+    await loadOrders();
+    renderOrderDetail();
+    showAdminToast("Ajuste comercial aplicado. No se envio email al cliente.");
   } catch (error) {
     showAdminToast(error.message);
   } finally {

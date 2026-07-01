@@ -832,7 +832,10 @@ function renderCustomerOrder(order) {
   const shipping = order.shipping || {};
   const latestReceipt = order.paymentReceipts?.[0];
   const needsAcceptance = order.modifiedAcceptanceRequired && ["availability_confirmed", "confirmed"].includes(order.status);
-  const canUpload = ["availability_confirmed", "confirmed"].includes(order.status) && order.paymentStatus !== "paid" && !needsAcceptance && (order.balanceCents || order.totalCents) > 0;
+  const canUpload = ["availability_confirmed", "confirmed"].includes(order.status)
+    && !["paid", "settled_adjustment"].includes(order.paymentStatus)
+    && !needsAcceptance
+    && (order.balanceCents || order.totalCents) > 0;
   const bank = order.bank || {};
   const visibleItems = items.filter((item) => order.status === "order_created" || item.confirmedQuantity > 0).slice(0, 5);
   const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
@@ -941,6 +944,9 @@ function customerOrderState(order) {
   if (order.paymentStatus === "paid") {
     return { label: "Pago acreditado", detail: "KM continuara con preparacion y despacho.", className: "status-success" };
   }
+  if (order.paymentStatus === "settled_adjustment") {
+    return { label: "Pedido autorizado", detail: "KM continuara con preparacion y despacho.", className: "status-success" };
+  }
   if (["availability_confirmed", "confirmed"].includes(order.status)) {
     return { label: "KM confirmo disponibilidad", detail: "Ya podes pagar o cargar comprobante.", className: "status-info" };
   }
@@ -969,12 +975,13 @@ function purchaseGroup(order) {
   if (["delivered", "cancelled"].includes(order.status) || order.fulfillment?.status === "delivered") return "closed";
   if (["shipped", "ready"].includes(order.fulfillment?.status)) return "shipment";
   if (order.paymentStatus === "overdue") return "pay";
-  if (["availability_confirmed", "confirmed"].includes(order.status) && !["paid", "credit_account", "partial_payment"].includes(order.paymentStatus)) return "pay";
+  if (["availability_confirmed", "confirmed"].includes(order.status) && !["paid", "settled_adjustment", "credit_account", "partial_payment"].includes(order.paymentStatus)) return "pay";
   return "active";
 }
 
 function paymentHelperText(order) {
   if (order.paymentStatus === "paid") return `<p>Pago acreditado.</p>`;
+  if (order.paymentStatus === "settled_adjustment") return `<p>Pedido autorizado por KM.</p>`;
   if (order.paymentStatus === "credit_account") return `<p>Pedido autorizado en cuenta corriente${order.paymentDueDate ? ` con vencimiento ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
   if (order.paymentStatus === "partial_payment") return `<p>Cuenta corriente con saldo pendiente: ${money.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? `, vence ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
   if (order.paymentStatus === "overdue") return `<p>Saldo vencido: ${money.format((order.balanceCents || 0) / 100)}.</p>`;
@@ -1132,6 +1139,7 @@ function paymentStatusText(status) {
     receipt_uploaded: "Comprobante cargado",
     partial_payment: "Cuenta corriente con saldo",
     credit_account: "Cuenta corriente",
+    settled_adjustment: "Autorizado",
     overdue: "Vencido",
     paid: "Pagado",
     rejected: "Pago rechazado",
@@ -1145,6 +1153,7 @@ function paymentStatusClass(status) {
     receipt_uploaded: "status-info",
     partial_payment: "status-warn",
     credit_account: "status-info",
+    settled_adjustment: "status-success",
     overdue: "status-danger",
     paid: "status-success",
     rejected: "status-danger",

@@ -356,6 +356,50 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const customerOrders = await getJson(`${baseUrl}/api/orders`, customerCookie);
   assert.equal(customerOrders.orders[0].id, orderPayload.order.id);
   assert.equal(customerOrders.orders[0].paymentMethod, "bank_transfer");
+
+  const adjustmentOrderResponse = await fetch(`${baseUrl}/api/orders`, {
+    method: "POST",
+    headers: jsonHeaders(customerCookie),
+    body: JSON.stringify({
+      items: [{ productId: product.id, quantity: 1 }],
+      shippingAddressId: updatedAddress.id
+    })
+  });
+  assert.equal(adjustmentOrderResponse.status, 201);
+  const adjustmentOrder = (await adjustmentOrderResponse.json()).order;
+  const adjustmentOrderDetail = await getJson(`${baseUrl}/api/admin/orders/${adjustmentOrder.id}`, adminCookie);
+  const adjustmentAvailabilityResponse = await fetch(`${baseUrl}/api/admin/orders/${adjustmentOrder.id}/availability`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      reason: "Disponibilidad completa con ajuste interno",
+      paymentCondition: "advance_payment",
+      items: [{
+        id: adjustmentOrderDetail.order.items[0].id,
+        confirmedQuantity: 1,
+        availabilityNote: ""
+      }]
+    })
+  });
+  assert.equal(adjustmentAvailabilityResponse.status, 200);
+  const emailsBeforeAdjustment = db.prepare("SELECT COUNT(*) AS count FROM email_outbox").get().count;
+  const commercialAdjustmentResponse = await fetch(`${baseUrl}/api/admin/orders/${adjustmentOrder.id}/commercial-adjustment`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      amountCents: (await adjustmentAvailabilityResponse.json()).order.balanceCents,
+      reason: "Ajuste comercial autorizado por administracion"
+    })
+  });
+  assert.equal(commercialAdjustmentResponse.status, 200);
+  const adjustedOrder = (await commercialAdjustmentResponse.json()).order;
+  assert.equal(adjustedOrder.paymentStatus, "settled_adjustment");
+  assert.equal(adjustedOrder.paidCents, 0);
+  assert.equal(adjustedOrder.balanceCents, 0);
+  assert.equal(adjustedOrder.commercialAdjustmentCents, adjustedOrder.totalCents);
+  assert.equal(adjustedOrder.commercialAdjustmentReason, "Ajuste comercial autorizado por administracion");
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM email_outbox").get().count, emailsBeforeAdjustment);
+
   const receiptResponse = await fetch(`${baseUrl}/api/orders/${orderPayload.order.id}/payment-receipts`, {
     method: "POST",
     headers: jsonHeaders(customerCookie),
@@ -468,8 +512,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   });
   assert.equal(cleanupResponse.status, 200);
   const cleanup = await cleanupResponse.json();
-  assert.equal(cleanup.result.deleted.orders, 1);
-  assert.equal(cleanup.result.deleted.items, 2);
+  assert.equal(cleanup.result.deleted.orders, 2);
+  assert.equal(cleanup.result.deleted.items, 3);
   assert.equal(cleanup.result.deleted.receipts, 1);
   assert.equal(cleanup.result.files.deleted, 1);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM orders").get().count, 0);

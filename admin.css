@@ -659,7 +659,7 @@
 
 .payment-balance-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   border: 1px solid #34363b;
 }
 
@@ -684,7 +684,8 @@
 }
 
 .receipt-review-form,
-.payment-terms-form {
+.payment-terms-form,
+.commercial-adjustment-form {
   display: grid;
   gap: 10px;
   align-items: end;
@@ -728,7 +729,8 @@
   font-size: 0.95rem;
 }
 
-.payment-terms-form {
+.payment-terms-form,
+.commercial-adjustment-form {
   grid-template-columns: minmax(240px, 1fr) repeat(2, minmax(120px, 0.35fr)) minmax(180px, 0.7fr) auto;
   padding: 14px;
   background: #101114;
@@ -736,8 +738,16 @@
 }
 
 .payment-terms-form h4,
-.payment-terms-form p {
+.payment-terms-form p,
+.commercial-adjustment-form h4,
+.commercial-adjustment-form p {
   margin: 0;
+}
+
+.commercial-adjustment-form {
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, 0.35fr) minmax(260px, 0.8fr) auto;
+  border-color: rgba(244, 223, 141, 0.35);
+  background: linear-gradient(135deg, rgba(244, 223, 141, 0.08), rgba(16, 17, 20, 0.94));
 }
 
 .availability-form,

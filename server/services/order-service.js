@@ -391,7 +391,8 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
   const status = requiredText(input.status, "status", { max: 30 });
   if (!["accepted", "rejected"].includes(status)) throw new ValidationError("status must be accepted or rejected");
   const reason = optionalText(input.reason, "reason", { max: 1000 });
-  const pendingBeforeReview = Math.max(0, order.total_cents - sumAcceptedPayments(db, receipt.order_id));
+  const adjustmentCents = order.commercial_adjustment_cents || 0;
+  const pendingBeforeReview = Math.max(0, order.total_cents - sumAcceptedPayments(db, receipt.order_id) - adjustmentCents);
   const requestedAmount = input.amountCents ?? input.amount ?? pendingBeforeReview;
   const amountCents = status === "accepted"
     ? normalizeMoneyCents(requestedAmount, "amountCents", order.total_cents)
@@ -413,10 +414,10 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
       WHERE id = ?
     `).run(status, amountCents, reason, new Date().toISOString(), adminUserId, receiptId);
     const paidCents = sumAcceptedPayments(db, receipt.order_id);
-    const balanceCents = Math.max(0, order.total_cents - paidCents);
+    const balanceCents = Math.max(0, order.total_cents - paidCents - adjustmentCents);
     const paymentStatus = status === "rejected"
       ? "rejected"
-      : balanceCents === 0 ? "paid" : "credit_account";
+      : balanceCents === 0 ? paymentStatusForClosedBalance(adjustmentCents) : "credit_account";
     updateOrderCommercialBalance(db, receipt.order_id, {
       paymentStatus,
       paidCents,
@@ -437,7 +438,7 @@ export function authorizeOrderCredit(db, orderId, input, adminUserId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
   if (!order) throw new NotFoundError("Order not found");
   const paidCents = sumAcceptedPayments(db, orderId);
-  const balanceCents = Math.max(0, order.total_cents - paidCents);
+  const balanceCents = Math.max(0, order.total_cents - paidCents - (order.commercial_adjustment_cents || 0));
   if (balanceCents <= 0) throw new ValidationError("Order has no pending balance");
   const termsDays = normalizeTermsDays(input.paymentTermsDays);
   const dueDate = normalizeDueDate(input.paymentDueDate);
@@ -458,6 +459,45 @@ export function authorizeOrderCredit(db, orderId, input, adminUserId) {
     paidCents, balanceCents, paymentDueDate: finalDueDate, paymentTermsDays: termsDays, paymentStatus
   });
   return getOrder(db, orderId, null, true);
+}
+
+export function applyCommercialAdjustment(db, orderId, input, adminUserId) {
+  const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
+  if (!order) throw new NotFoundError("Order not found");
+  if (order.status === "cancelled" || order.status === "delivered" || order.fulfillment_status === "delivered") {
+    throw new ValidationError("Closed orders cannot receive commercial adjustments");
+  }
+  const paidCents = sumAcceptedPayments(db, orderId);
+  const currentBalanceCents = Math.max(0, order.total_cents - paidCents - (order.commercial_adjustment_cents || 0));
+  if (currentBalanceCents <= 0) throw new ValidationError("Order has no pending balance");
+  const amountCents = normalizeMoneyCents(input.amountCents ?? input.amount ?? currentBalanceCents, "amountCents", currentBalanceCents);
+  if (amountCents !== currentBalanceCents) {
+    throw new ValidationError("Commercial adjustment must compensate the full pending balance");
+  }
+  const reason = requiredText(input.reason, "reason", { max: 1000 });
+  const adjustedAt = new Date().toISOString();
+  return transaction(db, () => {
+    db.prepare(`
+      UPDATE orders
+      SET payment_status = 'settled_adjustment',
+        paid_cents = ?,
+        balance_cents = 0,
+        commercial_adjustment_cents = commercial_adjustment_cents + ?,
+        commercial_adjustment_reason = ?,
+        commercial_adjusted_at = ?,
+        commercial_adjusted_by = ?,
+        payment_due_date = '',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(paidCents, amountCents, reason, adjustedAt, adminUserId, orderId);
+    addOrderEvent(db, orderId, adminUserId, "commercial_adjustment_applied", reason, order, {
+      amountCents,
+      paidCents,
+      balanceCents: 0,
+      paymentStatus: "settled_adjustment"
+    });
+    return getOrder(db, orderId, null, true);
+  });
 }
 
 export function getPaymentReceiptFile(db, receiptId, uploadsPath) {
@@ -653,6 +693,10 @@ function sumAcceptedPayments(db, orderId) {
   `).get(orderId).paid_cents || 0;
 }
 
+function paymentStatusForClosedBalance(adjustmentCents) {
+  return adjustmentCents > 0 ? "settled_adjustment" : "paid";
+}
+
 function updateOrderCommercialBalance(db, orderId, { paymentStatus, paidCents, balanceCents, termsDays, dueDate, creditAuthorized, adminUserId }) {
   db.prepare(`
     UPDATE orders
@@ -718,7 +762,10 @@ function mapOrder(order, items, receipts = []) {
     paymentStatus: order.payment_status,
     paymentMethod: order.payment_method || "bank_transfer",
     paidCents: order.paid_cents || 0,
-    balanceCents: order.balance_cents || Math.max(0, order.total_cents - (order.paid_cents || 0)),
+    balanceCents: order.balance_cents || Math.max(0, order.total_cents - (order.paid_cents || 0) - (order.commercial_adjustment_cents || 0)),
+    commercialAdjustmentCents: order.commercial_adjustment_cents || 0,
+    commercialAdjustmentReason: order.commercial_adjustment_reason || "",
+    commercialAdjustedAt: order.commercial_adjusted_at || "",
     paymentTermsDays: order.payment_terms_days || 0,
     paymentDueDate: order.payment_due_date || "",
     creditAuthorizedAt: order.credit_authorized_at || "",

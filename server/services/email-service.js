@@ -204,6 +204,7 @@ export function createEmailService({ db, config }) {
     const paymentLabels = {
       pending_payment: "pago pendiente",
       receipt_uploaded: "comprobante cargado",
+      settled_adjustment: "pedido autorizado",
       paid: "pagado",
       rejected: "pago rechazado",
       refunded: "reintegrado"

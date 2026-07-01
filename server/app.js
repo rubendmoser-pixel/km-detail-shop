@@ -5,6 +5,7 @@ import { listCustomers, setCustomerDiscounts, setCustomerStatus } from "./servic
 import {
   acceptModifiedOrder,
   addPaymentReceipt,
+  applyCommercialAdjustment,
   authorizeOrderCredit,
   confirmOrderReceived,
   confirmOrderAvailability,
@@ -292,6 +293,11 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       if (request.method === "PATCH" && match) {
         const order = authorizeOrderCredit(db, Number(match[1]), await readJson(request), currentUser.id);
         emailService.queueOrderPaymentTermsUpdated(order.id);
+        return sendJson(response, 200, { order });
+      }
+      match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/commercial-adjustment$/);
+      if (request.method === "PATCH" && match) {
+        const order = applyCommercialAdjustment(db, Number(match[1]), await readJson(request), currentUser.id);
         return sendJson(response, 200, { order });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/shipping-labels$/);
