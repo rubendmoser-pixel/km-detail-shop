@@ -21,7 +21,7 @@ const orderStatusLabels = {
 const paymentStatusLabels = {
   pending_payment: "Pago pendiente",
   receipt_uploaded: "Comprobante cargado",
-  partial_payment: "Cuenta corriente con saldo",
+  partial_payment: "Cuenta corriente",
   credit_account: "Cuenta corriente",
   settled_adjustment: "Cerrado con ajuste",
   overdue: "Vencido",
@@ -48,7 +48,7 @@ const orderStateClasses = {
 const paymentStateClasses = {
   pending_payment: "warning",
   receipt_uploaded: "progress",
-  partial_payment: "warning",
+  partial_payment: "info",
   credit_account: "info",
   settled_adjustment: "closed",
   overdue: "danger",
@@ -895,7 +895,7 @@ function renderOrderWorkflow(order) {
     return;
   }
   if (order.paymentStatus === "partial_payment" && !order.paymentDueDate) {
-    renderNextStep("Proxima accion: autorizar cuenta corriente o solicitar pago", `Hay un saldo pendiente de ${adminMoney.format((order.balanceCents || 0) / 100)}. Autoriza cuenta corriente con plazo o solicita el pago restante antes de preparar.`, "warning");
+    renderNextStep("Proxima accion: definir cuenta corriente", `Hay un saldo pendiente de ${adminMoney.format((order.balanceCents || 0) / 100)}. Defini dias de plazo para ordenar el vencimiento antes de preparar.`, "warning");
     return;
   }
   if (canManageFulfillment) {

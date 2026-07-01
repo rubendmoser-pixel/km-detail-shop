@@ -269,7 +269,7 @@ export function updateOrderStatus(db, orderId, input, adminUserId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
   if (!order) throw new NotFoundError("Order not found");
   const status = input.status ? requiredText(input.status, "status", { max: 80 }) : order.status;
-  const paymentStatus = input.paymentStatus ? requiredText(input.paymentStatus, "paymentStatus", { max: 80 }) : order.payment_status;
+  const paymentStatus = normalizePaymentStatus(input.paymentStatus ? requiredText(input.paymentStatus, "paymentStatus", { max: 80 }) : order.payment_status);
   const reason = requiredText(input.reason, "reason", { min: 3, max: 1000 });
   const updated = db.prepare(`
     UPDATE orders SET status = ?, payment_status = ?, updated_at = CURRENT_TIMESTAMP
@@ -695,6 +695,10 @@ function sumAcceptedPayments(db, orderId) {
 
 function paymentStatusForClosedBalance(adjustmentCents) {
   return adjustmentCents > 0 ? "settled_adjustment" : "paid";
+}
+
+function normalizePaymentStatus(status) {
+  return status === "partial_payment" ? "credit_account" : status;
 }
 
 function updateOrderCommercialBalance(db, orderId, { paymentStatus, paidCents, balanceCents, termsDays, dueDate, creditAuthorized, adminUserId }) {

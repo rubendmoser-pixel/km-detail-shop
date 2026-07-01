@@ -958,7 +958,7 @@ function customerOrderState(order) {
     return { label: "Saldo vencido", detail: `Saldo pendiente: ${balance}.`, className: "status-danger" };
   }
   if (order.paymentStatus === "partial_payment") {
-    return { label: "Cuenta corriente con saldo", detail: `Saldo pendiente: ${balance}.${due}`, className: "status-info" };
+    return { label: "Cuenta corriente", detail: `Saldo pendiente: ${balance}.${due}`, className: "status-info" };
   }
   if (order.paymentStatus === "credit_account") {
     return { label: "Cuenta corriente autorizada", detail: `Pedido autorizado con saldo a fecha.${due}`, className: "status-info" };
@@ -1008,7 +1008,7 @@ function paymentHelperText(order) {
   if (order.paymentStatus === "paid") return `<p>Pago acreditado.</p>`;
   if (order.paymentStatus === "settled_adjustment") return `<p>Pedido autorizado por KM.</p>`;
   if (order.paymentStatus === "credit_account") return `<p>Pedido autorizado en cuenta corriente${order.paymentDueDate ? ` con vencimiento ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
-  if (order.paymentStatus === "partial_payment") return `<p>Cuenta corriente con saldo pendiente: ${money.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? `, vence ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
+  if (order.paymentStatus === "partial_payment") return `<p>Cuenta corriente: saldo pendiente ${money.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? `, vence ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
   if (order.paymentStatus === "overdue") return `<p>Saldo vencido: ${money.format((order.balanceCents || 0) / 100)}.</p>`;
   if (order.modifiedAcceptanceRequired) return `<p>Revisa y acepta la disponibilidad confirmada para continuar.</p>`;
   if (!["availability_confirmed", "confirmed"].includes(order.status)) return `<p>KM confirmara disponibilidad antes de habilitar el pago.</p>`;
@@ -1162,7 +1162,7 @@ function paymentStatusText(status) {
   return ({
     pending_payment: "Pago pendiente",
     receipt_uploaded: "Comprobante cargado",
-    partial_payment: "Cuenta corriente con saldo",
+    partial_payment: "Cuenta corriente",
     credit_account: "Cuenta corriente",
     settled_adjustment: "Autorizado",
     overdue: "Vencido",
@@ -1176,7 +1176,7 @@ function paymentStatusClass(status) {
   return ({
     pending_payment: "status-warn",
     receipt_uploaded: "status-info",
-    partial_payment: "status-warn",
+    partial_payment: "status-info",
     credit_account: "status-info",
     settled_adjustment: "status-success",
     overdue: "status-danger",

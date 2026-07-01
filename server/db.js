@@ -373,6 +373,10 @@ function migrate(db) {
   ensureColumn(db, "customers", "payment_terms_days", "INTEGER NOT NULL DEFAULT 0");
   db.exec(`
     UPDATE orders
+    SET payment_status = 'credit_account'
+    WHERE payment_status = 'partial_payment';
+
+    UPDATE orders
     SET balance_cents = CASE
       WHEN payment_status IN ('paid', 'settled_adjustment') THEN 0
       ELSE MAX(0, total_cents - paid_cents - commercial_adjustment_cents)
