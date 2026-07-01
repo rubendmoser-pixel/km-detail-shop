@@ -6,7 +6,7 @@ import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import { registerCustomer } from "../server/services/auth-service.js";
 import { setCustomerDiscounts, setCustomerStatus } from "../server/services/customer-service.js";
-import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, reviewPaymentReceipt } from "../server/services/order-service.js";
+import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
 import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
@@ -80,12 +80,28 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
   assert.equal(persisted.items[0].basePriceCents, 10_000_000);
   assert.equal(persisted.vatBps, 2100);
   assert.equal(persisted.bank.alias, "KM.TEST");
+  assert.throws(() => authorizeOrderCredit(db, order.id, {
+    paymentDueDate: "2026-07-02",
+    reason: "No corresponde antes de disponibilidad"
+  }, admin.id), /Availability must be confirmed/);
+  assert.throws(() => updateOrderFulfillment(db, order.id, {
+    fulfillmentStatus: "ready",
+    reason: "No corresponde antes de disponibilidad"
+  }, admin.id), /Availability must be confirmed/);
 
   const confirmed = confirmOrderAvailability(db, order.id, {
     reason: "Disponibilidad total",
     items: persisted.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity }))
   }, admin.id);
   assert.equal(confirmed.totalCents, 12_196_800);
+  assert.throws(() => confirmOrderAvailability(db, order.id, {
+    reason: "No se debe confirmar dos veces",
+    items: confirmed.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity }))
+  }, admin.id), /only be confirmed for received orders/);
+  assert.throws(() => updateOrderFulfillment(db, order.id, {
+    fulfillmentStatus: "ready",
+    reason: "No corresponde antes de resolver pago"
+  }, admin.id), /Payment, credit account or commercial adjustment/);
   const receipt = db.prepare(`
     INSERT INTO payment_receipts (order_id, uploaded_by, original_filename, stored_filename, mime_type, size_bytes)
     VALUES (?, ?, 'parcial.png', 'parcial-test.png', 'image/png', 100)
@@ -108,6 +124,33 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
   }, admin.id);
   assert.equal(credit.paymentStatus, "credit_account");
   assert.equal(credit.balanceCents, 7_196_800);
+  const ready = updateOrderFulfillment(db, order.id, {
+    fulfillmentStatus: "ready",
+    reason: "Preparacion finalizada"
+  }, admin.id);
+  assert.equal(ready.fulfillment.status, "ready");
+  assert.throws(() => updateOrderFulfillment(db, order.id, {
+    fulfillmentStatus: "ready",
+    reason: "No debe repetirse"
+  }, admin.id), /already prepared/);
+  assert.throws(() => updateOrderFulfillment(db, order.id, {
+    fulfillmentStatus: "shipped",
+    fulfillmentMethod: "Expreso",
+    reason: "Faltan datos"
+  }, admin.id), /Dispatch requires/);
+  const shipped = updateOrderFulfillment(db, order.id, {
+    fulfillmentStatus: "shipped",
+    fulfillmentMethod: "Expreso",
+    fulfillmentCarrier: "Sendbox",
+    fulfillmentTracking: "GUIA-123",
+    fulfillmentEstimatedDate: "2026-07-01",
+    fulfillmentNotes: "Despacho informado"
+  }, admin.id);
+  assert.equal(shipped.fulfillment.status, "shipped");
+  assert.throws(() => updateOrderFulfillment(db, order.id, {
+    fulfillmentStatus: "ready",
+    reason: "No se edita despues de despachado"
+  }, admin.id), /wait for customer reception/);
 
   const emailService = createEmailService({
     db,

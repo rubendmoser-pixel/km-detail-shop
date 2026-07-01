@@ -21,13 +21,11 @@ const orderStatusLabels = {
 const paymentStatusLabels = {
   pending_payment: "Pago pendiente",
   receipt_uploaded: "Comprobante cargado",
-  partial_payment: "Cuenta corriente",
   credit_account: "Cuenta corriente",
   settled_adjustment: "Cerrado con ajuste",
   overdue: "Vencido",
   paid: "Pago acreditado",
-  rejected: "Pago rechazado",
-  refunded: "Pago reintegrado"
+  rejected: "Pago rechazado"
 };
 const fulfillmentStatusLabels = {
   pending: "Pendiente de preparacion",
@@ -48,13 +46,11 @@ const orderStateClasses = {
 const paymentStateClasses = {
   pending_payment: "warning",
   receipt_uploaded: "progress",
-  partial_payment: "info",
   credit_account: "info",
   settled_adjustment: "closed",
   overdue: "danger",
   paid: "success",
-  rejected: "danger",
-  refunded: "neutral"
+  rejected: "danger"
 };
 const fulfillmentStateClasses = {
   pending: "neutral",
@@ -894,10 +890,6 @@ function renderOrderWorkflow(order) {
     renderNextStep("Proxima accion: corregir pago", "El ultimo comprobante fue rechazado. Espera una nueva carga del cliente o coordina la correccion por WhatsApp/email.", "danger");
     return;
   }
-  if (order.paymentStatus === "partial_payment" && !order.paymentDueDate) {
-    renderNextStep("Proxima accion: definir cuenta corriente", `Hay un saldo pendiente de ${adminMoney.format((order.balanceCents || 0) / 100)}. Defini dias de plazo para ordenar el vencimiento antes de preparar.`, "warning");
-    return;
-  }
   if (canManageFulfillment) {
     if (fulfillmentStatus === "pending") {
       renderNextStep("Proxima accion: preparar pedido", "Imprimi preparacion, controla articulos y bultos, y marca el pedido como preparado para despacho.", "success");
@@ -931,8 +923,7 @@ function setFulfillmentPreset(event) {
 function canFulfillOrder(order) {
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready"].includes(order.status);
   const isReceivedByCustomer = order.status === "delivered" || order.fulfillment?.status === "delivered";
-  const paymentAllowsFulfillment = ["paid", "credit_account", "settled_adjustment"].includes(order.paymentStatus)
-    || (order.paymentStatus === "partial_payment" && Boolean(order.paymentDueDate));
+  const paymentAllowsFulfillment = ["paid", "credit_account", "settled_adjustment"].includes(order.paymentStatus);
   return paymentAllowsFulfillment && availabilityConfirmed && !isReceivedByCustomer && order.status !== "cancelled";
 }
 

@@ -33,6 +33,28 @@ const ORDER_EMAIL_EVENTS = [
   "payment_due_soon",
   "payment_overdue"
 ];
+const ORDER_STATUSES = new Set([
+  "order_created",
+  "availability_confirmed",
+  "confirmed",
+  "in_preparation",
+  "ready",
+  "delivered",
+  "cancelled"
+]);
+const PAYMENT_STATUSES = new Set([
+  "pending_payment",
+  "receipt_uploaded",
+  "credit_account",
+  "settled_adjustment",
+  "overdue",
+  "paid",
+  "rejected",
+  "refunded"
+]);
+const FULFILLMENT_STATUSES = new Set(["pending", "ready", "shipped", "delivered"]);
+const AVAILABILITY_CONFIRMED_STATUSES = new Set(["availability_confirmed", "confirmed", "in_preparation", "ready"]);
+const PAYMENT_STATUSES_ALLOWING_FULFILLMENT = new Set(["paid", "credit_account", "settled_adjustment"]);
 
 export function createOrder(db, customerId, input) {
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("Order requires at least one item");
@@ -271,6 +293,7 @@ export function updateOrderStatus(db, orderId, input, adminUserId) {
   const status = input.status ? requiredText(input.status, "status", { max: 80 }) : order.status;
   const paymentStatus = normalizePaymentStatus(input.paymentStatus ? requiredText(input.paymentStatus, "paymentStatus", { max: 80 }) : order.payment_status);
   const reason = requiredText(input.reason, "reason", { min: 3, max: 1000 });
+  assertManualOrderState(order, status, paymentStatus);
   const updated = db.prepare(`
     UPDATE orders SET status = ?, payment_status = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ? RETURNING *
@@ -282,6 +305,10 @@ export function updateOrderStatus(db, orderId, input, adminUserId) {
 export function confirmOrderAvailability(db, orderId, input, adminUserId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
   if (!order) throw new NotFoundError("Order not found");
+  assertOrderOpen(order, "Availability cannot be confirmed");
+  if (order.status !== "order_created") {
+    throw new ValidationError("Availability can only be confirmed for received orders");
+  }
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("items are required");
   const reason = requiredText(input.reason, "reason", { min: 3, max: 1000 });
   const paymentCondition = optionalText(input.paymentCondition, "paymentCondition", { max: 40 }) || "advance_payment";
@@ -437,6 +464,10 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
 export function authorizeOrderCredit(db, orderId, input, adminUserId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
   if (!order) throw new NotFoundError("Order not found");
+  assertOrderOpen(order, "Credit account cannot be authorized");
+  if (!AVAILABILITY_CONFIRMED_STATUSES.has(order.status)) {
+    throw new ValidationError("Availability must be confirmed before authorizing credit account");
+  }
   const paidCents = sumAcceptedPayments(db, orderId);
   const balanceCents = Math.max(0, order.total_cents - paidCents - (order.commercial_adjustment_cents || 0));
   if (balanceCents <= 0) throw new ValidationError("Order has no pending balance");
@@ -546,7 +577,7 @@ export function updateOrderFulfillment(db, orderId, input, adminUserId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
   if (!order) throw new NotFoundError("Order not found");
   const fulfillmentStatus = requiredText(input.fulfillmentStatus, "fulfillmentStatus", { max: 30 });
-  if (!["pending", "ready", "shipped", "delivered"].includes(fulfillmentStatus)) {
+  if (!FULFILLMENT_STATUSES.has(fulfillmentStatus)) {
     throw new ValidationError("fulfillmentStatus is invalid");
   }
   const fulfillmentMethod = optionalText(input.fulfillmentMethod, "fulfillmentMethod", { max: 80 });
@@ -555,6 +586,12 @@ export function updateOrderFulfillment(db, orderId, input, adminUserId) {
   const fulfillmentEstimatedDate = optionalText(input.fulfillmentEstimatedDate, "fulfillmentEstimatedDate", { max: 30 });
   const fulfillmentNotes = optionalText(input.fulfillmentNotes, "fulfillmentNotes", { max: 1000 });
   const reason = optionalText(input.reason, "reason", { max: 1000 });
+  assertFulfillmentTransition(order, fulfillmentStatus, {
+    fulfillmentMethod,
+    fulfillmentCarrier,
+    fulfillmentTracking,
+    fulfillmentEstimatedDate
+  });
   db.prepare(`
     UPDATE orders SET fulfillment_status = ?, fulfillment_method = ?, fulfillment_carrier = ?,
       fulfillment_tracking = ?, fulfillment_estimated_date = ?, fulfillment_notes = ?,
@@ -624,6 +661,62 @@ function shippingFromAddress(address) {
     contactPhone: address.contactPhone,
     notes: address.notes
   };
+}
+
+function assertOrderOpen(order, message) {
+  if (order.status === "cancelled" || order.status === "delivered" || order.fulfillment_status === "delivered") {
+    throw new ValidationError(`${message}: order is closed`);
+  }
+}
+
+function assertManualOrderState(order, status, paymentStatus) {
+  assertOrderOpen(order, "Manual status update cannot be applied");
+  if (!ORDER_STATUSES.has(status)) throw new ValidationError("status is invalid");
+  if (!PAYMENT_STATUSES.has(paymentStatus)) throw new ValidationError("paymentStatus is invalid");
+  if (status === "delivered") {
+    throw new ValidationError("Delivered orders must be closed by customer reception");
+  }
+  if (["paid", "credit_account", "settled_adjustment", "overdue"].includes(paymentStatus) && !AVAILABILITY_CONFIRMED_STATUSES.has(status)) {
+    throw new ValidationError("Payment closure requires confirmed availability");
+  }
+  if (status === "ready" && !PAYMENT_STATUSES_ALLOWING_FULFILLMENT.has(paymentStatus)) {
+    throw new ValidationError("Ready orders require paid, credit account or commercial adjustment status");
+  }
+}
+
+function assertFulfillmentTransition(order, fulfillmentStatus, details) {
+  assertOrderOpen(order, "Fulfillment cannot be updated");
+  if (fulfillmentStatus === "delivered") {
+    throw new ValidationError("Customer reception must close delivered orders");
+  }
+  if (order.fulfillment_status === "shipped") {
+    throw new ValidationError("Shipped orders wait for customer reception and cannot be edited from dispatch");
+  }
+  if (order.fulfillment_status !== "pending" && fulfillmentStatus === "pending") {
+    throw new ValidationError("Fulfillment cannot move backwards to pending");
+  }
+  if (order.fulfillment_status === "pending" && fulfillmentStatus === "shipped") {
+    throw new ValidationError("Order must be prepared before dispatch");
+  }
+  if (order.fulfillment_status === "ready" && fulfillmentStatus === "ready") {
+    throw new ValidationError("Order is already prepared for dispatch");
+  }
+  if (fulfillmentStatus === "ready" || fulfillmentStatus === "shipped") {
+    if (!AVAILABILITY_CONFIRMED_STATUSES.has(order.status)) {
+      throw new ValidationError("Availability must be confirmed before preparing dispatch");
+    }
+    if (!PAYMENT_STATUSES_ALLOWING_FULFILLMENT.has(normalizePaymentStatus(order.payment_status))) {
+      throw new ValidationError("Payment, credit account or commercial adjustment must be resolved before dispatch");
+    }
+  }
+  if (fulfillmentStatus === "shipped") {
+    if (order.fulfillment_status !== "ready") {
+      throw new ValidationError("Order must be prepared before dispatch");
+    }
+    if (!details.fulfillmentMethod || !details.fulfillmentCarrier || !details.fulfillmentTracking || !details.fulfillmentEstimatedDate) {
+      throw new ValidationError("Dispatch requires modality, carrier, tracking and dispatch date");
+    }
+  }
 }
 
 function addOrderEvent(db, orderId, actorUserId, eventType, reason, before, after) {
