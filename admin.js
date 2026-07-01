@@ -108,6 +108,7 @@ function bindAdminEvents() {
   adminEls.orderPaymentFilter.addEventListener("change", loadOrders);
   adminEls.orderFulfillmentFilter.addEventListener("change", loadOrders);
   document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
+  adminEls.ordersTableBody.addEventListener("click", handleOrdersTableClick);
   document.querySelector("#closeOrderDetail").addEventListener("click", closeOrderDetail);
   adminEls.availabilityForm.addEventListener("submit", saveAvailability);
   adminEls.availabilityPaymentCondition?.addEventListener("change", syncAvailabilityPaymentFields);
@@ -638,12 +639,17 @@ async function loadOrders() {
       <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
       <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
   `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
-  adminEls.ordersTableBody.querySelectorAll("[data-view-order]").forEach((button) => button.addEventListener("click", openOrderDetail));
 }
 
-async function openOrderDetail(event) {
-  const orderId = Number(event.currentTarget.dataset.viewOrder);
-  event.currentTarget.disabled = true;
+function handleOrdersTableClick(event) {
+  const button = event.target.closest("[data-view-order]");
+  if (!button || !adminEls.ordersTableBody.contains(button)) return;
+  openOrderDetail(Number(button.dataset.viewOrder), button);
+}
+
+async function openOrderDetail(orderId, triggerButton = null) {
+  if (!orderId) return;
+  if (triggerButton) triggerButton.disabled = true;
   try {
     const { order } = await adminApi(`/api/admin/orders/${orderId}`);
     adminState.selectedOrder = order;
@@ -652,7 +658,7 @@ async function openOrderDetail(event) {
   } catch (error) {
     showAdminToast(error.message);
   } finally {
-    event.currentTarget.disabled = false;
+    if (triggerButton && triggerButton.isConnected) triggerButton.disabled = false;
   }
 }
 
@@ -1220,6 +1226,14 @@ async function saveAvailability(event) {
 function closeOrderDetail() {
   adminState.selectedOrder = null;
   adminEls.orderDetailPanel.hidden = true;
+  adminEls.orderDetailTitle.textContent = "";
+  adminEls.orderDetailSummary.innerHTML = "";
+  adminEls.orderDetailActions.innerHTML = "";
+  adminEls.orderNextStep.innerHTML = "";
+  adminEls.orderItemsBody.innerHTML = "";
+  adminEls.availabilityMessage.textContent = "";
+  adminEls.fulfillmentMessage.textContent = "";
+  adminEls.orderStatusMessage.textContent = "";
 }
 
 async function saveOrderStatus(event) {
