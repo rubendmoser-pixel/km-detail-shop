@@ -34,8 +34,12 @@ export function listProducts(db, user) {
   const discounts = db.prepare(`
     SELECT discount_1_bps, discount_2_bps, discount_3_bps
     FROM customer_discounts WHERE customer_id = ?
-  `).get(user.customerId);
-  const discountList = [discounts.discount_1_bps, discounts.discount_2_bps, discounts.discount_3_bps];
+  `).get(user.customerId) || {};
+  const discountList = [
+    safeBasisPoints(discounts.discount_1_bps),
+    safeBasisPoints(discounts.discount_2_bps),
+    safeBasisPoints(discounts.discount_3_bps)
+  ];
   return rows.map((row) => ({
     ...publicProduct(row, imagesByProduct.get(row.id) || []),
     basePriceCents: row.base_price_cents,
@@ -45,6 +49,10 @@ export function listProducts(db, user) {
     priceEffectiveFrom: row.price_effective_from,
     priceNotice: "Precio neto. IVA no incluido."
   }));
+}
+
+function safeBasisPoints(value) {
+  return Number.isInteger(value) && value >= 0 ? value : 0;
 }
 
 export function listPublicProductsForSeo(db) {

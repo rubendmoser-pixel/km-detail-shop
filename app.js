@@ -27,6 +27,7 @@ const catalogPages = [
   "24_TACOS-DE-LIJADO-PRODUCTOS.png",
   "25_CATALOGO-DE-PRODUCTOS-2026.png"
 ];
+const PRODUCT_PAGE_SIZE = 24;
 
 const routeSections = new Map([
   ["/empresa", "empresa"],
@@ -51,6 +52,7 @@ const state = {
   cut: "",
   size: "",
   sort: "featured",
+  productVisibleCount: PRODUCT_PAGE_SIZE,
   catalogPage: 0,
   cart: readCart()
 };
@@ -95,24 +97,29 @@ function bindEvents() {
     link.addEventListener("click", () => {
       const match = state.products.find((product) => product.family.name.toLowerCase().includes(link.dataset.categoryLink.toLowerCase()));
       state.category = match?.family.name || "Todos";
+      resetProductPagination();
       renderCategoryFilters();
       renderProducts();
     });
   });
   els.searchInput.addEventListener("input", (event) => {
     state.search = event.target.value.trim().toLowerCase();
+    resetProductPagination();
     renderProducts();
   });
   els.cutFilter.addEventListener("change", (event) => {
     state.cut = event.target.value;
+    resetProductPagination();
     renderProducts();
   });
   els.sizeFilter.addEventListener("change", (event) => {
     state.size = event.target.value;
+    resetProductPagination();
     renderProducts();
   });
   els.sortSelect.addEventListener("change", (event) => {
     state.sort = event.target.value;
+    resetProductPagination();
     renderProducts();
   });
   document.querySelector("#clearFilters").addEventListener("click", clearFilters);
@@ -184,7 +191,7 @@ async function loadSettings() {
 
 async function loadProducts() {
   try {
-    state.products = (await api("/api/products")).products;
+    state.products = ((await api("/api/products")).products || []).map(normalizeProductPrices);
     pruneCart();
   } catch (error) {
     state.products = [];
@@ -277,6 +284,7 @@ function renderCategoryFilters() {
   els.categoryFilters.querySelectorAll("button").forEach((button) => {
     button.addEventListener("click", () => {
       state.category = button.dataset.category;
+      resetProductPagination();
       renderCategoryFilters();
       renderProducts();
     });
@@ -303,10 +311,16 @@ function renderProducts() {
   });
   filtered = sortProducts(filtered);
   els.resultCount.textContent = `${filtered.length} producto${filtered.length === 1 ? "" : "s"}`;
+  const visible = filtered.slice(0, state.productVisibleCount);
+  const remaining = Math.max(0, filtered.length - visible.length);
   els.productGrid.innerHTML = filtered.length
-    ? filtered.map(renderProductCard).join("")
+    ? `${visible.map(renderProductCard).join("")}${remaining ? renderProductLoadMore(remaining) : ""}`
     : `<article class="product-card empty-card"><div class="product-body"><h3>Sin resultados</h3><p>Proba cambiar la busqueda o limpiar los filtros.</p></div></article>`;
 
+  els.productGrid.querySelector("[data-load-more-products]")?.addEventListener("click", () => {
+    state.productVisibleCount += PRODUCT_PAGE_SIZE;
+    renderProducts();
+  });
   els.productGrid.querySelectorAll("[data-add]").forEach((button) => {
     button.addEventListener("click", () => {
       const id = Number(button.dataset.add);
@@ -328,6 +342,17 @@ function renderProducts() {
   });
 }
 
+function renderProductLoadMore(remaining) {
+  const nextCount = Math.min(PRODUCT_PAGE_SIZE, remaining);
+  return `
+    <div class="product-load-more">
+      <button type="button" data-load-more-products>
+        Ver ${nextCount} producto${nextCount === 1 ? "" : "s"} mas
+      </button>
+      <span>Quedan ${remaining} por cargar</span>
+    </div>`;
+}
+
 function renderProductCard(product) {
   const approved = isApprovedCustomer();
   const cut = product.cutLevel ? `<span class="tag yellow">Corte ${escapeHtml(product.cutLevel)}</span>` : "";
@@ -336,7 +361,7 @@ function renderProductCard(product) {
   const gallery = images.length > 1 ? `<div class="product-gallery-thumbs" aria-label="Galeria de ${escapeHtml(product.kmCode)}">
     ${images.slice(0, 5).map((image, index) => `
       <button class="${index === 0 ? "active" : ""}" type="button" data-gallery-image="${escapeHtml(image.url)}" data-gallery-alt="${escapeHtml(image.altText || product.name)}" aria-label="Ver imagen ${index + 1} de ${escapeHtml(product.kmCode)}">
-        <img src="${escapeHtml(image.url)}" alt="" loading="lazy" />
+        <img src="${escapeHtml(image.url)}" alt="" loading="lazy" decoding="async" />
       </button>
     `).join("")}
   </div>` : "";
@@ -344,12 +369,12 @@ function renderProductCard(product) {
   const productUrl = product.publicUrl || `/producto/${encodeURIComponent(product.slug || product.kmCode.toLowerCase())}`;
   const zoomCaption = `${product.kmCode} · ${product.name}`;
   const visual = images.length
-    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span></div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" /></button></figure>${gallery}</div>`
+    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span></div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
     : `<div class="product-visual ${familyClass}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`;
   const pricing = approved ? `
     <div class="price-block">
-      <span>Lista neta <s>${money.format(product.basePriceCents / 100)}</s></span>
-      <strong>${money.format(product.finalPriceCents / 100)}</strong>
+      <span>Lista neta <s>${formatCents(product.basePriceCents)}</s></span>
+      <strong>${formatCents(product.finalPriceCents)}</strong>
       <small>${discountText(product.discountsBps)} Precio neto. IVA no incluido.</small>
     </div>
     <div class="product-actions">
@@ -1256,6 +1281,10 @@ function clearFilters() {
   renderProducts();
 }
 
+function resetProductPagination() {
+  state.productVisibleCount = PRODUCT_PAGE_SIZE;
+}
+
 function sortProducts(products) {
   const sorted = [...products];
   if (state.sort === "code") sorted.sort((a, b) => a.kmCode.localeCompare(b.kmCode));
@@ -1296,6 +1325,24 @@ function accountStatusText(user) {
 function discountText(discounts = []) {
   const active = discounts.filter(Boolean).map(formatPercent);
   return active.length ? `Descuentos en cascada: ${active.join(" · ")}.` : "Sin descuentos.";
+}
+
+function normalizeProductPrices(product) {
+  const basePriceCents = safeCents(product.basePriceCents);
+  const finalPriceCents = safeCents(product.finalPriceCents, basePriceCents);
+  const discountsBps = Array.isArray(product.discountsBps)
+    ? product.discountsBps.map((value) => safeCents(value)).filter((value) => value > 0)
+    : [];
+  return { ...product, basePriceCents, finalPriceCents, discountsBps };
+}
+
+function safeCents(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? Math.round(number) : fallback;
+}
+
+function formatCents(value) {
+  return money.format(safeCents(value) / 100);
 }
 
 function formatPercent(bps) {

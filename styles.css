@@ -759,6 +759,31 @@ textarea:focus {
   overflow: hidden;
 }
 
+.product-load-more {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 0 28px;
+}
+
+.product-load-more button {
+  min-height: 56px;
+  padding: 0 28px;
+  color: #070707;
+  font-weight: 900;
+  background: linear-gradient(180deg, #f7f8f8, #c5cbd0);
+  border: 1px solid #dfe3e6;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.product-load-more span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .product-card.family-lana { box-shadow: inset 5px 0 #8ca77a; }
 .product-card.family-poliespuma { box-shadow: inset 5px 0 #4aa9d6; }
 .product-card.family-accesorios { box-shadow: inset 5px 0 #8f77b3; }

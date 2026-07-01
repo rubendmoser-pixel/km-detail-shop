@@ -185,6 +185,11 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     method: "PATCH", headers: jsonHeaders(adminCookie), body: JSON.stringify({ status: "approved" })
   })).status, 200);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM email_outbox WHERE event_type = 'customer_status'").get().count, 1);
+  const customerCookieWithoutDiscounts = await loginCookie(baseUrl, "cliente-api@example.com", "new-customer-password-456");
+  const productsWithoutDiscounts = await getJson(`${baseUrl}/api/products`, customerCookieWithoutDiscounts);
+  assert.equal(productsWithoutDiscounts.products[0].basePriceCents, 100_000);
+  assert.equal(productsWithoutDiscounts.products[0].finalPriceCents, 100_000);
+  assert.equal(Number.isFinite(productsWithoutDiscounts.products[0].finalPriceCents), true);
   assert.equal((await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/discounts`, {
     method: "PATCH", headers: jsonHeaders(adminCookie), body: JSON.stringify({ discountsBps: [3000, 2000, 1000] })
   })).status, 200);

@@ -171,14 +171,15 @@ export function serveProductImage(response, uploadsPath, pathname) {
   const productsRoot = path.resolve(uploadsPath, "products");
   const target = path.resolve(productsRoot, match[1]);
   if (!target.startsWith(`${productsRoot}${path.sep}`)) return false;
-  if (!fs.existsSync(target) || !fs.statSync(target).isFile()) return false;
-  const content = fs.readFileSync(target);
+  if (!fs.existsSync(target)) return false;
+  const stats = fs.statSync(target);
+  if (!stats.isFile()) return false;
   response.writeHead(200, {
     "content-type": MIME_TYPES[path.extname(target).toLowerCase()] || "application/octet-stream",
-    "content-length": content.length,
-    "cache-control": "public, max-age=86400",
+    "content-length": stats.size,
+    "cache-control": "public, max-age=31536000, immutable",
     ...SECURITY_HEADERS
   });
-  response.end(content);
+  fs.createReadStream(target).pipe(response);
   return true;
 }
