@@ -810,7 +810,7 @@ function renderOrderActionBar(order) {
     adminEls.orderDetailActions.innerHTML = `<p class="admin-note">Pedido cerrado. No hay acciones operativas pendientes.</p>`;
     return;
   }
-  const canOperateDocuments = canFulfillOrder(order);
+  const canOperateDocuments = canPrepareOrDispatchOrder(order);
   const isInitialReview = order.status === "order_created";
   const preparationAction = (isInitialReview || canOperateDocuments)
     ? `<button class="ghost-button" type="button" id="openPickingList">Imprimir preparacion</button>`
@@ -912,7 +912,7 @@ function renderOrderWorkflow(order) {
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
   const hasReceipts = (order.paymentReceipts || []).length > 0;
   const canManageOpenBalance = availabilityConfirmed && (order.balanceCents || 0) > 0;
-  const canManageFulfillment = canFulfillOrder(order);
+  const canManageFulfillment = canPrepareOrDispatchOrder(order);
   const needsPaymentAction = ["receipt_uploaded", "rejected", "overdue"].includes(order.paymentStatus)
     || (availabilityConfirmed && order.paymentStatus === "pending_payment")
     || (canManageOpenBalance && !canManageFulfillment && !hasReceipts);
@@ -952,6 +952,10 @@ function renderOrderWorkflow(order) {
     renderNextStep("Proxima accion: corregir pago", "El ultimo comprobante fue rechazado. Espera una nueva carga del cliente o coordina la correccion por WhatsApp/email.", "danger");
     return;
   }
+  if (fulfillmentStatus === "shipped") {
+    renderNextStep("Esperando recepcion del cliente", "El pedido ya fue despachado. No hay acciones operativas pendientes hasta que el cliente confirme la recepcion desde Mis compras.", "done");
+    return;
+  }
   if (canManageFulfillment) {
     if (fulfillmentStatus === "pending") {
       renderNextStep("Proxima accion: preparar pedido", "Imprimi preparacion, controla articulos y bultos, y marca el pedido como preparado para despacho.", "success");
@@ -959,10 +963,6 @@ function renderOrderWorkflow(order) {
     }
     if (fulfillmentStatus === "ready") {
       renderNextStep("Proxima accion: despachar pedido", "Carga modalidad, transporte, guia/remito y fecha de salida. Luego marca el pedido como despachado.", "progress");
-      return;
-    }
-    if (fulfillmentStatus === "shipped") {
-      renderNextStep("Esperando recepcion del cliente", "El pedido ya fue despachado. No hay acciones de despacho pendientes hasta que el cliente confirme la recepcion.", "done");
       return;
     }
     renderNextStep("Proxima accion: preparar despacho", "El pedido esta habilitado para logistica.", "success");
@@ -1028,6 +1028,11 @@ function canFulfillOrder(order) {
   const isReceivedByCustomer = order.status === "delivered" || order.fulfillment?.status === "delivered";
   const paymentAllowsFulfillment = ["paid", "credit_account", "settled_adjustment"].includes(order.paymentStatus);
   return paymentAllowsFulfillment && availabilityConfirmed && !isReceivedByCustomer && order.status !== "cancelled";
+}
+
+function canPrepareOrDispatchOrder(order) {
+  const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
+  return canFulfillOrder(order) && ["pending", "ready"].includes(fulfillmentStatus);
 }
 
 function resetAvailabilityPaymentFields(order) {
