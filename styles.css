@@ -1172,6 +1172,27 @@ body.modal-open {
   box-shadow: inset 4px 0 0 #7fb7e6, 0 18px 42px rgba(0, 0, 0, 0.24);
 }
 
+body.checkout-focus #catalogo,
+body.checkout-focus #catalogo-pdf,
+body.checkout-focus #customerOrders {
+  display: none !important;
+}
+
+body.checkout-focus #distribuidores {
+  min-height: calc(100vh - 92px);
+  padding-top: clamp(24px, 5vw, 56px);
+  padding-bottom: clamp(40px, 7vw, 86px);
+}
+
+body.checkout-focus .order-form {
+  max-width: 980px;
+  margin-inline: auto;
+}
+
+.checkout-anchor {
+  scroll-margin-top: 110px;
+}
+
 .shipping-address-panel .section-title {
   gap: 8px;
 }
@@ -1273,6 +1294,11 @@ body.modal-open {
   min-height: 58px;
   font-size: 1.08rem;
   box-shadow: 0 14px 32px rgba(174, 180, 187, 0.16);
+}
+
+.checkout-submit-button {
+  background: linear-gradient(180deg, #d7dde4, #aab3bd);
+  border-color: #edf1f4;
 }
 
 .shipping-address-manager {
@@ -1959,8 +1985,12 @@ body.modal-open {
   align-items: start;
   justify-content: space-between;
   gap: 12px;
-  padding: 24px 28px 18px;
+  padding: 18px 28px 14px;
   border-bottom: 1px solid var(--line);
+}
+
+.cart-head h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
 }
 
 .cart-summary-text {
@@ -2079,10 +2109,28 @@ body.modal-open {
 
 .cart-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) auto;
   gap: 12px;
   align-items: center;
   margin-top: 14px;
+}
+
+.cart-checkout-button,
+.cart-back-button {
+  min-height: 54px;
+}
+
+.cart-checkout-button {
+  color: #08090b;
+  background: linear-gradient(180deg, #d8dde3, #aeb6bf);
+  border-color: #eef1f4;
+}
+
+.cart-back-button {
+  width: 100%;
+  color: #eef2f6;
+  background: #191b1f;
+  border-color: #5b6570;
 }
 
 .account-dialog {
@@ -3147,7 +3195,7 @@ textarea,
   }
 
   .cart-head h2 {
-    font-size: clamp(2.2rem, 13vw, 3.4rem);
+    font-size: clamp(1.85rem, 9vw, 2.55rem);
   }
 
   .cart-line {

@@ -69,7 +69,7 @@ const els = Object.fromEntries([
   "categoryFilters", "cutFilter", "sizeFilter", "searchInput", "sortSelect", "productGrid",
   "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
   "cartEmpty", "cartSummaryText", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
-  "goToOrder", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
+  "goToOrder", "backToShopping", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
   "navPurchases", "topNav", "mobileMenuToggle",
   "activeShippingAddress", "configureShippingAddresses", "shippingAddressManager",
   "shippingAddressList", "shippingAddressForm", "shippingAddressFormTitle", "shippingAddressMessage",
@@ -136,7 +136,8 @@ function bindEvents() {
     if (event.target === els.cartDrawer) closeCart();
   });
   document.querySelector("#clearCart").addEventListener("click", clearCart);
-  els.goToOrder.addEventListener("click", closeCart);
+  els.goToOrder.addEventListener("click", goToCheckout);
+  els.backToShopping.addEventListener("click", returnToShopping);
   document.querySelector("#copyOrder").addEventListener("click", copyOrderSummary);
   els.orderForm.addEventListener("submit", submitOrder);
   document.addEventListener("click", (event) => {
@@ -145,7 +146,10 @@ function bindEvents() {
   });
   els.mobileMenuToggle?.addEventListener("click", toggleMobileMenu);
   els.topNav?.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => setMobileMenu(false));
+    link.addEventListener("click", () => {
+      clearActionFocus();
+      setMobileMenu(false);
+    });
   });
   window.addEventListener("hashchange", () => {
     handleHashNavigation().catch((error) => showToast(error.message || "No se pudo abrir la seccion."));
@@ -1126,6 +1130,7 @@ function paymentHelperText(order) {
 
 async function openPurchases(event) {
   event?.preventDefault?.();
+  clearActionFocus();
   if (!isApprovedCustomer()) return openAccount(false);
   try {
     await loadCustomerOrders();
@@ -1149,8 +1154,19 @@ async function openPurchases(event) {
 }
 
 async function handleHashNavigation() {
-  if (window.location.hash !== "#mis-compras") return;
-  await openPurchases();
+  if (window.location.hash === "#mis-compras") {
+    await openPurchases();
+    return;
+  }
+  if (window.location.hash === "#pedido") {
+    setActionFocus("checkout");
+    requestAnimationFrame(() => {
+      (els.orderForm.hidden ? document.querySelector("#distribuidores") : els.orderForm)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return;
+  }
+  clearActionFocus();
 }
 
 function toggleMobileMenu() {
@@ -1490,6 +1506,39 @@ function openCart() {
 function closeCart() {
   els.cartDrawer.classList.remove("open");
   els.cartDrawer.setAttribute("aria-hidden", "true");
+}
+
+function goToCheckout(event) {
+  event.preventDefault();
+  if (!isApprovedCustomer()) {
+    closeCart();
+    return openAccount(false);
+  }
+  if (!cartLines().length) return showToast("Agrega productos antes de elegir el envio.");
+  closeCart();
+  setActionFocus("checkout");
+  history.replaceState(null, "", "#pedido");
+  requestAnimationFrame(() => {
+    (els.orderForm.hidden ? document.querySelector("#distribuidores") : els.orderForm)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function returnToShopping() {
+  closeCart();
+  clearActionFocus();
+  history.replaceState(null, "", "#catalogo");
+  requestAnimationFrame(() => {
+    document.querySelector("#catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function setActionFocus(mode) {
+  document.body.classList.toggle("checkout-focus", mode === "checkout");
+}
+
+function clearActionFocus() {
+  setActionFocus(null);
 }
 
 function showToast(message) {

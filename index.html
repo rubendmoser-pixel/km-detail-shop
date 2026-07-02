@@ -23,7 +23,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=50" />
+    <link rel="stylesheet" href="./styles.css?v=51" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -329,6 +329,7 @@
             </div>
           </div>
         </div>
+        <span class="scroll-anchor checkout-anchor" id="pedido" aria-hidden="true"></span>
         <form class="order-form" id="orderForm" hidden>
           <section class="shipping-address-panel">
             <div class="section-title compact">
@@ -348,7 +349,7 @@
             </div>
           </section>
           <div class="form-actions">
-            <button class="primary-button" type="submit">Confirmar pedido</button>
+            <button class="primary-button checkout-submit-button" type="submit">Confirmar pedido a KM</button>
             <button class="ghost-button" id="copyOrder" type="button">Copiar resumen</button>
           </div>
         </form>
@@ -425,7 +426,7 @@
         <div class="cart-head">
           <div>
             <p class="eyebrow">Carrito</p>
-            <h2>Pedido actual</h2>
+            <h2>Pedido</h2>
             <span class="cart-summary-text" id="cartSummaryText">Sin productos cargados</span>
           </div>
           <button class="icon-button" id="closeCart" type="button" aria-label="Cerrar carrito">x</button>
@@ -440,7 +441,8 @@
           </dl>
           <p class="cart-note">Precios netos en pesos argentinos. IVA discriminado. Pedido sujeto a confirmacion de disponibilidad.</p>
           <div class="cart-actions">
-            <a class="primary-link disabled" id="goToOrder" href="#distribuidores">Continuar pedido</a>
+            <a class="primary-link disabled cart-checkout-button" id="goToOrder" href="#pedido">Elegir envio</a>
+            <button class="ghost-button cart-back-button" id="backToShopping" type="button">Volver a compras</button>
             <button class="text-button" id="clearCart" type="button">Vaciar carrito</button>
           </div>
         </div>
@@ -510,6 +512,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=66" defer></script>
+    <script src="./app.js?v=67" defer></script>
   </body>
 </html>
