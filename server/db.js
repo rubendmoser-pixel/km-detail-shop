@@ -395,7 +395,6 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
     CREATE INDEX IF NOT EXISTS idx_commission_settlements_rep ON sales_commission_settlements(sales_rep_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_commission_items_settlement ON sales_commission_settlement_items(settlement_id);
-    CREATE INDEX IF NOT EXISTS idx_orders_commission_pending ON orders(sales_rep_id, sales_commission_settlement_id, payment_status);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON email_outbox(status, created_at);
@@ -457,6 +456,7 @@ function migrate(db) {
   ensureColumn(db, "sales_reps", "bank_account_type", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "sales_reps", "bank_cbu", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "sales_reps", "bank_alias", "TEXT NOT NULL DEFAULT ''");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_orders_commission_pending ON orders(sales_rep_id, sales_commission_settlement_id, payment_status);");
   db.exec(`
     UPDATE orders
     SET payment_status = 'credit_account'
