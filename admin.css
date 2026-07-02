@@ -594,6 +594,74 @@
   border-left-color: #ff7676;
 }
 
+.order-history-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #34363b;
+  background: #111214;
+}
+
+.order-history-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-history-list li {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  padding: 0 0 14px;
+  position: relative;
+}
+
+.order-history-list li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  bottom: 0;
+  left: 6px;
+  width: 1px;
+  background: #34363b;
+}
+
+.history-dot {
+  width: 13px;
+  height: 13px;
+  margin-top: 3px;
+  border: 2px solid #d4b673;
+  border-radius: 50%;
+  background: #15161a;
+  box-shadow: 0 0 0 4px #111214;
+  z-index: 1;
+}
+
+.order-history-list strong,
+.order-history-list span,
+.order-history-list p {
+  display: block;
+}
+
+.order-history-list strong {
+  color: #f5f6f7;
+  font-size: 0.92rem;
+}
+
+.order-history-list span {
+  margin-top: 3px;
+  color: #9ea3aa;
+  font-size: 0.82rem;
+}
+
+.order-history-list p {
+  margin: 8px 0 0;
+  color: #cdd1d6;
+  line-height: 1.45;
+}
+
 .payment-review-panel {
   display: grid;
   gap: 10px;

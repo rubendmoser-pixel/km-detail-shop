@@ -293,6 +293,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(adminOrderDetail.order.items[0].kmCode, "API001K");
   assert.equal(adminOrderDetail.order.items[0].warehouseLocation, "A-03-02");
   assert.equal(adminOrderDetail.order.shipping.city, "Cordoba");
+  assert.equal(adminOrderDetail.order.events.length, 1);
+  assert.equal(adminOrderDetail.order.events[0].type, "order_created");
   assert.equal(adminOrderDetail.order.customerWhatsapp, "5493510000000");
   assert.equal(adminOrderDetail.order.contactPerson, "Cliente API");
   const labelPayload = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/shipping-labels?packages=4`, adminCookie);

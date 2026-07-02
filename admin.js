@@ -64,6 +64,7 @@ const adminEls = Object.fromEntries([
   "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
   "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
+  "orderHistoryPanel",
   "availabilityForm", "availabilityPaymentCondition", "availabilityTermsField", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
   "orderStatusForm", "orderStatusMessage", "orderAdvancedPanel",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
@@ -686,6 +687,7 @@ function renderOrderDetail() {
   renderPaymentReceipts(order);
   renderFulfillment(order);
   renderOrderWorkflow(order);
+  renderOrderHistory(order);
   adminEls.orderStatusForm.elements.status.value = order.status;
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
@@ -913,6 +915,47 @@ function renderOrderWorkflow(order) {
     return;
   }
   renderNextStep("Pedido en seguimiento", "No hay una accion automatica sugerida para esta combinacion de estados. Usa ajustes avanzados solo si necesitas corregir el flujo.", "neutral");
+}
+
+function renderOrderHistory(order) {
+  const events = Array.isArray(order.events) ? order.events : [];
+  adminEls.orderHistoryPanel.innerHTML = `
+    <div class="panel-heading"><p class="eyebrow">Historial</p><h3>Actividad del pedido</h3></div>
+    ${events.length ? `
+      <ol class="order-history-list">
+        ${events.map((event) => `
+          <li>
+            <span class="history-dot" aria-hidden="true"></span>
+            <div>
+              <strong>${escapeAdmin(orderEventText(event.type))}</strong>
+              <span>${escapeAdmin(formatDate(event.createdAt))}${event.actorEmail ? ` | ${escapeAdmin(actorText(event))}` : ""}</span>
+              ${event.reason ? `<p>${escapeAdmin(event.reason)}</p>` : ""}
+            </div>
+          </li>
+        `).join("")}
+      </ol>
+    ` : `<p class="admin-note">Todavia no hay actividad registrada para este pedido.</p>`}
+  `;
+}
+
+function orderEventText(type) {
+  return {
+    order_created: "Pedido creado",
+    status_updated: "Estado actualizado",
+    availability_confirmed: "Disponibilidad confirmada",
+    payment_receipt_uploaded: "Comprobante cargado",
+    payment_receipt_reviewed: "Comprobante revisado",
+    credit_authorized: "Cuenta corriente autorizada",
+    commercial_adjustment_applied: "Ajuste comercial aplicado",
+    fulfillment_updated: "Despacho actualizado",
+    customer_reaccepted: "Cliente acepto modificacion",
+    customer_received: "Cliente confirmo recepcion"
+  }[type] || type || "Actividad";
+}
+
+function actorText(event) {
+  const role = event.actorRole === "admin" ? "KM" : event.actorRole === "customer" ? "Cliente" : "Sistema";
+  return `${role}: ${event.actorEmail}`;
 }
 
 function setFulfillmentPreset(event) {
@@ -1230,6 +1273,7 @@ function closeOrderDetail() {
   adminEls.orderDetailSummary.innerHTML = "";
   adminEls.orderDetailActions.innerHTML = "";
   adminEls.orderNextStep.innerHTML = "";
+  adminEls.orderHistoryPanel.innerHTML = "";
   adminEls.orderItemsBody.innerHTML = "";
   adminEls.availabilityMessage.textContent = "";
   adminEls.fulfillmentMessage.textContent = "";

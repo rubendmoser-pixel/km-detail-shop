@@ -130,7 +130,15 @@ export function getOrder(db, orderId, customerId = null, isAdmin = false) {
   if (!order || (!isAdmin && order.customer_id !== customerId)) throw new NotFoundError("Order not found");
   const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
   const receipts = db.prepare("SELECT * FROM payment_receipts WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(orderId);
-  return mapOrder(order, items, receipts);
+  const events = isAdmin ? db.prepare(`
+    SELECT e.id, e.event_type, e.reason, e.created_at, u.email AS actor_email, u.role AS actor_role
+    FROM order_events e
+    LEFT JOIN users u ON u.id = e.actor_user_id
+    WHERE e.order_id = ?
+    ORDER BY e.created_at DESC, e.id DESC
+    LIMIT 40
+  `).all(orderId) : [];
+  return mapOrder(order, items, receipts, events);
 }
 
 export function createShippingLabels(db, orderId, packageCount) {
@@ -846,7 +854,7 @@ function deleteReceiptFiles(uploadsPath, filenames) {
   return result;
 }
 
-function mapOrder(order, items, receipts = []) {
+function mapOrder(order, items, receipts = [], events = []) {
   return {
     id: order.id,
     orderNumber: order.order_number,
@@ -905,6 +913,14 @@ function mapOrder(order, items, receipts = []) {
       reviewReason: receipt.review_reason || "",
       reviewedAt: receipt.reviewed_at || "",
       createdAt: receipt.created_at
+    })),
+    events: events.map((event) => ({
+      id: event.id,
+      type: event.event_type,
+      reason: event.reason || "",
+      actorEmail: event.actor_email || "",
+      actorRole: event.actor_role || "",
+      createdAt: event.created_at
     })),
     items: items.map((item) => ({
       id: item.id,

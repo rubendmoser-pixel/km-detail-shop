@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=27" />
+    <link rel="stylesheet" href="./admin.css?v=28" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -211,6 +211,7 @@
             <div class="order-detail-grid" id="orderDetailSummary"></div>
             <div class="order-detail-actions" id="orderDetailActions"></div>
             <div class="order-next-step" id="orderNextStep"></div>
+            <section class="order-history-panel" id="orderHistoryPanel"></section>
             <form class="availability-form" id="availabilityForm">
               <div class="panel-heading"><p class="eyebrow">Disponibilidad</p><h3>Confirmar articulos disponibles</h3></div>
               <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>KM</th><th>Producto</th><th>Pedido</th><th>Disponible</th><th>Precio final</th><th>Subtotal confirmado</th><th>Nota</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
@@ -355,6 +356,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=40" defer></script>
+    <script src="./admin.js?v=41" defer></script>
   </body>
 </html>
