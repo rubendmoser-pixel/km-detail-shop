@@ -53,6 +53,7 @@ const state = {
   },
   purchaseFilter: "open",
   purchaseVisibleCount: 10,
+  purchasesRefreshing: false,
   settings: { vatBps: 2100, whatsappNumber: "" },
   category: "Todos",
   search: "",
@@ -891,11 +892,12 @@ function renderCustomerOrders() {
       </div>
     </div>
     <div class="purchase-metrics" aria-label="Resumen de compras">
-      <button class="${state.purchaseFilter === "open" ? "active" : ""}" type="button" data-purchase-filter="open"><strong>${metrics.open}</strong><span>activas</span></button>
-      <button class="${state.purchaseFilter === "closed" ? "active" : ""}" type="button" data-purchase-filter="closed"><strong>${metrics.closed}</strong><span>historial</span></button>
-      <button class="${state.purchaseFilter === "pay" ? "active" : ""}" type="button" data-purchase-filter="pay"><strong>${metrics.toPay}</strong><span>para pagar</span></button>
-      <button class="${state.purchaseFilter === "shipment" ? "active" : ""}" type="button" data-purchase-filter="shipment"><strong>${metrics.shipments}</strong><span>en despacho</span></button>
+      <button class="${state.purchaseFilter === "open" ? "active" : ""}" type="button" data-purchase-filter="open" ${state.purchasesRefreshing ? "disabled" : ""}><strong>${metrics.open}</strong><span>activas</span></button>
+      <button class="${state.purchaseFilter === "closed" ? "active" : ""}" type="button" data-purchase-filter="closed" ${state.purchasesRefreshing ? "disabled" : ""}><strong>${metrics.closed}</strong><span>historial</span></button>
+      <button class="${state.purchaseFilter === "pay" ? "active" : ""}" type="button" data-purchase-filter="pay" ${state.purchasesRefreshing ? "disabled" : ""}><strong>${metrics.toPay}</strong><span>para pagar</span></button>
+      <button class="${state.purchaseFilter === "shipment" ? "active" : ""}" type="button" data-purchase-filter="shipment" ${state.purchasesRefreshing ? "disabled" : ""}><strong>${metrics.shipments}</strong><span>en despacho</span></button>
     </div>
+    ${state.purchasesRefreshing ? `<div class="purchase-refreshing">Actualizando estado de compra...</div>` : ""}
     ${renderPushPermissionCard()}
     <div class="purchase-list">
       ${filteredOrders.length ? orderCards : `<article class="empty-purchases"><strong>${state.purchaseFilter === "closed" ? "Sin compras finalizadas" : "Sin compras activas para este filtro"}</strong><span>${state.purchaseFilter === "closed" ? "Cuando confirmes la recepcion, las compras cerradas quedan aca." : "Cambia el filtro o arma un pedido desde Productos."}</span></article>`}
@@ -1015,9 +1017,9 @@ function renderCustomerOrder(order) {
             ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
           </div>
           <div class="purchase-actions">
-            ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}">Aceptar disponibilidad</button>` : ""}
-            ${canConfirmReceived ? `<button class="primary-button" type="button" data-confirm-received="${order.id}">Confirmar pedido recibido</button>` : ""}
-            ${canUpload ? `<label class="receipt-upload"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" /></label>` : paymentHelperText(order)}
+            ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Aceptar disponibilidad</button>` : ""}
+            ${canConfirmReceived ? `<button class="primary-button" type="button" data-confirm-received="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Confirmar pedido recibido</button>` : ""}
+            ${canUpload ? `<label class="receipt-upload ${state.purchasesRefreshing ? "disabled" : ""}"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""} /></label>` : paymentHelperText(order)}
             ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
           </div>
           ${canUpload ? renderBankSummary(bank) : ""}
@@ -1161,27 +1163,19 @@ function setMobileMenu(open) {
 }
 
 async function acceptOrder(orderId) {
-  try {
+  await runPurchaseAction(async () => {
     await api(`/api/orders/${orderId}/accept`, { method: "POST" });
-    await loadCustomerOrders();
-    renderCustomerOrders();
     showToast("Disponibilidad aceptada. Ya podes continuar con el pago.");
-  } catch (error) {
-    showToast(error.message);
-  }
+  }, { fallbackFilter: "pay" });
 }
 
 async function confirmReceived(orderId) {
   if (!orderId) return;
   if (!confirm("Confirmar que recibiste este pedido?")) return;
-  try {
+  await runPurchaseAction(async () => {
     await api(`/api/orders/${orderId}/received`, { method: "POST" });
-    await loadCustomerOrders();
-    renderCustomerOrders();
     showToast("Pedido marcado como recibido.");
-  } catch (error) {
-    showToast(error.message);
-  }
+  }, { fallbackFilter: "closed" });
 }
 
 async function uploadReceipt(event) {
@@ -1191,17 +1185,29 @@ async function uploadReceipt(event) {
   if (!file || !orderId) return;
   if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) return showToast("Formato no permitido. Usa PDF, JPG o PNG.");
   if (file.size > 8 * 1024 * 1024) return showToast("El comprobante no puede superar 8 MB.");
-  try {
+  await runPurchaseAction(async () => {
     const dataBase64 = await fileToBase64(file);
     await api(`/api/orders/${orderId}/payment-receipts`, {
       method: "POST",
       body: { originalFilename: file.name, mimeType: file.type, dataBase64 }
     });
     showToast("Comprobante cargado. KM lo revisara.");
+  });
+}
+
+async function runPurchaseAction(action, { fallbackFilter = null } = {}) {
+  state.purchasesRefreshing = true;
+  renderCustomerOrders();
+  try {
+    await action();
     await loadCustomerOrders();
-    renderCustomerOrders();
+    if (!filterPurchases(state.orders).length && fallbackFilter) state.purchaseFilter = fallbackFilter;
+    if (!filterPurchases(state.orders).length) state.purchaseFilter = "open";
   } catch (error) {
     showToast(error.message);
+  } finally {
+    state.purchasesRefreshing = false;
+    renderCustomerOrders();
   }
 }
 

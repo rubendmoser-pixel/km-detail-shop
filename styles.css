@@ -1498,6 +1498,21 @@ body.modal-open {
   border-left-color: var(--signal);
 }
 
+.purchase-metrics button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.purchase-refreshing {
+  padding: 13px 16px;
+  color: #dfe7ef;
+  background: #15181c;
+  border: 1px solid #3b3f47;
+  border-left: 5px solid var(--blue);
+  border-radius: 8px;
+  font-weight: 900;
+}
+
 .purchase-metrics strong {
   color: inherit;
   font-family: var(--font-display);
@@ -1851,6 +1866,11 @@ body.modal-open {
   border-radius: 6px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.receipt-upload.disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .receipt-upload input {
