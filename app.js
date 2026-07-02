@@ -1571,6 +1571,7 @@ function goToCheckout(event) {
   }
   if (!cartLines().length) return showToast("Agrega productos antes de elegir el envio.");
   closeCart();
+  setOperationalView("checkout");
   setActionFocus("checkout");
   history.replaceState(null, "", "#pedido");
   requestAnimationFrame(() => {
@@ -1582,6 +1583,7 @@ function goToCheckout(event) {
 function returnToShopping() {
   closeCart();
   clearActionFocus();
+  setOperationalView("catalog");
   history.replaceState(null, "", "#catalogo");
   requestAnimationFrame(() => {
     document.querySelector("#catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" });
