@@ -63,6 +63,7 @@ const state = {
   productVisibleCount: PRODUCT_PAGE_SIZE,
   catalogPage: 0,
   checkoutCompleted: false,
+  operationalView: null,
   cart: readCart()
 };
 
@@ -354,6 +355,7 @@ function isPublicHash(hash) {
 
 function currentOperationalView() {
   if (!isApprovedCustomer()) return null;
+  if (state.operationalView) return state.operationalView;
   if (window.location.hash === "#mis-compras") return "purchases";
   if (window.location.hash === "#catalogo-pdf") return "pdf";
   if (window.location.hash === "#pedido") return "checkout";
@@ -363,6 +365,7 @@ function currentOperationalView() {
 function setOperationalView(view = currentOperationalView()) {
   const approved = isApprovedCustomer();
   const normalized = approved ? view || "catalog" : null;
+  state.operationalView = normalized;
   document.body.dataset.appView = normalized || "";
   const sections = {
     catalog: document.querySelector("#catalogo"),
@@ -681,6 +684,7 @@ async function logout() {
   state.push.subscribed = false;
   state.push.message = "";
   state.selectedShippingAddressId = null;
+  state.operationalView = null;
   clearCart();
   await loadProducts();
   els.accountDialog.close();
