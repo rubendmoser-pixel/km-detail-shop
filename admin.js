@@ -62,7 +62,7 @@ const fulfillmentStateClasses = {
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
-  "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter",
+  "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter", "orderOpsStats",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
   "orderHistoryPanel",
   "availabilityForm", "availabilityPaymentCondition", "availabilityTermsField", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
@@ -632,6 +632,7 @@ async function loadOrders() {
   if (adminEls.orderFulfillmentFilter.value) params.set("fulfillment", adminEls.orderFulfillmentFilter.value);
   const { orders } = await adminApi(`/api/admin/orders${params.toString() ? `?${params}` : ""}`);
   adminState.orders = orders;
+  renderOrderOpsStats(orders);
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
     <tr><td><strong>${escapeAdmin(order.order_number)}</strong></td><td>${escapeAdmin(order.business_name)}</td>
       <td>${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}</td>
@@ -640,6 +641,55 @@ async function loadOrders() {
       <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
       <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
   `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
+}
+
+function renderOrderOpsStats(orders) {
+  const buckets = [
+    { key: "received", label: "Recibidos", hint: "Confirmar disponibilidad", tone: "info", test: (order) => order.status === "order_created" },
+    { key: "receipt", label: "Comprobantes", hint: "Revisar pagos", tone: "progress", test: (order) => order.payment_status === "receipt_uploaded" },
+    {
+      key: "payment",
+      label: "Para cobrar",
+      hint: "Esperando pago o vencido",
+      tone: "warning",
+      test: (order) => ["pending_payment", "rejected", "overdue"].includes(order.payment_status) && order.status !== "order_created" && !isClosedOrderRow(order)
+    },
+    {
+      key: "prepare",
+      label: "Preparacion",
+      hint: "Imprimir y preparar",
+      tone: "success",
+      test: (order) => canPrepareOrderRow(order)
+    },
+    { key: "dispatch", label: "Despacho", hint: "Cargar guia y salida", tone: "progress", test: (order) => normalizedFulfillmentStatus(order.fulfillment_status) === "ready" },
+    { key: "transit", label: "En transito", hint: "Esperando recepcion", tone: "done", test: (order) => normalizedFulfillmentStatus(order.fulfillment_status) === "shipped" }
+  ].map((bucket) => {
+    const matching = orders.filter(bucket.test);
+    return {
+      ...bucket,
+      count: matching.length,
+      totalCents: matching.reduce((sum, order) => sum + Number(order.total_cents || 0), 0)
+    };
+  });
+
+  adminEls.orderOpsStats.innerHTML = buckets.map((bucket) => `
+    <div class="order-ops-card ${bucket.tone}">
+      <span>${escapeAdmin(bucket.label)}</span>
+      <strong>${bucket.count}</strong>
+      <small>${escapeAdmin(bucket.hint)}</small>
+      <em>${adminMoney.format(bucket.totalCents / 100)}</em>
+    </div>
+  `).join("");
+}
+
+function isClosedOrderRow(order) {
+  return order.status === "delivered" || order.status === "cancelled" || normalizedFulfillmentStatus(order.fulfillment_status) === "delivered";
+}
+
+function canPrepareOrderRow(order) {
+  const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready"].includes(order.status);
+  const paymentAllowsFulfillment = ["paid", "credit_account", "settled_adjustment"].includes(order.payment_status);
+  return availabilityConfirmed && paymentAllowsFulfillment && normalizedFulfillmentStatus(order.fulfillment_status) === "pending" && !isClosedOrderRow(order);
 }
 
 function handleOrdersTableClick(event) {

@@ -154,6 +154,70 @@
   font-size: 1.35rem;
 }
 
+.order-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.order-ops-card {
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  padding: 14px;
+  background: linear-gradient(135deg, #15161a, #101114);
+  border: 1px solid #34363b;
+  border-left: 5px solid #8a8f98;
+  border-radius: 4px;
+}
+
+.order-ops-card span {
+  color: #a7a9ae;
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.order-ops-card strong {
+  color: #f6f7f8;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.order-ops-card small {
+  color: #c7cbd1;
+  line-height: 1.35;
+}
+
+.order-ops-card em {
+  color: #9ea3aa;
+  font-size: 0.84rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.order-ops-card.info {
+  border-left-color: #70b7ff;
+}
+
+.order-ops-card.progress {
+  border-left-color: #a98df2;
+}
+
+.order-ops-card.warning {
+  border-left-color: #f1c94a;
+}
+
+.order-ops-card.success {
+  border-left-color: #86d69a;
+}
+
+.order-ops-card.done {
+  border-left-color: #7e858d;
+}
+
 .customer-list {
   display: grid;
   gap: 12px;
@@ -1206,6 +1270,10 @@
   .availability-payment-row {
     grid-template-columns: 1fr;
   }
+
+  .order-ops-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 680px) {
@@ -1231,6 +1299,14 @@
   .admin-stats,
   .settings-form fieldset {
     grid-template-columns: 1fr;
+  }
+
+  .order-ops-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .order-ops-card {
+    min-height: 104px;
   }
 
   .customer-data,
