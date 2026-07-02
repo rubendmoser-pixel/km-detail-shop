@@ -318,6 +318,33 @@ h3 {
   padding: clamp(42px, 7vw, 82px) clamp(16px, 4vw, 46px);
 }
 
+body.customer-app main {
+  background: #08090b;
+}
+
+body.customer-app .section {
+  padding: clamp(22px, 3vw, 42px) clamp(14px, 3vw, 34px);
+}
+
+body.customer-app .section-title h2,
+body.customer-app .purchases-header h2,
+body.customer-app .shipping-address-panel .section-title h3 {
+  font-size: clamp(1.55rem, 2.4vw, 2.25rem);
+  line-height: 1.08;
+}
+
+body.customer-app .eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+body.customer-app .section-lead,
+body.customer-app .catalog-toolbar span,
+body.customer-app .purchases-header p {
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 .section-title {
   display: flex;
   align-items: end;
@@ -732,6 +759,14 @@ textarea:focus {
   margin-bottom: 16px;
 }
 
+body.customer-app .catalog-toolbar {
+  margin-bottom: 12px;
+}
+
+body.customer-app .catalog-toolbar strong {
+  font-size: 0.98rem;
+}
+
 .catalog-toolbar strong,
 .catalog-toolbar span {
   display: block;
@@ -757,6 +792,10 @@ textarea:focus {
   grid-template-rows: auto 1fr auto;
   min-height: 325px;
   overflow: hidden;
+}
+
+body.customer-app .product-card {
+  min-height: 292px;
 }
 
 .product-load-more {
@@ -912,6 +951,15 @@ textarea:focus {
 
 .product-body {
   padding: 16px;
+}
+
+body.customer-app .product-body {
+  padding: 14px;
+}
+
+body.customer-app .product-body h3 {
+  font-size: 0.98rem;
+  line-height: 1.18;
 }
 
 .product-body p {
@@ -1458,6 +1506,10 @@ body.checkout-focus .order-form {
   background: #0b0c0e;
 }
 
+body.customer-app .customer-orders {
+  gap: 14px;
+}
+
 .section-title.compact {
   margin-bottom: 0;
 }
@@ -1475,6 +1527,10 @@ body.checkout-focus .order-form {
   align-items: end;
   justify-content: space-between;
   gap: 20px;
+}
+
+body.customer-app .purchases-header {
+  gap: 14px;
 }
 
 .purchases-header h2 {
@@ -1515,6 +1571,11 @@ body.checkout-focus .order-form {
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
 }
 
+body.customer-app .purchase-metrics button {
+  min-height: 74px;
+  padding: 12px 14px;
+}
+
 .purchase-metrics button.active {
   color: #f6f8fa;
   background:
@@ -1544,6 +1605,10 @@ body.checkout-focus .order-form {
   font-family: var(--font-display);
   font-size: clamp(2rem, 4vw, 2.7rem);
   line-height: 0.95;
+}
+
+body.customer-app .purchase-metrics strong {
+  font-size: clamp(1.45rem, 2.8vw, 2rem);
 }
 
 .purchase-metrics span {
@@ -1648,6 +1713,10 @@ body.checkout-focus .order-form {
   padding: 12px 16px;
   cursor: pointer;
   list-style: none;
+}
+
+body.customer-app .customer-order-summary {
+  padding: 10px 14px;
 }
 
 .customer-order-summary::-webkit-details-marker {

@@ -322,6 +322,7 @@ function catalogPageUrl(page) {
 
 function renderAccountState() {
   const approved = isApprovedCustomer();
+  const view = currentOperationalView();
   els.openAccount.textContent = state.user ? state.user.businessName || state.user.email : "Ingresar";
   els.catalogNotice.textContent = approved
     ? "Precios netos personalizados. IVA no incluido."
@@ -343,10 +344,40 @@ function renderAccountState() {
   if (approved && isPublicHash(window.location.hash)) {
     history.replaceState(null, "", "#catalogo");
   }
+  document.body.classList.toggle("customer-app", approved);
+  setOperationalView(view);
 }
 
 function isPublicHash(hash) {
   return !hash || ["#inicio", "#empresa", "#contacto"].includes(hash);
+}
+
+function currentOperationalView() {
+  if (!isApprovedCustomer()) return null;
+  if (window.location.hash === "#mis-compras") return "purchases";
+  if (window.location.hash === "#catalogo-pdf") return "pdf";
+  if (window.location.hash === "#pedido") return "checkout";
+  return "catalog";
+}
+
+function setOperationalView(view = currentOperationalView()) {
+  const approved = isApprovedCustomer();
+  const normalized = approved ? view || "catalog" : null;
+  document.body.dataset.appView = normalized || "";
+  const sections = {
+    catalog: document.querySelector("#catalogo"),
+    pdf: document.querySelector("#catalogo-pdf"),
+    checkout: document.querySelector("#distribuidores"),
+    purchases: els.customerOrders
+  };
+  Object.entries(sections).forEach(([name, section]) => {
+    if (!section) return;
+    if (!approved) {
+      if (name === "purchases") section.hidden = true;
+      return;
+    }
+    section.hidden = name !== normalized;
+  });
 }
 
 function renderCategoryFilters() {
@@ -880,7 +911,7 @@ function renderOrderResult(order) {
 
 function renderCustomerOrders() {
   const approved = isApprovedCustomer();
-  els.customerOrders.hidden = !approved;
+  els.customerOrders.hidden = !approved || currentOperationalView() !== "purchases";
   if (!approved) {
     els.customerOrders.innerHTML = "";
     return;
@@ -1135,6 +1166,7 @@ async function openPurchases(event) {
   event?.preventDefault?.();
   clearActionFocus();
   if (!isApprovedCustomer()) return openAccount(false);
+  setOperationalView("purchases");
   try {
     await loadCustomerOrders();
     renderCustomerOrders();
@@ -1157,11 +1189,20 @@ async function openPurchases(event) {
 }
 
 async function handleHashNavigation() {
+  if (isApprovedCustomer() && isPublicHash(window.location.hash)) {
+    history.replaceState(null, "", "#catalogo");
+    clearActionFocus();
+    setOperationalView("catalog");
+    requestAnimationFrame(() => document.querySelector("#catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    return;
+  }
   if (window.location.hash === "#mis-compras") {
+    setOperationalView("purchases");
     await openPurchases();
     return;
   }
   if (window.location.hash === "#pedido") {
+    setOperationalView("checkout");
     setActionFocus("checkout");
     requestAnimationFrame(() => {
       (els.orderForm.hidden ? document.querySelector("#distribuidores") : els.orderForm)
@@ -1169,7 +1210,14 @@ async function handleHashNavigation() {
     });
     return;
   }
+  if (window.location.hash === "#catalogo-pdf") {
+    clearActionFocus();
+    setOperationalView("pdf");
+    requestAnimationFrame(() => document.querySelector("#catalogo-pdf")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    return;
+  }
   clearActionFocus();
+  setOperationalView("catalog");
 }
 
 function toggleMobileMenu() {
