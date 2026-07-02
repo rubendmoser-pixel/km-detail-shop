@@ -1373,6 +1373,145 @@ button.operation-row:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.current-account-dashboard {
+  display: grid;
+  gap: 16px;
+}
+
+.current-account-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.current-account-actions button {
+  display: grid;
+  gap: 5px;
+  min-height: 112px;
+  padding: 14px;
+  color: #f6f7f8;
+  text-align: left;
+  background: linear-gradient(135deg, #17191d, #101114);
+  border: 1px solid #34363b;
+  border-top: 4px solid #8e949d;
+  cursor: pointer;
+}
+
+.current-account-actions button.active {
+  border-color: #d7dde5;
+  border-top-color: #f4df8d;
+  box-shadow: 0 0 0 1px rgba(244, 223, 141, 0.2);
+}
+
+.current-account-actions strong {
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.current-account-actions span,
+.current-account-actions small {
+  color: #aeb3ba;
+  font-weight: 900;
+}
+
+.current-account-actions span {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.current-account-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: #111214;
+  border: 1px solid #34363b;
+}
+
+.current-account-table {
+  display: grid;
+  gap: 8px;
+}
+
+.current-account-head,
+.current-account-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.35fr) minmax(150px, 1fr) repeat(4, minmax(115px, 0.75fr)) 70px;
+  gap: 10px;
+  align-items: center;
+}
+
+.current-account-head {
+  padding: 0 12px;
+  color: #9ea3aa;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.current-account-row {
+  width: 100%;
+  padding: 13px 12px;
+  color: #f6f7f8;
+  text-align: left;
+  background: #17181b;
+  border: 1px solid #34363b;
+  border-left: 5px solid #8e949d;
+  cursor: pointer;
+}
+
+.current-account-row:hover {
+  border-color: #c7cdd5;
+}
+
+.current-account-row.overdue {
+  border-left-color: #d85d5d;
+}
+
+.current-account-row.due-today,
+.current-account-row.due-soon {
+  border-left-color: #f4df8d;
+}
+
+.current-account-row.open {
+  border-left-color: #8bd69a;
+}
+
+.current-account-row.no-due {
+  border-left-color: #8fbff0;
+}
+
+.current-account-row span,
+.current-account-row strong,
+.current-account-row small {
+  display: block;
+  min-width: 0;
+}
+
+.current-account-row strong {
+  overflow-wrap: anywhere;
+}
+
+.current-account-row small {
+  margin-top: 4px;
+  color: #9ea3aa;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.current-account-row em {
+  display: inline-grid;
+  min-height: 36px;
+  padding: 0 14px;
+  place-items: center;
+  color: #111214;
+  background: #d8dde3;
+  border-radius: 3px;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .admin-empty {
   padding: 24px;
   color: #a7a9ae;
@@ -1421,6 +1560,18 @@ button.operation-row:hover {
   .product-rank {
     grid-template-columns: 1fr;
   }
+
+  .current-account-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .current-account-head {
+    display: none;
+  }
+
+  .current-account-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 680px) {
@@ -1461,6 +1612,11 @@ button.operation-row:hover {
   }
 
   .operation-row {
+    grid-template-columns: 1fr;
+  }
+
+  .current-account-actions,
+  .current-account-row {
     grid-template-columns: 1fr;
   }
 

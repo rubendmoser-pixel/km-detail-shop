@@ -1,10 +1,10 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null, salesReps: [], operationDashboard: null
+  securityEvents: [], securitySummary: null, salesReps: [], operationDashboard: null, currentAccountFilter: "open"
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const adminViews = new Set(["customers", "sales", "products", "orders", "settings", "emails", "security", "operation"]);
+const adminViews = new Set(["customers", "sales", "products", "orders", "accounts", "settings", "emails", "security", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -73,7 +73,8 @@ const adminEls = Object.fromEntries([
   "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
-  "securitySearch", "securityStats", "securityTableBody", "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
+  "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
+  "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -126,6 +127,9 @@ function bindAdminEvents() {
   adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
   document.querySelector("#resetSalesRepForm").addEventListener("click", resetSalesRepForm);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
+  adminEls.currentAccountSearch.addEventListener("input", debounce(() => renderCurrentAccountDashboard(), 200));
+  document.querySelector("#reloadCurrentAccounts").addEventListener("click", loadOperationDashboard);
+  adminEls.currentAccountDashboard.addEventListener("click", handleCurrentAccountClick);
   document.querySelector("#reloadOperationDashboard").addEventListener("click", loadOperationDashboard);
   adminEls.operationDashboard.addEventListener("click", handleOperationDashboardClick);
   adminEls.deleteTestOrdersForm.addEventListener("submit", deleteTestOrders);
@@ -1534,6 +1538,7 @@ async function loadOperationDashboard() {
   const { dashboard } = await adminApi("/api/admin/operation/dashboard");
   adminState.operationDashboard = dashboard;
   renderOperationDashboard(dashboard);
+  renderCurrentAccountDashboard(dashboard);
 }
 
 function renderOperationDashboard(dashboard) {
@@ -1642,6 +1647,121 @@ function handleOperationDashboardClick(event) {
   if (!button || !adminEls.operationDashboard.contains(button)) return;
   showAdminView("orders");
   openOrderDetail(Number(button.dataset.dashboardOrder), button);
+}
+
+function renderCurrentAccountDashboard(dashboard = adminState.operationDashboard) {
+  if (!adminEls.currentAccountDashboard) return;
+  if (!dashboard) {
+    adminEls.currentAccountDashboard.innerHTML = `<p class="admin-note">No hay informacion de cuenta corriente disponible.</p>`;
+    return;
+  }
+  const accounts = dashboard.currentAccounts || {};
+  const openRows = accounts.open || [];
+  const overdueRows = accounts.overdue || [];
+  const dueSoonRows = accounts.dueSoon || [];
+  const noDueRows = openRows.filter((row) => !row.dueDate);
+  const summary = dashboard.summary || {};
+  const filters = [
+    { key: "open", label: "Abiertos", value: openRows.length, amount: summary.openBalanceCents || 0 },
+    { key: "overdue", label: "Vencidos", value: overdueRows.length, amount: summary.overdueBalanceCents || 0 },
+    { key: "dueSoon", label: "Vencen pronto", value: dueSoonRows.length, amount: summary.dueSoonBalanceCents || 0 },
+    { key: "noDue", label: "Sin vencimiento", value: noDueRows.length, amount: sumClientRows(noDueRows, "balanceCents") }
+  ];
+  const selectedRows = {
+    open: openRows,
+    overdue: overdueRows,
+    dueSoon: dueSoonRows,
+    noDue: noDueRows
+  }[adminState.currentAccountFilter] || openRows;
+  const query = (adminEls.currentAccountSearch?.value || "").trim().toLowerCase();
+  const rows = selectedRows.filter((row) => accountRowMatches(row, query));
+
+  adminEls.currentAccountDashboard.innerHTML = `
+    <div class="current-account-actions" role="tablist" aria-label="Filtros de cuenta corriente">
+      ${filters.map((filter) => `
+        <button class="${filter.key === adminState.currentAccountFilter ? "active" : ""}" type="button" data-account-filter="${filter.key}">
+          <strong>${filter.value}</strong>
+          <span>${escapeAdmin(filter.label)}</span>
+          <small>${adminMoney.format(filter.amount / 100)}</small>
+        </button>
+      `).join("")}
+    </div>
+    <section class="current-account-panel">
+      <div class="panel-heading">
+        <p class="eyebrow">Seguimiento</p>
+        <h3>${escapeAdmin(accountFilterTitle(adminState.currentAccountFilter))}</h3>
+      </div>
+      ${rows.length ? `
+        <div class="current-account-table">
+          <div class="current-account-head">
+            <span>Pedido / cliente</span><span>Vendedor</span><span>Total</span><span>Pagado</span><span>Saldo</span><span>Vencimiento</span><span></span>
+          </div>
+          ${rows.map(renderCurrentAccountRow).join("")}
+        </div>
+      ` : `<p class="admin-empty">No hay saldos para este filtro.</p>`}
+    </section>
+  `;
+}
+
+function renderCurrentAccountRow(row) {
+  const due = accountDueState(row);
+  return `
+    <button class="current-account-row ${due.className}" type="button" data-account-order="${row.id}">
+      <span><strong>${escapeAdmin(row.orderNumber)}</strong><small>${escapeAdmin(row.businessName || "-")}</small></span>
+      <span><strong>${escapeAdmin(row.salesRepName || "Sin vendedor")}</strong><small>${escapeAdmin(row.salesRepEmail || "General")}</small></span>
+      <span><strong>${adminMoney.format((row.totalCents || 0) / 100)}</strong><small>Total pedido</small></span>
+      <span><strong>${adminMoney.format((row.paidCents || 0) / 100)}</strong><small>Acreditado</small></span>
+      <span><strong>${adminMoney.format((row.balanceCents || 0) / 100)}</strong><small>Saldo</small></span>
+      <span><strong>${escapeAdmin(due.label)}</strong><small>${escapeAdmin(due.hint)}</small></span>
+      <span><em>Ver</em></span>
+    </button>
+  `;
+}
+
+function handleCurrentAccountClick(event) {
+  const filterButton = event.target.closest("[data-account-filter]");
+  if (filterButton && adminEls.currentAccountDashboard.contains(filterButton)) {
+    adminState.currentAccountFilter = filterButton.dataset.accountFilter;
+    renderCurrentAccountDashboard();
+    return;
+  }
+  const rowButton = event.target.closest("[data-account-order]");
+  if (!rowButton || !adminEls.currentAccountDashboard.contains(rowButton)) return;
+  showAdminView("orders");
+  openOrderDetail(Number(rowButton.dataset.accountOrder), rowButton);
+}
+
+function accountRowMatches(row, query) {
+  if (!query) return true;
+  return [
+    row.orderNumber,
+    row.businessName,
+    row.salesRepName,
+    row.salesRepEmail,
+    paymentStatusText(row.paymentStatus)
+  ].some((value) => String(value || "").toLowerCase().includes(query));
+}
+
+function accountDueState(row) {
+  if (!row.dueDate) return { className: "no-due", label: "Sin fecha", hint: "Revisar condicion" };
+  const days = Number(row.daysToDue);
+  if (days < 0) return { className: "overdue", label: formatAdminDate(row.dueDate), hint: `Vencido hace ${Math.abs(days)} dia${Math.abs(days) === 1 ? "" : "s"}` };
+  if (days === 0) return { className: "due-today", label: formatAdminDate(row.dueDate), hint: "Vence hoy" };
+  if (days <= 2) return { className: "due-soon", label: formatAdminDate(row.dueDate), hint: `Faltan ${days} dia${days === 1 ? "" : "s"}` };
+  return { className: "open", label: formatAdminDate(row.dueDate), hint: `Faltan ${days} dias` };
+}
+
+function accountFilterTitle(filter) {
+  return {
+    open: "Saldos abiertos",
+    overdue: "Saldos vencidos",
+    dueSoon: "Vencimientos proximos",
+    noDue: "Saldos sin vencimiento"
+  }[filter] || "Saldos abiertos";
+}
+
+function sumClientRows(rows, key) {
+  return rows.reduce((total, row) => total + Number(row[key] || 0), 0);
 }
 
 async function adminApi(url, { method = "GET", body } = {}) {

@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=31" />
+    <link rel="stylesheet" href="./admin.css?v=32" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -40,6 +40,7 @@
           <button type="button" data-admin-view="sales">Vendedores</button>
           <button type="button" data-admin-view="products">Productos</button>
           <button type="button" data-admin-view="orders">Pedidos</button>
+          <button type="button" data-admin-view="accounts">Cta. corriente</button>
           <button type="button" data-admin-view="settings">Configuracion</button>
           <button type="button" data-admin-view="emails">Emails</button>
           <button type="button" data-admin-view="security">Seguridad</button>
@@ -282,6 +283,17 @@
           </section>
         </section>
 
+        <section class="admin-view" id="accountsView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Finanzas comerciales</p><h1>Cuenta corriente</h1></div>
+            <div class="admin-toolbar">
+              <input id="currentAccountSearch" type="search" placeholder="Buscar pedido, cliente o vendedor" aria-label="Buscar saldos" />
+              <button class="ghost-button" id="reloadCurrentAccounts" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="current-account-dashboard" id="currentAccountDashboard"></div>
+        </section>
+
         <section class="admin-view" id="settingsView" hidden>
           <div class="admin-titlebar"><div><p class="eyebrow">Condiciones globales</p><h1>Configuracion comercial</h1></div></div>
           <form class="settings-form" id="settingsForm">
@@ -361,6 +373,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=44" defer></script>
+    <script src="./admin.js?v=45" defer></script>
   </body>
 </html>

@@ -27,7 +27,9 @@ export function getAdminOperationDashboard(db) {
   const activeOrders = orders.filter((order) => !CLOSED_STATUSES.has(order.status) && order.fulfillment_status !== "delivered");
   const finalizedOrders = orders.filter((order) => order.status === "delivered" || order.fulfillment_status === "delivered");
   const monthOrders = orders.filter((order) => (order.created_at || "").slice(0, 10) >= monthStart && order.status !== "cancelled");
-  const openBalanceOrders = orders.filter((order) => Number(order.balance_cents || 0) > 0 && OPEN_PAYMENT_STATUSES.has(order.payment_status));
+  const openBalanceOrders = orders
+    .filter((order) => Number(order.balance_cents || 0) > 0 && OPEN_PAYMENT_STATUSES.has(order.payment_status))
+    .sort(compareCurrentAccountOrders);
   const overdueOrders = openBalanceOrders.filter((order) => order.payment_due_date && order.payment_due_date < today);
   const dueSoonOrders = openBalanceOrders.filter((order) => order.payment_due_date && order.payment_due_date >= today && order.payment_due_date <= addDaysIsoDate(now, 2));
 
@@ -141,17 +143,28 @@ function topProducts(items) {
 }
 
 function mapCurrentAccountOrder(order) {
+  const today = isoDate(new Date());
   return {
     id: order.id,
     orderNumber: order.order_number,
     businessName: order.business_name,
+    salesRepName: order.sales_rep_name || "",
+    salesRepEmail: order.sales_rep_email || "",
     paymentStatus: order.payment_status,
     totalCents: Number(order.total_cents || 0),
     paidCents: Number(order.paid_cents || 0),
     balanceCents: Number(order.balance_cents || 0),
     dueDate: order.payment_due_date || "",
+    daysToDue: order.payment_due_date ? daysBetween(today, order.payment_due_date) : null,
     createdAt: order.created_at
   };
+}
+
+function compareCurrentAccountOrders(a, b) {
+  const aDate = a.payment_due_date || "9999-12-31";
+  const bDate = b.payment_due_date || "9999-12-31";
+  if (aDate !== bDate) return aDate.localeCompare(bDate);
+  return Number(b.balance_cents || 0) - Number(a.balance_cents || 0);
 }
 
 function sum(rows, key) {
@@ -166,4 +179,10 @@ function addDaysIsoDate(date, days) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return isoDate(next);
+}
+
+function daysBetween(fromIso, toIso) {
+  const from = new Date(`${fromIso}T00:00:00Z`);
+  const to = new Date(`${toIso}T00:00:00Z`);
+  return Math.round((to - from) / 86_400_000);
 }
