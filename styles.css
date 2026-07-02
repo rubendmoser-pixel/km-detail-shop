@@ -329,7 +329,7 @@ body.customer-app .section {
 body.customer-app .section-title h2,
 body.customer-app .purchases-header h2,
 body.customer-app .shipping-address-panel .section-title h3 {
-  font-size: clamp(1.55rem, 2.4vw, 2.25rem);
+  font-size: clamp(1.35rem, 2.1vw, 2rem);
   line-height: 1.08;
 }
 
@@ -958,7 +958,7 @@ body.customer-app .product-body {
 }
 
 body.customer-app .product-body h3 {
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   line-height: 1.18;
 }
 
@@ -1608,7 +1608,7 @@ body.customer-app .purchase-metrics button {
 }
 
 body.customer-app .purchase-metrics strong {
-  font-size: clamp(1.45rem, 2.8vw, 2rem);
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
 }
 
 .purchase-metrics span {
@@ -1953,14 +1953,29 @@ body.customer-app .customer-order-summary {
 }
 
 .receipt-upload {
-  display: inline-grid;
-  gap: 6px;
-  padding: 12px 16px;
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 18px;
   color: #09090a;
   background: linear-gradient(180deg, #f8f9fa, #c7ccd1);
+  border: 1px solid #dfe3e6;
   border-radius: 6px;
-  font-weight: 800;
+  box-shadow: 0 12px 24px rgba(180, 188, 196, 0.16);
+  font-weight: 900;
   cursor: pointer;
+}
+
+.receipt-upload span {
+  color: #09090a;
+}
+
+.receipt-upload small {
+  color: #333940;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .receipt-upload.disabled {
@@ -1969,7 +1984,12 @@ body.customer-app .customer-order-summary {
 }
 
 .receipt-upload input {
-  max-width: 240px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .empty-purchases {
@@ -2692,6 +2712,38 @@ body.customer-app .customer-order-summary {
   .customer-order-summary {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  body.customer-app .section {
+    padding-block: 18px;
+  }
+
+  body.customer-app .section-title h2,
+  body.customer-app .purchases-header h2,
+  body.customer-app .shipping-address-panel .section-title h3 {
+    font-size: 1.55rem;
+  }
+
+  body.customer-app .purchase-metrics {
+    gap: 7px;
+  }
+
+  body.customer-app .purchase-metrics button {
+    min-height: 64px;
+    padding: 10px 12px;
+  }
+
+  body.customer-app .purchase-metrics strong {
+    font-size: 1.32rem;
+  }
+
+  body.customer-app .purchase-summary-main strong,
+  body.customer-app .purchase-summary-total strong {
+    font-size: 0.95rem;
+  }
+
+  .receipt-upload {
+    width: 100%;
   }
 
   .purchase-summary-total {

@@ -1061,7 +1061,7 @@ function renderCustomerOrder(order) {
           <div class="purchase-actions">
             ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Aceptar disponibilidad</button>` : ""}
             ${canConfirmReceived ? `<button class="primary-button" type="button" data-confirm-received="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Confirmar pedido recibido</button>` : ""}
-            ${canUpload ? `<label class="receipt-upload ${state.purchasesRefreshing ? "disabled" : ""}"><span>Subir comprobante</span><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""} /></label>` : paymentHelperText(order)}
+            ${canUpload ? `<label class="receipt-upload ${state.purchasesRefreshing ? "disabled" : ""}"><span>Cargar comprobante de pago</span><small>PDF, JPG o PNG</small><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""} /></label>` : paymentHelperText(order)}
             ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
           </div>
           ${canUpload ? renderBankSummary(bank) : ""}
