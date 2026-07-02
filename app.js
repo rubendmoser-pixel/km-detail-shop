@@ -62,6 +62,7 @@ const state = {
   sort: "featured",
   productVisibleCount: PRODUCT_PAGE_SIZE,
   catalogPage: 0,
+  checkoutCompleted: false,
   cart: readCart()
 };
 
@@ -328,7 +329,7 @@ function renderAccountState() {
       ? "Tu cuenta comercial esta pendiente de aprobacion."
       : "Inicia sesion para consultar precios comerciales.";
   els.orderAccess.hidden = approved;
-  els.orderForm.hidden = !approved;
+  els.orderForm.hidden = !approved || state.checkoutCompleted;
   if (els.navPurchases) els.navPurchases.hidden = !approved;
   document.querySelectorAll("[data-nav-audience='public']").forEach((link) => {
     link.hidden = approved;
@@ -671,8 +672,10 @@ async function submitOrder(event) {
       }
     });
     state.cart = {};
+    state.checkoutCompleted = true;
     saveCart();
     renderCart();
+    renderAccountState();
     renderOrderResult(result.order);
     await loadCustomerOrders();
     renderCustomerOrders();
@@ -1357,6 +1360,10 @@ function orderSummary(order) {
 
 function addToCart(productId, quantity) {
   if (!isApprovedCustomer()) return openAccount(false);
+  state.checkoutCompleted = false;
+  els.orderResult.hidden = true;
+  els.orderResult.innerHTML = "";
+  renderAccountState();
   state.cart[productId] = (state.cart[productId] || 0) + Math.max(1, Math.floor(quantity));
   saveCart();
   renderCart();
