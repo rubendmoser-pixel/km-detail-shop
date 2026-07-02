@@ -22,5 +22,8 @@ export const config = {
   smtpSecure: process.env.SMTP_SECURE === "true",
   smtpUser: process.env.SMTP_USER || "",
   smtpPassword: process.env.SMTP_PASSWORD || "",
-  publicBaseUrl: process.env.PUBLIC_BASE_URL || "https://www.km-detail.com"
+  publicBaseUrl: process.env.PUBLIC_BASE_URL || "https://www.km-detail.com",
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY || "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || "",
+  vapidSubject: process.env.VAPID_SUBJECT || "mailto:ventas@km-detail.com"
 };

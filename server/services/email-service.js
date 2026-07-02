@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-export function createEmailService({ db, config }) {
+export function createEmailService({ db, config, pushService = null }) {
   const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
   const provider = config.emailProvider === "resend" ? "resend" : "smtp";
   const enabled = provider === "resend"
@@ -465,6 +465,17 @@ export function createEmailService({ db, config }) {
       "",
       config.publicBaseUrl
     ].join("\n"));
+    if (pushService && reminder.phoneText) {
+      pushService.queueCustomerNotification({
+        customerId: order.customer_id,
+        eventType: reminder.eventType,
+        title: "KM Detail Line",
+        body: reminder.phoneText(order),
+        url: `${config.publicBaseUrl.replace(/\/$/, "")}/#mis-compras`,
+        tag: `km-payment-${order.id}-${reminder.stage}`
+      });
+      void pushService.flush();
+    }
   }
 
   function resolvePaymentReminder(order, today) {

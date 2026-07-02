@@ -674,6 +674,50 @@ test("email service sends pending messages through Resend API", async (t) => {
   assert.equal(db.prepare("SELECT status FROM email_outbox").get().status, "sent");
 });
 
+test("push notification endpoints stay safe when VAPID is not configured", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-push-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath });
+  const server = http.createServer(createApp({
+    db,
+    config: {
+      sessionDays: 30,
+      secureCookies: false,
+      publicBaseUrl: baseUrlPlaceholder()
+    }
+  }));
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const registration = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(customerRegistration())
+  });
+  assert.equal(registration.status, 201);
+  db.prepare("UPDATE customers SET approval_status = 'approved'").run();
+  const cookie = await loginCookie(baseUrl, "cliente-api@example.com", "customer-password-123");
+
+  const config = await getJson(`${baseUrl}/api/push/config`, cookie);
+  assert.deepEqual(config, { enabled: false, publicKey: "", subscribed: false });
+
+  const subscribeResponse = await fetch(`${baseUrl}/api/push/subscribe`, {
+    method: "POST",
+    headers: jsonHeaders(cookie),
+    body: JSON.stringify({
+      endpoint: "https://push.example.test/subscription",
+      keys: { p256dh: "public-key", auth: "auth-token" }
+    })
+  });
+  assert.equal(subscribeResponse.status, 201);
+  assert.deepEqual(await subscribeResponse.json(), { enabled: false, subscribed: false });
+});
+
 async function loginCookie(baseUrl, email, password) {
   const response = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",

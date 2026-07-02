@@ -39,6 +39,7 @@ import { assignSalesRepToCustomer, listSalesReps, upsertSalesRep } from "./servi
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
+import { createPushService } from "./services/push-service.js";
 import { createRateLimiter } from "./rate-limit.js";
 import { renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
@@ -46,7 +47,12 @@ import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
-export function createApp({ db, config, emailService = createEmailService({ db, config }) }) {
+export function createApp({
+  db,
+  config,
+  pushService = createPushService({ db, config }),
+  emailService = createEmailService({ db, config, pushService })
+}) {
   const checkRateLimit = createRateLimiter();
   const uploadsPath = config.uploadsPath || path.join(projectRoot, "uploads");
   return async function app(request, response) {
@@ -131,6 +137,22 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
       }
       if (request.method === "GET" && url.pathname === "/api/me") {
         return sendJson(response, 200, { user: requireUser(currentUser) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/push/config") {
+        const user = requireUser(currentUser);
+        return sendJson(response, 200, {
+          ...pushService.publicConfig(),
+          ...pushService.getUserSubscriptionState(user)
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/push/subscribe") {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 201, pushService.upsertSubscription(user, await readJson(request), request.headers["user-agent"] || ""));
+      }
+      if (request.method === "DELETE" && url.pathname === "/api/push/subscribe") {
+        const user = requireApprovedCustomer(currentUser);
+        const body = await readJson(request);
+        return sendJson(response, 200, pushService.removeSubscription(user, body.endpoint));
       }
       if (request.method === "GET" && url.pathname === "/api/products") {
         return sendJson(response, 200, { products: listProducts(db, currentUser) });

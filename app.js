@@ -44,6 +44,13 @@ const state = {
   shippingAddresses: [],
   selectedShippingAddressId: null,
   shippingAddressConfigOpen: false,
+  push: {
+    supported: "serviceWorker" in navigator && "PushManager" in window && "Notification" in window,
+    enabled: false,
+    permission: "Notification" in window ? Notification.permission : "unsupported",
+    subscribed: false,
+    message: ""
+  },
   purchaseFilter: "open",
   purchaseVisibleCount: 10,
   settings: { vatBps: 2100, whatsappNumber: "" },
@@ -76,13 +83,12 @@ async function init() {
   bindEvents();
   await Promise.all([loadSession(), loadSettings()]);
   await loadProducts();
-  if (isApprovedCustomer()) await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
-  renderAll();
-  await handleHashNavigation();
-
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js").catch(() => {});
   }
+  if (isApprovedCustomer()) await Promise.all([loadCustomerOrders(), loadShippingAddresses(), loadPushState()]);
+  renderAll();
+  await handleHashNavigation();
 }
 
 function normalizeInitialRoute() {
@@ -197,6 +203,68 @@ async function loadProducts() {
     state.products = [];
     showToast(error.message);
   }
+}
+
+async function loadPushState() {
+  if (!state.push.supported || !isApprovedCustomer()) return;
+  try {
+    const config = await api("/api/push/config");
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    state.push.enabled = Boolean(config.enabled);
+    state.push.permission = Notification.permission;
+    state.push.subscribed = Boolean(subscription || config.subscribed);
+    state.push.message = "";
+  } catch {
+    state.push.enabled = false;
+    state.push.subscribed = false;
+  }
+}
+
+async function enablePushNotifications() {
+  if (!state.push.supported) return showToast("Este dispositivo no permite notificaciones web.");
+  try {
+    const config = await api("/api/push/config");
+    state.push.enabled = Boolean(config.enabled);
+    if (!config.enabled || !config.publicKey) {
+      state.push.message = "Las alertas todavia no estan configuradas en el servidor.";
+      renderCustomerOrders();
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    state.push.permission = permission;
+    if (permission !== "granted") {
+      state.push.message = "Permiso no habilitado en este dispositivo.";
+      renderCustomerOrders();
+      return;
+    }
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(config.publicKey)
+      });
+    }
+    await api("/api/push/subscribe", { method: "POST", body: subscription.toJSON() });
+    state.push.subscribed = true;
+    state.push.message = "Listo. Este dispositivo recibira alertas importantes.";
+    renderCustomerOrders();
+    showToast("Alertas activadas en este dispositivo.");
+  } catch (error) {
+    state.push.message = error.message || "No se pudieron activar las alertas.";
+    renderCustomerOrders();
+    showToast(state.push.message);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let index = 0; index < rawData.length; index += 1) outputArray[index] = rawData.charCodeAt(index);
+  return outputArray;
 }
 
 function renderAll() {
@@ -529,7 +597,7 @@ async function submitLogin(event) {
   try {
     state.user = (await api("/api/auth/login", { method: "POST", body: values })).user;
     await loadProducts();
-    await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
+    await Promise.all([loadCustomerOrders(), loadShippingAddresses(), loadPushState()]);
     els.accountDialog.close();
     renderAll();
     if (isApprovedCustomer()) {
@@ -556,7 +624,7 @@ async function submitRegistration(event) {
     await api("/api/auth/register", { method: "POST", body: values });
     state.user = (await api("/api/auth/login", { method: "POST", body: { email: values.email, password: values.password } })).user;
     await loadProducts();
-    await Promise.all([loadCustomerOrders(), loadShippingAddresses()]);
+    await Promise.all([loadCustomerOrders(), loadShippingAddresses(), loadPushState()]);
     els.registerForm.reset();
     els.accountDialog.close();
     renderAll();
@@ -573,6 +641,8 @@ async function logout() {
   state.user = null;
   state.orders = [];
   state.shippingAddresses = [];
+  state.push.subscribed = false;
+  state.push.message = "";
   state.selectedShippingAddressId = null;
   clearCart();
   await loadProducts();
@@ -826,6 +896,7 @@ function renderCustomerOrders() {
       <button class="${state.purchaseFilter === "pay" ? "active" : ""}" type="button" data-purchase-filter="pay"><strong>${metrics.toPay}</strong><span>para pagar</span></button>
       <button class="${state.purchaseFilter === "shipment" ? "active" : ""}" type="button" data-purchase-filter="shipment"><strong>${metrics.shipments}</strong><span>en despacho</span></button>
     </div>
+    ${renderPushPermissionCard()}
     <div class="purchase-list">
       ${filteredOrders.length ? orderCards : `<article class="empty-purchases"><strong>${state.purchaseFilter === "closed" ? "Sin compras finalizadas" : "Sin compras activas para este filtro"}</strong><span>${state.purchaseFilter === "closed" ? "Cuando confirmes la recepcion, las compras cerradas quedan aca." : "Cambia el filtro o arma un pedido desde Productos."}</span></article>`}
     </div>
@@ -842,6 +913,7 @@ function renderCustomerOrders() {
     state.purchaseVisibleCount += 10;
     renderCustomerOrders();
   });
+  els.customerOrders.querySelector("[data-push-enable]")?.addEventListener("click", enablePushNotifications);
   els.customerOrders.querySelectorAll("[data-receipt-input]").forEach((input) => input.addEventListener("change", uploadReceipt));
   els.customerOrders.querySelectorAll("[data-accept-order]").forEach((button) => {
     button.addEventListener("click", () => acceptOrder(Number(button.dataset.acceptOrder)));
@@ -849,6 +921,41 @@ function renderCustomerOrders() {
   els.customerOrders.querySelectorAll("[data-confirm-received]").forEach((button) => {
     button.addEventListener("click", () => confirmReceived(Number(button.dataset.confirmReceived)));
   });
+}
+
+function renderPushPermissionCard() {
+  if (!state.push.supported) {
+    return `
+      <article class="push-permission-card muted">
+        <div><strong>Alertas del telefono</strong><span>Este dispositivo no permite notificaciones web.</span></div>
+      </article>
+    `;
+  }
+  if (!state.push.enabled) {
+    return `
+      <article class="push-permission-card muted">
+        <div><strong>Alertas del telefono</strong><span>Las notificaciones todavia no estan configuradas en el servidor.</span></div>
+      </article>
+    `;
+  }
+  if (state.push.permission === "denied") {
+    return `
+      <article class="push-permission-card muted">
+        <div><strong>Alertas bloqueadas</strong><span>Para recibir avisos, habilita las notificaciones de km-detail.com en el navegador.</span></div>
+      </article>
+    `;
+  }
+  const active = state.push.subscribed && state.push.permission === "granted";
+  return `
+    <article class="push-permission-card ${active ? "active" : ""}">
+      <div>
+        <strong>${active ? "Alertas activas" : "Alertas del telefono"}</strong>
+        <span>${active ? "Este dispositivo puede recibir avisos importantes de pedidos y vencimientos." : "Activa avisos importantes de pedidos, pagos y vencimientos en este dispositivo."}</span>
+        ${state.push.message ? `<small>${escapeHtml(state.push.message)}</small>` : ""}
+      </div>
+      ${active ? `<span class="push-status-pill">Activo</span>` : `<button class="ghost-button" type="button" data-push-enable>Activar alertas</button>`}
+    </article>
+  `;
 }
 
 function renderCustomerOrder(order) {
