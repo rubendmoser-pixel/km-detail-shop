@@ -42,6 +42,7 @@ import { createEmailService } from "./services/email-service.js";
 import { createRateLimiter } from "./rate-limit.js";
 import { renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
+import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -369,6 +370,9 @@ export function createApp({ db, config, emailService = createEmailService({ db, 
             limit: url.searchParams.get("limit") || 150
           })
         });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/operation/dashboard") {
+        return sendJson(response, 200, { dashboard: getAdminOperationDashboard(db) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/operation/delete-test-orders") {
         return sendJson(response, 200, { result: deleteTestOrders(db, uploadsPath, await readJson(request)) });

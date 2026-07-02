@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=30" />
+    <link rel="stylesheet" href="./admin.css?v=31" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -334,8 +334,12 @@
 
         <section class="admin-view" id="operationView" hidden>
           <div class="admin-titlebar">
-            <div><p class="eyebrow">Operacion</p><h1>Herramientas de prueba</h1></div>
+            <div><p class="eyebrow">Operacion</p><h1>Tablero comercial</h1></div>
+            <div class="admin-toolbar">
+              <button class="ghost-button" id="reloadOperationDashboard" type="button">Actualizar</button>
+            </div>
           </div>
+          <div class="operation-dashboard" id="operationDashboard"></div>
           <form class="settings-form" id="deleteTestOrdersForm">
             <fieldset>
               <legend>Borrar pedidos de prueba</legend>
@@ -357,6 +361,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=42" defer></script>
+    <script src="./admin.js?v=43" defer></script>
   </body>
 </html>

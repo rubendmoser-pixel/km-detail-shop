@@ -1,7 +1,7 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null, salesReps: []
+  securityEvents: [], securitySummary: null, salesReps: [], operationDashboard: null
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const adminViews = new Set(["customers", "sales", "products", "orders", "settings", "emails", "security", "operation"]);
@@ -73,7 +73,7 @@ const adminEls = Object.fromEntries([
   "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
-  "securitySearch", "securityStats", "securityTableBody", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
+  "securitySearch", "securityStats", "securityTableBody", "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -126,6 +126,8 @@ function bindAdminEvents() {
   adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
   document.querySelector("#resetSalesRepForm").addEventListener("click", resetSalesRepForm);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
+  document.querySelector("#reloadOperationDashboard").addEventListener("click", loadOperationDashboard);
+  adminEls.operationDashboard.addEventListener("click", handleOperationDashboardClick);
   adminEls.deleteTestOrdersForm.addEventListener("submit", deleteTestOrders);
 }
 
@@ -155,7 +157,7 @@ async function enterWorkspace() {
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
   await loadSalesReps();
-  await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents()]);
+  await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents(), loadOperationDashboard()]);
   showAdminView(currentAdminView(), false);
   resetProductForm();
   resetSalesRepForm();
@@ -910,11 +912,13 @@ function renderOrderWorkflow(order) {
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
   const hasReceipts = (order.paymentReceipts || []).length > 0;
   const canManageOpenBalance = availabilityConfirmed && (order.balanceCents || 0) > 0;
-  const canReviewPayment = hasReceipts || ["receipt_uploaded", "rejected"].includes(order.paymentStatus) || canManageOpenBalance;
   const canManageFulfillment = canFulfillOrder(order);
+  const needsPaymentAction = ["receipt_uploaded", "rejected", "overdue"].includes(order.paymentStatus)
+    || (availabilityConfirmed && order.paymentStatus === "pending_payment")
+    || (canManageOpenBalance && !canManageFulfillment && !hasReceipts);
 
   adminEls.availabilityForm.hidden = !canConfirmAvailability;
-  adminEls.paymentReviewPanel.hidden = isCancelled || !canReviewPayment;
+  adminEls.paymentReviewPanel.hidden = isCancelled || !needsPaymentAction;
   adminEls.fulfillmentForm.hidden = !canManageFulfillment;
   adminEls.orderAdvancedPanel.hidden = isCancelled || isClosed;
   adminEls.orderAdvancedPanel.open = false;
@@ -1060,6 +1064,7 @@ async function saveFulfillment(event) {
     });
     adminState.selectedOrder = order;
     await loadOrders();
+    await loadOperationDashboard();
     renderOrderDetail();
     adminEls.fulfillmentMessage.textContent = "Despacho guardado y email enviado.";
   } catch (error) {
@@ -1219,6 +1224,7 @@ async function reviewReceipt(event) {
     });
     adminState.selectedOrder = order;
     await loadOrders();
+    await loadOperationDashboard();
     renderOrderDetail();
     showAdminToast(status === "accepted" ? "Pago aceptado." : "Comprobante rechazado.");
   } catch (error) {
@@ -1244,6 +1250,7 @@ async function authorizePaymentTerms(event) {
     });
     adminState.selectedOrder = order;
     await loadOrders();
+    await loadOperationDashboard();
     renderOrderDetail();
     showAdminToast("Saldo autorizado.");
   } catch (error) {
@@ -1269,6 +1276,7 @@ async function applyCommercialAdjustment(event) {
     });
     adminState.selectedOrder = order;
     await loadOrders();
+    await loadOperationDashboard();
     renderOrderDetail();
     showAdminToast("Ajuste comercial aplicado. No se envio email al cliente.");
   } catch (error) {
@@ -1307,6 +1315,7 @@ async function saveAvailability(event) {
     });
     adminState.selectedOrder = order;
     await loadOrders();
+    await loadOperationDashboard();
     renderOrderDetail();
     adminEls.availabilityMessage.textContent = "Disponibilidad confirmada y email enviado.";
   } catch (error) {
@@ -1342,6 +1351,7 @@ async function saveOrderStatus(event) {
     });
     adminState.selectedOrder = order;
     await loadOrders();
+    await loadOperationDashboard();
     renderOrderDetail();
     adminEls.orderStatusMessage.textContent = "Pedido actualizado.";
   } catch (error) {
@@ -1506,12 +1516,127 @@ async function deleteTestOrders(event) {
     ].join(" ");
     showAdminToast("Pedidos de prueba eliminados.");
     await loadOrders();
+    await loadOperationDashboard();
     closeOrderDetail();
   } catch (error) {
     adminEls.deleteTestOrdersMessage.textContent = error.message;
   } finally {
     setBusy(adminEls.deleteTestOrdersForm, false);
   }
+}
+
+async function loadOperationDashboard() {
+  const { dashboard } = await adminApi("/api/admin/operation/dashboard");
+  adminState.operationDashboard = dashboard;
+  renderOperationDashboard(dashboard);
+}
+
+function renderOperationDashboard(dashboard) {
+  if (!dashboard) {
+    adminEls.operationDashboard.innerHTML = `<p class="admin-note">No hay datos operativos disponibles.</p>`;
+    return;
+  }
+  const summary = dashboard.summary || {};
+  const currentAccounts = dashboard.currentAccounts || {};
+  adminEls.operationDashboard.innerHTML = `
+    <div class="operation-metrics">
+      ${metricCard("Pedidos activos", summary.activeOrders || 0, "En curso operativo")}
+      ${metricCard("Ventas del mes", adminMoney.format((summary.monthTotalCents || 0) / 100), "Total confirmado")}
+      ${metricCard("Cobrado del mes", adminMoney.format((summary.monthPaidCents || 0) / 100), "Pagos acreditados")}
+      ${metricCard("Saldo abierto", adminMoney.format((summary.openBalanceCents || 0) / 100), "Cuenta corriente y pagos pendientes")}
+      ${metricCard("Vencido", adminMoney.format((summary.overdueBalanceCents || 0) / 100), "Requiere seguimiento")}
+      ${metricCard("Por despachar", summary.pendingDispatch || 0, "Pedidos listos")}
+    </div>
+    <div class="operation-layout">
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Cuenta corriente</p><h3>Saldos abiertos</h3></div>
+        ${renderAccountRows(currentAccounts.open || [])}
+      </section>
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Vencimientos</p><h3>Alertas comerciales</h3></div>
+        <div class="operation-alerts">
+          <div><span>Vencen pronto</span><strong>${adminMoney.format((summary.dueSoonBalanceCents || 0) / 100)}</strong></div>
+          <div><span>Vencidos</span><strong>${adminMoney.format((summary.overdueBalanceCents || 0) / 100)}</strong></div>
+        </div>
+        ${renderAccountRows([...(currentAccounts.overdue || []), ...(currentAccounts.dueSoon || [])].slice(0, 8))}
+      </section>
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Clientes</p><h3>Ranking del mes</h3></div>
+        ${renderRankRows(dashboard.sales?.byCustomer || [], "businessName", "totalCents")}
+      </section>
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Vendedores</p><h3>Comisiones del mes</h3></div>
+        ${renderSalesRepRows(dashboard.sales?.bySalesRep || [])}
+      </section>
+      <section class="operation-panel wide">
+        <div class="panel-heading"><p class="eyebrow">Productos</p><h3>Mas vendidos</h3></div>
+        ${renderProductRankRows(dashboard.products || [])}
+      </section>
+    </div>
+  `;
+}
+
+function metricCard(label, value, hint) {
+  return `<div class="operation-metric"><span>${escapeAdmin(label)}</span><strong>${escapeAdmin(String(value))}</strong><small>${escapeAdmin(hint)}</small></div>`;
+}
+
+function renderAccountRows(rows) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 10).map((row) => `
+        <button type="button" class="operation-row" data-dashboard-order="${row.id}">
+          <span><strong>${escapeAdmin(row.orderNumber)}</strong><small>${escapeAdmin(row.businessName)}</small></span>
+          <span><strong>${adminMoney.format((row.balanceCents || 0) / 100)}</strong><small>${row.dueDate ? `Vence ${escapeAdmin(formatAdminDate(row.dueDate))}` : "Sin vencimiento"}</small></span>
+        </button>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Sin saldos para mostrar.</p>`;
+}
+
+function renderRankRows(rows, labelKey, amountKey) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 8).map((row) => `
+        <div class="operation-row static">
+          <span><strong>${escapeAdmin(row[labelKey] || "-")}</strong><small>${row.orders || 0} pedidos</small></span>
+          <span><strong>${adminMoney.format((row[amountKey] || 0) / 100)}</strong><small>Saldo ${adminMoney.format((row.balanceCents || 0) / 100)}</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Todavia no hay movimiento del mes.</p>`;
+}
+
+function renderSalesRepRows(rows) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 8).map((row) => `
+        <div class="operation-row static">
+          <span><strong>${escapeAdmin(row.name || "Sin vendedor")}</strong><small>${escapeAdmin(row.email || "General")}</small></span>
+          <span><strong>${adminMoney.format((row.commissionCents || 0) / 100)}</strong><small>${adminMoney.format((row.totalCents || 0) / 100)}</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Sin vendedores asociados este mes.</p>`;
+}
+
+function renderProductRankRows(rows) {
+  return rows.length ? `
+    <div class="operation-list product-rank">
+      ${rows.slice(0, 12).map((row) => `
+        <div class="operation-row static">
+          <span><strong>${escapeAdmin(row.kmCode)}</strong><small>${escapeAdmin(row.productName)}</small></span>
+          <span><strong>${row.quantity}</strong><small>${adminMoney.format((row.subtotalCents || 0) / 100)}</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Sin productos vendidos para mostrar.</p>`;
+}
+
+function handleOperationDashboardClick(event) {
+  const button = event.target.closest("[data-dashboard-order]");
+  if (!button || !adminEls.operationDashboard.contains(button)) return;
+  showAdminView("orders");
+  openOrderDetail(Number(button.dataset.dashboardOrder), button);
 }
 
 async function adminApi(url, { method = "GET", body } = {}) {

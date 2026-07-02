@@ -277,6 +277,12 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(orderPayload.order.salesRep.commissionBps, 350);
   assert.equal(orderPayload.order.salesRep.commissionCents, 11466);
   assert.match(orderPayload.order.orderNumber, /^KM-\d{4}-\d{6}$/);
+  const dashboardAfterOrder = await getJson(`${baseUrl}/api/admin/operation/dashboard`, adminCookie);
+  assert.equal(dashboardAfterOrder.dashboard.summary.totalOrders, 1);
+  assert.equal(dashboardAfterOrder.dashboard.summary.activeOrders, 1);
+  assert.equal(dashboardAfterOrder.dashboard.queues.received, 1);
+  assert.equal(dashboardAfterOrder.dashboard.sales.bySalesRep[0].email, "vendedor-api@km-detail.com");
+  assert.equal(dashboardAfterOrder.dashboard.products.some((item) => item.kmCode === "API001K"), true);
   const orderEmails = db.prepare(`
     SELECT event_type, recipient, subject, text_body
     FROM email_outbox
