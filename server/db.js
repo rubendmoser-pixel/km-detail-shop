@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 12;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -213,6 +213,8 @@ function migrate(db) {
       credit_authorized_by INTEGER REFERENCES users(id),
       due_reminder_sent_at TEXT,
       overdue_reminder_sent_date TEXT NOT NULL DEFAULT '',
+      payment_reminder_stage TEXT NOT NULL DEFAULT '',
+      payment_reminder_last_sent_date TEXT NOT NULL DEFAULT '',
       bank_snapshot_json TEXT NOT NULL,
       shipping_snapshot_json TEXT NOT NULL,
       price_reserved_at TEXT NOT NULL,
@@ -361,6 +363,8 @@ function migrate(db) {
   ensureColumn(db, "orders", "credit_authorized_by", "INTEGER REFERENCES users(id)");
   ensureColumn(db, "orders", "due_reminder_sent_at", "TEXT");
   ensureColumn(db, "orders", "overdue_reminder_sent_date", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "payment_reminder_stage", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "payment_reminder_last_sent_date", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "payment_receipts", "amount_cents", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "payment_receipts", "review_reason", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "payment_receipts", "reviewed_at", "TEXT");

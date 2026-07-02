@@ -30,8 +30,13 @@ const ORDER_EMAIL_EVENTS = [
   "payment_terms_sales_rep",
   "order_fulfillment_customer",
   "order_fulfillment_sales_rep",
+  "payment_due_today",
   "payment_due_soon",
-  "payment_overdue"
+  "payment_overdue",
+  "payment_overdue_48",
+  "payment_overdue_72",
+  "payment_overdue_7",
+  "payment_overdue_followup"
 ];
 const ORDER_STATUSES = new Set([
   "order_created",
@@ -368,6 +373,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
         credit_authorized_at = CASE WHEN ? THEN ? ELSE credit_authorized_at END,
         credit_authorized_by = CASE WHEN ? THEN ? ELSE credit_authorized_by END,
         due_reminder_sent_at = NULL, overdue_reminder_sent_date = '',
+        payment_reminder_stage = '', payment_reminder_last_sent_date = '',
         modified_acceptance_required = 1, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
@@ -812,6 +818,8 @@ function updateOrderCommercialBalance(db, orderId, { paymentStatus, paidCents, b
       credit_authorized_by = CASE WHEN ? THEN ? ELSE credit_authorized_by END,
       due_reminder_sent_at = CASE WHEN ? <> payment_due_date THEN NULL ELSE due_reminder_sent_at END,
       overdue_reminder_sent_date = CASE WHEN ? <> payment_due_date THEN '' ELSE overdue_reminder_sent_date END,
+      payment_reminder_stage = CASE WHEN ? <> payment_due_date THEN '' ELSE payment_reminder_stage END,
+      payment_reminder_last_sent_date = CASE WHEN ? <> payment_due_date THEN '' ELSE payment_reminder_last_sent_date END,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
@@ -820,6 +828,7 @@ function updateOrderCommercialBalance(db, orderId, { paymentStatus, paidCents, b
     dueDate, dueDate,
     creditAuthorized ? 1 : 0, new Date().toISOString(),
     creditAuthorized ? 1 : 0, adminUserId,
+    dueDate, dueDate,
     dueDate, dueDate,
     orderId
   );

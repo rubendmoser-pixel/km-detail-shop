@@ -156,8 +156,16 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
     db,
     config: { publicBaseUrl: "https://www.km-detail.com", notificationEmail: "ventas@km-detail.com" }
   });
-  const reminder = emailService.queuePaymentDueReminders(new Date("2026-06-30T12:00:00.000Z"));
+  assert.equal(emailService.queuePaymentDueReminders(new Date("2026-06-30T12:00:00.000Z")).queued, 0);
+  const reminder = emailService.queuePaymentDueReminders(new Date("2026-07-02T12:00:00.000Z"));
   assert.equal(reminder.queued, 1);
-  const reminderEmail = db.prepare("SELECT text_body FROM email_outbox WHERE event_type = 'payment_due_soon'").get();
-  assert.match(reminderEmail.text_body, /vence el día 02\/07\/2026/);
+  const reminderEmail = db.prepare("SELECT text_body FROM email_outbox WHERE event_type = 'payment_due_today'").get();
+  assert.match(reminderEmail.text_body, /vence hoy/);
+  assert.match(reminderEmail.text_body, /02\/07\/2026/);
+  assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-03T12:00:00.000Z")).queued, 0);
+  assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-04T12:00:00.000Z")).queued, 1);
+  assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-05T12:00:00.000Z")).queued, 1);
+  assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-09T12:00:00.000Z")).queued, 1);
+  assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-12T12:00:00.000Z")).queued, 1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM email_outbox WHERE event_type = 'payment_overdue_followup'").get().count, 1);
 });

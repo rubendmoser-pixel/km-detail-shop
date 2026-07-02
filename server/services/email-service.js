@@ -424,52 +424,135 @@ export function createEmailService({ db, config }) {
 
   function queuePaymentDueReminders(now = new Date()) {
     const today = isoDate(now);
-    const inTwoDays = addDays(now, 2);
     let queued = 0;
-    const upcoming = db.prepare(`
+    const openBalances = db.prepare(`
       SELECT o.*, c.business_name, c.contact_person, u.email
       FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
       WHERE o.balance_cents > 0 AND o.payment_due_date <> ''
-        AND o.payment_due_date <= ? AND o.payment_due_date >= ?
-        AND o.due_reminder_sent_at IS NULL
-    `).all(isoDate(inTwoDays), today);
-    for (const order of upcoming) {
-      queuePaymentDueReminder(order, "payment_due_soon", `Vencimiento de saldo ${order.order_number} | KM Detail Line`, false);
-      db.prepare("UPDATE orders SET due_reminder_sent_at = ? WHERE id = ?").run(now.toISOString(), order.id);
-      queued += 1;
-    }
-    const overdue = db.prepare(`
-      SELECT o.*, c.business_name, c.contact_person, u.email
-      FROM orders o JOIN customers c ON c.id = o.customer_id JOIN users u ON u.id = c.user_id
-      WHERE o.balance_cents > 0 AND o.payment_due_date <> ''
-        AND o.payment_due_date < ? AND o.overdue_reminder_sent_date <> ?
-    `).all(today, today);
-    for (const order of overdue) {
-      queuePaymentDueReminder(order, "payment_overdue", `Saldo vencido ${order.order_number} | KM Detail Line`, true);
-      db.prepare("UPDATE orders SET payment_status = 'overdue', overdue_reminder_sent_date = ? WHERE id = ?").run(today, order.id);
+        AND o.payment_status IN ('credit_account', 'overdue')
+    `).all();
+    for (const order of openBalances) {
+      const reminder = resolvePaymentReminder(order, today);
+      if (!reminder) continue;
+      queuePaymentDueReminder(order, reminder);
+      db.prepare(`
+        UPDATE orders
+        SET payment_status = CASE WHEN payment_due_date < ? THEN 'overdue' ELSE payment_status END,
+          due_reminder_sent_at = CASE WHEN ? = 'due_today' THEN ? ELSE due_reminder_sent_at END,
+          overdue_reminder_sent_date = CASE WHEN payment_due_date < ? THEN ? ELSE overdue_reminder_sent_date END,
+          payment_reminder_stage = ?,
+          payment_reminder_last_sent_date = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(today, reminder.stage, now.toISOString(), today, today, reminder.stage, today, order.id);
       queued += 1;
     }
     return { queued };
   }
 
-  function queuePaymentDueReminder(order, eventType, subject, overdue) {
+  function queuePaymentDueReminder(order, reminder) {
     const dueDate = formatDateForEmail(order.payment_due_date);
-    queue(eventType, order.email, subject, [
+    queue(reminder.eventType, order.email, reminder.subject(order), [
       `Hola ${order.contact_person},`,
       "",
-      overdue
-        ? `Registramos un saldo vencido del pedido ${order.order_number}.`
-        : `Te recordamos que el saldo del pedido ${order.order_number} vence el día ${dueDate}.`,
+      ...reminder.emailIntro(order, dueDate),
       "",
       `Pedido: ${order.order_number}`,
       `Saldo pendiente: ${money.format(order.balance_cents / 100)}`,
       `Vencimiento: ${dueDate}`,
       "",
-      "Si ya realizaste el pago, podes responder este correo o comunicarte por WhatsApp.",
+      ...reminder.emailClosing,
       "",
-      "KM Detail Line",
       config.publicBaseUrl
     ].join("\n"));
+  }
+
+  function resolvePaymentReminder(order, today) {
+    const days = daysBetweenIso(order.payment_due_date, today);
+    if (days < 0) return null;
+    const lastSentDate = order.payment_reminder_last_sent_date || order.overdue_reminder_sent_date || "";
+    if (lastSentDate === today) return null;
+    const stage = order.payment_reminder_stage || "";
+    if (days === 0 && reminderRank(stage) < reminderRank("due_today")) return paymentReminderCopy("due_today");
+    if (days === 2 && reminderRank(stage) < reminderRank("overdue_48")) return paymentReminderCopy("overdue_48");
+    if (days === 3 && reminderRank(stage) < reminderRank("overdue_72")) return paymentReminderCopy("overdue_72");
+    if (days >= 7) {
+      if (reminderRank(stage) < reminderRank("overdue_7")) return paymentReminderCopy("overdue_7");
+      if (!lastSentDate || daysBetweenIso(lastSentDate, today) >= 3) return paymentReminderCopy("overdue_repeat");
+    }
+    return null;
+  }
+
+  function paymentReminderCopy(stage) {
+    const copies = {
+      due_today: {
+        stage,
+        eventType: "payment_due_today",
+        subject: (order) => `Vencimiento de saldo | Pedido ${order.order_number}`,
+        phoneText: (order) => `KM: el saldo del pedido ${order.order_number} vence hoy.`,
+        whatsappText: (order) => `Hola ${order.contact_person}, como estas? Te contacto de KM por el pedido ${order.order_number}. El saldo pendiente vence hoy. Si ya lo abonaste, enviame el comprobante y lo registramos.`,
+        emailIntro: (order) => [
+          `Te recordamos que el saldo pendiente del pedido ${order.order_number} vence hoy.`,
+          "Podes consultar el detalle desde Mis compras.",
+          "Si ya realizaste el pago, podes desestimar este aviso."
+        ],
+        emailClosing: ["Podes consultar el detalle desde Mis compras."]
+      },
+      overdue_48: {
+        stage,
+        eventType: "payment_overdue_48",
+        subject: (order) => `Saldo pendiente | Pedido ${order.order_number}`,
+        phoneText: (order) => `KM: el pedido ${order.order_number} registra saldo pendiente desde el ${formatDateForEmail(order.payment_due_date)}.`,
+        whatsappText: (order) => `Hola ${order.contact_person}, te escribo por el saldo pendiente del pedido ${order.order_number}, vencido el ${formatDateForEmail(order.payment_due_date)}. Avisame si ya lo transferiste o si necesitas coordinarlo.`,
+        emailIntro: (order, dueDate) => [
+          `Registramos un saldo pendiente correspondiente al pedido ${order.order_number}, con vencimiento el ${dueDate}.`,
+          "Si necesitas coordinar el pago, podes responder este correo o comunicarte por WhatsApp."
+        ],
+        emailClosing: ["Si necesitas coordinar el pago, podes responder este correo o comunicarte por WhatsApp."]
+      },
+      overdue_72: {
+        stage,
+        eventType: "payment_overdue_72",
+        subject: (order) => `Recordatorio de saldo pendiente | Pedido ${order.order_number}`,
+        phoneText: (order) => `KM: continua pendiente el saldo del pedido ${order.order_number}.`,
+        whatsappText: (order) => `${order.contact_person}, seguimos viendo pendiente el saldo del pedido ${order.order_number}. Queres que lo revisemos juntos o ya tenes el comprobante para enviarnos?`,
+        emailIntro: (order, dueDate) => [
+          `Te recordamos que continua pendiente el saldo del pedido ${order.order_number}.`,
+          `Vencimiento original: ${dueDate}`,
+          "Para mantener la cuenta comercial ordenada, te pedimos regularizarlo o comunicarte con KM."
+        ],
+        emailClosing: ["Para mantener la cuenta comercial ordenada, te pedimos regularizarlo o comunicarte con KM."]
+      },
+      overdue_7: {
+        stage,
+        eventType: "payment_overdue_7",
+        subject: () => "Saldo vencido | Cuenta comercial KM",
+        phoneText: (order) => `KM: saldo vencido hace 7 dias en pedido ${order.order_number}.`,
+        whatsappText: (order) => `Hola ${order.contact_person}, te contacto porque el saldo del pedido ${order.order_number} ya figura vencido hace varios dias. Necesitamos coordinar la regularizacion para mantener activa la operatoria de la cuenta.`,
+        emailIntro: (order, dueDate) => [
+          `El pedido ${order.order_number} registra un saldo pendiente vencido desde el ${dueDate}.`,
+          "Te pedimos regularizarlo o comunicarte con nuestro equipo para coordinar la situacion de la cuenta."
+        ],
+        emailClosing: ["Te pedimos regularizarlo o comunicarte con nuestro equipo para coordinar la situacion de la cuenta."]
+      },
+      overdue_repeat: {
+        stage,
+        eventType: "payment_overdue_followup",
+        subject: () => "Recordatorio de cuenta comercial | KM",
+        phoneText: () => "KM: recordatorio de saldo pendiente en tu cuenta comercial.",
+        whatsappText: () => "Te dejo un recordatorio del saldo pendiente de la cuenta. Cuando puedas, avisame como queres coordinarlo.",
+        emailIntro: (order) => [
+          `Tu cuenta comercial registra un saldo pendiente correspondiente al pedido ${order.order_number}.`,
+          "Podes consultar el detalle desde Mis compras o responder este correo para coordinar."
+        ],
+        emailClosing: ["Podes consultar el detalle desde Mis compras o responder este correo para coordinar."]
+      }
+    };
+    return copies[stage];
+  }
+
+  function reminderRank(stage) {
+    return { "": 0, due_today: 1, overdue_48: 2, overdue_72: 3, overdue_7: 4, overdue_repeat: 5 }[stage] || 0;
   }
 
   function queueOrderFulfillmentUpdated(orderId) {
@@ -800,8 +883,13 @@ export function createEmailService({ db, config }) {
     if (eventType === "order_customer") return "Recibimos tu pedido en KM Detail Line.";
     if (eventType === "payment_receipt_customer") return "Actualizacion del pago de tu pedido.";
     if (eventType === "order_fulfillment_customer") return "Actualizacion de despacho de tu pedido.";
+    if (eventType === "payment_due_today") return "El saldo de tu pedido vence hoy.";
     if (eventType === "payment_due_soon") return "Recordatorio de vencimiento de saldo.";
     if (eventType === "payment_overdue") return "Saldo vencido pendiente de regularizacion.";
+    if (eventType === "payment_overdue_48") return "Saldo pendiente de tu pedido.";
+    if (eventType === "payment_overdue_72") return "Recordatorio de saldo pendiente.";
+    if (eventType === "payment_overdue_7") return "Saldo vencido de cuenta comercial.";
+    if (eventType === "payment_overdue_followup") return "Recordatorio de cuenta comercial.";
     return "Notificacion de KM Detail Line.";
   }
 
@@ -816,10 +904,11 @@ export function createEmailService({ db, config }) {
     return date.toISOString().slice(0, 10);
   }
 
-  function addDays(date, days) {
-    const next = new Date(date);
-    next.setUTCDate(next.getUTCDate() + days);
-    return next;
+  function daysBetweenIso(fromIso, toIso) {
+    const from = Date.parse(`${String(fromIso).slice(0, 10)}T00:00:00.000Z`);
+    const to = Date.parse(`${String(toIso).slice(0, 10)}T00:00:00.000Z`);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return 0;
+    return Math.floor((to - from) / 86_400_000);
   }
 
   function escapeHtml(value) {
