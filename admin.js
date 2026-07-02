@@ -1,7 +1,8 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null, salesReps: [], operationDashboard: null, currentAccountFilter: "open"
+  securityEvents: [], securitySummary: null, salesReps: [], pendingCommissions: [], commissionSettlements: [],
+  operationDashboard: null, currentAccountFilter: "open"
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const adminViews = new Set(["customers", "sales", "products", "orders", "accounts", "settings", "emails", "security", "operation"]);
@@ -71,7 +72,8 @@ const adminEls = Object.fromEntries([
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage",
   "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
-  "salesRepMessage", "salesRepsTableBody",
+  "salesRepMessage", "salesRepsTableBody", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
+  "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
   "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
@@ -126,6 +128,12 @@ function bindAdminEvents() {
   adminEls.reloadSalesReps.addEventListener("click", loadSalesReps);
   adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
   document.querySelector("#resetSalesRepForm").addEventListener("click", resetSalesRepForm);
+  adminEls.commissionSalesRepFilter.addEventListener("change", loadSalesCommissions);
+  adminEls.reloadCommissions.addEventListener("click", loadSalesCommissions);
+  adminEls.createCommissionSettlement.addEventListener("click", createCommissionSettlement);
+  adminEls.selectAllCommissions.addEventListener("change", toggleAllCommissions);
+  adminEls.commissionsTableBody.addEventListener("change", renderCommissionSummary);
+  adminEls.commissionSettlements.addEventListener("click", handleCommissionSettlementClick);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
   adminEls.currentAccountSearch.addEventListener("input", debounce(() => renderCurrentAccountDashboard(), 200));
   document.querySelector("#reloadCurrentAccounts").addEventListener("click", loadOperationDashboard);
@@ -205,6 +213,8 @@ async function loadSalesReps() {
   const { salesReps } = await adminApi(`/api/admin/sales-reps${params.toString() ? `?${params}` : ""}`);
   adminState.salesReps = salesReps;
   renderSalesReps();
+  renderCommissionSalesRepFilter();
+  await loadSalesCommissions();
   renderCustomers();
 }
 
@@ -213,11 +223,12 @@ function renderSalesReps() {
     <tr data-sales-rep-id="${rep.id}">
       <td><strong>${escapeAdmin(rep.name)}</strong><br><span>${escapeAdmin(rep.email)}</span></td>
       <td>${escapeAdmin(rep.phone || "-")}<br><span>WhatsApp ${escapeAdmin(rep.whatsapp || "-")}</span></td>
+      <td>${escapeAdmin(rep.bank_name || "Sin banco")}<br><span>${escapeAdmin(rep.bank_alias || rep.bank_cbu || "-")}</span></td>
       <td>${formatBps(rep.default_commission_bps)}</td>
       <td><span class="status-badge ${rep.status === "active" ? "approved" : "suspended"}">${rep.status === "active" ? "Activo" : "Inactivo"}</span></td>
       <td><button class="ghost-button row-button" type="button" data-edit-sales-rep="${rep.id}">Editar</button></td>
     </tr>
-  `).join("") : `<tr><td colspan="5">Todavia no hay vendedores cargados.</td></tr>`;
+  `).join("") : `<tr><td colspan="6">Todavia no hay vendedores cargados.</td></tr>`;
   adminEls.salesRepsTableBody.querySelectorAll("[data-edit-sales-rep]").forEach((button) => button.addEventListener("click", editSalesRep));
 }
 
@@ -230,6 +241,12 @@ function editSalesRep(event) {
   adminEls.salesRepForm.elements.email.value = rep.email;
   adminEls.salesRepForm.elements.phone.value = rep.phone || "";
   adminEls.salesRepForm.elements.whatsapp.value = rep.whatsapp || "";
+  adminEls.salesRepForm.elements.bankName.value = rep.bank_name || "";
+  adminEls.salesRepForm.elements.bankAccountHolder.value = rep.bank_account_holder || "";
+  adminEls.salesRepForm.elements.bankTaxId.value = rep.bank_tax_id || "";
+  adminEls.salesRepForm.elements.bankAccountType.value = rep.bank_account_type || "";
+  adminEls.salesRepForm.elements.bankCbu.value = rep.bank_cbu || "";
+  adminEls.salesRepForm.elements.bankAlias.value = rep.bank_alias || "";
   adminEls.salesRepForm.elements.defaultCommission.value = rep.default_commission_bps / 100;
   adminEls.salesRepForm.elements.status.value = rep.status;
   adminEls.salesRepForm.elements.notes.value = rep.notes || "";
@@ -258,6 +275,12 @@ async function saveSalesRep(event) {
         email: values.email,
         phone: values.phone,
         whatsapp: values.whatsapp,
+        bankName: values.bankName,
+        bankAccountHolder: values.bankAccountHolder,
+        bankTaxId: values.bankTaxId,
+        bankAccountType: values.bankAccountType,
+        bankCbu: values.bankCbu,
+        bankAlias: values.bankAlias,
         defaultCommissionBps: Math.round(Number(values.defaultCommission || 0) * 100),
         status: values.status,
         notes: values.notes
@@ -271,6 +294,114 @@ async function saveSalesRep(event) {
   } finally {
     setBusy(adminEls.salesRepForm, false);
   }
+}
+
+function renderCommissionSalesRepFilter() {
+  if (!adminEls.commissionSalesRepFilter) return;
+  const current = adminEls.commissionSalesRepFilter.value;
+  adminEls.commissionSalesRepFilter.innerHTML = [
+    `<option value="">Todos los vendedores</option>`,
+    ...adminState.salesReps
+      .filter((rep) => rep.status === "active")
+      .map((rep) => `<option value="${rep.id}">${escapeAdmin(rep.name)}</option>`)
+  ].join("");
+  adminEls.commissionSalesRepFilter.value = current;
+}
+
+async function loadSalesCommissions() {
+  if (!adminEls.commissionsTableBody) return;
+  const params = new URLSearchParams();
+  if (adminEls.commissionSalesRepFilter.value) params.set("salesRepId", adminEls.commissionSalesRepFilter.value);
+  const { pending, settlements } = await adminApi(`/api/admin/sales-commissions${params.toString() ? `?${params}` : ""}`);
+  adminState.pendingCommissions = pending || [];
+  adminState.commissionSettlements = settlements || [];
+  renderCommissions();
+}
+
+function renderCommissions() {
+  adminEls.selectAllCommissions.checked = false;
+  adminEls.commissionsTableBody.innerHTML = adminState.pendingCommissions.length ? adminState.pendingCommissions.map((row) => `
+    <tr>
+      <td><input type="checkbox" data-commission-order="${row.id}" /></td>
+      <td><strong>${escapeAdmin(row.order_number)}</strong><br><span>${formatDate(row.updated_at || row.created_at)}</span></td>
+      <td>${escapeAdmin(row.business_name || "-")}</td>
+      <td>${escapeAdmin(row.sales_rep_name || "Sin vendedor")}<br><span>${escapeAdmin(row.sales_rep_email || "")}</span></td>
+      <td>${adminMoney.format((row.sales_commission_base_cents || row.subtotal_net_cents || 0) / 100)}<br><span>${formatBps(row.sales_commission_bps || 0)}</span></td>
+      <td><strong>${adminMoney.format((row.sales_commission_cents || 0) / 100)}</strong></td>
+    </tr>
+  `).join("") : `<tr><td colspan="6">No hay comisiones cobradas pendientes de liquidar.</td></tr>`;
+  renderCommissionSummary();
+  renderCommissionSettlements();
+}
+
+function renderCommissionSummary() {
+  const selectedIds = selectedCommissionOrderIds();
+  const selectedRows = adminState.pendingCommissions.filter((row) => selectedIds.includes(row.id));
+  const total = selectedRows.reduce((sum, row) => sum + Number(row.sales_commission_cents || 0), 0);
+  const pendingTotal = adminState.pendingCommissions.reduce((sum, row) => sum + Number(row.sales_commission_cents || 0), 0);
+  adminEls.commissionSummary.innerHTML = `
+    <div><span>Pendientes</span><strong>${adminState.pendingCommissions.length}</strong><small>${adminMoney.format(pendingTotal / 100)}</small></div>
+    <div><span>Seleccionadas</span><strong>${selectedRows.length}</strong><small>${adminMoney.format(total / 100)}</small></div>
+  `;
+  adminEls.createCommissionSettlement.disabled = selectedRows.length === 0;
+}
+
+function renderCommissionSettlements() {
+  adminEls.commissionSettlements.innerHTML = adminState.commissionSettlements.length ? `
+    <div class="panel-heading"><p class="eyebrow">Historial</p><h3>Ultimas liquidaciones</h3></div>
+    <div class="operation-list">
+      ${adminState.commissionSettlements.slice(0, 8).map((settlement) => `
+        <button class="operation-row" type="button" data-settlement-id="${settlement.id}">
+          <span><strong>${escapeAdmin(settlement.settlement_number)}</strong><small>${escapeAdmin(settlement.sales_rep_name)} - ${settlement.orders_count} pedidos</small></span>
+          <span><strong>${adminMoney.format((settlement.commission_cents || 0) / 100)}</strong><small>${formatDate(settlement.created_at)}</small></span>
+        </button>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Todavia no hay liquidaciones generadas.</p>`;
+}
+
+function selectedCommissionOrderIds() {
+  return [...adminEls.commissionsTableBody.querySelectorAll("[data-commission-order]:checked")]
+    .map((checkbox) => Number(checkbox.dataset.commissionOrder));
+}
+
+function toggleAllCommissions() {
+  adminEls.commissionsTableBody.querySelectorAll("[data-commission-order]").forEach((checkbox) => {
+    checkbox.checked = adminEls.selectAllCommissions.checked;
+  });
+  renderCommissionSummary();
+}
+
+async function createCommissionSettlement() {
+  const orderIds = selectedCommissionOrderIds();
+  if (!orderIds.length) return;
+  const salesRepIds = [...new Set(adminState.pendingCommissions.filter((row) => orderIds.includes(row.id)).map((row) => row.sales_rep_id))];
+  if (salesRepIds.length !== 1) {
+    showAdminToast("Selecciona pedidos de un solo vendedor para liquidar.");
+    return;
+  }
+  setBusy(document.querySelector(".commission-panel"), true);
+  try {
+    const { settlement } = await adminApi("/api/admin/sales-commission-settlements", {
+      method: "POST",
+      body: { salesRepId: salesRepIds[0], orderIds, notes: adminEls.commissionNotes.value }
+    });
+    adminEls.commissionNotes.value = "";
+    showAdminToast("Liquidacion generada.");
+    await loadSalesCommissions();
+    window.open(`./commission-settlement.html?settlement=${settlement.id}`, "_blank", "noopener");
+    await Promise.all([loadOrders(), loadOperationDashboard()]);
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(document.querySelector(".commission-panel"), false);
+  }
+}
+
+function handleCommissionSettlementClick(event) {
+  const button = event.target.closest("[data-settlement-id]");
+  if (!button) return;
+  window.open(`./commission-settlement.html?settlement=${button.dataset.settlementId}`, "_blank", "noopener");
 }
 
 async function loadProducts() {

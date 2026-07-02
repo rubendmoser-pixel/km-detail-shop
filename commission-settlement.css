@@ -1,0 +1,219 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: #090a0c;
+  background: #dfe3e7;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.screen-actions {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  color: #f4f5f6;
+  background: #08090b;
+}
+
+.screen-actions a,
+.screen-actions button {
+  min-height: 42px;
+  padding: 10px 14px;
+  color: #f4f5f6;
+  font-weight: 800;
+  text-decoration: none;
+  background: #15171a;
+  border: 1px solid #555a62;
+}
+
+.settlement-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 18px auto;
+  padding: 18mm;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+.settlement-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: start;
+  padding-bottom: 18px;
+  border-bottom: 4px solid #090a0c;
+}
+
+.brand-block {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.brand-block img {
+  width: 150px;
+}
+
+.eyebrow,
+.settlement-box span,
+.meta-card span,
+.settlement-table th,
+.control-box span {
+  color: #3e4650;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 6px 0 0;
+  font-size: 32px;
+  line-height: 1.05;
+}
+
+.settlement-box {
+  min-width: 230px;
+  padding: 16px;
+  color: #fff;
+  text-align: right;
+  background: #08090b;
+}
+
+.settlement-box span,
+.settlement-box small {
+  display: block;
+  color: #e4e7eb;
+}
+
+.settlement-box strong {
+  display: block;
+  margin: 6px 0;
+  font-size: 25px;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 22px 0;
+}
+
+.meta-card {
+  min-height: 104px;
+  padding: 14px;
+  border: 1px solid #c4c9cf;
+}
+
+.meta-card strong {
+  display: block;
+  margin: 8px 0 4px;
+  font-size: 18px;
+}
+
+.meta-card small {
+  display: block;
+  color: #47505a;
+  line-height: 1.45;
+}
+
+.settlement-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.settlement-table th,
+.settlement-table td {
+  padding: 10px;
+  border: 1px solid #c4c9cf;
+  text-align: left;
+  vertical-align: top;
+}
+
+.settlement-table th {
+  background: #eef0f3;
+}
+
+.numeric {
+  text-align: right !important;
+}
+
+.totals {
+  display: grid;
+  justify-content: end;
+  margin-top: 18px;
+}
+
+.totals-box {
+  min-width: 320px;
+  border: 1px solid #c4c9cf;
+}
+
+.totals-box div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #c4c9cf;
+}
+
+.totals-box div:last-child {
+  border-bottom: 0;
+}
+
+.grand-total {
+  color: #fff;
+  background: #08090b;
+}
+
+.settlement-notes {
+  margin-top: 22px;
+  padding: 14px;
+  border: 1px solid #c4c9cf;
+}
+
+.settlement-footer {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 36px;
+}
+
+.control-box {
+  min-height: 82px;
+  padding: 12px;
+  border: 1px solid #c4c9cf;
+}
+
+.screen-panel {
+  max-width: 720px;
+  margin: 60px auto;
+  padding: 28px;
+  background: #fff;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .screen-actions {
+    display: none;
+  }
+
+  .settlement-sheet {
+    width: auto;
+    min-height: auto;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}

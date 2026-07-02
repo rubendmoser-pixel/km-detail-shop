@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 13;
+const SCHEMA_VERSION = 14;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -97,11 +97,48 @@ function migrate(db) {
       email TEXT NOT NULL UNIQUE COLLATE NOCASE,
       phone TEXT NOT NULL DEFAULT '',
       whatsapp TEXT NOT NULL DEFAULT '',
+      bank_name TEXT NOT NULL DEFAULT '',
+      bank_account_holder TEXT NOT NULL DEFAULT '',
+      bank_tax_id TEXT NOT NULL DEFAULT '',
+      bank_account_type TEXT NOT NULL DEFAULT '',
+      bank_cbu TEXT NOT NULL DEFAULT '',
+      bank_alias TEXT NOT NULL DEFAULT '',
       default_commission_bps INTEGER NOT NULL DEFAULT 0 CHECK (default_commission_bps BETWEEN 0 AND 10000),
       status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
       notes TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sales_commission_settlements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      settlement_number TEXT NOT NULL UNIQUE,
+      sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id),
+      sales_rep_name TEXT NOT NULL,
+      sales_rep_email TEXT NOT NULL,
+      period_from TEXT NOT NULL DEFAULT '',
+      period_to TEXT NOT NULL DEFAULT '',
+      orders_count INTEGER NOT NULL DEFAULT 0 CHECK (orders_count >= 0),
+      commission_base_cents INTEGER NOT NULL DEFAULT 0 CHECK (commission_base_cents >= 0),
+      commission_cents INTEGER NOT NULL DEFAULT 0 CHECK (commission_cents >= 0),
+      bank_snapshot_json TEXT NOT NULL DEFAULT '{}',
+      notes TEXT NOT NULL DEFAULT '',
+      created_by INTEGER REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sales_commission_settlement_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      settlement_id INTEGER NOT NULL REFERENCES sales_commission_settlements(id) ON DELETE CASCADE,
+      order_id INTEGER NOT NULL REFERENCES orders(id),
+      order_number TEXT NOT NULL,
+      business_name TEXT NOT NULL,
+      order_created_at TEXT NOT NULL,
+      order_paid_at TEXT NOT NULL DEFAULT '',
+      subtotal_net_cents INTEGER NOT NULL DEFAULT 0 CHECK (subtotal_net_cents >= 0),
+      commission_bps INTEGER NOT NULL DEFAULT 0 CHECK (commission_bps BETWEEN 0 AND 10000),
+      commission_cents INTEGER NOT NULL DEFAULT 0 CHECK (commission_cents >= 0),
+      UNIQUE(settlement_id, order_id)
     );
 
     CREATE TABLE IF NOT EXISTS product_families (
@@ -197,6 +234,8 @@ function migrate(db) {
       sales_commission_bps INTEGER NOT NULL DEFAULT 0 CHECK (sales_commission_bps BETWEEN 0 AND 10000),
       sales_commission_base_cents INTEGER NOT NULL DEFAULT 0 CHECK (sales_commission_base_cents >= 0),
       sales_commission_cents INTEGER NOT NULL DEFAULT 0 CHECK (sales_commission_cents >= 0),
+      sales_commission_settlement_id INTEGER REFERENCES sales_commission_settlements(id),
+      sales_commission_settled_at TEXT,
       subtotal_net_cents INTEGER NOT NULL,
       vat_bps INTEGER NOT NULL,
       vat_cents INTEGER NOT NULL,
@@ -354,6 +393,9 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
+    CREATE INDEX IF NOT EXISTS idx_commission_settlements_rep ON sales_commission_settlements(sales_rep_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_commission_items_settlement ON sales_commission_settlement_items(settlement_id);
+    CREATE INDEX IF NOT EXISTS idx_orders_commission_pending ON orders(sales_rep_id, sales_commission_settlement_id, payment_status);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON email_outbox(status, created_at);
@@ -383,6 +425,8 @@ function migrate(db) {
   ensureColumn(db, "orders", "sales_commission_bps", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "orders", "sales_commission_base_cents", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "orders", "sales_commission_cents", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "sales_commission_settlement_id", "INTEGER REFERENCES sales_commission_settlements(id)");
+  ensureColumn(db, "orders", "sales_commission_settled_at", "TEXT");
   ensureColumn(db, "orders", "paid_cents", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "orders", "balance_cents", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "orders", "commercial_adjustment_cents", "INTEGER NOT NULL DEFAULT 0");
@@ -407,6 +451,12 @@ function migrate(db) {
   ensureColumn(db, "customers", "sales_commission_bps", "INTEGER");
   ensureColumn(db, "customers", "payment_condition", "TEXT NOT NULL DEFAULT 'prepaid'");
   ensureColumn(db, "customers", "payment_terms_days", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "sales_reps", "bank_name", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "sales_reps", "bank_account_holder", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "sales_reps", "bank_tax_id", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "sales_reps", "bank_account_type", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "sales_reps", "bank_cbu", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "sales_reps", "bank_alias", "TEXT NOT NULL DEFAULT ''");
   db.exec(`
     UPDATE orders
     SET payment_status = 'credit_account'

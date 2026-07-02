@@ -437,6 +437,77 @@
   border: 1px solid #34363b;
 }
 
+.sales-rep-form fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #34363b;
+}
+
+.sales-rep-form legend {
+  padding: 0 8px;
+  color: #cdd1d6;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.commission-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+  background: #111214;
+  border: 1px solid #34363b;
+}
+
+.compact-toolbar {
+  grid-template-columns: minmax(220px, 320px) minmax(240px, 1fr) auto auto;
+}
+
+.commission-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.commission-summary div {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  background: #17181b;
+  border: 1px solid #34363b;
+  border-left: 4px solid #aeb5bf;
+}
+
+.commission-summary span,
+.commission-summary small {
+  color: #a7abb2;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.commission-summary strong {
+  color: #f5f6f7;
+  font-size: 1.4rem;
+}
+
+.commission-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #d8dde3;
+}
+
+.commission-settlements {
+  display: grid;
+  gap: 10px;
+}
+
 .orders-table-wrap {
   overflow-x: auto;
   border: 1px solid #34363b;
@@ -1535,6 +1606,12 @@ button.operation-row:hover {
 
   .product-admin-layout,
   .sales-admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-rep-form fieldset,
+  .compact-toolbar,
+  .commission-summary {
     grid-template-columns: 1fr;
   }
 

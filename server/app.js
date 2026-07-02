@@ -35,7 +35,15 @@ import {
   upsertProduct
 } from "./services/product-service.js";
 import { getCommercialSettings, getPublicSettings, updateCommercialSettings } from "./services/settings-service.js";
-import { assignSalesRepToCustomer, listSalesReps, upsertSalesRep } from "./services/sales-rep-service.js";
+import {
+  assignSalesRepToCustomer,
+  createSalesCommissionSettlement,
+  getSalesCommissionSettlement,
+  listPendingSalesCommissions,
+  listSalesCommissionSettlements,
+  listSalesReps,
+  upsertSalesRep
+} from "./services/sales-rep-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
@@ -257,6 +265,22 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/sales-reps") {
         return sendJson(response, 201, { salesRep: upsertSalesRep(db, await readJson(request)) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/sales-commissions") {
+        const salesRepId = Number(url.searchParams.get("salesRepId") || 0);
+        return sendJson(response, 200, {
+          pending: listPendingSalesCommissions(db, { salesRepId }),
+          settlements: listSalesCommissionSettlements(db, { salesRepId })
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/sales-commission-settlements") {
+        return sendJson(response, 201, {
+          settlement: createSalesCommissionSettlement(db, await readJson(request), currentUser.id)
+        });
+      }
+      match = url.pathname.match(/^\/api\/admin\/sales-commission-settlements\/(\d+)$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { settlement: getSalesCommissionSettlement(db, Number(match[1])) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/products") {
         return sendJson(response, 201, { product: upsertProduct(db, await readJson(request)) });
