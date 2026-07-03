@@ -169,6 +169,11 @@ function migrate(db) {
       warehouse_location TEXT NOT NULL DEFAULT '',
       image_filename TEXT,
       base_price_cents INTEGER NOT NULL CHECK (base_price_cents >= 0),
+      promotion_bps INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000),
+      promotion_label TEXT NOT NULL DEFAULT '',
+      promotion_starts_at TEXT NOT NULL DEFAULT '',
+      promotion_ends_at TEXT NOT NULL DEFAULT '',
+      promotion_active INTEGER NOT NULL DEFAULT 0 CHECK (promotion_active IN (0, 1)),
       currency TEXT NOT NULL DEFAULT 'ARS' CHECK (currency = 'ARS'),
       price_effective_from TEXT NOT NULL,
       active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
@@ -275,6 +280,8 @@ function migrate(db) {
       discount_1_bps INTEGER NOT NULL,
       discount_2_bps INTEGER NOT NULL,
       discount_3_bps INTEGER NOT NULL,
+      promotion_bps INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000),
+      promotion_label TEXT NOT NULL DEFAULT '',
       final_unit_price_cents INTEGER NOT NULL,
       subtotal_net_cents INTEGER NOT NULL,
       confirmed_quantity INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_quantity >= 0),
@@ -410,7 +417,14 @@ function migrate(db) {
   ensureColumn(db, "order_items", "line_status", "TEXT NOT NULL DEFAULT 'pending_confirmation'");
   ensureColumn(db, "order_items", "availability_note", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "order_items", "warehouse_location", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "order_items", "promotion_bps", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000)");
+  ensureColumn(db, "order_items", "promotion_label", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "warehouse_location", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "products", "promotion_bps", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000)");
+  ensureColumn(db, "products", "promotion_label", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "products", "promotion_starts_at", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "products", "promotion_ends_at", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "products", "promotion_active", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_active IN (0, 1))");
   ensureColumn(db, "orders", "payment_method", "TEXT NOT NULL DEFAULT 'bank_transfer'");
   ensureColumn(db, "orders", "fulfillment_status", "TEXT NOT NULL DEFAULT 'pending'");
   ensureColumn(db, "orders", "fulfillment_method", "TEXT NOT NULL DEFAULT ''");

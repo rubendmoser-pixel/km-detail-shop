@@ -476,9 +476,10 @@ function renderProductCard(product) {
   const mainAlt = images[0]?.altText || product.name;
   const productUrl = product.publicUrl || `/producto/${encodeURIComponent(product.slug || product.kmCode.toLowerCase())}`;
   const zoomCaption = `${product.kmCode} · ${product.name}`;
+  const promotionBadge = promotionBadgeHtml(product.promotion);
   const visual = images.length
-    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span></div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
-    : `<div class="product-visual ${familyClass}"><span class="product-code">${escapeHtml(product.kmCode)}</span></div>`;
+    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
+    : `<div class="product-visual ${familyClass}"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div>`;
   const pricing = approved ? `
     <div class="price-block">
       <span>Lista neta <s>${formatCents(product.basePriceCents)}</s></span>
@@ -558,6 +559,7 @@ function renderCart() {
         <span class="product-code">${escapeHtml(product.kmCode)}</span>
         <strong>${escapeHtml(product.name)}</strong>
         <span>${escapeHtml(product.family.name)}${product.measure ? ` | ${escapeHtml(product.measure)}` : ""}${product.ean13 ? ` | EAN ${escapeHtml(product.ean13)}` : ""}</span>
+        ${product.promotion?.active ? `<span class="cart-promo-note">Promo aplicada: -${formatPercent(product.promotion.bps)}</span>` : ""}
       </div>
       <div class="cart-line-controls">
         <div class="qty-control cart-qty">
@@ -1521,7 +1523,15 @@ function normalizeProductPrices(product) {
   const discountsBps = Array.isArray(product.discountsBps)
     ? product.discountsBps.map((value) => safeCents(value)).filter((value) => value > 0)
     : [];
-  return { ...product, basePriceCents, finalPriceCents, discountsBps };
+  const promotion = product.promotion?.active && product.promotion?.bps
+    ? { ...product.promotion, bps: safeCents(product.promotion.bps) }
+    : { active: false, bps: 0, label: "" };
+  return { ...product, basePriceCents, finalPriceCents, discountsBps, promotion };
+}
+
+function promotionBadgeHtml(promotion) {
+  if (!promotion?.active || !promotion.bps) return "";
+  return `<span class="promo-badge">PROMO -${formatPercent(promotion.bps)}</span>`;
 }
 
 function safeCents(value, fallback = 0) {

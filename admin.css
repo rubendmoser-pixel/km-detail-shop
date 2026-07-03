@@ -267,6 +267,26 @@
 .status-badge.rejected,
 .status-badge.suspended { color: #ee9797; border-color: #794242; }
 
+.promo-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  color: #06150a;
+  background: #9fe19b;
+  border: 1px solid rgba(198, 255, 190, 0.8);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.promo-badge.small {
+  margin-left: 7px;
+  transform: translateY(-1px);
+}
+
 .state-badge {
   display: inline-flex;
   align-items: center;

@@ -431,7 +431,7 @@ function renderProductFamilies() {
 function renderProducts() {
   adminEls.productsTableBody.innerHTML = adminState.products.length ? adminState.products.map((product) => `
     <tr data-product-id="${product.id}">
-      <td><strong>${escapeAdmin(product.kmCode)}</strong><br><span>${escapeAdmin(product.ean13)}</span></td>
+      <td><strong>${escapeAdmin(product.kmCode)}</strong>${adminPromotionBadge(product.promotion?.current)}<br><span>${escapeAdmin(product.ean13)}</span></td>
       <td>${escapeAdmin(product.name)}${product.measure ? `<br><span>${escapeAdmin(product.measure)}</span>` : ""}${product.warehouseLocation ? `<br><span>Ubicacion: ${escapeAdmin(product.warehouseLocation)}</span>` : ""}</td>
       <td>${escapeAdmin(product.family.name)}</td>
       <td>${adminMoney.format(product.basePriceCents / 100)}</td>
@@ -440,6 +440,11 @@ function renderProducts() {
     </tr>
   `).join("") : `<tr><td colspan="6">No hay productos para este filtro.</td></tr>`;
   adminEls.productsTableBody.querySelectorAll("[data-edit-product]").forEach((button) => button.addEventListener("click", editProduct));
+}
+
+function adminPromotionBadge(promotion) {
+  if (!promotion?.active || !promotion.bps) return "";
+  return ` <span class="promo-badge small">PROMO -${formatBps(promotion.bps)}</span>`;
 }
 
 function editProduct(event) {
@@ -456,6 +461,11 @@ function editProduct(event) {
   productField("webSortOrder").value = product.webSortOrder || 0;
   productField("basePrice").value = (product.basePriceCents / 100).toFixed(2);
   productField("priceEffectiveFrom").value = normalizeDateInput(product.priceEffectiveFrom);
+  productField("promotionPercent").value = product.promotion?.bps ? (product.promotion.bps / 100).toFixed(2) : "";
+  productField("promotionLabel").value = product.promotion?.label || "";
+  productField("promotionStartsAt").value = normalizeDateInput(product.promotion?.startsAt || "");
+  productField("promotionEndsAt").value = normalizeDateInput(product.promotion?.endsAt || "");
+  productField("promotionActive").checked = Boolean(product.promotion?.active);
   productField("active").checked = product.active;
   productField("imageFilename").value = product.imageFilename || "";
   productField("warehouseLocation").value = product.warehouseLocation || "";
@@ -481,6 +491,11 @@ function resetProductForm() {
   productField("webSortOrder").value = 0;
   productField("warehouseLocation").value = "";
   productField("priceEffectiveFrom").value = new Date().toISOString().slice(0, 10);
+  productField("promotionPercent").value = "";
+  productField("promotionLabel").value = "";
+  productField("promotionStartsAt").value = "";
+  productField("promotionEndsAt").value = "";
+  productField("promotionActive").checked = false;
   adminEls.productMessage.textContent = "";
   adminState.productImages = [];
   renderProductImages();
@@ -499,6 +514,11 @@ async function saveProduct(event) {
     webSortOrder: Number(values.webSortOrder || 0),
     basePriceCents: Math.round(Number(values.basePrice || 0) * 100),
     priceEffectiveFrom: values.priceEffectiveFrom,
+    promotionBps: Math.round(Number(values.promotionPercent || 0) * 100),
+    promotionLabel: values.promotionLabel,
+    promotionStartsAt: values.promotionStartsAt,
+    promotionEndsAt: values.promotionEndsAt,
+    promotionActive: productField("promotionActive").checked,
     active: productField("active").checked,
     imageFilename: values.imageFilename,
     warehouseLocation: values.warehouseLocation,

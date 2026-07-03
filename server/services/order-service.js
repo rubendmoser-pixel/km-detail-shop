@@ -8,6 +8,7 @@ import { getCustomerPricingContext } from "./customer-service.js";
 import { resolveCustomerSalesRep } from "./sales-rep-service.js";
 import { getCommercialSettings } from "./settings-service.js";
 import { getShippingAddress } from "./shipping-address-service.js";
+import { activeProductPromotion } from "./product-service.js";
 
 const RECEIPT_MIME_EXTENSIONS = new Map([
   ["application/pdf", ".pdf"],
@@ -84,7 +85,12 @@ export function createOrder(db, customerId, input) {
       seen.add(productId);
       const product = productQuery.get(productId);
       if (!product) throw new NotFoundError(`Product ${productId} is unavailable`);
-      return { product, ...calculateLine({ basePriceCents: product.base_price_cents, quantity, discountsBps: discounts }) };
+      const promotion = activeProductPromotion(product);
+      return {
+        product,
+        promotion,
+        ...calculateLine({ basePriceCents: product.base_price_cents, quantity, discountsBps: [...discounts, promotion.bps] })
+      };
     });
     const totals = calculateOrderTotals(lines, settings.vatBps);
     const commissionCents = calculateCommission(totals.subtotalNetCents, salesRep.commissionBps);
@@ -112,13 +118,15 @@ export function createOrder(db, customerId, input) {
     const insertItem = db.prepare(`
       INSERT INTO order_items (
         order_id, product_id, km_code, ean13, product_name, warehouse_location, quantity, base_price_cents,
-        discount_1_bps, discount_2_bps, discount_3_bps, final_unit_price_cents, subtotal_net_cents
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        discount_1_bps, discount_2_bps, discount_3_bps, promotion_bps, promotion_label,
+        final_unit_price_cents, subtotal_net_cents
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const line of lines) {
       insertItem.run(
         order.id, line.product.id, line.product.km_code, line.product.ean13, line.product.name, line.product.warehouse_location || "",
-        line.quantity, line.basePriceCents, ...discounts, line.finalUnitPriceCents, line.subtotalNetCents
+        line.quantity, line.basePriceCents, ...discounts, line.promotion.bps, line.promotion.label || "",
+        line.finalUnitPriceCents, line.subtotalNetCents
       );
     }
     addOrderEvent(db, order.id, customer.user_id, "order_created", "", null, { orderNumber, totals });
@@ -942,6 +950,8 @@ function mapOrder(order, items, receipts = [], events = []) {
       confirmedQuantity: item.confirmed_quantity || 0,
       basePriceCents: item.base_price_cents,
       discountsBps: [item.discount_1_bps, item.discount_2_bps, item.discount_3_bps],
+      promotionBps: item.promotion_bps || 0,
+      promotionLabel: item.promotion_label || "",
       finalUnitPriceCents: item.final_unit_price_cents,
       subtotalNetCents: item.subtotal_net_cents,
       confirmedSubtotalNetCents: item.confirmed_subtotal_net_cents || 0,

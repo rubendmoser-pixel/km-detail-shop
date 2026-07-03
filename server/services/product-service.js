@@ -44,7 +44,7 @@ export function listProducts(db, user) {
     ...publicProduct(row, imagesByProduct.get(row.id) || []),
     basePriceCents: row.base_price_cents,
     discountsBps: discountList,
-    finalPriceCents: applyDiscounts(row.base_price_cents, discountList),
+    finalPriceCents: applyDiscounts(row.base_price_cents, [...discountList, activeProductPromotion(row).bps]),
     currency: row.currency,
     priceEffectiveFrom: row.price_effective_from,
     priceNotice: "Precio neto. IVA no incluido."
@@ -53,6 +53,23 @@ export function listProducts(db, user) {
 
 function safeBasisPoints(value) {
   return Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
+export function activeProductPromotion(row, now = new Date()) {
+  const bps = safeBasisPoints(row?.promotion_bps);
+  if (!row || !row.promotion_active || bps <= 0) return { active: false, bps: 0, label: "" };
+  const today = now.toISOString().slice(0, 10);
+  const startsAt = String(row.promotion_starts_at || "").slice(0, 10);
+  const endsAt = String(row.promotion_ends_at || "").slice(0, 10);
+  if (startsAt && startsAt > today) return { active: false, bps: 0, label: "" };
+  if (endsAt && endsAt < today) return { active: false, bps: 0, label: "" };
+  return {
+    active: true,
+    bps,
+    label: optionalPromotionLabel(row.promotion_label) || `Promo ${(bps / 100).toFixed(2).replace(/\.00$/, "")}%`,
+    startsAt,
+    endsAt
+  };
 }
 
 export function listPublicProductsForSeo(db) {
@@ -172,7 +189,9 @@ export function listAdminProducts(db, filters = {}) {
     SELECT p.id, p.km_code, p.ean13, p.name, p.slug, p.subfamily, p.material,
            p.color, p.measure, p.cut_level, p.attachment_system,
            p.compatible_machine, p.recommended_use, p.technical_description, p.warehouse_location,
-           p.image_filename, p.base_price_cents, p.currency, p.price_effective_from,
+           p.image_filename, p.base_price_cents, p.promotion_bps, p.promotion_label,
+           p.promotion_starts_at, p.promotion_ends_at, p.promotion_active,
+           p.currency, p.price_effective_from,
            p.active, p.web_sort_order, p.created_at, p.updated_at,
            f.id AS family_id, f.name AS family_name, f.slug AS family_slug,
            f.sort_order AS family_sort_order,
@@ -305,6 +324,7 @@ export function upsertProduct(db, input) {
   if (!Number.isSafeInteger(input.basePriceCents) || input.basePriceCents < 0) {
     throw new ValidationError("basePriceCents must be a non-negative integer");
   }
+  const promotionBps = safeInputBasisPoints(input.promotionBps, "promotionBps");
   const kmCode = requiredText(input.kmCode, "kmCode", { max: 30 }).toUpperCase();
   const ean13 = requiredText(input.ean13, "ean13", { min: 13, max: 13 });
   if (!/^\d{13}$/.test(ean13)) throw new ValidationError("ean13 must contain exactly 13 digits");
@@ -315,9 +335,11 @@ export function upsertProduct(db, input) {
     INSERT INTO products (
       km_code, ean13, name, slug, family_id, subfamily, material, color, measure,
       cut_level, attachment_system, compatible_machine, recommended_use,
-      technical_description, warehouse_location, image_filename, base_price_cents, price_effective_from,
+      technical_description, warehouse_location, image_filename, base_price_cents,
+      promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active,
+      price_effective_from,
       active, web_sort_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(km_code) DO UPDATE SET
       ean13 = excluded.ean13, name = excluded.name, slug = excluded.slug,
       family_id = excluded.family_id, subfamily = excluded.subfamily,
@@ -329,6 +351,11 @@ export function upsertProduct(db, input) {
       warehouse_location = excluded.warehouse_location,
       image_filename = excluded.image_filename,
       base_price_cents = excluded.base_price_cents,
+      promotion_bps = excluded.promotion_bps,
+      promotion_label = excluded.promotion_label,
+      promotion_starts_at = excluded.promotion_starts_at,
+      promotion_ends_at = excluded.promotion_ends_at,
+      promotion_active = excluded.promotion_active,
       price_effective_from = excluded.price_effective_from,
       active = excluded.active, web_sort_order = excluded.web_sort_order,
       updated_at = CURRENT_TIMESTAMP
@@ -344,9 +371,34 @@ export function upsertProduct(db, input) {
     optionalText(input.technicalDescription, "technicalDescription"),
     optionalText(input.warehouseLocation, "warehouseLocation", { max: 80 }),
     optionalText(input.imageFilename, "imageFilename") || null,
-    input.basePriceCents, requiredText(input.priceEffectiveFrom, "priceEffectiveFrom", { max: 30 }),
+    input.basePriceCents,
+    promotionBps,
+    optionalPromotionLabel(input.promotionLabel),
+    optionalDate(input.promotionStartsAt, "promotionStartsAt"),
+    optionalDate(input.promotionEndsAt, "promotionEndsAt"),
+    input.promotionActive && promotionBps > 0 ? 1 : 0,
+    requiredText(input.priceEffectiveFrom, "priceEffectiveFrom", { max: 30 }),
     input.active === false ? 0 : 1, Number.isInteger(input.webSortOrder) ? input.webSortOrder : 0
   );
+}
+
+function safeInputBasisPoints(value, field) {
+  const number = Number(value || 0);
+  if (!Number.isInteger(number) || number < 0 || number > 10000) {
+    throw new ValidationError(`${field} must be between 0 and 10000`);
+  }
+  return number;
+}
+
+function optionalPromotionLabel(value) {
+  return optionalText(value, "promotionLabel", { max: 80 });
+}
+
+function optionalDate(value, field) {
+  const text = optionalText(value, field, { max: 10 });
+  if (!text) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new ValidationError(`${field} must be YYYY-MM-DD`);
+  return text;
 }
 
 function adminProduct(row) {
@@ -371,6 +423,14 @@ function adminProduct(row) {
     primaryImageUrl: row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : "",
     imageCount: row.image_count || 0,
     basePriceCents: row.base_price_cents,
+    promotion: {
+      bps: row.promotion_bps || 0,
+      label: row.promotion_label || "",
+      startsAt: row.promotion_starts_at || "",
+      endsAt: row.promotion_ends_at || "",
+      active: Boolean(row.promotion_active),
+      current: activeProductPromotion(row)
+    },
     currency: row.currency,
     priceEffectiveFrom: row.price_effective_from,
     active: Boolean(row.active),
@@ -400,6 +460,7 @@ function publicProduct(row, images = []) {
     imageFilename: row.image_filename,
     primaryImageUrl: images[0]?.url || (row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : ""),
     images,
+    promotion: activeProductPromotion(row),
     publicUrl: `/producto/${row.slug}`
   };
 }

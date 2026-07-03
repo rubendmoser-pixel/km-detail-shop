@@ -850,6 +850,7 @@ body.customer-app .product-card {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  gap: 7px;
   margin-bottom: 8px;
 }
 
@@ -947,6 +948,25 @@ body.customer-app .product-card {
 
 .product-visual.has-image .product-code {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.16);
+}
+
+.promo-badge {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 5px 9px;
+  color: #06150a;
+  background: #9fe19b;
+  border: 1px solid rgba(198, 255, 190, 0.78);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
 }
 
 .product-body {
@@ -2136,6 +2156,19 @@ body.customer-app .customer-order-summary {
   color: var(--muted);
   margin-top: 3px;
   font-size: 0.86rem;
+}
+
+.cart-line .cart-promo-note {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 4px 8px;
+  color: #bdf0b9;
+  background: rgba(84, 183, 91, 0.12);
+  border: 1px solid rgba(159, 225, 155, 0.35);
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 900;
 }
 
 .cart-line-controls {

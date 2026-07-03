@@ -10,8 +10,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="./styles.css?v=35" />
-    <link rel="stylesheet" href="./admin.css?v=33" />
+    <link rel="stylesheet" href="./styles.css?v=36" />
+    <link rel="stylesheet" href="./admin.css?v=34" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -167,6 +167,11 @@
                 <legend>Precio y estado</legend>
                 <label><span>Precio lista sin IVA ($)</span><input name="basePrice" type="number" min="0" step="0.01" required /></label>
                 <label><span>Vigente desde</span><input name="priceEffectiveFrom" type="date" required /></label>
+                <label><span>Promo bonificacion (%)</span><input name="promotionPercent" type="number" min="0" max="100" step="0.01" /></label>
+                <label><span>Promo texto</span><input name="promotionLabel" placeholder="Ej: Promo julio" maxlength="80" /></label>
+                <label><span>Promo desde</span><input name="promotionStartsAt" type="date" /></label>
+                <label><span>Promo hasta</span><input name="promotionEndsAt" type="date" /></label>
+                <label class="checkbox-label"><input name="promotionActive" type="checkbox" /><span>Promocion activa</span></label>
                 <label class="checkbox-label"><input name="active" type="checkbox" checked /><span>Producto activo</span></label>
                 <label><span>Imagen archivo</span><input name="imageFilename" placeholder="ej: km-pa-150.jpg" /></label>
                 <label><span>Ubicacion deposito</span><input name="warehouseLocation" placeholder="Ej: A-03-02" maxlength="80" /></label>
@@ -402,6 +407,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=47" defer></script>
+    <script src="./admin.js?v=48" defer></script>
   </body>
 </html>

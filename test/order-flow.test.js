@@ -11,6 +11,72 @@ import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
 
+test("active product promotion is applied and reserved in order items", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-promo-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath, adminEmail: "admin-promo@km-detail.com", adminPassword: "secure-admin-password" });
+  t.after(() => {
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const admin = db.prepare("SELECT id FROM users WHERE email = ?").get("admin-promo@km-detail.com");
+  const registration = await registerCustomer(db, {
+    email: "cliente-promo@example.com",
+    password: "customer-password-123",
+    firstName: "Promo",
+    lastName: "Cliente",
+    businessName: "Comercio Promo",
+    taxId: "30-12345678-1",
+    taxCondition: "Responsable inscripto",
+    customerType: "Comercio especializado",
+    industry: "Detailing",
+    city: "Rosario",
+    province: "Santa Fe",
+    postalCode: "2000",
+    address: "Calle 123",
+    phone: "3410000000",
+    whatsapp: "5493410000000",
+    contactPerson: "Promo Cliente",
+    acceptTerms: true,
+    acceptPrivacy: true
+  });
+  setCustomerStatus(db, registration.customer.id, "approved", admin.id);
+  setCustomerDiscounts(db, registration.customer.id, [2000, 0, 0], admin.id);
+
+  const product = upsertProduct(db, {
+    kmCode: "PROMO1K",
+    ean13: "7791234567807",
+    name: "Producto con promo",
+    familyName: "Poliespumas",
+    basePriceCents: 10_000,
+    priceEffectiveFrom: "2026-01-01",
+    promotionBps: 1000,
+    promotionLabel: "Promo prueba",
+    promotionStartsAt: "2026-01-01",
+    promotionEndsAt: "2099-12-31",
+    promotionActive: true
+  });
+
+  const order = createOrder(db, registration.customer.id, {
+    items: [{ productId: product.id, quantity: 3 }],
+    shipping: {
+      recipient: "Promo Cliente",
+      address: "Calle 123",
+      city: "Rosario",
+      province: "Santa Fe",
+      postalCode: "2000",
+      contactPhone: "3410000000"
+    }
+  });
+
+  assert.equal(order.items[0].basePriceCents, 10_000);
+  assert.equal(order.items[0].discountsBps[0], 2000);
+  assert.equal(order.items[0].promotionBps, 1000);
+  assert.equal(order.items[0].promotionLabel, "Promo prueba");
+  assert.equal(order.items[0].finalUnitPriceCents, 7200);
+  assert.equal(order.subtotalNetCents, 21_600);
+});
+
 test("confirmed order preserves price, discounts, VAT and bank snapshot", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-order-${Date.now()}.sqlite`);
   const db = await openDatabase({ databasePath, adminEmail: "admin@km-detail.com", adminPassword: "secure-admin-password" });
