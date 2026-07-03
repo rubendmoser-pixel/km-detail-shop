@@ -1,4 +1,4 @@
-const CACHE_NAME = "km-detail-shop-v65";
+const CACHE_NAME = "km-detail-shop-v66";
 const ASSETS = [
   "./",
   "./index.html",
@@ -15,6 +15,7 @@ const ASSETS = [
   "./favicon.ico",
   "./assets/favicon-16.png",
   "./assets/favicon-32.png",
+  "./assets/notification-badge.png",
   "./assets/apple-touch-icon.png",
   "./assets/km-metal-logo-small.png",
   "./assets/icon-192.png",
@@ -65,7 +66,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: payload.body || "Tenes una notificacion de KM.",
     icon: payload.icon || "./assets/icon-192.png",
-    badge: payload.badge || "./assets/favicon-32.png",
+    badge: payload.badge || "./assets/notification-badge.png",
     tag: payload.tag || "km-detail",
     data: {
       url: payload.url || "/#mis-compras"

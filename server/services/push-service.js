@@ -1,7 +1,7 @@
 import webpush from "web-push";
 
 const DEFAULT_ICON = "/assets/icon-192.png";
-const DEFAULT_BADGE = "/assets/favicon-32.png";
+const DEFAULT_BADGE = "/assets/notification-badge.png";
 
 export function createPushService({ db, config }) {
   const enabled = Boolean(config.vapidPublicKey && config.vapidPrivateKey);
