@@ -325,11 +325,7 @@ function renderAccountState() {
   const approved = isApprovedCustomer();
   const view = currentOperationalView();
   els.openAccount.textContent = state.user ? state.user.businessName || state.user.email : "Ingresar";
-  els.catalogNotice.textContent = approved
-    ? "Precios netos personalizados. IVA no incluido."
-    : state.user?.approvalStatus === "pending"
-      ? "Tu cuenta comercial esta pendiente de aprobacion."
-      : "Inicia sesion para consultar precios comerciales.";
+  els.catalogNotice.textContent = catalogPricingNotice(approved);
   els.orderAccess.hidden = approved;
   els.orderForm.hidden = !approved || state.checkoutCompleted;
   if (els.navPurchases) els.navPurchases.hidden = !approved;
@@ -419,6 +415,7 @@ function renderProducts() {
   });
   filtered = sortProducts(filtered);
   els.resultCount.textContent = `${filtered.length} producto${filtered.length === 1 ? "" : "s"}`;
+  if (isApprovedCustomer()) els.catalogNotice.textContent = catalogPricingNotice(true);
   const visible = filtered.slice(0, state.productVisibleCount);
   const remaining = Math.max(0, filtered.length - visible.length);
   els.productGrid.innerHTML = filtered.length
@@ -485,7 +482,6 @@ function renderProductCard(product) {
     <div class="price-block">
       <span>Lista neta <s>${formatCents(product.basePriceCents)}</s></span>
       <strong>${formatCents(product.finalPriceCents)}</strong>
-      <small>${discountText(product.discountsBps)} Precio neto. IVA no incluido.</small>
     </div>
     <div class="product-actions">
       <div class="qty-control">
@@ -1513,9 +1509,17 @@ function accountStatusText(user) {
   return labels[user.approvalStatus] || user.approvalStatus;
 }
 
-function discountText(discounts = []) {
-  const active = discounts.filter(Boolean).map(formatPercent);
-  return active.length ? `Descuentos en cascada: ${active.join(" · ")}.` : "Sin descuentos.";
+function catalogPricingNotice(approved) {
+  if (!approved) {
+    return state.user?.approvalStatus === "pending"
+      ? "Tu cuenta comercial esta pendiente de aprobacion."
+      : "Inicia sesion para consultar precios comerciales.";
+  }
+  const activeDiscounts = state.products.find((product) => product.discountsBps?.length)?.discountsBps
+    ?.filter(Boolean)
+    .map(formatPercent) || [];
+  if (!activeDiscounts.length) return "Precios netos personalizados. IVA no incluido.";
+  return `Descuentos activos sobre precio de lista: ${activeDiscounts.join(" + ")}. Precios netos. IVA no incluido.`;
 }
 
 function normalizeProductPrices(product) {
