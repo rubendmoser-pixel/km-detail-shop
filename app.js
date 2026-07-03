@@ -72,7 +72,7 @@ const els = Object.fromEntries([
   "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
   "cartEmpty", "cartSummaryText", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "backToShopping", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
-  "navPurchases", "topNav", "mobileMenuToggle",
+  "navPurchases", "navPriceList", "topNav", "mobileMenuToggle",
   "activeShippingAddress", "configureShippingAddresses", "shippingAddressManager",
   "shippingAddressList", "shippingAddressForm", "shippingAddressFormTitle", "shippingAddressMessage",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
@@ -146,6 +146,7 @@ function bindEvents() {
     const link = event.target.closest?.("a[href='#mis-compras']");
     if (link) openPurchases(event);
   });
+  els.navPriceList?.addEventListener("click", downloadPriceList);
   els.mobileMenuToggle?.addEventListener("click", toggleMobileMenu);
   els.topNav?.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => {
@@ -329,11 +330,12 @@ function renderAccountState() {
   els.orderAccess.hidden = approved;
   els.orderForm.hidden = !approved || state.checkoutCompleted;
   if (els.navPurchases) els.navPurchases.hidden = !approved;
+  if (els.navPriceList) els.navPriceList.hidden = !approved;
   document.querySelectorAll("[data-nav-audience='public']").forEach((link) => {
     link.hidden = approved;
   });
   document.querySelectorAll("[data-nav-audience='operational']").forEach((link) => {
-    link.hidden = link.id === "navPurchases" ? !approved : false;
+    link.hidden = ["navPurchases", "navPriceList"].includes(link.id) ? !approved : false;
   });
   document.querySelectorAll(".public-section").forEach((section) => {
     section.hidden = approved;
@@ -1163,6 +1165,16 @@ function paymentHelperText(order) {
   if (order.modifiedAcceptanceRequired) return `<p>Revisa y acepta la disponibilidad confirmada para continuar.</p>`;
   if (!["availability_confirmed", "confirmed"].includes(order.status)) return `<p>KM confirmara disponibilidad antes de habilitar el pago.</p>`;
   return "";
+}
+
+function downloadPriceList(event) {
+  event?.preventDefault?.();
+  setMobileMenu(false);
+  if (!isApprovedCustomer()) {
+    showToast("Ingresa con una cuenta comercial aprobada para descargar la lista.");
+    return openAccount(false);
+  }
+  window.location.href = "/api/products/price-list.xlsx";
 }
 
 async function openPurchases(event) {

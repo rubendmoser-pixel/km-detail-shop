@@ -52,6 +52,7 @@ import { createRateLimiter } from "./rate-limit.js";
 import { renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
+import { createCustomerPriceList } from "./services/price-list-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -164,6 +165,19 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/products") {
         return sendJson(response, 200, { products: listProducts(db, currentUser) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/products/price-list.xlsx") {
+        const user = requireApprovedCustomer(currentUser);
+        const priceList = createCustomerPriceList(db, user, { publicBaseUrl: config.publicBaseUrl || "https://www.km-detail.com" });
+        response.writeHead(200, {
+          "content-type": priceList.contentType,
+          "content-disposition": `attachment; filename="${priceList.filename}"`,
+          "content-length": priceList.buffer.length,
+          "cache-control": "no-store",
+          ...SECURITY_HEADERS
+        });
+        response.end(priceList.buffer);
+        return;
       }
       if (request.method === "GET" && url.pathname === "/api/public-settings") {
         return sendJson(response, 200, { settings: getPublicSettings(db) });

@@ -220,6 +220,17 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(products.products[0].primaryImageUrl, images[0].url);
   assert.equal(products.products[0].images.length, 1);
   assert.equal(products.products[0].images[0].url, images[0].url);
+  const blockedPriceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`);
+  assert.equal(blockedPriceListResponse.status, 401);
+  const priceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`, { headers: { cookie: customerCookie } });
+  assert.equal(priceListResponse.status, 200);
+  assert.equal(
+    priceListResponse.headers.get("content-type"),
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  assert.match(priceListResponse.headers.get("content-disposition"), /KM-Detail-Line-lista-precios-Comercio-API-/);
+  const priceListBuffer = Buffer.from(await priceListResponse.arrayBuffer());
+  assert.equal(priceListBuffer.subarray(0, 2).toString(), "PK");
   const initialAddresses = await getJson(`${baseUrl}/api/shipping-addresses`, customerCookie);
   assert.equal(initialAddresses.addresses.length, 1);
   assert.equal(initialAddresses.addresses[0].label, "Principal");
