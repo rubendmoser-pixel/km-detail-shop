@@ -308,6 +308,14 @@
   font-size: 1rem;
 }
 
+.order-detail-grid .customer-class-badge {
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  margin-top: 0;
+  font-size: 1.9rem;
+}
+
 .promo-badge {
   display: inline-flex;
   align-items: center;
