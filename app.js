@@ -477,6 +477,7 @@ function renderProductCard(product) {
   const productUrl = product.publicUrl || `/producto/${encodeURIComponent(product.slug || product.kmCode.toLowerCase())}`;
   const zoomCaption = `${product.kmCode} · ${product.name}`;
   const promotionBadge = promotionBadgeHtml(product.promotion);
+  const promotionClass = product.promotion?.active ? " is-promo" : "";
   const visual = images.length
     ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
     : `<div class="product-visual ${familyClass}"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div></div>`;
@@ -498,7 +499,7 @@ function renderProductCard(product) {
       <span>${state.user ? "Precio disponible al aprobar la cuenta" : "Precio disponible con cuenta comercial aprobada"}</span>
     </div>`;
   return `
-    <article class="product-card family-${familyClass}">
+    <article class="product-card family-${familyClass}${promotionClass}">
       ${visual}
       <div class="product-body">
         <h3><a class="product-title-link" href="${escapeHtml(productUrl)}">${escapeHtml(product.name)}</a></h3>
