@@ -324,8 +324,28 @@ export function upsertProduct(db, input) {
   if (!Number.isSafeInteger(input.basePriceCents) || input.basePriceCents < 0) {
     throw new ValidationError("basePriceCents must be a non-negative integer");
   }
-  const promotionBps = safeInputBasisPoints(input.promotionBps, "promotionBps");
   const kmCode = requiredText(input.kmCode, "kmCode", { max: 30 }).toUpperCase();
+  const existingProduct = db.prepare(`
+    SELECT promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active
+    FROM products WHERE km_code = ?
+  `).get(kmCode);
+  const hasPromotionInput = ["promotionBps", "promotionLabel", "promotionStartsAt", "promotionEndsAt", "promotionActive"]
+    .some((field) => Object.hasOwn(input, field));
+  const promotionBps = hasPromotionInput
+    ? safeInputBasisPoints(input.promotionBps, "promotionBps")
+    : safeBasisPoints(existingProduct?.promotion_bps);
+  const promotionLabel = hasPromotionInput
+    ? optionalPromotionLabel(input.promotionLabel)
+    : existingProduct?.promotion_label || "";
+  const promotionStartsAt = hasPromotionInput
+    ? optionalDate(input.promotionStartsAt, "promotionStartsAt")
+    : existingProduct?.promotion_starts_at || "";
+  const promotionEndsAt = hasPromotionInput
+    ? optionalDate(input.promotionEndsAt, "promotionEndsAt")
+    : existingProduct?.promotion_ends_at || "";
+  const promotionActive = hasPromotionInput
+    ? input.promotionActive && promotionBps > 0 ? 1 : 0
+    : existingProduct?.promotion_active || 0;
   const ean13 = requiredText(input.ean13, "ean13", { min: 13, max: 13 });
   if (!/^\d{13}$/.test(ean13)) throw new ValidationError("ean13 must contain exactly 13 digits");
   const name = requiredText(input.name, "name");
@@ -373,10 +393,10 @@ export function upsertProduct(db, input) {
     optionalText(input.imageFilename, "imageFilename") || null,
     input.basePriceCents,
     promotionBps,
-    optionalPromotionLabel(input.promotionLabel),
-    optionalDate(input.promotionStartsAt, "promotionStartsAt"),
-    optionalDate(input.promotionEndsAt, "promotionEndsAt"),
-    input.promotionActive && promotionBps > 0 ? 1 : 0,
+    promotionLabel,
+    promotionStartsAt,
+    promotionEndsAt,
+    promotionActive,
     requiredText(input.priceEffectiveFrom, "priceEffectiveFrom", { max: 30 }),
     input.active === false ? 0 : 1, Number.isInteger(input.webSortOrder) ? input.webSortOrder : 0
   );

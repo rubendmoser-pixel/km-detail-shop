@@ -56,6 +56,24 @@ test("active product promotion is applied and reserved in order items", async (t
     promotionEndsAt: "2099-12-31",
     promotionActive: true
   });
+  const editedProduct = upsertProduct(db, {
+    kmCode: "PROMO1K",
+    ean13: "7791234567807",
+    name: "Producto con promo editado",
+    familyName: "Poliespumas",
+    basePriceCents: 10_000,
+    priceEffectiveFrom: "2026-02-01",
+    imageFilename: "promo-editado.png"
+  });
+  const storedPromotion = db.prepare(`
+    SELECT promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active
+    FROM products WHERE id = ?
+  `).get(editedProduct.id);
+  assert.equal(storedPromotion.promotion_bps, 1000);
+  assert.equal(storedPromotion.promotion_label, "Promo prueba");
+  assert.equal(storedPromotion.promotion_starts_at, "2026-01-01");
+  assert.equal(storedPromotion.promotion_ends_at, "2099-12-31");
+  assert.equal(storedPromotion.promotion_active, 1);
 
   const order = createOrder(db, registration.customer.id, {
     items: [{ productId: product.id, quantity: 3 }],
