@@ -7,7 +7,7 @@ export function createCustomerPriceList(db, user, { publicBaseUrl = "https://www
   const products = listProducts(db, user);
   const customerName = user.businessName || user.email || "cliente";
   const generatedDate = now.toISOString().slice(0, 10);
-  const rows = products.map((product) => productPriceRow(product, publicBaseUrl));
+  const rows = products.map((product) => productPriceRow(product));
   const files = workbookFiles({
     title: "KM Detail Line - Lista de precios",
     customerName,
@@ -22,45 +22,28 @@ export function createCustomerPriceList(db, user, { publicBaseUrl = "https://www
   };
 }
 
-function productPriceRow(product, publicBaseUrl) {
+function productPriceRow(product) {
   const discounts = (product.discountsBps || []).filter(Boolean).map(formatBps).join(" + ");
-  const promotion = product.promotion?.active ? promotionText(product.promotion) : "";
+  const promotion = product.promotion?.active ? `Promo ${formatBps(product.promotion.bps)}` : "";
   return [
     product.kmCode,
     product.ean13,
     product.name,
-    product.family?.name,
-    product.measure,
-    product.attachmentSystem,
-    product.cutLevel,
     centsToPesos(product.basePriceCents),
-    discounts,
-    promotion,
-    centsToPesos(product.finalPriceCents),
-    "No incluido",
-    product.priceEffectiveFrom || "",
-    absoluteUrl(publicBaseUrl, product.publicUrl)
+    [discounts, promotion].filter(Boolean).join(" + "),
+    centsToPesos(product.finalPriceCents)
   ];
-}
-
-function promotionText(promotion) {
-  const label = String(promotion.label || "").trim();
-  const discount = promotion.bps ? `-${formatBps(promotion.bps)}` : "";
-  const range = [promotion.startsAt, promotion.endsAt].filter(Boolean).join(" a ");
-  return [label || "Promo", discount, range ? `vigencia ${range}` : ""].filter(Boolean).join(" ");
 }
 
 function workbookFiles({ title, customerName, generatedDate, rows }) {
   const headers = [
-    "Codigo KM", "EAN", "Producto", "Familia", "Medida", "Sistema", "Corte",
-    "Precio lista neto", "Descuentos activos", "Promocion vigente", "Precio final neto",
-    "IVA", "Vigencia", "URL producto"
+    "Codigo KM", "EAN", "Producto", "Precio lista + IVA", "Descuento activo", "Precio final + IVA"
   ];
   const sheetRows = [
     row([title], 1, 1),
     row([`Cliente: ${customerName}`], 2, 2),
     row([`Generada: ${generatedDate}`], 3, 2),
-    row(["Precios netos en pesos argentinos. IVA no incluido."], 4, 2),
+    row(["Precios en pesos argentinos expresados + IVA."], 4, 2),
     row(headers, 5, 3),
     ...rows.map((values, index) => row(values, index + 6, 0))
   ];
@@ -83,7 +66,7 @@ function row(values, rowNumber, style) {
 
 function cell(columnIndex, rowNumber, value, rowStyle, indexInRow) {
   const ref = `${columnName(columnIndex)}${rowNumber}`;
-  const moneyColumns = new Set([7, 10]);
+  const moneyColumns = new Set([3, 5]);
   if (moneyColumns.has(columnIndex) && typeof value === "number") {
     return `<c r="${ref}" s="4"><v>${value.toFixed(2)}</v></c>`;
   }
@@ -96,12 +79,10 @@ function sheetXml(sheetRows, lastRow) {
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="5" topLeftCell="A6" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
   <cols>
     <col min="1" max="1" width="14" customWidth="1"/><col min="2" max="2" width="17" customWidth="1"/>
-    <col min="3" max="3" width="52" customWidth="1"/><col min="4" max="7" width="18" customWidth="1"/>
-    <col min="8" max="11" width="18" customWidth="1"/><col min="12" max="13" width="18" customWidth="1"/>
-    <col min="14" max="14" width="48" customWidth="1"/>
+    <col min="3" max="3" width="58" customWidth="1"/><col min="4" max="6" width="20" customWidth="1"/>
   </cols>
   <sheetData>${sheetRows.join("")}</sheetData>
-  <autoFilter ref="A5:N${Math.max(lastRow, 5)}"/>
+  <autoFilter ref="A5:F${Math.max(lastRow, 5)}"/>
 </worksheet>`;
 }
 
@@ -267,10 +248,6 @@ function centsToPesos(cents) {
 
 function formatBps(bps) {
   return `${(Number(bps || 0) / 100).toFixed(2).replace(/\.00$/, "")}%`;
-}
-
-function absoluteUrl(baseUrl, relativeUrl) {
-  return new URL(relativeUrl || "/", baseUrl).toString();
 }
 
 function filenamePart(value) {

@@ -2997,6 +2997,39 @@ body.customer-app .customer-order-summary {
     flex-direction: column;
   }
 
+  .price-list-card {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .price-list-card dl {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .price-list-card dl div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .price-list-card dt {
+    margin: 0;
+    font-size: 0.72rem;
+  }
+
+  .price-list-card dd {
+    text-align: right;
+    font-size: 1rem;
+  }
+
+  .price-list-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .catalog-toolbar select {
     max-width: none;
   }
