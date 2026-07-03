@@ -850,7 +850,8 @@ body.customer-app .product-card {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 7px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
@@ -956,17 +957,20 @@ body.customer-app .product-card {
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  min-height: 26px;
-  padding: 5px 9px;
-  color: #06150a;
-  background: #9fe19b;
-  border: 1px solid rgba(198, 255, 190, 0.78);
+  min-height: 30px;
+  padding: 6px 11px;
+  color: #050505;
+  background: linear-gradient(135deg, #f5e15a 0%, #c9f36f 44%, #78df80 100%);
+  border: 1px solid rgba(255, 244, 125, 0.92);
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 950;
   line-height: 1;
+  letter-spacing: 0;
   text-transform: uppercase;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.35),
+    0 8px 18px rgba(139, 223, 91, 0.22);
 }
 
 .product-body {

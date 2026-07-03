@@ -479,7 +479,7 @@ function renderProductCard(product) {
   const promotionBadge = promotionBadgeHtml(product.promotion);
   const visual = images.length
     ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
-    : `<div class="product-visual ${familyClass}"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div>`;
+    : `<div class="product-visual ${familyClass}"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div></div>`;
   const pricing = approved ? `
     <div class="price-block">
       <span>Lista neta <s>${formatCents(product.basePriceCents)}</s></span>
