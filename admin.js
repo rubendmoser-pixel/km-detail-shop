@@ -1136,6 +1136,7 @@ function orderEventText(type) {
     payment_receipt_reviewed: "Comprobante revisado",
     credit_authorized: "Cuenta corriente autorizada",
     commercial_adjustment_applied: "Ajuste comercial aplicado",
+    commission_settled: "Comision liquidada",
     fulfillment_updated: "Despacho actualizado",
     customer_reaccepted: "Cliente acepto modificacion",
     customer_received: "Cliente confirmo recepcion"
