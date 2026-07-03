@@ -703,12 +703,18 @@ function renderCustomers() {
           <label><span>Comision cliente (%)</span><input name="commission" type="number" min="0" max="100" step="0.01" value="${customer.sales_commission_bps === null || customer.sales_commission_bps === undefined ? "" : customer.sales_commission_bps / 100}" placeholder="General" /></label>
           <button class="ghost-button" type="submit">Guardar vendedor</button>
         </form>
+        <form class="customer-class-form">
+          <div class="sales-summary wide">Marca interna: ${customerClassBadge(customer.commercial_class)}</div>
+          <label><span>B / N</span><select name="commercialClass">${customerClassOptions(customer.commercial_class)}</select></label>
+          <button class="ghost-button" type="submit">Guardar</button>
+        </form>
       </div>
     </article>`).join("");
 
   adminEls.customerList.querySelectorAll("[data-customer-status]").forEach((button) => button.addEventListener("click", updateCustomerStatus));
   adminEls.customerList.querySelectorAll(".discount-form").forEach((form) => form.addEventListener("submit", saveDiscounts));
   adminEls.customerList.querySelectorAll(".sales-assignment-form").forEach((form) => form.addEventListener("submit", saveCustomerSalesRep));
+  adminEls.customerList.querySelectorAll(".customer-class-form").forEach((form) => form.addEventListener("submit", saveCustomerClass));
 }
 
 function salesRepOptions(selectedId) {
@@ -726,18 +732,53 @@ function customerCommissionText(customer) {
   return `${formatBps(customer.sales_rep_default_commission_bps || 0)} general`;
 }
 
+function customerClassOptions(selectedClass) {
+  const selected = normalizeCustomerClass(selectedClass);
+  return ["B", "N"].map((value) => `<option value="${value}" ${value === selected ? "selected" : ""}>${value}</option>`).join("");
+}
+
+function normalizeCustomerClass(value) {
+  return String(value || "B").toUpperCase() === "N" ? "N" : "B";
+}
+
+function customerClassBadge(value) {
+  const letter = normalizeCustomerClass(value);
+  return `<span class="customer-class-badge ${letter.toLowerCase()}">${letter}</span>`;
+}
+
 async function updateCustomerStatus(event) {
   const row = event.currentTarget.closest("[data-customer-id]");
   const customerId = Number(row.dataset.customerId);
   const status = event.currentTarget.dataset.customerStatus;
+  const commercialClass = row.querySelector(".customer-class-form select[name='commercialClass']")?.value || "B";
   event.currentTarget.disabled = true;
   try {
-    await adminApi(`/api/admin/customers/${customerId}/status`, { method: "PATCH", body: { status } });
+    await adminApi(`/api/admin/customers/${customerId}/status`, { method: "PATCH", body: { status, commercialClass } });
     showAdminToast(`Cliente ${statusLabels[status].toLowerCase()}.`);
     await loadCustomers();
   } catch (error) {
     showAdminToast(error.message);
     event.currentTarget.disabled = false;
+  }
+}
+
+async function saveCustomerClass(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const customerId = Number(form.closest("[data-customer-id]").dataset.customerId);
+  const values = Object.fromEntries(new FormData(form));
+  setBusy(form, true);
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/commercial-class`, {
+      method: "PATCH",
+      body: { commercialClass: values.commercialClass }
+    });
+    showAdminToast("Marca interna guardada.");
+    await loadCustomers();
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
   }
 }
 
@@ -791,7 +832,7 @@ async function loadOrders() {
   adminState.orders = orders;
   renderOrderOpsStats(orders);
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
-    <tr><td><strong>${escapeAdmin(order.order_number)}</strong></td><td>${escapeAdmin(order.business_name)}</td>
+    <tr><td><div class="order-code-cell">${customerClassBadge(order.commercial_class)}<strong>${escapeAdmin(order.order_number)}</strong></div></td><td>${escapeAdmin(order.business_name)}</td>
       <td>${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}</td>
       <td>${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
       <td>${stateBadge(fulfillmentStatusText(normalizedFulfillmentStatus(order.fulfillment_status)), fulfillmentStateClasses[normalizedFulfillmentStatus(order.fulfillment_status)])}</td>
@@ -907,6 +948,7 @@ function renderOrderSummary(order) {
     {
       title: "Estado de operacion",
       items: [
+        { label: "", value: customerClassBadge(order.commercialClass), html: true },
         { label: "Comercial", value: stateBadge(orderStatusText(order.status), orderStateClasses[order.status]), html: true },
         { label: "Pago", value: stateBadge(paymentStatusText(order.paymentStatus), paymentStateClasses[order.paymentStatus]), html: true },
         { label: "Logistica", value: stateBadge(fulfillmentStatusText(fulfillmentStatus), fulfillmentStateClasses[fulfillmentStatus]), html: true },

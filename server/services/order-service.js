@@ -99,14 +99,15 @@ export function createOrder(db, customerId, input) {
     const order = db.prepare(`
       INSERT INTO orders (
         customer_id, status, payment_status, discount_1_bps, discount_2_bps, discount_3_bps,
-        sales_rep_id, sales_rep_name, sales_rep_email, sales_commission_bps,
+        commercial_class, sales_rep_id, sales_rep_name, sales_rep_email, sales_commission_bps,
         sales_commission_base_cents, sales_commission_cents,
         subtotal_net_cents, vat_bps, vat_cents, total_cents, paid_cents, balance_cents, bank_snapshot_json,
         shipping_snapshot_json, price_reserved_at, customer_accepted_at
-      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
+      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
       RETURNING id
     `).get(
       customerId, ...discounts,
+      customer.commercial_class || "B",
       salesRep.id, salesRep.name, salesRep.email, salesRep.commissionBps,
       totals.subtotalNetCents, commissionCents,
       totals.subtotalNetCents, totals.vatBps, totals.vatCents,
@@ -300,7 +301,7 @@ export function listAdminOrders(db, filters = {}) {
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   return db.prepare(`
     SELECT o.id, o.order_number, o.status, o.payment_status, o.total_cents, o.paid_cents, o.balance_cents,
-           o.payment_due_date, o.currency,
+           o.payment_due_date, o.currency, o.commercial_class,
            o.fulfillment_status, o.created_at, c.business_name, c.tax_id
     FROM orders o JOIN customers c ON c.id = o.customer_id
     ${whereSql} ORDER BY o.created_at DESC
@@ -881,6 +882,7 @@ function mapOrder(order, items, receipts = [], events = []) {
     customerWhatsapp: order.whatsapp,
     email: order.email,
     status: order.status,
+    commercialClass: order.commercial_class || "B",
     paymentStatus: order.payment_status,
     paymentMethod: order.payment_method || "bank_transfer",
     paidCents: order.paid_cents || 0,

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
-import { listCustomers, setCustomerDiscounts, setCustomerStatus } from "./services/customer-service.js";
+import { listCustomers, setCustomerCommercialClass, setCustomerDiscounts, setCustomerStatus } from "./services/customer-service.js";
 import {
   acceptModifiedOrder,
   addPaymentReceipt,
@@ -254,8 +254,14 @@ export function createApp({
       match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/status$/);
       if (request.method === "PATCH" && match) {
         const body = await readJson(request);
-        const customer = setCustomerStatus(db, Number(match[1]), body.status, currentUser.id);
+        const customer = setCustomerStatus(db, Number(match[1]), body.status, currentUser.id, body.commercialClass);
         if (customer.changed) emailService.queueCustomerStatus(Number(match[1]), body.status);
+        return sendJson(response, 200, { customer });
+      }
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/commercial-class$/);
+      if (request.method === "PATCH" && match) {
+        const body = await readJson(request);
+        const customer = setCustomerCommercialClass(db, Number(match[1]), body.commercialClass);
         return sendJson(response, 200, { customer });
       }
       match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/discounts$/);

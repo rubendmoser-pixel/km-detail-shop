@@ -267,6 +267,47 @@
 .status-badge.rejected,
 .status-badge.suspended { color: #ee9797; border-color: #794242; }
 
+.customer-class-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  font-size: 1.28rem;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 22px rgba(0, 0, 0, 0.24);
+}
+
+.customer-class-badge.b {
+  color: #b9e8ff;
+  background: linear-gradient(135deg, rgba(40, 119, 164, 0.34), rgba(20, 43, 58, 0.92));
+  border-color: #4d9dce;
+}
+
+.customer-class-badge.n {
+  color: #ffd6aa;
+  background: linear-gradient(135deg, rgba(207, 90, 50, 0.42), rgba(52, 24, 20, 0.94));
+  border-color: #d66a45;
+}
+
+.order-code-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-code-cell .customer-class-badge {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  font-size: 1rem;
+}
+
 .promo-badge {
   display: inline-flex;
   align-items: center;
@@ -416,13 +457,15 @@
   grid-column: 1 / -1;
 }
 
-.sales-assignment-form {
+.sales-assignment-form,
+.customer-class-form {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(120px, 0.7fr);
   gap: 8px;
 }
 
 .sales-assignment-form label,
+.customer-class-form label,
 .sales-rep-form label {
   display: grid;
   gap: 6px;
@@ -433,6 +476,8 @@
 
 .sales-assignment-form .wide,
 .sales-assignment-form .ghost-button,
+.customer-class-form .wide,
+.customer-class-form .ghost-button,
 .sales-rep-form .wide {
   grid-column: 1 / -1;
 }
@@ -622,6 +667,10 @@
   font-size: 0.72rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.order-detail-grid span:empty {
+  display: none;
 }
 
 .order-detail-grid strong {

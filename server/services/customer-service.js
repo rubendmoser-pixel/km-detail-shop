@@ -1,6 +1,7 @@
 import { NotFoundError, ValidationError, basisPoints } from "../domain/validation.js";
 
 const ALLOWED_STATUSES = new Set(["pending", "approved", "rejected", "suspended", "inactive"]);
+const ALLOWED_COMMERCIAL_CLASSES = new Set(["B", "N"]);
 
 export function listCustomers(db, filters = "") {
   const status = typeof filters === "object" ? filters.status || "" : filters;
@@ -32,17 +33,31 @@ export function listCustomers(db, filters = "") {
   `).all(...params);
 }
 
-export function setCustomerStatus(db, customerId, status, adminUserId) {
+export function setCustomerStatus(db, customerId, status, adminUserId, commercialClass = "") {
   if (!ALLOWED_STATUSES.has(status)) throw new ValidationError("Invalid customer status");
-  const previous = db.prepare("SELECT approval_status FROM customers WHERE id = ?").get(customerId);
+  const previous = db.prepare("SELECT approval_status, commercial_class FROM customers WHERE id = ?").get(customerId);
   if (!previous) throw new NotFoundError("Customer not found");
+  const normalizedClass = commercialClass ? normalizeCommercialClass(commercialClass) : previous.commercial_class || "B";
   const approvedAt = status === "approved" ? new Date().toISOString() : null;
   const updated = db.prepare(`
-    UPDATE customers SET approval_status = ?, approved_at = ?, approved_by = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ? RETURNING id, approval_status, approved_at
-  `).get(status, approvedAt, adminUserId, customerId);
+    UPDATE customers
+    SET approval_status = ?, commercial_class = ?, approved_at = ?, approved_by = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? RETURNING id, approval_status, commercial_class, approved_at
+  `).get(status, normalizedClass, approvedAt, adminUserId, customerId);
   if (!updated) throw new NotFoundError("Customer not found");
   return { ...updated, previousStatus: previous.approval_status, changed: previous.approval_status !== status };
+}
+
+export function setCustomerCommercialClass(db, customerId, commercialClass) {
+  const normalizedClass = normalizeCommercialClass(commercialClass);
+  const updated = db.prepare(`
+    UPDATE customers
+    SET commercial_class = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+    RETURNING id, commercial_class
+  `).get(normalizedClass, customerId);
+  if (!updated) throw new NotFoundError("Customer not found");
+  return updated;
 }
 
 export function setCustomerDiscounts(db, customerId, discounts, adminUserId) {
@@ -63,8 +78,14 @@ export function setCustomerDiscounts(db, customerId, discounts, adminUserId) {
 
 export function getCustomerPricingContext(db, customerId) {
   return db.prepare(`
-    SELECT c.id, c.user_id, c.approval_status, d.discount_1_bps, d.discount_2_bps, d.discount_3_bps
+    SELECT c.id, c.user_id, c.approval_status, c.commercial_class, d.discount_1_bps, d.discount_2_bps, d.discount_3_bps
     FROM customers c JOIN customer_discounts d ON d.customer_id = c.id
     WHERE c.id = ?
   `).get(customerId);
+}
+
+function normalizeCommercialClass(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!ALLOWED_COMMERCIAL_CLASSES.has(normalized)) throw new ValidationError("Invalid customer class");
+  return normalized;
 }
