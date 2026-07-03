@@ -89,7 +89,7 @@
         <a href="#empresa" data-nav-audience="public">Empresa</a>
         <a href="#catalogo" data-nav-audience="operational">Productos</a>
         <a href="#catalogo-pdf" data-nav-audience="operational">Catalogo 2026</a>
-        <a href="/api/products/price-list.xlsx" id="navPriceList" data-nav-audience="operational" hidden>Lista de precios</a>
+        <a href="#lista-precios" id="navPriceList" data-nav-audience="operational" hidden>Lista de precios</a>
         <a href="#distribuidores" data-nav-audience="public">Distribuidores</a>
         <a href="#mis-compras" id="navPurchases" data-nav-audience="operational" hidden>Mis compras</a>
         <a href="#contacto" data-nav-audience="public">Contacto</a>
@@ -248,6 +248,39 @@
             <p>Archivo PDF para consulta comercial, presentacion de linea y descarga.</p>
           </div>
           <a class="primary-button" href="./assets/catalogo-km-detail-2026.pdf" download>Descargar PDF</a>
+        </div>
+      </section>
+
+      <section class="section price-list-section" id="lista-precios" hidden>
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Cuenta comercial</p>
+            <h2>Lista de precios personalizada</h2>
+          </div>
+        </div>
+        <p class="section-lead">
+          Descarga un Excel con productos activos, precios netos en pesos argentinos,
+          descuentos comerciales y promociones vigentes. IVA no incluido.
+        </p>
+        <div class="price-list-card">
+          <dl>
+            <div>
+              <dt>Cliente</dt>
+              <dd id="priceListCustomer">Cuenta comercial</dd>
+            </div>
+            <div>
+              <dt>Productos</dt>
+              <dd id="priceListProducts">0 activos</dd>
+            </div>
+            <div>
+              <dt>Emision</dt>
+              <dd id="priceListDate">Hoy</dd>
+            </div>
+          </dl>
+          <div class="price-list-actions">
+            <button class="primary-button" id="downloadPriceList" type="button">Descargar Excel</button>
+            <a class="ghost-button" href="#catalogo">Volver a productos</a>
+          </div>
         </div>
       </section>
 
@@ -513,6 +546,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=77" defer></script>
+    <script src="./app.js?v=78" defer></script>
   </body>
 </html>

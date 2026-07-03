@@ -665,6 +665,68 @@ textarea:focus {
   flex: 0 0 auto;
 }
 
+.price-list-section {
+  background: #080809;
+  border-top: 1px solid #34363b;
+  border-bottom: 1px solid #34363b;
+}
+
+.price-list-card {
+  display: grid;
+  gap: 24px;
+  margin-top: 28px;
+  padding: clamp(22px, 3vw, 34px);
+  background:
+    linear-gradient(135deg, rgba(127, 183, 230, 0.12), rgba(17, 18, 20, 0.98) 44%),
+    #111214;
+  border: 1px solid #46505b;
+  border-radius: 8px;
+  box-shadow: inset 4px 0 0 #7fb7e6, 0 18px 42px rgba(0, 0, 0, 0.22);
+}
+
+.price-list-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.price-list-card dl div {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #34363b;
+  border-radius: 8px;
+}
+
+.price-list-card dt {
+  margin-bottom: 8px;
+  color: #aeb2ba;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.price-list-card dd {
+  margin: 0;
+  color: #f7f7f5;
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  font-weight: 850;
+}
+
+.price-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.price-list-actions .primary-button,
+.price-list-actions .ghost-button {
+  min-width: 220px;
+}
+
 .catalog-book {
   margin-top: 24px;
   background: #111214;
@@ -1283,6 +1345,7 @@ body.modal-open {
 
 body.checkout-focus #catalogo,
 body.checkout-focus #catalogo-pdf,
+body.checkout-focus #lista-precios,
 body.checkout-focus #customerOrders {
   display: none !important;
 }
@@ -2814,6 +2877,16 @@ body.customer-app .customer-order-summary {
   body.customer-app .purchase-summary-main strong,
   body.customer-app .purchase-summary-total strong {
     font-size: 0.95rem;
+  }
+
+  .price-list-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .price-list-actions .primary-button,
+  .price-list-actions .ghost-button {
+    width: 100%;
+    min-width: 0;
   }
 
   .receipt-upload {

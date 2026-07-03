@@ -1,9 +1,9 @@
-const CACHE_NAME = "km-detail-shop-v71";
+const CACHE_NAME = "km-detail-shop-v72";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css?v=57",
-  "./app.js?v=77",
+  "./app.js?v=78",
   "./assets/km-hero-detailing.png",
   "./assets/km-empresa.png",
   "./assets/km-distribuidores.png",

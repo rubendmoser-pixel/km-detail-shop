@@ -72,7 +72,7 @@ const els = Object.fromEntries([
   "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
   "cartEmpty", "cartSummaryText", "cartTotals", "cartSubtotal", "cartVatLabel", "cartVat", "cartTotal",
   "goToOrder", "backToShopping", "toast", "orderAccess", "orderForm", "orderResult", "customerOrders", "openAccount",
-  "navPurchases", "navPriceList", "topNav", "mobileMenuToggle",
+  "navPurchases", "navPriceList", "downloadPriceList", "priceListCustomer", "priceListProducts", "priceListDate", "topNav", "mobileMenuToggle",
   "activeShippingAddress", "configureShippingAddresses", "shippingAddressManager",
   "shippingAddressList", "shippingAddressForm", "shippingAddressFormTitle", "shippingAddressMessage",
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
@@ -146,7 +146,7 @@ function bindEvents() {
     const link = event.target.closest?.("a[href='#mis-compras']");
     if (link) openPurchases(event);
   });
-  els.navPriceList?.addEventListener("click", downloadPriceList);
+  els.downloadPriceList?.addEventListener("click", downloadPriceList);
   els.mobileMenuToggle?.addEventListener("click", toggleMobileMenu);
   els.topNav?.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => {
@@ -356,6 +356,7 @@ function currentOperationalView() {
   if (state.operationalView) return state.operationalView;
   if (window.location.hash === "#mis-compras") return "purchases";
   if (window.location.hash === "#catalogo-pdf") return "pdf";
+  if (window.location.hash === "#lista-precios") return "priceList";
   if (window.location.hash === "#pedido") return "checkout";
   return "catalog";
 }
@@ -368,6 +369,7 @@ function setOperationalView(view = currentOperationalView()) {
   const sections = {
     catalog: document.querySelector("#catalogo"),
     pdf: document.querySelector("#catalogo-pdf"),
+    priceList: document.querySelector("#lista-precios"),
     checkout: document.querySelector("#distribuidores"),
     purchases: els.customerOrders
   };
@@ -379,6 +381,7 @@ function setOperationalView(view = currentOperationalView()) {
     }
     section.hidden = name !== normalized;
   });
+  if (normalized === "priceList") renderPriceListPanel();
 }
 
 function renderCategoryFilters() {
@@ -1167,6 +1170,12 @@ function paymentHelperText(order) {
   return "";
 }
 
+function renderPriceListPanel() {
+  if (els.priceListCustomer) els.priceListCustomer.textContent = state.user?.businessName || state.user?.email || "Cuenta comercial";
+  if (els.priceListProducts) els.priceListProducts.textContent = `${state.products.length} activos`;
+  if (els.priceListDate) els.priceListDate.textContent = new Date().toLocaleDateString("es-AR");
+}
+
 function downloadPriceList(event) {
   event?.preventDefault?.();
   setMobileMenu(false);
@@ -1229,6 +1238,12 @@ async function handleHashNavigation() {
     clearActionFocus();
     setOperationalView("pdf");
     requestAnimationFrame(() => document.querySelector("#catalogo-pdf")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    return;
+  }
+  if (window.location.hash === "#lista-precios") {
+    clearActionFocus();
+    setOperationalView("priceList");
+    requestAnimationFrame(() => document.querySelector("#lista-precios")?.scrollIntoView({ behavior: "smooth", block: "start" }));
     return;
   }
   clearActionFocus();
