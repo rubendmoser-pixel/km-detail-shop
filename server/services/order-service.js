@@ -69,6 +69,10 @@ export function createOrder(db, customerId, input) {
   const customer = getCustomerPricingContext(db, customerId);
   if (!customer || customer.approval_status !== "approved") throw new ValidationError("Customer is not approved");
   const discounts = [customer.discount_1_bps, customer.discount_2_bps, customer.discount_3_bps];
+  const requestedPaymentCondition = normalizePaymentCondition(customer.payment_condition || "advance_payment");
+  const requestedPaymentTermsDays = requestedPaymentCondition === "credit_account"
+    ? normalizeCustomerDefaultTermsDays(customer.payment_terms_days)
+    : 0;
   const salesRep = resolveCustomerSalesRep(db, customerId);
   const settings = getCommercialSettings(db);
   const shipping = input.shippingAddressId
@@ -102,8 +106,8 @@ export function createOrder(db, customerId, input) {
         commercial_class, sales_rep_id, sales_rep_name, sales_rep_email, sales_commission_bps,
         sales_commission_base_cents, sales_commission_cents,
         subtotal_net_cents, vat_bps, vat_cents, total_cents, paid_cents, balance_cents, bank_snapshot_json,
-        shipping_snapshot_json, price_reserved_at, customer_accepted_at
-      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
+        requested_payment_condition, payment_terms_days, shipping_snapshot_json, price_reserved_at, customer_accepted_at
+      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `).get(
       customerId, ...discounts,
@@ -111,7 +115,8 @@ export function createOrder(db, customerId, input) {
       salesRep.id, salesRep.name, salesRep.email, salesRep.commissionBps,
       totals.subtotalNetCents, commissionCents,
       totals.subtotalNetCents, totals.vatBps, totals.vatCents,
-      totals.totalCents, totals.totalCents, JSON.stringify(settings.bank), JSON.stringify(shipping), now, now
+      totals.totalCents, 0, totals.totalCents, JSON.stringify(settings.bank),
+      requestedPaymentCondition, requestedPaymentTermsDays, JSON.stringify(shipping), now, now
     );
     const orderNumber = `KM-${new Date().getUTCFullYear()}-${String(order.id).padStart(6, "0")}`;
     db.prepare("UPDATE orders SET order_number = ? WHERE id = ?").run(orderNumber, order.id);
@@ -333,11 +338,11 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
   }
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("items are required");
   const reason = optionalText(input.reason, "reason", { max: 1000 });
-  const paymentCondition = optionalText(input.paymentCondition, "paymentCondition", { max: 40 }) || "advance_payment";
-  if (!["advance_payment", "credit_account"].includes(paymentCondition)) {
-    throw new ValidationError("paymentCondition must be advance_payment or credit_account");
-  }
-  const termsDays = paymentCondition === "credit_account" ? normalizeTermsDays(input.paymentTermsDays) : 0;
+  const paymentCondition = normalizePaymentCondition(optionalText(input.paymentCondition, "paymentCondition", { max: 40 }) || order.requested_payment_condition || "advance_payment");
+  const fallbackTermsDays = input.paymentTermsDays === undefined || input.paymentTermsDays === null || input.paymentTermsDays === ""
+    ? order.payment_terms_days
+    : input.paymentTermsDays;
+  const termsDays = paymentCondition === "credit_account" ? normalizeTermsDays(fallbackTermsDays) : 0;
   if (paymentCondition === "credit_account" && !termsDays) {
     throw new ValidationError("paymentTermsDays is required for credit account");
   }
@@ -821,6 +826,20 @@ function normalizePaymentStatus(status) {
   return status === "partial_payment" ? "credit_account" : status;
 }
 
+function normalizePaymentCondition(value) {
+  const raw = String(value || "advance_payment").trim();
+  const condition = raw === "prepaid" ? "advance_payment" : raw;
+  if (!["advance_payment", "credit_account"].includes(condition)) {
+    throw new ValidationError("paymentCondition must be advance_payment or credit_account");
+  }
+  return condition;
+}
+
+function normalizeCustomerDefaultTermsDays(value) {
+  const days = normalizeTermsDays(value);
+  return days || 15;
+}
+
 function updateOrderCommercialBalance(db, orderId, { paymentStatus, paidCents, balanceCents, termsDays, dueDate, creditAuthorized, adminUserId }) {
   db.prepare(`
     UPDATE orders
@@ -888,6 +907,7 @@ function mapOrder(order, items, receipts = [], events = []) {
     status: order.status,
     commercialClass: order.commercial_class || "B",
     paymentStatus: order.payment_status,
+    requestedPaymentCondition: normalizePaymentCondition(order.requested_payment_condition || "advance_payment"),
     paymentMethod: order.payment_method || "bank_transfer",
     paidCents: order.paid_cents || 0,
     balanceCents: order.balance_cents || Math.max(0, order.total_cents - (order.paid_cents || 0) - (order.commercial_adjustment_cents || 0)),

@@ -2,6 +2,7 @@ import { NotFoundError, ValidationError, basisPoints } from "../domain/validatio
 
 const ALLOWED_STATUSES = new Set(["pending", "approved", "rejected", "suspended", "inactive"]);
 const ALLOWED_COMMERCIAL_CLASSES = new Set(["B", "N"]);
+const ALLOWED_PAYMENT_CONDITIONS = new Set(["advance_payment", "credit_account"]);
 
 export function listCustomers(db, filters = "") {
   const status = typeof filters === "object" ? filters.status || "" : filters;
@@ -60,6 +61,19 @@ export function setCustomerCommercialClass(db, customerId, commercialClass) {
   return updated;
 }
 
+export function setCustomerPaymentTerms(db, customerId, input = {}) {
+  const paymentCondition = normalizeCustomerPaymentCondition(input.paymentCondition);
+  const paymentTermsDays = paymentCondition === "credit_account" ? normalizeCustomerPaymentTermsDays(input.paymentTermsDays) : 0;
+  const updated = db.prepare(`
+    UPDATE customers
+    SET payment_condition = ?, payment_terms_days = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+    RETURNING id, payment_condition, payment_terms_days
+  `).get(paymentCondition, paymentTermsDays, customerId);
+  if (!updated) throw new NotFoundError("Customer not found");
+  return updated;
+}
+
 export function setCustomerDiscounts(db, customerId, discounts, adminUserId) {
   const [d1 = 0, d2 = 0, d3 = 0] = discounts;
   basisPoints(d1, "discount1Bps");
@@ -78,7 +92,9 @@ export function setCustomerDiscounts(db, customerId, discounts, adminUserId) {
 
 export function getCustomerPricingContext(db, customerId) {
   return db.prepare(`
-    SELECT c.id, c.user_id, c.approval_status, c.commercial_class, d.discount_1_bps, d.discount_2_bps, d.discount_3_bps
+    SELECT c.id, c.user_id, c.approval_status, c.commercial_class,
+           c.payment_condition, c.payment_terms_days,
+           d.discount_1_bps, d.discount_2_bps, d.discount_3_bps
     FROM customers c JOIN customer_discounts d ON d.customer_id = c.id
     WHERE c.id = ?
   `).get(customerId);
@@ -88,4 +104,21 @@ function normalizeCommercialClass(value) {
   const normalized = String(value || "").trim().toUpperCase();
   if (!ALLOWED_COMMERCIAL_CLASSES.has(normalized)) throw new ValidationError("Invalid customer class");
   return normalized;
+}
+
+function normalizeCustomerPaymentCondition(value) {
+  const normalized = String(value || "advance_payment").trim();
+  const condition = normalized === "prepaid" ? "advance_payment" : normalized;
+  if (!ALLOWED_PAYMENT_CONDITIONS.has(condition)) {
+    throw new ValidationError("Invalid customer payment condition");
+  }
+  return condition;
+}
+
+function normalizeCustomerPaymentTermsDays(value) {
+  const days = Number(value || 0);
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    throw new ValidationError("paymentTermsDays must be between 1 and 365");
+  }
+  return days;
 }

@@ -254,6 +254,7 @@ function migrate(db) {
       commercial_adjusted_at TEXT,
       commercial_adjusted_by INTEGER REFERENCES users(id),
       payment_terms_days INTEGER NOT NULL DEFAULT 0 CHECK (payment_terms_days >= 0),
+      requested_payment_condition TEXT NOT NULL DEFAULT 'advance_payment',
       payment_due_date TEXT NOT NULL DEFAULT '',
       credit_authorized_at TEXT,
       credit_authorized_by INTEGER REFERENCES users(id),
@@ -450,6 +451,7 @@ function migrate(db) {
   ensureColumn(db, "orders", "commercial_adjusted_at", "TEXT");
   ensureColumn(db, "orders", "commercial_adjusted_by", "INTEGER REFERENCES users(id)");
   ensureColumn(db, "orders", "payment_terms_days", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "requested_payment_condition", "TEXT NOT NULL DEFAULT 'advance_payment'");
   ensureColumn(db, "orders", "payment_due_date", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "credit_authorized_at", "TEXT");
   ensureColumn(db, "orders", "credit_authorized_by", "INTEGER REFERENCES users(id)");
@@ -479,6 +481,10 @@ function migrate(db) {
     UPDATE orders
     SET payment_status = 'credit_account'
     WHERE payment_status = 'partial_payment';
+
+    UPDATE customers
+    SET payment_condition = 'advance_payment'
+    WHERE payment_condition = 'prepaid';
 
     UPDATE orders
     SET balance_cents = CASE

@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import { registerCustomer } from "../server/services/auth-service.js";
-import { setCustomerDiscounts, setCustomerStatus } from "../server/services/customer-service.js";
+import { setCustomerDiscounts, setCustomerPaymentTerms, setCustomerStatus } from "../server/services/customer-service.js";
 import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
 import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
@@ -252,4 +252,67 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
   assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-09T12:00:00.000Z")).queued, 1);
   assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-12T12:00:00.000Z")).queued, 1);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM email_outbox WHERE event_type = 'payment_overdue_followup'").get().count, 1);
+});
+
+test("new orders inherit customer payment terms and can confirm availability with that default", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-payment-terms-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath, adminEmail: "admin-terms@km-detail.com", adminPassword: "secure-admin-password" });
+  t.after(() => {
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const admin = db.prepare("SELECT id FROM users WHERE email = ?").get("admin-terms@km-detail.com");
+  const registration = await registerCustomer(db, {
+    email: "cliente-terms@example.com",
+    password: "customer-password-123",
+    firstName: "Cuenta",
+    lastName: "Corriente",
+    businessName: "Comercio Cuenta",
+    taxId: "30-12345678-1",
+    taxCondition: "Responsable inscripto",
+    customerType: "Pintureria",
+    industry: "Repintado automotriz",
+    city: "Rosario",
+    province: "Santa Fe",
+    postalCode: "2000",
+    address: "Calle 123",
+    phone: "3410000000",
+    whatsapp: "5493410000000",
+    contactPerson: "Cuenta Corriente",
+    acceptTerms: true,
+    acceptPrivacy: true
+  });
+  setCustomerStatus(db, registration.customer.id, "approved", admin.id);
+  setCustomerPaymentTerms(db, registration.customer.id, { paymentCondition: "credit_account", paymentTermsDays: 21 });
+
+  const product = upsertProduct(db, {
+    kmCode: "TERM01K",
+    ean13: "7791234567814",
+    name: "Producto cuenta corriente",
+    familyName: "Backings",
+    basePriceCents: 25_000,
+    priceEffectiveFrom: "2026-01-01"
+  });
+
+  const order = createOrder(db, registration.customer.id, {
+    items: [{ productId: product.id, quantity: 2 }],
+    shipping: {
+      recipient: "Cuenta Corriente",
+      address: "Calle 123",
+      city: "Rosario",
+      province: "Santa Fe",
+      postalCode: "2000",
+      contactPhone: "3410000000"
+    }
+  });
+  assert.equal(order.requestedPaymentCondition, "credit_account");
+  assert.equal(order.paymentTermsDays, 21);
+
+  const confirmed = confirmOrderAvailability(db, order.id, {
+    items: order.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity }))
+  }, admin.id);
+  assert.equal(confirmed.paymentStatus, "credit_account");
+  assert.equal(confirmed.paymentTermsDays, 21);
+  assert.match(confirmed.paymentDueDate, /^\d{4}-\d{2}-\d{2}$/);
 });

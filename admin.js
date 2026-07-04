@@ -708,6 +708,12 @@ function renderCustomers() {
           <label><span>B / N</span><select name="commercialClass">${customerClassOptions(customer.commercial_class)}</select></label>
           <button class="ghost-button" type="submit">Guardar</button>
         </form>
+        <form class="customer-payment-form">
+          <div class="sales-summary wide">Condicion de pago: <strong>${escapeAdmin(customerPaymentConditionText(customer))}</strong></div>
+          <label><span>Condicion</span><select name="paymentCondition">${customerPaymentOptions(customer.payment_condition)}</select></label>
+          <label><span>Dias cta. cte.</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${customer.payment_terms_days || 15}" /></label>
+          <button class="ghost-button" type="submit">Guardar condicion</button>
+        </form>
       </div>
     </article>`).join("");
 
@@ -715,6 +721,7 @@ function renderCustomers() {
   adminEls.customerList.querySelectorAll(".discount-form").forEach((form) => form.addEventListener("submit", saveDiscounts));
   adminEls.customerList.querySelectorAll(".sales-assignment-form").forEach((form) => form.addEventListener("submit", saveCustomerSalesRep));
   adminEls.customerList.querySelectorAll(".customer-class-form").forEach((form) => form.addEventListener("submit", saveCustomerClass));
+  adminEls.customerList.querySelectorAll(".customer-payment-form").forEach((form) => form.addEventListener("submit", saveCustomerPaymentTerms));
 }
 
 function salesRepOptions(selectedId) {
@@ -746,6 +753,25 @@ function customerClassBadge(value) {
   return `<span class="customer-class-badge ${letter.toLowerCase()}">${letter}</span>`;
 }
 
+function normalizeCustomerPaymentCondition(value) {
+  const normalized = String(value || "advance_payment").trim();
+  return normalized === "credit_account" ? "credit_account" : "advance_payment";
+}
+
+function customerPaymentOptions(selectedCondition) {
+  const selected = normalizeCustomerPaymentCondition(selectedCondition);
+  return [
+    ["advance_payment", "Pago anticipado"],
+    ["credit_account", "Cuenta corriente"]
+  ].map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`).join("");
+}
+
+function customerPaymentConditionText(customer) {
+  const condition = normalizeCustomerPaymentCondition(customer.payment_condition);
+  if (condition === "credit_account") return `Cuenta corriente ${customer.payment_terms_days || 15} dias`;
+  return "Pago anticipado";
+}
+
 async function updateCustomerStatus(event) {
   const row = event.currentTarget.closest("[data-customer-id]");
   const customerId = Number(row.dataset.customerId);
@@ -774,6 +800,30 @@ async function saveCustomerClass(event) {
       body: { commercialClass: values.commercialClass }
     });
     showAdminToast("Marca interna guardada.");
+    await loadCustomers();
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
+  }
+}
+
+async function saveCustomerPaymentTerms(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const customerId = Number(form.closest("[data-customer-id]").dataset.customerId);
+  const values = Object.fromEntries(new FormData(form));
+  const paymentCondition = normalizeCustomerPaymentCondition(values.paymentCondition);
+  setBusy(form, true);
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/payment-terms`, {
+      method: "PATCH",
+      body: {
+        paymentCondition,
+        paymentTermsDays: paymentCondition === "credit_account" ? Number(values.paymentTermsDays || 15) : 0
+      }
+    });
+    showAdminToast("Condicion de pago guardada.");
     await loadCustomers();
   } catch (error) {
     showAdminToast(error.message);
@@ -1234,7 +1284,8 @@ function canPrepareOrDispatchOrder(order) {
 
 function resetAvailabilityPaymentFields(order) {
   if (!adminEls.availabilityForm?.elements) return;
-  adminEls.availabilityForm.elements.paymentCondition.value = "advance_payment";
+  const paymentCondition = normalizeCustomerPaymentCondition(order.requestedPaymentCondition || "advance_payment");
+  adminEls.availabilityForm.elements.paymentCondition.value = paymentCondition;
   adminEls.availabilityForm.elements.paymentTermsDays.value = order.paymentTermsDays || 15;
   syncAvailabilityPaymentFields();
 }
