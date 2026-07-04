@@ -174,10 +174,10 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
   }, admin.id), /Availability must be confirmed/);
 
   const confirmed = confirmOrderAvailability(db, order.id, {
-    reason: "Disponibilidad total",
     items: persisted.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity }))
   }, admin.id);
   assert.equal(confirmed.totalCents, 12_196_800);
+  assert.equal(confirmed.modifiedAcceptanceRequired, false);
   assert.throws(() => confirmOrderAvailability(db, order.id, {
     reason: "No se debe confirmar dos veces",
     items: confirmed.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity }))

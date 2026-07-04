@@ -351,6 +351,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(availabilityOrder.vatCents, 39_161);
   assert.equal(availabilityOrder.totalCents, 225_641);
   assert.equal(availabilityOrder.salesRep.commissionCents, 6527);
+  assert.equal(availabilityOrder.modifiedAcceptanceRequired, true);
   const availabilityEmail = db.prepare("SELECT recipient, subject, text_body, html_body FROM email_outbox WHERE event_type = 'order_availability_customer'").get();
   assert.equal(availabilityEmail.recipient, "cliente-api@example.com");
   assert.equal(availabilityEmail.subject.includes(orderPayload.order.orderNumber), true);

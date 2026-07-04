@@ -332,7 +332,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
     throw new ValidationError("Availability can only be confirmed for received orders");
   }
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("items are required");
-  const reason = requiredText(input.reason, "reason", { min: 3, max: 1000 });
+  const reason = optionalText(input.reason, "reason", { max: 1000 });
   const paymentCondition = optionalText(input.paymentCondition, "paymentCondition", { max: 40 }) || "advance_payment";
   if (!["advance_payment", "credit_account"].includes(paymentCondition)) {
     throw new ValidationError("paymentCondition must be advance_payment or credit_account");
@@ -345,6 +345,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
   return transaction(db, () => {
     const currentItems = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
     const currentById = new Map(currentItems.map((item) => [item.id, item]));
+    let requiresCustomerAcceptance = false;
     const updateItem = db.prepare(`
       UPDATE order_items SET confirmed_quantity = ?, confirmed_subtotal_net_cents = ?,
         line_status = ?, availability_note = ?
@@ -359,6 +360,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
       const confirmedSubtotal = item.final_unit_price_cents * confirmedQuantity;
       const lineStatus = lineStatusFor(item.quantity, confirmedQuantity, itemInput.lineStatus);
       const note = optionalText(itemInput.availabilityNote, "availabilityNote", { max: 500 });
+      if (confirmedQuantity !== item.quantity) requiresCustomerAcceptance = true;
       confirmedSubtotalNetCents += confirmedSubtotal;
       updateItem.run(confirmedQuantity, confirmedSubtotal, lineStatus, note, item.id, orderId);
     }
@@ -383,7 +385,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
         credit_authorized_by = CASE WHEN ? THEN ? ELSE credit_authorized_by END,
         due_reminder_sent_at = NULL, overdue_reminder_sent_date = '',
         payment_reminder_stage = '', payment_reminder_last_sent_date = '',
-        modified_acceptance_required = 1, updated_at = CURRENT_TIMESTAMP
+        modified_acceptance_required = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       newStatus, confirmedSubtotalNetCents, vatCents, totalCents,
@@ -392,6 +394,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
       termsDays, dueDate,
       paymentCondition === "credit_account" ? 1 : 0, new Date().toISOString(),
       paymentCondition === "credit_account" ? 1 : 0, adminUserId,
+      requiresCustomerAcceptance ? 1 : 0,
       orderId
     );
     addOrderEvent(db, orderId, adminUserId, "availability_confirmed", reason, { order, items: currentItems }, {
@@ -399,6 +402,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
       vatCents,
       totalCents,
       paymentCondition,
+      requiresCustomerAcceptance,
       paymentDueDate: dueDate,
       paymentTermsDays: termsDays
     });
