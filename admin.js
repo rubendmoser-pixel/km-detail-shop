@@ -1107,12 +1107,11 @@ function renderOrderWorkflow(order) {
   const isClosed = order.status === "delivered" || fulfillmentStatus === "delivered";
   const canConfirmAvailability = order.status === "order_created";
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
-  const hasReceipts = (order.paymentReceipts || []).length > 0;
   const canManageOpenBalance = availabilityConfirmed && (order.balanceCents || 0) > 0;
   const canManageFulfillment = canPrepareOrDispatchOrder(order);
   const needsPaymentAction = ["receipt_uploaded", "rejected", "overdue"].includes(order.paymentStatus)
     || (availabilityConfirmed && order.paymentStatus === "pending_payment")
-    || (canManageOpenBalance && !canManageFulfillment && !hasReceipts);
+    || canManageOpenBalance;
 
   adminEls.availabilityForm.hidden = !canConfirmAvailability;
   adminEls.paymentReviewPanel.hidden = isCancelled || !needsPaymentAction;
@@ -1286,7 +1285,7 @@ function renderPaymentReceipts(order) {
   const reviewedReceipts = receipts.filter((receipt) => receipt.status !== "received");
   const needsAmountRegularization = reviewedReceipts.some((receipt) => receipt.status === "accepted" && !receipt.amountCents);
   const canAuthorizeBalance = balanceCents > 0 && !pendingReceipts.length && !needsAmountRegularization;
-  const canApplyCommercialAdjustment = canAuthorizeBalance && order.paymentStatus !== "settled_adjustment";
+  const canApplyCommercialAdjustment = balanceCents > 0 && order.paymentStatus !== "settled_adjustment";
   const defaultTermsDays = order.paymentTermsDays || 15;
   const defaultTermsDueDate = calculateDueDateFromDays(defaultTermsDays);
   adminEls.paymentReviewPanel.innerHTML = `
