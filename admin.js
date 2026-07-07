@@ -2145,13 +2145,31 @@ function renderAnalyticsDashboard(dashboard) {
   adminEls.analyticsDashboard.innerHTML = `
     <div class="operation-metrics">
       ${metricCard("Sesiones", summary.sessions || 0, `Periodo ${dashboard.days || 30} dias`)}
+      ${metricCard("Anonimos", summary.anonymousSessions || 0, "Sin cuenta identificada")}
       ${metricCard("Clientes activos", summary.activeCustomers || 0, "Cuentas que navegaron")}
+      ${metricCard("Abrieron acceso", summary.accountOpens || 0, "Login o solicitud")}
+      ${metricCard("Solicitudes", summary.registrationSubmits || 0, "Altas enviadas")}
       ${metricCard("Vistas productos", summary.productViews || 0, "Fichas e imagenes")}
       ${metricCard("Agregados", summary.cartAdds || 0, "Productos al carrito")}
       ${metricCard("Pedidos", summary.ordersCreated || 0, "Pedidos generados")}
-      ${metricCard("Listas Excel", summary.priceListDownloads || 0, "Descargas realizadas")}
     </div>
     <div class="operation-layout">
+      <section class="operation-panel wide">
+        <div class="panel-heading"><p class="eyebrow">Visitantes</p><h3>Sesiones recientes</h3></div>
+        ${renderAnalyticsVisitorRows(dashboard.visitorSessions || [])}
+      </section>
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Origen</p><h3>De donde llegan</h3></div>
+        ${renderAnalyticsSourceRows(dashboard.sources || [])}
+      </section>
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Dispositivo</p><h3>Como navegan</h3></div>
+        ${renderAnalyticsDeviceRows(dashboard.devices || [])}
+      </section>
+      <section class="operation-panel wide">
+        <div class="panel-heading"><p class="eyebrow">Paginas</p><h3>Mas visitadas</h3></div>
+        ${renderAnalyticsPathRows(dashboard.paths || [])}
+      </section>
       <section class="operation-panel">
         <div class="panel-heading"><p class="eyebrow">Productos</p><h3>Mas vistos</h3></div>
         ${renderAnalyticsProductRows(dashboard.productsViewed || [], "views", "vistas")}
@@ -2182,6 +2200,70 @@ function renderAnalyticsDashboard(dashboard) {
       </section>
     </div>
   `;
+}
+
+function renderAnalyticsVisitorRows(rows) {
+  return rows.length ? `
+    <div class="operation-list analytics-visitors">
+      ${rows.slice(0, 30).map((row) => `
+        <div class="operation-row static analytics-visitor-row">
+          <span>
+            <strong>${escapeAdmin(row.identity || "Visitante anonimo")}</strong>
+            <small>${escapeAdmin(row.source || "Directo")} | ${escapeAdmin(row.device || "Sin dato")} | ${escapeAdmin(row.browser || "Sin navegador")} | IP ${escapeAdmin(row.ipAddress || "-")}</small>
+            <small>Entrada ${escapeAdmin(row.entryPath || "/")} | Ultima ${escapeAdmin(row.lastPath || "/")}</small>
+          </span>
+          <span>
+            <strong>${escapeAdmin(formatAdminDate(row.lastSeen))}</strong>
+            <small>${row.events || 0} eventos | ${row.productViews || 0} productos | ${row.searches || 0} busquedas</small>
+            <small>${row.cartAdds || 0} carrito | ${row.ordersCreated || 0} pedidos</small>
+          </span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Todavia no hay sesiones registradas.</p>`;
+}
+
+function renderAnalyticsSourceRows(rows) {
+  return renderAnalyticsCountRows(rows, "label", "sessions", "sesiones", "Sin origen registrado.");
+}
+
+function renderAnalyticsDeviceRows(rows) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 12).map((row) => `
+        <div class="operation-row static">
+          <span><strong>${escapeAdmin(row.device || "Sin dato")}</strong><small>${escapeAdmin(row.browser || "Sin navegador")}</small></span>
+          <span><strong>${row.sessions || 0}</strong><small>${row.events || 0} eventos</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Sin dispositivos registrados.</p>`;
+}
+
+function renderAnalyticsPathRows(rows) {
+  return rows.length ? `
+    <div class="operation-list product-rank">
+      ${rows.slice(0, 16).map((row) => `
+        <div class="operation-row static">
+          <span><strong>${escapeAdmin(row.path || "/")}</strong><small>Pagina o seccion visitada</small></span>
+          <span><strong>${row.views || 0}</strong><small>${row.sessions || 0} sesiones</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Sin paginas visitadas registradas.</p>`;
+}
+
+function renderAnalyticsCountRows(rows, labelKey, valueKey, valueLabel, emptyText) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 12).map((row) => `
+        <div class="operation-row static">
+          <span><strong>${escapeAdmin(row[labelKey] || "-")}</strong><small>${row.events || 0} eventos</small></span>
+          <span><strong>${row[valueKey] || 0}</strong><small>${escapeAdmin(valueLabel)}</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">${escapeAdmin(emptyText)}</p>`;
 }
 
 function renderAnalyticsProductRows(rows, valueKey, valueLabel) {
@@ -2275,7 +2357,9 @@ function analyticsEventLabel(type) {
     cart_open: "Carrito abierto",
     checkout_start: "Inicio de pedido",
     order_created: "Pedido creado",
-    price_list_download: "Lista descargada"
+    price_list_download: "Lista descargada",
+    account_open: "Acceso abierto",
+    registration_submitted: "Solicitud enviada"
   })[type] || type;
 }
 

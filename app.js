@@ -618,6 +618,7 @@ function renderCart() {
 }
 
 function openAccount(preferRegister = false) {
+  trackAnalytics("account_open", { mode: preferRegister ? "register" : "login", loggedIn: Boolean(state.user) });
   els.accountMessage.textContent = "";
   if (state.user) {
     els.accountTitle.textContent = "Mi cuenta";
@@ -678,6 +679,11 @@ async function submitRegistration(event) {
   setFormBusy(els.registerForm, true);
   try {
     await api("/api/auth/register", { method: "POST", body: values });
+    trackAnalytics("registration_submitted", {
+      businessName: values.businessName || "",
+      province: values.province || "",
+      city: values.city || ""
+    });
     state.user = (await api("/api/auth/login", { method: "POST", body: { email: values.email, password: values.password } })).user;
     await loadProducts();
     await Promise.all([loadCustomerOrders(), loadShippingAddresses(), loadPushState()]);
