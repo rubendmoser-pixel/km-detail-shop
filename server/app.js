@@ -67,6 +67,7 @@ import { renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
+import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -97,6 +98,9 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/health") {
         return sendJson(response, 200, { status: "ok", service: "km-detail-b2b", time: new Date().toISOString() });
+      }
+      if (request.method === "POST" && url.pathname === "/api/analytics/events") {
+        return sendJson(response, 202, recordAnalyticsEvents(db, request, currentUser, await readJson(request, 1_000_000)));
       }
       if (request.method === "GET" && url.pathname === "/sitemap.xml") {
         const body = renderSitemap(listPublicProductsForSeo(db));
@@ -199,6 +203,13 @@ export function createApp({
       if (request.method === "POST" && url.pathname === "/api/orders") {
         const user = requireApprovedCustomer(currentUser);
         const order = createOrder(db, user.customerId, await readJson(request));
+        recordServerAnalyticsEvent(db, request, user, {
+          eventType: "order_created",
+          sessionId: "",
+          orderId: order.id,
+          path: url.pathname,
+          metadata: { orderNumber: order.orderNumber, totalCents: order.totalCents }
+        });
         emailService.queueOrderCreated(order.id);
         return sendJson(response, 201, { order, availabilityNotice: "Pedido sujeto a confirmación de disponibilidad." });
       }
@@ -481,6 +492,9 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/operation/dashboard") {
         return sendJson(response, 200, { dashboard: getAdminOperationDashboard(db) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/analytics/dashboard") {
+        return sendJson(response, 200, { dashboard: getAnalyticsDashboard(db, { days: url.searchParams.get("days") }) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/operation/delete-test-orders") {
         return sendJson(response, 200, { result: deleteTestOrders(db, uploadsPath, await readJson(request)) });

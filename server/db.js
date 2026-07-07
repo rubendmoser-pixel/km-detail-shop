@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 16;
+const SCHEMA_VERSION = 17;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -440,6 +440,22 @@ function migrate(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      session_id TEXT NOT NULL DEFAULT '',
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+      product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+      order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+      path TEXT NOT NULL DEFAULT '',
+      referrer TEXT NOT NULL DEFAULT '',
+      ip_address TEXT NOT NULL DEFAULT '',
+      user_agent TEXT NOT NULL DEFAULT '',
+      metadata_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_products_family_active ON products(family_id, active);
     CREATE INDEX IF NOT EXISTS idx_customer_product_discounts_customer ON customer_product_discounts(customer_id, active);
     CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id, sort_order, id);
@@ -455,6 +471,9 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_push_outbox_pending ON push_outbox(status, created_at);
     CREATE INDEX IF NOT EXISTS idx_security_events_created ON security_events(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_security_events_email ON security_events(email, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_analytics_events_type_created ON analytics_events(event_type, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_analytics_events_product ON analytics_events(product_id, created_at DESC);
   `);
 
   const migration = db.prepare("SELECT version FROM schema_migrations WHERE version = ?").get(SCHEMA_VERSION);

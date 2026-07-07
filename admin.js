@@ -2,10 +2,10 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
+  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const adminViews = new Set(["customers", "sales", "products", "orders", "accounts", "settings", "emails", "security", "operation"]);
+const adminViews = new Set(["customers", "sales", "products", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -76,7 +76,7 @@ const adminEls = Object.fromEntries([
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
-  "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
+  "analyticsDays", "analyticsDashboard", "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -123,6 +123,9 @@ function bindAdminEvents() {
   document.querySelector("#flushEmails").addEventListener("click", flushEmails);
   adminEls.securitySearch.addEventListener("input", debounce(loadSecurityEvents, 250));
   document.querySelector("#reloadSecurity").addEventListener("click", loadSecurityEvents);
+  adminEls.analyticsDays?.addEventListener("change", loadAnalyticsDashboard);
+  document.querySelector("#reloadAnalyticsDashboard")?.addEventListener("click", loadAnalyticsDashboard);
+  adminEls.analyticsDashboard?.addEventListener("click", handleAnalyticsDashboardClick);
   adminEls.salesRepSearch.addEventListener("input", debounce(loadSalesReps, 250));
   adminEls.salesRepStatusFilter.addEventListener("change", loadSalesReps);
   adminEls.reloadSalesReps.addEventListener("click", loadSalesReps);
@@ -172,7 +175,7 @@ async function enterWorkspace() {
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
   await loadSalesReps();
-  await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents(), loadOperationDashboard()]);
+  await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents(), loadAnalyticsDashboard(), loadOperationDashboard()]);
   showAdminView(currentAdminView(), false);
   resetProductForm();
   resetSalesRepForm();
@@ -2122,6 +2125,116 @@ async function loadOperationDashboard() {
   adminState.operationDashboard = dashboard;
   renderOperationDashboard(dashboard);
   renderCurrentAccountDashboard(dashboard);
+}
+
+async function loadAnalyticsDashboard() {
+  if (!adminEls.analyticsDashboard) return;
+  const days = adminEls.analyticsDays?.value || 30;
+  const { dashboard } = await adminApi(`/api/admin/analytics/dashboard?days=${encodeURIComponent(days)}`);
+  adminState.analyticsDashboard = dashboard;
+  renderAnalyticsDashboard(dashboard);
+}
+
+function renderAnalyticsDashboard(dashboard) {
+  if (!adminEls.analyticsDashboard) return;
+  if (!dashboard) {
+    adminEls.analyticsDashboard.innerHTML = `<p class="admin-note">No hay actividad registrada todavia.</p>`;
+    return;
+  }
+  const summary = dashboard.summary || {};
+  adminEls.analyticsDashboard.innerHTML = `
+    <div class="operation-metrics">
+      ${metricCard("Sesiones", summary.sessions || 0, `Periodo ${dashboard.days || 30} dias`)}
+      ${metricCard("Clientes activos", summary.activeCustomers || 0, "Cuentas que navegaron")}
+      ${metricCard("Vistas productos", summary.productViews || 0, "Fichas e imagenes")}
+      ${metricCard("Agregados", summary.cartAdds || 0, "Productos al carrito")}
+      ${metricCard("Pedidos", summary.ordersCreated || 0, "Pedidos generados")}
+      ${metricCard("Listas Excel", summary.priceListDownloads || 0, "Descargas realizadas")}
+    </div>
+    <div class="operation-layout">
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Productos</p><h3>Mas vistos</h3></div>
+        ${renderAnalyticsProductRows(dashboard.productsViewed || [], "views", "vistas")}
+      </section>
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Carrito</p><h3>Mas agregados</h3></div>
+        ${renderAnalyticsProductRows(dashboard.productsAdded || [], "units", "unidades")}
+      </section>
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Busqueda</p><h3>Terminos frecuentes</h3></div>
+        ${renderAnalyticsSearchRows(dashboard.searches || [])}
+      </section>
+      <section class="operation-panel wide">
+        <div class="panel-heading"><p class="eyebrow">Reciente</p><h3>Ultima actividad</h3></div>
+        ${renderAnalyticsRecentRows(dashboard.recent || [])}
+      </section>
+    </div>
+  `;
+}
+
+function renderAnalyticsProductRows(rows, valueKey, valueLabel) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 12).map((row) => `
+        <button type="button" class="operation-row" data-analytics-product="${row.id}">
+          <span><strong>${escapeAdmin(row.kmCode)}</strong><small>${escapeAdmin(row.productName)}</small></span>
+          <span><strong>${row[valueKey] || 0}</strong><small>${escapeAdmin(valueLabel)}</small></span>
+        </button>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Todavia no hay datos suficientes.</p>`;
+}
+
+function renderAnalyticsSearchRows(rows) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 12).map((row) => `
+        <div class="operation-row static">
+          <span><strong>${escapeAdmin(row.query)}</strong><small>Busqueda en catalogo</small></span>
+          <span><strong>${row.count || 0}</strong><small>veces</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Todavia no hay busquedas registradas.</p>`;
+}
+
+function renderAnalyticsRecentRows(rows) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 20).map((row) => `
+        <div class="operation-row static">
+          <span>
+            <strong>${escapeAdmin(analyticsEventLabel(row.eventType))}</strong>
+            <small>${escapeAdmin(row.businessName || "Visitante")} ${row.kmCode ? `| ${escapeAdmin(row.kmCode)}` : ""}</small>
+          </span>
+          <span><strong>${escapeAdmin(formatAdminDate(row.createdAt))}</strong><small>${escapeAdmin(row.metadata?.query || row.metadata?.orderNumber || row.path || "")}</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Sin actividad reciente.</p>`;
+}
+
+function analyticsEventLabel(type) {
+  return ({
+    page_view: "Vista de pagina",
+    product_view: "Producto visto",
+    product_zoom: "Imagen ampliada",
+    search: "Busqueda",
+    add_to_cart: "Agregado al carrito",
+    cart_open: "Carrito abierto",
+    checkout_start: "Inicio de pedido",
+    order_created: "Pedido creado",
+    price_list_download: "Lista descargada"
+  })[type] || type;
+}
+
+function handleAnalyticsDashboardClick(event) {
+  const button = event.target.closest("[data-analytics-product]");
+  if (!button || !adminEls.analyticsDashboard.contains(button)) return;
+  showAdminView("products");
+  adminEls.productSearch.value = "";
+  const product = adminState.products.find((item) => item.id === Number(button.dataset.analyticsProduct));
+  if (product) editProduct(product);
 }
 
 function renderOperationDashboard(dashboard) {

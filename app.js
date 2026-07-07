@@ -64,6 +64,8 @@ const state = {
   catalogPage: 0,
   checkoutCompleted: false,
   operationalView: null,
+  analyticsSessionId: readAnalyticsSessionId(),
+  trackedProductViews: new Set(),
   cart: readCart()
 };
 
@@ -92,6 +94,7 @@ async function init() {
   if (isApprovedCustomer()) await Promise.all([loadCustomerOrders(), loadShippingAddresses(), loadPushState()]);
   renderAll();
   await handleHashNavigation();
+  trackPageView();
 }
 
 function normalizeInitialRoute() {
@@ -115,6 +118,7 @@ function bindEvents() {
     state.search = event.target.value.trim().toLowerCase();
     resetProductPagination();
     renderProducts();
+    trackSearch(state.search);
   });
   els.cutFilter.addEventListener("change", (event) => {
     state.cut = event.target.value;
@@ -156,6 +160,7 @@ function bindEvents() {
   });
   window.addEventListener("hashchange", () => {
     handleHashNavigation().catch((error) => showToast(error.message || "No se pudo abrir la seccion."));
+    trackPageView();
   });
   document.querySelector("#configureShippingAddresses").addEventListener("click", toggleShippingAddressManager);
   document.querySelector("#newShippingAddress").addEventListener("click", () => openShippingAddressForm());
@@ -448,8 +453,12 @@ function renderProducts() {
     button.addEventListener("click", () => selectProductImage(button));
   });
   els.productGrid.querySelectorAll("[data-zoom-image]").forEach((button) => {
-    button.addEventListener("click", () => openImageLightbox(button.dataset.zoomImage, button.dataset.zoomAlt, button.dataset.zoomCaption));
+    button.addEventListener("click", () => {
+      trackAnalytics("product_zoom", { kmCode: button.dataset.zoomKm || "", name: button.dataset.zoomCaption || "" }, { productId: button.dataset.zoomProductId });
+      openImageLightbox(button.dataset.zoomImage, button.dataset.zoomAlt, button.dataset.zoomCaption);
+    });
   });
+  trackVisibleProducts(visible);
 }
 
 function renderProductLoadMore(remaining) {
@@ -483,7 +492,7 @@ function renderProductCard(product) {
   const promotionClass = product.promotion?.active ? " is-promo" : "";
   const specialClass = product.specialDiscount?.active ? " is-special-price" : "";
   const visual = images.length
-    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${specialBadge}${promotionBadge}</div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
+    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${specialBadge}${promotionBadge}</div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" data-zoom-product-id="${product.id}" data-zoom-km="${escapeHtml(product.kmCode)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
     : `<div class="product-visual ${familyClass}"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${specialBadge}${promotionBadge}</div></div>`;
   const pricing = approved ? `
     <div class="price-block">
@@ -1191,6 +1200,7 @@ function downloadPriceList(event) {
     showToast("Ingresa con una cuenta comercial aprobada para descargar la lista.");
     return openAccount(false);
   }
+  trackAnalytics("price_list_download", { businessName: state.user?.businessName || "" });
   window.location.href = "/api/products/price-list.xlsx";
 }
 
@@ -1446,13 +1456,23 @@ function orderSummary(order) {
 
 function addToCart(productId, quantity) {
   if (!isApprovedCustomer()) return openAccount(false);
+  const product = state.products.find((item) => item.id === Number(productId));
+  const requestedQuantity = Math.floor(Number(quantity));
+  const normalizedQuantity = Number.isFinite(requestedQuantity) && requestedQuantity > 0 ? requestedQuantity : 1;
   state.checkoutCompleted = false;
   els.orderResult.hidden = true;
   els.orderResult.innerHTML = "";
   renderAccountState();
-  state.cart[productId] = (state.cart[productId] || 0) + Math.max(1, Math.floor(quantity));
+  state.cart[productId] = (state.cart[productId] || 0) + normalizedQuantity;
   saveCart();
   renderCart();
+  if (product) {
+    trackAnalytics("add_to_cart", {
+      kmCode: product.kmCode,
+      quantity: normalizedQuantity,
+      finalPriceCents: product.finalPriceCents
+    }, { productId: product.id });
+  }
   showToast("Producto agregado al pedido.");
 }
 
@@ -1513,6 +1533,58 @@ function sortProducts(products) {
   if (state.sort === "cut-desc") sorted.sort((a, b) => Number(b.cutLevel || 0) - Number(a.cutLevel || 0));
   if (state.sort === "cut-asc") sorted.sort((a, b) => Number(a.cutLevel || 0) - Number(b.cutLevel || 0));
   return sorted;
+}
+
+function trackVisibleProducts(products) {
+  if (!products.length) return;
+  products.slice(0, PRODUCT_PAGE_SIZE).forEach((product) => {
+    if (state.trackedProductViews.has(product.id)) return;
+    state.trackedProductViews.add(product.id);
+    trackAnalytics("product_view", {
+      kmCode: product.kmCode,
+      name: product.name,
+      family: product.family?.name || ""
+    }, { productId: product.id });
+  });
+}
+
+function trackPageView() {
+  trackAnalytics("page_view", {
+    section: (window.location.hash || "#inicio").replace("#", "") || "inicio",
+    appView: state.operationalView || ""
+  });
+}
+
+const trackSearch = debounce((query) => {
+  if (!query || query.length < 2) return;
+  trackAnalytics("search", { query });
+}, 700);
+
+function trackAnalytics(eventType, metadata = {}, extra = {}) {
+  const payload = {
+    eventType,
+    sessionId: state.analyticsSessionId,
+    productId: Number(extra.productId || 0) || undefined,
+    orderId: Number(extra.orderId || 0) || undefined,
+    path: `${window.location.pathname}${window.location.hash}`,
+    referrer: document.referrer || "",
+    metadata
+  };
+  const body = JSON.stringify(payload);
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/analytics/events", new Blob([body], { type: "application/json" }));
+      return;
+    }
+    fetch("/api/analytics/events", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      keepalive: true
+    }).catch(() => {});
+  } catch {
+    // La analitica no debe afectar la compra.
+  }
 }
 
 async function api(url, { method = "GET", body } = {}) {
@@ -1616,6 +1688,7 @@ function tagClass(product) {
 }
 
 function openCart() {
+  trackAnalytics("cart_open", { references: cartLines().length, units: cartLines().reduce((sum, line) => sum + line.quantity, 0) });
   els.cartDrawer.classList.add("open");
   els.cartDrawer.setAttribute("aria-hidden", "false");
 }
@@ -1632,6 +1705,7 @@ function goToCheckout(event) {
     return openAccount(false);
   }
   if (!cartLines().length) return showToast("Agrega productos antes de elegir el envio.");
+  trackAnalytics("checkout_start", { references: cartLines().length, units: cartLines().reduce((sum, line) => sum + line.quantity, 0) });
   closeCart();
   setOperationalView("checkout");
   setActionFocus("checkout");
@@ -1665,6 +1739,23 @@ function showToast(message) {
   els.toast.classList.add("show");
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2600);
+}
+
+function debounce(callback, waitMs) {
+  let timer;
+  return (...args) => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => callback(...args), waitMs);
+  };
+}
+
+function readAnalyticsSessionId() {
+  const storageKey = "kmAnalyticsSessionId";
+  const existing = localStorage.getItem(storageKey);
+  if (existing) return existing;
+  const id = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  localStorage.setItem(storageKey, id);
+  return id;
 }
 
 function readCart() {
