@@ -773,7 +773,7 @@ function renderCustomerDetail(customer) {
         <form class="customer-payment-form">
           <div class="sales-summary wide">Condicion de pago: <strong>${escapeAdmin(customerPaymentConditionText(customer))}</strong></div>
           <label><span>Condicion</span><select name="paymentCondition">${customerPaymentOptions(customer.payment_condition)}</select></label>
-          <label><span>Dias cta. cte.</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${customer.payment_terms_days || 15}" /></label>
+          <label data-payment-terms-field ${normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account" ? "" : "hidden"}><span>Dias cta. cte.</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${customer.payment_terms_days || 15}" ${normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account" ? "" : "disabled"} /></label>
           <button class="ghost-button" type="submit">Guardar condicion</button>
         </form>
         <form class="product-discount-form">
@@ -799,7 +799,11 @@ function bindCustomerControls() {
   adminEls.customerList.querySelectorAll(".discount-form").forEach((form) => form.addEventListener("submit", saveDiscounts));
   adminEls.customerList.querySelectorAll(".sales-assignment-form").forEach((form) => form.addEventListener("submit", saveCustomerSalesRep));
   adminEls.customerList.querySelectorAll(".customer-class-form").forEach((form) => form.addEventListener("submit", saveCustomerClass));
-  adminEls.customerList.querySelectorAll(".customer-payment-form").forEach((form) => form.addEventListener("submit", saveCustomerPaymentTerms));
+  adminEls.customerList.querySelectorAll(".customer-payment-form").forEach((form) => {
+    form.addEventListener("submit", saveCustomerPaymentTerms);
+    form.elements.paymentCondition?.addEventListener("change", () => syncCustomerPaymentForm(form));
+    syncCustomerPaymentForm(form);
+  });
   adminEls.customerList.querySelectorAll(".product-discount-form").forEach((form) => form.addEventListener("submit", saveCustomerProductDiscount));
   adminEls.customerList.querySelectorAll("[data-delete-product-discount]").forEach((button) => button.addEventListener("click", deleteCustomerProductDiscount));
 }
@@ -895,6 +899,18 @@ function customerPaymentConditionText(customer) {
   const condition = normalizeCustomerPaymentCondition(customer.payment_condition);
   if (condition === "credit_account") return `Cuenta corriente ${customer.payment_terms_days || 15} dias`;
   return "Pago anticipado";
+}
+
+function syncCustomerPaymentForm(form) {
+  const isCredit = normalizeCustomerPaymentCondition(form.elements.paymentCondition?.value) === "credit_account";
+  const field = form.querySelector("[data-payment-terms-field]");
+  const input = form.elements.paymentTermsDays;
+  if (field) field.hidden = !isCredit;
+  if (input) {
+    input.disabled = !isCredit;
+    if (!isCredit) input.value = "";
+    if (isCredit && !input.value) input.value = "15";
+  }
 }
 
 async function updateCustomerStatus(event) {
