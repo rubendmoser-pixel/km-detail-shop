@@ -24,7 +24,21 @@ export function listCustomers(db, filters = "") {
   return db.prepare(`
     SELECT c.*, u.email, d.discount_1_bps, d.discount_2_bps, d.discount_3_bps,
            sr.name AS sales_rep_name, sr.email AS sales_rep_email,
-           sr.default_commission_bps AS sales_rep_default_commission_bps
+           sr.default_commission_bps AS sales_rep_default_commission_bps,
+           (
+             SELECT o.order_number
+             FROM orders o
+             WHERE o.customer_id = c.id
+             ORDER BY o.created_at DESC, o.id DESC
+             LIMIT 1
+           ) AS last_order_number,
+           (
+             SELECT o.created_at
+             FROM orders o
+             WHERE o.customer_id = c.id
+             ORDER BY o.created_at DESC, o.id DESC
+             LIMIT 1
+           ) AS last_order_at
     FROM customers c
     JOIN users u ON u.id = c.user_id
     JOIN customer_discounts d ON d.customer_id = c.id

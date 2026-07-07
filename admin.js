@@ -1,7 +1,7 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null, salesReps: [], pendingCommissions: [], commissionSettlements: [],
+  securityEvents: [], securitySummary: null, salesReps: [], pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, currentAccountFilter: "open"
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -202,6 +202,9 @@ async function loadCustomers() {
   if (adminEls.customerStatusFilter.value) params.set("status", adminEls.customerStatusFilter.value);
   const { customers } = await adminApi(`/api/admin/customers${params.toString() ? `?${params}` : ""}`);
   adminState.customers = customers;
+  if (adminState.selectedCustomerId && !customers.some((customer) => customer.id === adminState.selectedCustomerId)) {
+    adminState.selectedCustomerId = null;
+  }
   renderCustomerStats();
   renderCustomers();
 }
@@ -663,26 +666,85 @@ function productField(name) {
 
 function renderCustomerStats() {
   const counts = Object.fromEntries(Object.keys(statusLabels).map((status) => [status, adminState.customers.filter((customer) => customer.approval_status === status).length]));
+  const creditAccounts = adminState.customers.filter((customer) => normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account").length;
+  const withoutSalesRep = adminState.customers.filter((customer) => customer.approval_status === "approved" && !customer.sales_rep_id).length;
   adminEls.customerStats.innerHTML = [
-    ["Total", adminState.customers.length], ["Pendientes", counts.pending], ["Aprobados", counts.approved], ["Suspendidos", counts.suspended]
+    ["Total", adminState.customers.length],
+    ["Pendientes", counts.pending],
+    ["Aprobados", counts.approved],
+    ["Cuenta corriente", creditAccounts],
+    ["Sin vendedor", withoutSalesRep]
   ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
 
 function renderCustomers() {
+  const selectedCustomer = adminState.customers.find((customer) => customer.id === adminState.selectedCustomerId);
   if (!adminState.customers.length) {
     adminEls.customerList.innerHTML = `<p class="admin-empty">No hay clientes para este filtro.</p>`;
     return;
   }
-  adminEls.customerList.innerHTML = adminState.customers.map((customer) => `
-    <article class="customer-row" data-customer-id="${customer.id}">
+  adminEls.customerList.innerHTML = `
+    <div class="orders-table-wrap customer-table-wrap">
+      <table class="admin-table customer-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Estado</th>
+            <th>B/N</th>
+            <th>Condicion de pago</th>
+            <th>Vendedor</th>
+            <th>Ubicacion</th>
+            <th>Descuentos</th>
+            <th>Ultimo pedido</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${adminState.customers.map((customer) => renderCustomerRow(customer)).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="customer-detail-panel">
+      ${selectedCustomer ? renderCustomerDetail(selectedCustomer) : `<p class="admin-empty">Selecciona un cliente para editar condiciones comerciales.</p>`}
+    </div>`;
+
+  bindCustomerControls();
+}
+
+function renderCustomerRow(customer) {
+  const isSelected = customer.id === adminState.selectedCustomerId;
+  return `<tr class="${isSelected ? "selected" : ""}">
+    <td><strong>${escapeAdmin(customer.business_name)}</strong><span>${escapeAdmin(customer.tax_id)} · ${escapeAdmin(customer.email)}</span></td>
+    <td>${stateBadge(statusLabels[customer.approval_status] || customer.approval_status, customer.approval_status === "approved" ? "success" : customer.approval_status === "pending" ? "warning" : "neutral")}</td>
+    <td>${customerClassBadge(customer.commercial_class)}</td>
+    <td><strong>${escapeAdmin(customerPaymentConditionText(customer))}</strong></td>
+    <td>${escapeAdmin(customer.sales_rep_name || "Sin vendedor")}<span>${escapeAdmin(customerCommissionText(customer))}</span></td>
+    <td>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)}<span>${escapeAdmin(customer.postal_code || "")}</span></td>
+    <td>${escapeAdmin(customerDiscountText(customer))}</td>
+    <td>${customer.last_order_number ? `<strong>${escapeAdmin(customer.last_order_number)}</strong><span>${formatDate(customer.last_order_at)}</span>` : `<span>Sin pedidos</span>`}</td>
+    <td><button class="ghost-button row-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Abierto" : "Ver"}</button></td>
+  </tr>`;
+}
+
+function renderCustomerDetail(customer) {
+  return `
+    <article class="customer-row customer-detail-card" data-customer-id="${customer.id}">
       <div class="customer-main">
-        <div class="customer-heading"><div><strong>${escapeAdmin(customer.business_name)}</strong><span>${escapeAdmin(customer.email)}</span></div><span class="status-badge ${customer.approval_status}">${statusLabels[customer.approval_status]}</span></div>
+        <div class="customer-heading">
+          <div>
+            <p class="eyebrow">Detalle comercial</p>
+            <strong>${escapeAdmin(customer.business_name)}</strong>
+            <span>${escapeAdmin(customer.email)}</span>
+          </div>
+          <span class="status-badge ${customer.approval_status}">${statusLabels[customer.approval_status]}</span>
+        </div>
         <dl class="customer-data">
-          <div><dt>CUIT</dt><dd>${escapeAdmin(customer.tax_id)}</dd></div><div><dt>Condicion</dt><dd>${escapeAdmin(customer.tax_condition)}</dd></div>
+          <div><dt>CUIT</dt><dd>${escapeAdmin(customer.tax_id)}</dd></div><div><dt>Condicion fiscal</dt><dd>${escapeAdmin(customer.tax_condition)}</dd></div>
           <div><dt>Tipo</dt><dd>${escapeAdmin(customer.customer_type)}</dd></div><div><dt>Rubro</dt><dd>${escapeAdmin(customer.industry)}</dd></div>
           <div><dt>Ubicacion</dt><dd>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)} ${escapeAdmin(customer.postal_code || "")}</dd></div><div><dt>Contacto</dt><dd>${escapeAdmin(customer.contact_person)}</dd></div>
           <div><dt>Telefono</dt><dd>${escapeAdmin(customer.phone)}</dd></div><div><dt>WhatsApp</dt><dd>${escapeAdmin(customer.whatsapp)}</dd></div>
           <div><dt>Vendedor</dt><dd>${escapeAdmin(customer.sales_rep_name || "Sin asignar")}</dd></div><div><dt>Comision</dt><dd>${escapeAdmin(customerCommissionText(customer))}</dd></div>
+          <div><dt>Condicion de pago</dt><dd>${escapeAdmin(customerPaymentConditionText(customer))}</dd></div><div><dt>Descuentos</dt><dd>${escapeAdmin(customerDiscountText(customer))}</dd></div>
         </dl>
       </div>
       <div class="customer-controls">
@@ -715,13 +777,21 @@ function renderCustomers() {
           <button class="ghost-button" type="submit">Guardar condicion</button>
         </form>
       </div>
-    </article>`).join("");
+    </article>`;
+}
 
+function bindCustomerControls() {
+  adminEls.customerList.querySelectorAll("[data-view-customer]").forEach((button) => button.addEventListener("click", viewCustomerDetail));
   adminEls.customerList.querySelectorAll("[data-customer-status]").forEach((button) => button.addEventListener("click", updateCustomerStatus));
   adminEls.customerList.querySelectorAll(".discount-form").forEach((form) => form.addEventListener("submit", saveDiscounts));
   adminEls.customerList.querySelectorAll(".sales-assignment-form").forEach((form) => form.addEventListener("submit", saveCustomerSalesRep));
   adminEls.customerList.querySelectorAll(".customer-class-form").forEach((form) => form.addEventListener("submit", saveCustomerClass));
   adminEls.customerList.querySelectorAll(".customer-payment-form").forEach((form) => form.addEventListener("submit", saveCustomerPaymentTerms));
+}
+
+function viewCustomerDetail(event) {
+  adminState.selectedCustomerId = Number(event.currentTarget.dataset.viewCustomer);
+  renderCustomers();
 }
 
 function salesRepOptions(selectedId) {
@@ -737,6 +807,13 @@ function customerCommissionText(customer) {
   if (!customer.sales_rep_id) return "Sin vendedor";
   if (customer.sales_commission_bps !== null && customer.sales_commission_bps !== undefined) return `${formatBps(customer.sales_commission_bps)} especial`;
   return `${formatBps(customer.sales_rep_default_commission_bps || 0)} general`;
+}
+
+function customerDiscountText(customer) {
+  const discounts = [customer.discount_1_bps, customer.discount_2_bps, customer.discount_3_bps]
+    .filter((value) => Number(value || 0) > 0)
+    .map((value) => formatBps(value));
+  return discounts.length ? discounts.join(" + ") : "Sin descuentos";
 }
 
 function customerClassOptions(selectedClass) {

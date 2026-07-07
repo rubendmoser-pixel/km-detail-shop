@@ -129,7 +129,7 @@
 
 .admin-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1px;
   margin-bottom: 18px;
   background: #34363b;
@@ -219,6 +219,33 @@
 }
 
 .customer-list {
+  display: grid;
+  gap: 16px;
+}
+
+.customer-table-wrap {
+  border-radius: 4px;
+}
+
+.customer-table tr.selected td {
+  background: #171b20;
+}
+
+.customer-table td strong,
+.customer-table td span {
+  display: block;
+}
+
+.customer-table td span {
+  margin-top: 4px;
+}
+
+.customer-table td .customer-class-badge {
+  display: inline-grid;
+  margin-top: 0;
+}
+
+.customer-detail-panel {
   display: grid;
   gap: 12px;
 }
@@ -458,7 +485,8 @@
 }
 
 .sales-assignment-form,
-.customer-class-form {
+.customer-class-form,
+.customer-payment-form {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(120px, 0.7fr);
   gap: 8px;
@@ -466,6 +494,7 @@
 
 .sales-assignment-form label,
 .customer-class-form label,
+.customer-payment-form label,
 .sales-rep-form label {
   display: grid;
   gap: 6px;
@@ -478,6 +507,8 @@
 .sales-assignment-form .ghost-button,
 .customer-class-form .wide,
 .customer-class-form .ghost-button,
+.customer-payment-form .wide,
+.customer-payment-form .ghost-button,
 .sales-rep-form .wide {
   grid-column: 1 / -1;
 }
@@ -1684,6 +1715,10 @@ button.operation-row:hover {
     grid-template-columns: 1fr;
   }
 
+  .admin-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .customer-controls {
     padding: 16px 0 0;
     border-top: 1px solid #34363b;
@@ -1789,6 +1824,7 @@ button.operation-row:hover {
 
   .customer-data,
   .discount-form,
+  .customer-payment-form,
   .order-detail-grid,
   .availability-form,
   .fulfillment-form,
