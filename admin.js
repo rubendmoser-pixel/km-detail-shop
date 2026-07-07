@@ -2379,6 +2379,7 @@ function renderOperationDashboard(dashboard) {
   }
   const summary = dashboard.summary || {};
   const currentAccounts = dashboard.currentAccounts || {};
+  const storage = dashboard.storage || {};
   adminEls.operationDashboard.innerHTML = `
     <div class="operation-metrics">
       ${metricCard("Pedidos activos", summary.activeOrders || 0, "En curso operativo")}
@@ -2412,6 +2413,10 @@ function renderOperationDashboard(dashboard) {
       <section class="operation-panel wide">
         <div class="panel-heading"><p class="eyebrow">Productos</p><h3>Mas vendidos</h3></div>
         ${renderProductRankRows(dashboard.products || [])}
+      </section>
+      <section class="operation-panel wide">
+        <div class="panel-heading"><p class="eyebrow">Sistema</p><h3>Respaldo y datos</h3></div>
+        ${renderStorageStatus(storage)}
       </section>
     </div>
   `;
@@ -2471,6 +2476,35 @@ function renderProductRankRows(rows) {
       `).join("")}
     </div>
   ` : `<p class="admin-note">Sin productos vendidos para mostrar.</p>`;
+}
+
+function renderStorageStatus(storage = {}) {
+  const latest = storage.backups?.latest;
+  const warnings = storage.warnings || [];
+  const statusLabel = storage.health === "ok" ? "Correcto" : "Revisar";
+  const statusClass = storage.health === "ok" ? "ok" : "warning";
+  return `
+    <div class="storage-status ${statusClass}">
+      <div>
+        <span class="storage-status-badge">${escapeAdmin(statusLabel)}</span>
+        <strong>${latest ? `Ultimo backup: ${escapeAdmin(formatAdminDate(latest.createdAt))}` : "Sin backup registrado"}</strong>
+        <small>${escapeAdmin(storage.backups?.count || 0)} backups | ${escapeAdmin(storage.uploads?.files || 0)} archivos subidos | ${formatFileSize(storage.uploads?.bytes || 0)}</small>
+      </div>
+      <div class="storage-status-grid">
+        <span><strong>Base</strong><small>${formatFileSize(storage.database?.bytes || 0)}</small></span>
+        <span><strong>Uploads</strong><small>${escapeAdmin(storage.uploads?.exists ? "Disponible" : "No encontrado")}</small></span>
+        <span><strong>Persistencia</strong><small>${storage.persistent?.databaseInData && storage.persistent?.uploadsInData ? "Volumen /data" : "Verificar Railway"}</small></span>
+      </div>
+      ${warnings.length ? `<div class="storage-warnings">${warnings.map((warning) => `<small>${escapeAdmin(warning)}</small>`).join("")}</div>` : ""}
+    </div>
+  `;
+}
+
+function formatFileSize(bytes) {
+  const value = Number(bytes || 0);
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function handleOperationDashboardClick(event) {

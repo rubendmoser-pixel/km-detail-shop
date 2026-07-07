@@ -1,3 +1,5 @@
+import { getStorageStatus } from "./storage-status-service.js";
+
 const CLOSED_STATUSES = new Set(["delivered", "cancelled"]);
 const OPEN_PAYMENT_STATUSES = new Set(["pending_payment", "receipt_uploaded", "credit_account", "overdue", "rejected"]);
 
@@ -58,7 +60,8 @@ export function getAdminOperationDashboard(db) {
       dueSoon: dueSoonOrders.map(mapCurrentAccountOrder)
     },
     products: topProducts(items),
-    queues: buildQueues(orders)
+    queues: buildQueues(orders),
+    storage: getStorageStatus()
   };
 }
 
