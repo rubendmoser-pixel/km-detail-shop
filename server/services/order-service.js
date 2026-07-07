@@ -9,6 +9,7 @@ import { resolveCustomerSalesRep } from "./sales-rep-service.js";
 import { getCommercialSettings } from "./settings-service.js";
 import { getShippingAddress } from "./shipping-address-service.js";
 import { activeCustomerProductSpecialDiscount, activeProductPromotion } from "./product-service.js";
+import { normalizePaymentSnapshot, resolvePaymentAccountsForCustomer } from "./payment-account-service.js";
 
 const RECEIPT_MIME_EXTENSIONS = new Map([
   ["application/pdf", ".pdf"],
@@ -75,6 +76,7 @@ export function createOrder(db, customerId, input) {
     : 0;
   const salesRep = resolveCustomerSalesRep(db, customerId);
   const settings = getCommercialSettings(db);
+  const paymentAccounts = resolvePaymentAccountsForCustomer(db, customerId);
   const shipping = input.shippingAddressId
     ? shippingFromAddress(getShippingAddress(db, customerId, positiveInteger(Number(input.shippingAddressId), "shippingAddressId")))
     : validateShipping(input.shipping || {});
@@ -118,7 +120,7 @@ export function createOrder(db, customerId, input) {
       salesRep.id, salesRep.name, salesRep.email, salesRep.commissionBps,
       totals.subtotalNetCents, commissionCents,
       totals.subtotalNetCents, totals.vatBps, totals.vatCents,
-      totals.totalCents, 0, totals.totalCents, JSON.stringify(settings.bank),
+      totals.totalCents, 0, totals.totalCents, JSON.stringify(paymentAccounts),
       requestedPaymentCondition, requestedPaymentTermsDays, JSON.stringify(shipping), now, now
     );
     const orderNumber = `KM-${new Date().getUTCFullYear()}-${String(order.id).padStart(6, "0")}`;
@@ -943,7 +945,7 @@ function mapOrder(order, items, receipts = [], events = []) {
     vatBps: order.vat_bps,
     vatCents: order.vat_cents,
     totalCents: order.total_cents,
-    bank: JSON.parse(order.bank_snapshot_json),
+    bank: normalizePaymentSnapshot(JSON.parse(order.bank_snapshot_json || "{}")),
     shipping: JSON.parse(order.shipping_snapshot_json),
     priceReservedAt: order.price_reserved_at,
     customerAcceptedAt: order.customer_accepted_at,

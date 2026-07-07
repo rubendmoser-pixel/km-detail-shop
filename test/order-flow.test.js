@@ -10,6 +10,7 @@ import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, 
 import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
+import { setCustomerPaymentAccounts, upsertPaymentAccount } from "../server/services/payment-account-service.js";
 
 test("active product promotion is applied and reserved in order items", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-promo-${Date.now()}.sqlite`);
@@ -261,6 +262,82 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
   assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-09T12:00:00.000Z")).queued, 1);
   assert.equal(emailService.queuePaymentDueReminders(new Date("2026-07-12T12:00:00.000Z")).queued, 1);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM email_outbox WHERE event_type = 'payment_overdue_followup'").get().count, 1);
+});
+
+test("order snapshots customer assigned payment accounts", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-payment-accounts-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath, adminEmail: "admin-payments@km-detail.com", adminPassword: "secure-admin-password" });
+  t.after(() => {
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const admin = db.prepare("SELECT id FROM users WHERE email = ?").get("admin-payments@km-detail.com");
+  const registration = await registerCustomer(db, {
+    email: "cliente-cuentas@example.com",
+    password: "customer-password-123",
+    firstName: "Ana",
+    lastName: "Perez",
+    businessName: "Distribuidor Cuentas",
+    taxId: "30-12345678-1",
+    taxCondition: "Responsable inscripto",
+    customerType: "Distribuidor",
+    industry: "Detailing",
+    city: "Rosario",
+    province: "Santa Fe",
+    postalCode: "2000",
+    address: "Calle 123",
+    phone: "3410000000",
+    whatsapp: "5493410000000",
+    contactPerson: "Ana Perez",
+    acceptTerms: true,
+    acceptPrivacy: true
+  });
+  setCustomerStatus(db, registration.customer.id, "approved", admin.id);
+  const first = upsertPaymentAccount(db, {
+    name: "Banco KM",
+    bankName: "Banco",
+    alias: "KM.BANCO",
+    cbu: "111",
+    active: true,
+    isDefault: true
+  }, admin.id);
+  const second = upsertPaymentAccount(db, {
+    name: "MercadoPago KM",
+    method: "mercadopago",
+    bankName: "MercadoPago",
+    alias: "KM.MP",
+    cbu: "222",
+    active: true
+  }, admin.id);
+  setCustomerPaymentAccounts(db, registration.customer.id, { accountIds: [first.id, second.id], primaryAccountId: second.id });
+
+  const product = upsertProduct(db, {
+    kmCode: "PAY01K",
+    ean13: "7791234567890",
+    name: "Producto cuenta",
+    familyName: "Poliespumas",
+    basePriceCents: 100_000,
+    priceEffectiveFrom: "2026-01-01"
+  });
+  const order = createOrder(db, registration.customer.id, {
+    items: [{ productId: product.id, quantity: 1 }],
+    shipping: {
+      recipient: "Ana Perez",
+      address: "Calle 123",
+      city: "Rosario",
+      province: "Santa Fe",
+      postalCode: "2000",
+      contactPhone: "3410000000"
+    }
+  });
+  assert.equal(order.bank.alias, "KM.MP");
+  assert.equal(order.bank.accounts.length, 2);
+  assert.deepEqual(order.bank.accounts.map((account) => account.alias), ["KM.MP", "KM.BANCO"]);
+
+  upsertPaymentAccount(db, { ...second, alias: "KM.MP.NUEVO" }, admin.id);
+  const persisted = getOrder(db, order.id, registration.customer.id, false);
+  assert.equal(persisted.bank.alias, "KM.MP");
 });
 
 test("new orders inherit customer payment terms and can confirm availability with that default", async (t) => {

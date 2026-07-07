@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 15;
+const SCHEMA_VERSION = 16;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -229,6 +229,32 @@ function migrate(db) {
       instructions TEXT NOT NULL DEFAULT '',
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_by INTEGER REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS payment_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      method TEXT NOT NULL DEFAULT 'bank_transfer' CHECK (method IN ('bank_transfer', 'mercadopago', 'other')),
+      bank_name TEXT NOT NULL DEFAULT '',
+      account_holder TEXT NOT NULL DEFAULT '',
+      tax_id TEXT NOT NULL DEFAULT '',
+      account_type TEXT NOT NULL DEFAULT '',
+      cbu TEXT NOT NULL DEFAULT '',
+      alias TEXT NOT NULL DEFAULT '',
+      instructions TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+      is_default INTEGER NOT NULL DEFAULT 0 CHECK (is_default IN (0, 1)),
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_by INTEGER REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS customer_payment_accounts (
+      customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+      payment_account_id INTEGER NOT NULL REFERENCES payment_accounts(id) ON DELETE CASCADE,
+      is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (customer_id, payment_account_id)
     );
 
     CREATE TABLE IF NOT EXISTS orders (
@@ -513,6 +539,8 @@ function migrate(db) {
     WHERE total_cents > 0;
   `);
   db.exec("CREATE INDEX IF NOT EXISTS idx_customers_sales_rep ON customers(sales_rep_id);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_payment_accounts_active ON payment_accounts(active, sort_order, name);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_customer_payment_accounts_customer ON customer_payment_accounts(customer_id);");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);
 }
 
@@ -526,6 +554,28 @@ function seedSettings(db, whatsappNumber) {
   insertSetting.run("vat_bps", "2100");
   insertSetting.run("whatsapp_number", whatsappNumber);
   db.prepare("INSERT OR IGNORE INTO bank_settings (id) VALUES (1)").run();
+  seedPaymentAccountsFromBankSettings(db);
+}
+
+function seedPaymentAccountsFromBankSettings(db) {
+  const existing = db.prepare("SELECT COUNT(*) AS count FROM payment_accounts").get();
+  if (existing.count > 0) return;
+  const bank = db.prepare("SELECT * FROM bank_settings WHERE id = 1").get() || {};
+  db.prepare(`
+    INSERT INTO payment_accounts (
+      name, method, bank_name, account_holder, tax_id, account_type, cbu, alias, instructions,
+      active, is_default, sort_order
+    ) VALUES (?, 'bank_transfer', ?, ?, ?, ?, ?, ?, ?, 1, 1, 0)
+  `).run(
+    bank.alias || bank.bank_name ? "Cuenta principal KM" : "Cuenta de cobro KM",
+    bank.bank_name || "",
+    bank.account_holder || "",
+    bank.tax_id || "",
+    bank.account_type || "",
+    bank.cbu || "",
+    bank.alias || "",
+    bank.instructions || ""
+  );
 }
 
 async function ensureAdmin(db, email, password) {

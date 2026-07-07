@@ -260,6 +260,7 @@ export function createEmailService({ db, config, pushService = null }) {
           "Condicion de pago: Pago anticipado",
           "El despacho se realiza una vez acreditado el pago."
         ];
+    const paymentAccountLines = order.payment_status === "credit_account" ? [] : paymentAccountsForEmail(order);
     const customerConfirmedLines = confirmed.length ? confirmed.flatMap((item, index) => [
       `${index + 1}. ${item.km_code} - ${item.product_name}`,
       `   Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity}`,
@@ -283,6 +284,8 @@ export function createEmailService({ db, config, pushService = null }) {
       `IVA ${(order.vat_bps / 100).toFixed(2)}%: ${money.format(order.vat_cents / 100)}`,
       `Total para pago y despacho: ${money.format(order.total_cents / 100)}`,
       ...paymentConditionLines,
+      paymentAccountLines.length ? "" : null,
+      ...paymentAccountLines,
       "",
       "Detalle de articulos confirmados",
       ...customerConfirmedLines,
@@ -314,6 +317,28 @@ export function createEmailService({ db, config, pushService = null }) {
       "",
       `${config.publicBaseUrl.replace(/\/$/, "")}/admin.html`
     ].filter(Boolean).join("\n"));
+  }
+
+  function paymentAccountsForEmail(order) {
+    let snapshot = {};
+    try {
+      snapshot = JSON.parse(order.bank_snapshot_json || "{}");
+    } catch {
+      snapshot = {};
+    }
+    const accounts = Array.isArray(snapshot.accounts) && snapshot.accounts.length
+      ? snapshot.accounts
+      : [snapshot].filter((account) => account.alias || account.cbu);
+    if (!accounts.length) return [];
+    return [
+      "Cuentas habilitadas para pago",
+      ...accounts.flatMap((account, index) => [
+        `${index + 1}. ${account.name || account.bankName || "Cuenta KM"}`,
+        account.alias ? `   Alias: ${account.alias}` : "",
+        account.cbu ? `   CBU/CVU: ${account.cbu}` : "",
+        account.instructions ? `   ${account.instructions}` : ""
+      ])
+    ].filter(Boolean);
   }
 
   function queuePaymentReceiptUploaded(orderId) {

@@ -45,6 +45,11 @@ import {
 } from "./services/product-service.js";
 import { getCommercialSettings, getPublicSettings, updateCommercialSettings } from "./services/settings-service.js";
 import {
+  listCustomerPaymentAccountAssignments,
+  setCustomerPaymentAccounts,
+  upsertPaymentAccount
+} from "./services/payment-account-service.js";
+import {
   assignSalesRepToCustomer,
   createSalesCommissionSettlement,
   getSalesCommissionSettlement,
@@ -442,6 +447,17 @@ export function createApp({
       if (request.method === "PATCH" && url.pathname === "/api/admin/settings") {
         const settings = updateCommercialSettings(db, await readJson(request), currentUser.id);
         return sendJson(response, 200, { settings });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/payment-accounts") {
+        const account = upsertPaymentAccount(db, await readJson(request), currentUser.id);
+        return sendJson(response, 201, { account, settings: getCommercialSettings(db) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/payment-accounts$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, listCustomerPaymentAccountAssignments(db, Number(match[1])));
+      }
+      if (request.method === "PUT" && match) {
+        return sendJson(response, 200, setCustomerPaymentAccounts(db, Number(match[1]), await readJson(request)));
       }
       if (request.method === "GET" && url.pathname === "/api/admin/emails") {
         return sendJson(response, 200, {

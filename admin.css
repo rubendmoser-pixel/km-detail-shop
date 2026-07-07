@@ -487,6 +487,7 @@
 .sales-assignment-form,
 .customer-class-form,
 .customer-payment-form,
+.customer-payment-accounts-form,
 .product-discount-form {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(120px, 0.7fr);
@@ -496,6 +497,7 @@
 .sales-assignment-form label,
 .customer-class-form label,
 .customer-payment-form label,
+.customer-payment-accounts-form label,
 .product-discount-form label,
 .sales-rep-form label {
   display: grid;
@@ -511,6 +513,8 @@
 .customer-class-form .ghost-button,
 .customer-payment-form .wide,
 .customer-payment-form .ghost-button,
+.customer-payment-accounts-form .wide,
+.customer-payment-accounts-form .ghost-button,
 .product-discount-form .wide,
 .product-discount-form .ghost-button,
 .sales-rep-form .wide {
@@ -527,6 +531,40 @@
 .customer-special-discounts {
   display: grid;
   gap: 10px;
+}
+
+.customer-payment-account-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.customer-payment-account-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #34363b;
+  background: #121316;
+}
+
+.customer-payment-account-option.selected {
+  border-color: #8ac6ff;
+  background: #14202b;
+}
+
+.customer-payment-account-option strong,
+.customer-payment-account-option small {
+  display: block;
+}
+
+.customer-payment-account-option .primary-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #f6e58f;
+  font-size: 0.78rem;
+  font-weight: 900;
 }
 
 .customer-special-discounts .admin-note {
@@ -1484,6 +1522,45 @@
 
 .settings-form > .primary-button {
   justify-self: start;
+}
+
+.payment-account-list {
+  max-width: 900px;
+}
+
+.payment-account-cards {
+  display: grid;
+  gap: 10px;
+}
+
+.payment-account-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #3b3d42;
+  background: #141519;
+}
+
+.payment-account-card.inactive {
+  opacity: 0.58;
+}
+
+.payment-account-card strong,
+.payment-account-card span,
+.payment-account-card small {
+  display: block;
+}
+
+.payment-account-card span {
+  margin-top: 4px;
+  color: #cfd2d8;
+}
+
+.payment-account-card small {
+  margin-top: 4px;
+  color: #9da1a8;
 }
 
 .operation-dashboard {

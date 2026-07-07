@@ -2,7 +2,7 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}
+  operationDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const adminViews = new Set(["customers", "sales", "products", "orders", "accounts", "settings", "emails", "security", "operation"]);
@@ -70,7 +70,7 @@ const adminEls = Object.fromEntries([
   "orderStatusForm", "orderStatusMessage", "orderAdvancedPanel",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
-  "productImagesNote", "settingsForm", "settingsMessage",
+  "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
   "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
@@ -135,6 +135,9 @@ function bindAdminEvents() {
   adminEls.commissionsTableBody.addEventListener("change", renderCommissionSummary);
   adminEls.commissionSettlements.addEventListener("click", handleCommissionSettlementClick);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
+  adminEls.paymentAccountForm.addEventListener("submit", savePaymentAccount);
+  document.querySelector("#resetPaymentAccountForm").addEventListener("click", resetPaymentAccountForm);
+  adminEls.paymentAccountList.addEventListener("click", handlePaymentAccountListClick);
   adminEls.currentAccountSearch.addEventListener("input", debounce(() => renderCurrentAccountDashboard(), 200));
   document.querySelector("#reloadCurrentAccounts").addEventListener("click", loadOperationDashboard);
   adminEls.currentAccountDashboard.addEventListener("click", handleCurrentAccountClick);
@@ -776,6 +779,11 @@ function renderCustomerDetail(customer) {
           <label data-payment-terms-field ${normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account" ? "" : "hidden"}><span>Dias cta. cte.</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${customer.payment_terms_days || 15}" ${normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account" ? "" : "disabled"} /></label>
           <button class="ghost-button" type="submit">Guardar condicion</button>
         </form>
+        <form class="customer-payment-accounts-form">
+          <div class="sales-summary wide">Cuentas de cobro habilitadas</div>
+          ${renderCustomerPaymentAccounts(customer)}
+          <button class="ghost-button wide" type="submit">Guardar cuentas</button>
+        </form>
         <form class="product-discount-form">
           <div class="sales-summary wide">Condiciones especiales por producto</div>
           <label><span>Codigo KM</span><input name="kmCode" placeholder="Ej: CP171K" required /></label>
@@ -804,6 +812,7 @@ function bindCustomerControls() {
     form.elements.paymentCondition?.addEventListener("change", () => syncCustomerPaymentForm(form));
     syncCustomerPaymentForm(form);
   });
+  adminEls.customerList.querySelectorAll(".customer-payment-accounts-form").forEach((form) => form.addEventListener("submit", saveCustomerPaymentAccounts));
   adminEls.customerList.querySelectorAll(".product-discount-form").forEach((form) => form.addEventListener("submit", saveCustomerProductDiscount));
   adminEls.customerList.querySelectorAll("[data-delete-product-discount]").forEach((button) => button.addEventListener("click", deleteCustomerProductDiscount));
 }
@@ -811,13 +820,68 @@ function bindCustomerControls() {
 async function viewCustomerDetail(event) {
   adminState.selectedCustomerId = Number(event.currentTarget.dataset.viewCustomer);
   renderCustomers();
-  await loadCustomerProductDiscounts(adminState.selectedCustomerId);
+  await Promise.all([
+    loadCustomerProductDiscounts(adminState.selectedCustomerId, false),
+    loadCustomerPaymentAccounts(adminState.selectedCustomerId, false)
+  ]);
+  renderCustomers();
 }
 
-async function loadCustomerProductDiscounts(customerId) {
+async function loadCustomerProductDiscounts(customerId, shouldRender = true) {
   const { discounts } = await adminApi(`/api/admin/customers/${customerId}/product-discounts`);
   adminState.customerProductDiscounts[customerId] = discounts || [];
-  renderCustomers();
+  if (shouldRender) renderCustomers();
+}
+
+async function loadCustomerPaymentAccounts(customerId, shouldRender = true) {
+  adminState.customerPaymentAccounts[customerId] = await adminApi(`/api/admin/customers/${customerId}/payment-accounts`);
+  if (shouldRender) renderCustomers();
+}
+
+function renderCustomerPaymentAccounts(customer) {
+  const assignment = adminState.customerPaymentAccounts[customer.id];
+  if (!assignment) return `<p class="admin-note wide">Abrir cliente para cargar cuentas de cobro.</p>`;
+  const accounts = assignment.accounts || [];
+  if (!accounts.length) return `<p class="admin-note wide">No hay cuentas de cobro activas en configuracion.</p>`;
+  return `
+    <div class="customer-payment-account-grid wide">
+      ${accounts.map((account) => `
+        <label class="customer-payment-account-option ${account.assigned ? "selected" : ""}">
+          <input type="checkbox" name="accountIds" value="${account.id}" ${account.assigned ? "checked" : ""} />
+          <span>
+            <strong>${escapeAdmin(account.name)}</strong>
+            <small>${escapeAdmin(paymentAccountSummary(account))}</small>
+          </span>
+          <span class="primary-choice">
+            <input type="radio" name="primaryAccountId" value="${account.id}" ${account.isPrimary ? "checked" : ""} />
+            Principal
+          </span>
+        </label>
+      `).join("")}
+    </div>
+    <p class="admin-note wide">Si no marcas ninguna cuenta, el cliente usara la cuenta general activa.</p>`;
+}
+
+async function saveCustomerPaymentAccounts(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const customerId = Number(form.closest("[data-customer-id]").dataset.customerId);
+  const accountIds = [...form.querySelectorAll("input[name='accountIds']:checked")].map((input) => Number(input.value));
+  let primaryAccountId = Number(form.querySelector("input[name='primaryAccountId']:checked")?.value || 0);
+  if (primaryAccountId && !accountIds.includes(primaryAccountId)) primaryAccountId = accountIds[0] || 0;
+  setBusy(form, true);
+  try {
+    adminState.customerPaymentAccounts[customerId] = await adminApi(`/api/admin/customers/${customerId}/payment-accounts`, {
+      method: "PUT",
+      body: { accountIds, primaryAccountId: primaryAccountId || null }
+    });
+    showAdminToast("Cuentas de cobro guardadas.");
+    renderCustomers();
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
+  }
 }
 
 function renderCustomerProductDiscounts(customer) {
@@ -1802,10 +1866,11 @@ async function saveOrderStatus(event) {
 async function loadSettings() {
   const { settings } = await adminApi("/api/admin/settings");
   adminState.settings = settings;
+  adminState.paymentAccounts = settings.paymentAccounts || [];
   const form = adminEls.settingsForm.elements;
   form.vatPercent.value = settings.vatBps / 100;
   form.whatsappNumber.value = settings.whatsappNumber;
-  for (const key of ["bankName", "accountHolder", "taxId", "cbu", "alias", "accountType", "instructions"]) form[key].value = settings.bank[key] || "";
+  renderPaymentAccounts();
 }
 
 async function loadEmails() {
@@ -1917,8 +1982,7 @@ async function saveSettings(event) {
   const values = Object.fromEntries(new FormData(adminEls.settingsForm));
   const body = {
     vatBps: Math.round(Number(values.vatPercent) * 100),
-    whatsappNumber: values.whatsappNumber,
-    bank: Object.fromEntries(["bankName", "accountHolder", "taxId", "cbu", "alias", "accountType", "instructions"].map((key) => [key, values[key]]))
+    whatsappNumber: values.whatsappNumber
   };
   setBusy(adminEls.settingsForm, true);
   try {
@@ -1930,6 +1994,96 @@ async function saveSettings(event) {
   } finally {
     setBusy(adminEls.settingsForm, false);
   }
+}
+
+function renderPaymentAccounts() {
+  const accounts = adminState.paymentAccounts || [];
+  adminEls.paymentAccountList.innerHTML = accounts.length ? `
+    <div class="payment-account-cards">
+      ${accounts.map((account) => `
+        <article class="payment-account-card ${account.active ? "" : "inactive"}">
+          <div>
+            <strong>${escapeAdmin(account.name)}</strong>
+            <span>${paymentAccountMethodText(account.method)}${account.isDefault ? " | Cuenta general" : ""}${account.active ? "" : " | Inactiva"}</span>
+            <small>${escapeAdmin(paymentAccountSummary(account))}</small>
+          </div>
+          <button class="ghost-button row-button" type="button" data-edit-payment-account="${account.id}">Editar</button>
+        </article>
+      `).join("")}
+    </div>` : `<p class="admin-empty">Todavia no hay cuentas de cobro cargadas.</p>`;
+}
+
+function handlePaymentAccountListClick(event) {
+  const button = event.target.closest("[data-edit-payment-account]");
+  if (!button) return;
+  const account = adminState.paymentAccounts.find((item) => item.id === Number(button.dataset.editPaymentAccount));
+  if (!account) return;
+  const form = adminEls.paymentAccountForm.elements;
+  for (const key of ["id", "name", "method", "bankName", "accountHolder", "taxId", "accountType", "cbu", "alias", "instructions", "sortOrder"]) {
+    form[key].value = account[key] ?? "";
+  }
+  form.active.checked = Boolean(account.active);
+  form.isDefault.checked = Boolean(account.isDefault);
+  adminEls.paymentAccountMessage.textContent = `Editando ${account.name}.`;
+  adminEls.paymentAccountForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function savePaymentAccount(event) {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(adminEls.paymentAccountForm));
+  const body = {
+    id: values.id ? Number(values.id) : undefined,
+    name: values.name,
+    method: values.method,
+    bankName: values.bankName,
+    accountHolder: values.accountHolder,
+    taxId: values.taxId,
+    accountType: values.accountType,
+    cbu: values.cbu,
+    alias: values.alias,
+    instructions: values.instructions,
+    sortOrder: Number(values.sortOrder || 0),
+    active: Boolean(values.active),
+    isDefault: Boolean(values.isDefault)
+  };
+  setBusy(adminEls.paymentAccountForm, true);
+  try {
+    const { settings } = await adminApi("/api/admin/payment-accounts", { method: "POST", body });
+    adminState.settings = settings;
+    adminState.paymentAccounts = settings.paymentAccounts || [];
+    resetPaymentAccountForm();
+    renderPaymentAccounts();
+    if (adminState.selectedCustomerId) await loadCustomerPaymentAccounts(adminState.selectedCustomerId);
+    adminEls.paymentAccountMessage.textContent = "Cuenta guardada.";
+  } catch (error) {
+    adminEls.paymentAccountMessage.textContent = error.message;
+  } finally {
+    setBusy(adminEls.paymentAccountForm, false);
+  }
+}
+
+function resetPaymentAccountForm() {
+  adminEls.paymentAccountForm.reset();
+  adminEls.paymentAccountForm.elements.id.value = "";
+  adminEls.paymentAccountForm.elements.active.checked = true;
+  adminEls.paymentAccountMessage.textContent = "";
+}
+
+function paymentAccountSummary(account = {}) {
+  const parts = [
+    account.bankName,
+    account.alias ? `Alias ${account.alias}` : "",
+    account.cbu ? `CBU/CVU ${account.cbu}` : ""
+  ].filter(Boolean);
+  return parts.join(" | ") || "Sin datos bancarios visibles";
+}
+
+function paymentAccountMethodText(method) {
+  return ({
+    bank_transfer: "Transferencia",
+    mercadopago: "MercadoPago",
+    other: "Otro"
+  })[method] || method || "Cuenta";
 }
 
 async function deleteTestOrders(event) {

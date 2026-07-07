@@ -2106,6 +2106,23 @@ body.customer-app .customer-order-summary {
   max-width: 760px;
 }
 
+.purchase-bank-account {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2d33;
+}
+
+.purchase-bank-account:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.purchase-bank-account span:first-child {
+  color: #fff;
+  font-weight: 900;
+}
+
 .receipt-upload {
   display: inline-flex;
   min-height: 52px;

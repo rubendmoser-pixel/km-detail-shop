@@ -1,4 +1,5 @@
 import { basisPoints, optionalText } from "../domain/validation.js";
+import { listPaymentAccounts } from "./payment-account-service.js";
 
 export function getCommercialSettings(db) {
   const settings = Object.fromEntries(db.prepare("SELECT key, value FROM settings").all().map((row) => [row.key, row.value]));
@@ -6,7 +7,8 @@ export function getCommercialSettings(db) {
   return {
     vatBps: Number(settings.vat_bps || 2100),
     whatsappNumber: settings.whatsapp_number || "",
-    bank: publicBank(bank)
+    bank: publicBank(bank),
+    paymentAccounts: listPaymentAccounts(db, { includeInactive: true })
   };
 }
 
@@ -44,8 +46,45 @@ export function updateCommercialSettings(db, input, adminUserId) {
       optionalText(bank.alias, "alias"), optionalText(bank.accountType, "accountType"),
       optionalText(bank.instructions, "instructions"), adminUserId
     );
+    syncLegacyBankToDefaultPaymentAccount(db, bank, adminUserId);
   }
   return getCommercialSettings(db);
+}
+
+function syncLegacyBankToDefaultPaymentAccount(db, bank, adminUserId) {
+  const existing = db.prepare("SELECT id FROM payment_accounts WHERE is_default = 1 ORDER BY id LIMIT 1").get()
+    || db.prepare("SELECT id FROM payment_accounts ORDER BY id LIMIT 1").get();
+  const values = {
+    bankName: optionalText(bank.bankName, "bankName"),
+    accountHolder: optionalText(bank.accountHolder, "accountHolder"),
+    taxId: optionalText(bank.taxId, "bankTaxId"),
+    cbu: optionalText(bank.cbu, "cbu"),
+    alias: optionalText(bank.alias, "alias"),
+    accountType: optionalText(bank.accountType, "accountType"),
+    instructions: optionalText(bank.instructions, "instructions")
+  };
+  if (existing) {
+    db.prepare(`
+      UPDATE payment_accounts
+      SET bank_name = ?, account_holder = ?, tax_id = ?, cbu = ?, alias = ?, account_type = ?,
+        instructions = ?, is_default = 1, active = 1, updated_at = CURRENT_TIMESTAMP, updated_by = ?
+      WHERE id = ?
+    `).run(
+      values.bankName, values.accountHolder, values.taxId, values.cbu, values.alias, values.accountType,
+      values.instructions, adminUserId, existing.id
+    );
+    db.prepare("UPDATE payment_accounts SET is_default = 0 WHERE id <> ?").run(existing.id);
+    return;
+  }
+  db.prepare(`
+    INSERT INTO payment_accounts (
+      name, method, bank_name, account_holder, tax_id, account_type, cbu, alias, instructions,
+      active, is_default, sort_order, updated_by
+    ) VALUES ('Cuenta principal KM', 'bank_transfer', ?, ?, ?, ?, ?, ?, ?, 1, 1, 0, ?)
+  `).run(
+    values.bankName, values.accountHolder, values.taxId, values.accountType, values.cbu,
+    values.alias, values.instructions, adminUserId
+  );
 }
 
 function publicBank(bank) {

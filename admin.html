@@ -10,8 +10,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="./styles.css?v=58" />
-    <link rel="stylesheet" href="./admin.css?v=37" />
+    <link rel="stylesheet" href="./styles.css?v=59" />
+    <link rel="stylesheet" href="./admin.css?v=38" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -335,15 +335,29 @@
               <label><span>IVA (%)</span><input name="vatPercent" type="number" min="0" max="100" step="0.01" required /></label>
               <label><span>WhatsApp general</span><input name="whatsappNumber" inputmode="tel" /></label>
             </fieldset>
-            <fieldset><legend>Transferencia bancaria</legend>
-              <label><span>Banco</span><input name="bankName" /></label><label><span>Titular</span><input name="accountHolder" /></label>
-              <label><span>CUIT</span><input name="taxId" /></label><label><span>CBU</span><input name="cbu" /></label>
-              <label><span>Alias</span><input name="alias" /></label><label><span>Tipo de cuenta</span><input name="accountType" /></label>
-              <label class="wide"><span>Instrucciones</span><textarea name="instructions" rows="3"></textarea></label>
-            </fieldset>
             <button class="primary-button" type="submit">Guardar configuracion</button>
             <p class="form-message" id="settingsMessage" role="status"></p>
           </form>
+          <form class="settings-form" id="paymentAccountForm">
+            <fieldset><legend>Cuentas de cobro</legend>
+              <input name="id" type="hidden" />
+              <label><span>Nombre interno</span><input name="name" placeholder="Ej: Cuenta Santander KM" required /></label>
+              <label><span>Tipo</span><select name="method"><option value="bank_transfer">Transferencia</option><option value="mercadopago">MercadoPago</option><option value="other">Otro</option></select></label>
+              <label><span>Banco / proveedor</span><input name="bankName" /></label><label><span>Titular</span><input name="accountHolder" /></label>
+              <label><span>CUIT</span><input name="taxId" /></label><label><span>Tipo de cuenta</span><input name="accountType" /></label>
+              <label><span>CBU / CVU</span><input name="cbu" /></label><label><span>Alias</span><input name="alias" /></label>
+              <label><span>Orden</span><input name="sortOrder" type="number" step="1" value="0" /></label>
+              <label class="checkbox-label"><input name="active" type="checkbox" checked /><span>Activa</span></label>
+              <label class="checkbox-label"><input name="isDefault" type="checkbox" /><span>Cuenta general</span></label>
+              <label class="wide"><span>Instrucciones para cliente</span><textarea name="instructions" rows="3"></textarea></label>
+            </fieldset>
+            <div class="form-actions">
+              <button class="primary-button" type="submit">Guardar cuenta</button>
+              <button class="ghost-button" id="resetPaymentAccountForm" type="button">Limpiar</button>
+            </div>
+            <p class="form-message" id="paymentAccountMessage" role="status"></p>
+          </form>
+          <div class="payment-account-list" id="paymentAccountList"></div>
         </section>
 
         <section class="admin-view" id="emailsView" hidden>
@@ -407,6 +421,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=51" defer></script>
+    <script src="./admin.js?v=52" defer></script>
   </body>
 </html>

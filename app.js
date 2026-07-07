@@ -1085,12 +1085,18 @@ function renderPurchaseLine(item) {
 }
 
 function renderBankSummary(bank = {}) {
+  const accounts = Array.isArray(bank.accounts) && bank.accounts.length ? bank.accounts : [bank].filter((account) => account.alias || account.cbu || account.instructions);
   return `
     <div class="purchase-bank">
-      <strong>Datos para transferencia</strong>
-      <span>Alias: ${escapeHtml(bank.alias || "-")}</span>
-      <span>CBU: ${escapeHtml(bank.cbu || "-")}</span>
-      ${bank.instructions ? `<small>${escapeHtml(bank.instructions)}</small>` : ""}
+      <strong>Datos para pago</strong>
+      ${accounts.length ? accounts.map((account) => `
+        <div class="purchase-bank-account">
+          <span>${escapeHtml(account.name || account.bankName || "Cuenta KM")}</span>
+          <span>Alias: ${escapeHtml(account.alias || "-")}</span>
+          <span>CBU/CVU: ${escapeHtml(account.cbu || "-")}</span>
+          ${account.instructions ? `<small>${escapeHtml(account.instructions)}</small>` : ""}
+        </div>
+      `).join("") : `<span>KM informara los datos de pago.</span>`}
     </div>
   `;
 }
