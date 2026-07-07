@@ -2,7 +2,7 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, currentAccountFilter: "open"
+  operationDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const adminViews = new Set(["customers", "sales", "products", "orders", "accounts", "settings", "emails", "security", "operation"]);
@@ -776,6 +776,19 @@ function renderCustomerDetail(customer) {
           <label><span>Dias cta. cte.</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${customer.payment_terms_days || 15}" /></label>
           <button class="ghost-button" type="submit">Guardar condicion</button>
         </form>
+        <form class="product-discount-form">
+          <div class="sales-summary wide">Condiciones especiales por producto</div>
+          <label><span>Codigo KM</span><input name="kmCode" placeholder="Ej: CP171K" required /></label>
+          <label><span>Desc. adicional (%)</span><input name="discountPercent" type="number" min="0.01" max="100" step="0.01" required /></label>
+          <label><span>Desde</span><input name="startsAt" type="date" /></label>
+          <label><span>Hasta</span><input name="endsAt" type="date" /></label>
+          <label class="checkbox-label"><input name="active" type="checkbox" checked /><span>Activo</span></label>
+          <label class="wide"><span>Nota interna</span><input name="note" maxlength="500" placeholder="Ej: acuerdo especial julio" /></label>
+          <button class="ghost-button wide" type="submit">Guardar precio especial</button>
+        </form>
+        <div class="customer-special-discounts">
+          ${renderCustomerProductDiscounts(customer)}
+        </div>
       </div>
     </article>`;
 }
@@ -787,11 +800,46 @@ function bindCustomerControls() {
   adminEls.customerList.querySelectorAll(".sales-assignment-form").forEach((form) => form.addEventListener("submit", saveCustomerSalesRep));
   adminEls.customerList.querySelectorAll(".customer-class-form").forEach((form) => form.addEventListener("submit", saveCustomerClass));
   adminEls.customerList.querySelectorAll(".customer-payment-form").forEach((form) => form.addEventListener("submit", saveCustomerPaymentTerms));
+  adminEls.customerList.querySelectorAll(".product-discount-form").forEach((form) => form.addEventListener("submit", saveCustomerProductDiscount));
+  adminEls.customerList.querySelectorAll("[data-delete-product-discount]").forEach((button) => button.addEventListener("click", deleteCustomerProductDiscount));
 }
 
-function viewCustomerDetail(event) {
+async function viewCustomerDetail(event) {
   adminState.selectedCustomerId = Number(event.currentTarget.dataset.viewCustomer);
   renderCustomers();
+  await loadCustomerProductDiscounts(adminState.selectedCustomerId);
+}
+
+async function loadCustomerProductDiscounts(customerId) {
+  const { discounts } = await adminApi(`/api/admin/customers/${customerId}/product-discounts`);
+  adminState.customerProductDiscounts[customerId] = discounts || [];
+  renderCustomers();
+}
+
+function renderCustomerProductDiscounts(customer) {
+  const discounts = adminState.customerProductDiscounts[customer.id];
+  if (!discounts) return `<p class="admin-note">Abrir cliente para cargar condiciones especiales por producto.</p>`;
+  if (!discounts.length) return `<p class="admin-note">Sin precios especiales por producto.</p>`;
+  return `
+    <div class="special-discount-list">
+      ${discounts.map((discount) => `
+        <div class="special-discount-row ${discount.active ? "" : "inactive"}">
+          <div>
+            <strong>${escapeAdmin(discount.kmCode)} <span>${formatBps(discount.discountBps)}</span></strong>
+            <small>${escapeAdmin(discount.productName)}</small>
+            <small>${escapeAdmin(productDiscountValidityText(discount))}${discount.note ? ` · ${escapeAdmin(discount.note)}` : ""}</small>
+          </div>
+          <button class="ghost-button danger-button" type="button" data-delete-product-discount="${discount.id}">Eliminar</button>
+        </div>
+      `).join("")}
+    </div>`;
+}
+
+function productDiscountValidityText(discount) {
+  const dates = [];
+  if (discount.startsAt) dates.push(`desde ${discount.startsAt}`);
+  if (discount.endsAt) dates.push(`hasta ${discount.endsAt}`);
+  return `${discount.active ? "Activo" : "Inactivo"}${dates.length ? ` · ${dates.join(" ")}` : " · sin vencimiento"}`;
 }
 
 function salesRepOptions(selectedId) {
@@ -923,6 +971,50 @@ async function saveDiscounts(event) {
     showAdminToast(error.message);
   } finally {
     setBusy(form, false);
+  }
+}
+
+async function saveCustomerProductDiscount(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const customerId = Number(form.closest("[data-customer-id]").dataset.customerId);
+  const values = Object.fromEntries(new FormData(form));
+  setBusy(form, true);
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/product-discounts`, {
+      method: "POST",
+      body: {
+        kmCode: values.kmCode,
+        discountBps: Math.round(Number(values.discountPercent || 0) * 100),
+        startsAt: values.startsAt || "",
+        endsAt: values.endsAt || "",
+        active: Boolean(form.elements.active.checked),
+        note: values.note || ""
+      }
+    });
+    form.reset();
+    form.elements.active.checked = true;
+    showAdminToast("Precio especial guardado.");
+    await loadCustomerProductDiscounts(customerId);
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
+  }
+}
+
+async function deleteCustomerProductDiscount(event) {
+  const button = event.currentTarget;
+  const customerId = Number(button.closest("[data-customer-id]").dataset.customerId);
+  const discountId = Number(button.dataset.deleteProductDiscount);
+  button.disabled = true;
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/product-discounts/${discountId}`, { method: "DELETE" });
+    showAdminToast("Precio especial eliminado.");
+    await loadCustomerProductDiscounts(customerId);
+  } catch (error) {
+    showAdminToast(error.message);
+    button.disabled = false;
   }
 }
 

@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 14;
+const SCHEMA_VERSION = 15;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -70,6 +70,20 @@ function migrate(db) {
       discount_3_bps INTEGER NOT NULL DEFAULT 0 CHECK (discount_3_bps BETWEEN 0 AND 10000),
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_by INTEGER REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS customer_product_discounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      discount_bps INTEGER NOT NULL DEFAULT 0 CHECK (discount_bps BETWEEN 0 AND 10000),
+      starts_at TEXT NOT NULL DEFAULT '',
+      ends_at TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+      note TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_by INTEGER REFERENCES users(id),
+      UNIQUE(customer_id, product_id)
     );
 
     CREATE TABLE IF NOT EXISTS customer_shipping_addresses (
@@ -283,6 +297,8 @@ function migrate(db) {
       discount_1_bps INTEGER NOT NULL,
       discount_2_bps INTEGER NOT NULL,
       discount_3_bps INTEGER NOT NULL,
+      special_discount_bps INTEGER NOT NULL DEFAULT 0 CHECK (special_discount_bps BETWEEN 0 AND 10000),
+      special_discount_note TEXT NOT NULL DEFAULT '',
       promotion_bps INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000),
       promotion_label TEXT NOT NULL DEFAULT '',
       final_unit_price_cents INTEGER NOT NULL,
@@ -399,6 +415,7 @@ function migrate(db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_products_family_active ON products(family_id, active);
+    CREATE INDEX IF NOT EXISTS idx_customer_product_discounts_customer ON customer_product_discounts(customer_id, active);
     CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id, sort_order, id);
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
@@ -420,6 +437,8 @@ function migrate(db) {
   ensureColumn(db, "order_items", "line_status", "TEXT NOT NULL DEFAULT 'pending_confirmation'");
   ensureColumn(db, "order_items", "availability_note", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "order_items", "warehouse_location", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "order_items", "special_discount_bps", "INTEGER NOT NULL DEFAULT 0 CHECK (special_discount_bps BETWEEN 0 AND 10000)");
+  ensureColumn(db, "order_items", "special_discount_note", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "order_items", "promotion_bps", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000)");
   ensureColumn(db, "order_items", "promotion_label", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "warehouse_location", "TEXT NOT NULL DEFAULT ''");

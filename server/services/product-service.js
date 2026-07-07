@@ -3,6 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { applyDiscounts } from "../domain/pricing.js";
 import { NotFoundError, ValidationError, optionalText, requiredText } from "../domain/validation.js";
+import { activeCustomerProductDiscountsByProduct } from "./customer-service.js";
 
 const IMAGE_MIME_EXTENSIONS = new Map([
   ["image/jpeg", ".jpg"],
@@ -40,15 +41,24 @@ export function listProducts(db, user) {
     safeBasisPoints(discounts.discount_2_bps),
     safeBasisPoints(discounts.discount_3_bps)
   ];
-  return rows.map((row) => ({
-    ...publicProduct(row, imagesByProduct.get(row.id) || []),
-    basePriceCents: row.base_price_cents,
-    discountsBps: discountList,
-    finalPriceCents: applyDiscounts(row.base_price_cents, [...discountList, activeProductPromotion(row).bps]),
-    currency: row.currency,
-    priceEffectiveFrom: row.price_effective_from,
-    priceNotice: "Precio neto. IVA no incluido."
-  }));
+  const specialDiscountsByProduct = activeCustomerProductDiscountsByProduct(db, user.customerId);
+  return rows.map((row) => {
+    const specialDiscount = activeCustomerProductSpecialDiscount(row, specialDiscountsByProduct);
+    return {
+      ...publicProduct(row, imagesByProduct.get(row.id) || []),
+      basePriceCents: row.base_price_cents,
+      discountsBps: discountList,
+      specialDiscount,
+      finalPriceCents: applyDiscounts(row.base_price_cents, [
+        ...discountList,
+        specialDiscount.bps,
+        activeProductPromotion(row).bps
+      ]),
+      currency: row.currency,
+      priceEffectiveFrom: row.price_effective_from,
+      priceNotice: "Precio neto. IVA no incluido."
+    };
+  });
 }
 
 function safeBasisPoints(value) {
@@ -69,6 +79,16 @@ export function activeProductPromotion(row, now = new Date()) {
     label: optionalPromotionLabel(row.promotion_label) || `Promo ${(bps / 100).toFixed(2).replace(/\.00$/, "")}%`,
     startsAt,
     endsAt
+  };
+}
+
+export function activeCustomerProductSpecialDiscount(row, discountsByProduct = new Map()) {
+  const discount = discountsByProduct.get(row?.id);
+  if (!discount?.active || !discount.bps) return { active: false, bps: 0, note: "" };
+  return {
+    active: true,
+    bps: safeBasisPoints(discount.bps),
+    note: discount.note || ""
   };
 }
 

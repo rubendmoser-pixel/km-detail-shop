@@ -479,10 +479,12 @@ function renderProductCard(product) {
   const productUrl = product.publicUrl || `/producto/${encodeURIComponent(product.slug || product.kmCode.toLowerCase())}`;
   const zoomCaption = `${product.kmCode} · ${product.name}`;
   const promotionBadge = promotionBadgeHtml(product.promotion);
+  const specialBadge = specialDiscountBadgeHtml(product.specialDiscount);
   const promotionClass = product.promotion?.active ? " is-promo" : "";
+  const specialClass = product.specialDiscount?.active ? " is-special-price" : "";
   const visual = images.length
-    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
-    : `<div class="product-visual ${familyClass}"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${promotionBadge}</div></div>`;
+    ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${specialBadge}${promotionBadge}</div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
+    : `<div class="product-visual ${familyClass}"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${specialBadge}${promotionBadge}</div></div>`;
   const pricing = approved ? `
     <div class="price-block">
       <span>Lista neta <s>${formatCents(product.basePriceCents)}</s></span>
@@ -500,7 +502,7 @@ function renderProductCard(product) {
       <span>${state.user ? "Precio disponible al aprobar la cuenta" : "Precio disponible con cuenta comercial aprobada"}</span>
     </div>`;
   return `
-    <article class="product-card family-${familyClass}${promotionClass}">
+    <article class="product-card family-${familyClass}${promotionClass}${specialClass}">
       ${visual}
       <div class="product-body">
         <h3><a class="product-title-link" href="${escapeHtml(productUrl)}">${escapeHtml(product.name)}</a></h3>
@@ -1558,12 +1560,20 @@ function normalizeProductPrices(product) {
   const promotion = product.promotion?.active && product.promotion?.bps
     ? { ...product.promotion, bps: safeCents(product.promotion.bps) }
     : { active: false, bps: 0, label: "" };
-  return { ...product, basePriceCents, finalPriceCents, discountsBps, promotion };
+  const specialDiscount = product.specialDiscount?.active && product.specialDiscount?.bps
+    ? { ...product.specialDiscount, bps: safeCents(product.specialDiscount.bps) }
+    : { active: false, bps: 0, note: "" };
+  return { ...product, basePriceCents, finalPriceCents, discountsBps, promotion, specialDiscount };
 }
 
 function promotionBadgeHtml(promotion) {
   if (!promotion?.active || !promotion.bps) return "";
   return `<span class="promo-badge">PROMO -${formatPercent(promotion.bps)}</span>`;
+}
+
+function specialDiscountBadgeHtml(specialDiscount) {
+  if (!specialDiscount?.active || !specialDiscount.bps) return "";
+  return `<span class="special-price-badge">PRECIO ESPECIAL -${formatPercent(specialDiscount.bps)}</span>`;
 }
 
 function safeCents(value, fallback = 0) {

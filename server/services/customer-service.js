@@ -1,4 +1,4 @@
-import { NotFoundError, ValidationError, basisPoints } from "../domain/validation.js";
+import { NotFoundError, ValidationError, basisPoints, optionalText, requiredText } from "../domain/validation.js";
 
 const ALLOWED_STATUSES = new Set(["pending", "approved", "rejected", "suspended", "inactive"]);
 const ALLOWED_COMMERCIAL_CLASSES = new Set(["B", "N"]);
@@ -104,6 +104,73 @@ export function setCustomerDiscounts(db, customerId, discounts, adminUserId) {
   return updated;
 }
 
+export function listCustomerProductDiscounts(db, customerId) {
+  ensureCustomer(db, customerId);
+  return db.prepare(`
+    SELECT cpd.id, cpd.customer_id, cpd.product_id, cpd.discount_bps, cpd.starts_at,
+           cpd.ends_at, cpd.active, cpd.note, cpd.updated_at,
+           p.km_code, p.ean13, p.name, p.base_price_cents
+    FROM customer_product_discounts cpd
+    JOIN products p ON p.id = cpd.product_id
+    WHERE cpd.customer_id = ?
+    ORDER BY cpd.active DESC, p.km_code
+  `).all(customerId).map(customerProductDiscount);
+}
+
+export function upsertCustomerProductDiscount(db, customerId, input = {}, adminUserId) {
+  ensureCustomer(db, customerId);
+  const product = resolveProductForSpecialDiscount(db, input);
+  const discountBps = basisPoints(Number(input.discountBps || 0), "discountBps");
+  if (discountBps <= 0) throw new ValidationError("discountBps must be greater than zero");
+  const startsAt = optionalDate(input.startsAt, "startsAt");
+  const endsAt = optionalDate(input.endsAt, "endsAt");
+  if (startsAt && endsAt && startsAt > endsAt) throw new ValidationError("startsAt cannot be after endsAt");
+  const active = input.active === false ? 0 : 1;
+  const note = optionalText(input.note, "note", { max: 500 });
+  const row = db.prepare(`
+    INSERT INTO customer_product_discounts (
+      customer_id, product_id, discount_bps, starts_at, ends_at, active, note, updated_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(customer_id, product_id) DO UPDATE SET
+      discount_bps = excluded.discount_bps,
+      starts_at = excluded.starts_at,
+      ends_at = excluded.ends_at,
+      active = excluded.active,
+      note = excluded.note,
+      updated_at = CURRENT_TIMESTAMP,
+      updated_by = excluded.updated_by
+    RETURNING id
+  `).get(customerId, product.id, discountBps, startsAt, endsAt, active, note, adminUserId);
+  return listCustomerProductDiscounts(db, customerId).find((item) => item.id === row.id);
+}
+
+export function deleteCustomerProductDiscount(db, customerId, discountId) {
+  ensureCustomer(db, customerId);
+  const result = db.prepare("DELETE FROM customer_product_discounts WHERE id = ? AND customer_id = ?").run(discountId, customerId);
+  if (!result.changes) throw new NotFoundError("Special discount not found");
+  return { ok: true };
+}
+
+export function activeCustomerProductDiscountsByProduct(db, customerId, now = new Date()) {
+  const today = now.toISOString().slice(0, 10);
+  const rows = db.prepare(`
+    SELECT cpd.product_id, cpd.discount_bps, cpd.note
+    FROM customer_product_discounts cpd
+    JOIN products p ON p.id = cpd.product_id
+    WHERE cpd.customer_id = ?
+      AND cpd.active = 1
+      AND cpd.discount_bps > 0
+      AND (cpd.starts_at = '' OR cpd.starts_at <= ?)
+      AND (cpd.ends_at = '' OR cpd.ends_at >= ?)
+      AND p.active = 1
+  `).all(customerId, today, today);
+  return new Map(rows.map((row) => [row.product_id, {
+    active: true,
+    bps: row.discount_bps || 0,
+    note: row.note || ""
+  }]));
+}
+
 export function getCustomerPricingContext(db, customerId) {
   return db.prepare(`
     SELECT c.id, c.user_id, c.approval_status, c.commercial_class,
@@ -112,6 +179,52 @@ export function getCustomerPricingContext(db, customerId) {
     FROM customers c JOIN customer_discounts d ON d.customer_id = c.id
     WHERE c.id = ?
   `).get(customerId);
+}
+
+function ensureCustomer(db, customerId) {
+  const id = Number(customerId);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("customerId is invalid");
+  const customer = db.prepare("SELECT id FROM customers WHERE id = ?").get(id);
+  if (!customer) throw new NotFoundError("Customer not found");
+  return customer;
+}
+
+function resolveProductForSpecialDiscount(db, input = {}) {
+  const productId = Number(input.productId || 0);
+  if (Number.isSafeInteger(productId) && productId > 0) {
+    const product = db.prepare("SELECT id, km_code FROM products WHERE id = ?").get(productId);
+    if (!product) throw new NotFoundError("Product not found");
+    return product;
+  }
+  const kmCode = requiredText(input.kmCode || "", "kmCode", { max: 30 }).toUpperCase();
+  const product = db.prepare("SELECT id, km_code FROM products WHERE km_code = ?").get(kmCode);
+  if (!product) throw new NotFoundError("Product not found");
+  return product;
+}
+
+function optionalDate(value, field) {
+  const text = optionalText(value, field, { max: 10 });
+  if (!text) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new ValidationError(`${field} must be YYYY-MM-DD`);
+  return text;
+}
+
+function customerProductDiscount(row) {
+  return {
+    id: row.id,
+    customerId: row.customer_id,
+    productId: row.product_id,
+    kmCode: row.km_code,
+    ean13: row.ean13,
+    productName: row.name,
+    basePriceCents: row.base_price_cents,
+    discountBps: row.discount_bps || 0,
+    startsAt: row.starts_at || "",
+    endsAt: row.ends_at || "",
+    active: Boolean(row.active),
+    note: row.note || "",
+    updatedAt: row.updated_at
+  };
 }
 
 function normalizeCommercialClass(value) {

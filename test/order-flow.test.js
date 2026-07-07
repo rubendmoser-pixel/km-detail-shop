@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import { registerCustomer } from "../server/services/auth-service.js";
-import { setCustomerDiscounts, setCustomerPaymentTerms, setCustomerStatus } from "../server/services/customer-service.js";
+import { setCustomerDiscounts, setCustomerPaymentTerms, setCustomerStatus, upsertCustomerProductDiscount } from "../server/services/customer-service.js";
 import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
 import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
@@ -74,6 +74,13 @@ test("active product promotion is applied and reserved in order items", async (t
   assert.equal(storedPromotion.promotion_starts_at, "2026-01-01");
   assert.equal(storedPromotion.promotion_ends_at, "2099-12-31");
   assert.equal(storedPromotion.promotion_active, 1);
+  upsertCustomerProductDiscount(db, registration.customer.id, {
+    kmCode: "PROMO1K",
+    discountBps: 500,
+    startsAt: "2026-01-01",
+    endsAt: "2099-12-31",
+    note: "Acuerdo especial"
+  }, admin.id);
 
   const order = createOrder(db, registration.customer.id, {
     items: [{ productId: product.id, quantity: 3 }],
@@ -89,10 +96,12 @@ test("active product promotion is applied and reserved in order items", async (t
 
   assert.equal(order.items[0].basePriceCents, 10_000);
   assert.equal(order.items[0].discountsBps[0], 2000);
+  assert.equal(order.items[0].specialDiscountBps, 500);
+  assert.equal(order.items[0].specialDiscountNote, "Acuerdo especial");
   assert.equal(order.items[0].promotionBps, 1000);
   assert.equal(order.items[0].promotionLabel, "Promo prueba");
-  assert.equal(order.items[0].finalUnitPriceCents, 7200);
-  assert.equal(order.subtotalNetCents, 21_600);
+  assert.equal(order.items[0].finalUnitPriceCents, 6840);
+  assert.equal(order.subtotalNetCents, 20_520);
 });
 
 test("confirmed order preserves price, discounts, VAT and bank snapshot", async (t) => {

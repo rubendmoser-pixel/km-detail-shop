@@ -24,13 +24,14 @@ export function createCustomerPriceList(db, user, { publicBaseUrl = "https://www
 
 function productPriceRow(product) {
   const discounts = (product.discountsBps || []).filter(Boolean).map(formatBps).join(" + ");
+  const specialDiscount = product.specialDiscount?.active ? `Precio especial ${formatBps(product.specialDiscount.bps)}` : "";
   const promotion = product.promotion?.active ? `Promo ${formatBps(product.promotion.bps)}` : "";
   return [
     product.kmCode,
     product.ean13,
     product.name,
     centsToPesos(product.basePriceCents),
-    [discounts, promotion].filter(Boolean).join(" + "),
+    [discounts, specialDiscount, promotion].filter(Boolean).join(" + "),
     centsToPesos(product.finalPriceCents)
   ];
 }

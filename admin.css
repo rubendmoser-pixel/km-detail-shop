@@ -486,7 +486,8 @@
 
 .sales-assignment-form,
 .customer-class-form,
-.customer-payment-form {
+.customer-payment-form,
+.product-discount-form {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(120px, 0.7fr);
   gap: 8px;
@@ -495,6 +496,7 @@
 .sales-assignment-form label,
 .customer-class-form label,
 .customer-payment-form label,
+.product-discount-form label,
 .sales-rep-form label {
   display: grid;
   gap: 6px;
@@ -509,6 +511,8 @@
 .customer-class-form .ghost-button,
 .customer-payment-form .wide,
 .customer-payment-form .ghost-button,
+.product-discount-form .wide,
+.product-discount-form .ghost-button,
 .sales-rep-form .wide {
   grid-column: 1 / -1;
 }
@@ -518,6 +522,54 @@
   color: #cfd2d8;
   background: #17181b;
   border: 1px solid #34363b;
+}
+
+.customer-special-discounts {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-special-discounts .admin-note {
+  margin: 0;
+  padding: 10px;
+  background: #17181b;
+  border: 1px solid #34363b;
+}
+
+.special-discount-list {
+  display: grid;
+  gap: 8px;
+}
+
+.special-discount-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background: linear-gradient(90deg, rgba(95, 179, 255, 0.1), rgba(23, 24, 27, 0.96));
+  border: 1px solid rgba(124, 190, 255, 0.38);
+}
+
+.special-discount-row.inactive {
+  opacity: 0.62;
+  background: #17181b;
+  border-color: #34363b;
+}
+
+.special-discount-row strong,
+.special-discount-row small {
+  display: block;
+}
+
+.special-discount-row strong span {
+  color: #9ed6ff;
+}
+
+.special-discount-row small {
+  margin-top: 3px;
+  color: #a7a9ae;
+  font-size: 0.78rem;
 }
 
 .sales-admin-layout {

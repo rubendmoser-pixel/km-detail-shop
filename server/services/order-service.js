@@ -4,11 +4,11 @@ import { randomUUID } from "node:crypto";
 import { calculateLine, calculateOrderTotals } from "../domain/pricing.js";
 import { NotFoundError, ValidationError, optionalText, positiveInteger, requiredText } from "../domain/validation.js";
 import { transaction } from "../db.js";
-import { getCustomerPricingContext } from "./customer-service.js";
+import { activeCustomerProductDiscountsByProduct, getCustomerPricingContext } from "./customer-service.js";
 import { resolveCustomerSalesRep } from "./sales-rep-service.js";
 import { getCommercialSettings } from "./settings-service.js";
 import { getShippingAddress } from "./shipping-address-service.js";
-import { activeProductPromotion } from "./product-service.js";
+import { activeCustomerProductSpecialDiscount, activeProductPromotion } from "./product-service.js";
 
 const RECEIPT_MIME_EXTENSIONS = new Map([
   ["application/pdf", ".pdf"],
@@ -81,6 +81,7 @@ export function createOrder(db, customerId, input) {
 
   return transaction(db, () => {
     const productQuery = db.prepare("SELECT * FROM products WHERE id = ? AND active = 1");
+    const specialDiscountsByProduct = activeCustomerProductDiscountsByProduct(db, customerId);
     const seen = new Set();
     const lines = input.items.map((item, index) => {
       const productId = positiveInteger(item.productId, `items[${index}].productId`);
@@ -90,10 +91,12 @@ export function createOrder(db, customerId, input) {
       const product = productQuery.get(productId);
       if (!product) throw new NotFoundError(`Product ${productId} is unavailable`);
       const promotion = activeProductPromotion(product);
+      const specialDiscount = activeCustomerProductSpecialDiscount(product, specialDiscountsByProduct);
       return {
         product,
         promotion,
-        ...calculateLine({ basePriceCents: product.base_price_cents, quantity, discountsBps: [...discounts, promotion.bps] })
+        specialDiscount,
+        ...calculateLine({ basePriceCents: product.base_price_cents, quantity, discountsBps: [...discounts, specialDiscount.bps, promotion.bps] })
       };
     });
     const totals = calculateOrderTotals(lines, settings.vatBps);
@@ -124,14 +127,15 @@ export function createOrder(db, customerId, input) {
     const insertItem = db.prepare(`
       INSERT INTO order_items (
         order_id, product_id, km_code, ean13, product_name, warehouse_location, quantity, base_price_cents,
-        discount_1_bps, discount_2_bps, discount_3_bps, promotion_bps, promotion_label,
+        discount_1_bps, discount_2_bps, discount_3_bps, special_discount_bps, special_discount_note, promotion_bps, promotion_label,
         final_unit_price_cents, subtotal_net_cents
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const line of lines) {
       insertItem.run(
         order.id, line.product.id, line.product.km_code, line.product.ean13, line.product.name, line.product.warehouse_location || "",
-        line.quantity, line.basePriceCents, ...discounts, line.promotion.bps, line.promotion.label || "",
+        line.quantity, line.basePriceCents, ...discounts, line.specialDiscount.bps, line.specialDiscount.note || "",
+        line.promotion.bps, line.promotion.label || "",
         line.finalUnitPriceCents, line.subtotalNetCents
       );
     }
@@ -976,6 +980,8 @@ function mapOrder(order, items, receipts = [], events = []) {
       confirmedQuantity: item.confirmed_quantity || 0,
       basePriceCents: item.base_price_cents,
       discountsBps: [item.discount_1_bps, item.discount_2_bps, item.discount_3_bps],
+      specialDiscountBps: item.special_discount_bps || 0,
+      specialDiscountNote: item.special_discount_note || "",
       promotionBps: item.promotion_bps || 0,
       promotionLabel: item.promotion_label || "",
       finalUnitPriceCents: item.final_unit_price_cents,

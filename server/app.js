@@ -1,7 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
-import { listCustomers, setCustomerCommercialClass, setCustomerDiscounts, setCustomerPaymentTerms, setCustomerStatus } from "./services/customer-service.js";
+import {
+  deleteCustomerProductDiscount,
+  listCustomerProductDiscounts,
+  listCustomers,
+  setCustomerCommercialClass,
+  setCustomerDiscounts,
+  setCustomerPaymentTerms,
+  setCustomerStatus,
+  upsertCustomerProductDiscount
+} from "./services/customer-service.js";
 import {
   acceptModifiedOrder,
   addPaymentReceipt,
@@ -274,6 +283,18 @@ export function createApp({
         const body = await readJson(request);
         const discounts = setCustomerDiscounts(db, Number(match[1]), body.discountsBps || [], currentUser.id);
         return sendJson(response, 200, { discounts });
+      }
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/product-discounts$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { discounts: listCustomerProductDiscounts(db, Number(match[1])) });
+      }
+      if (request.method === "POST" && match) {
+        const discount = upsertCustomerProductDiscount(db, Number(match[1]), await readJson(request), currentUser.id);
+        return sendJson(response, 201, { discount, discounts: listCustomerProductDiscounts(db, Number(match[1])) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/product-discounts\/(\d+)$/);
+      if (request.method === "DELETE" && match) {
+        return sendJson(response, 200, deleteCustomerProductDiscount(db, Number(match[1]), Number(match[2])));
       }
       match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/sales-rep$/);
       if (request.method === "PATCH" && match) {
