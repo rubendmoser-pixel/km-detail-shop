@@ -2,6 +2,37 @@ const SITE_URL = "https://www.km-detail.com";
 const DEFAULT_IMAGE = `${SITE_URL}/assets/km-linea-profesional.png`;
 
 export const seoLandingPages = new Map([
+  ["/fabricante-km-detail-line", {
+    title: "KM Detail Line fabricante argentino | Insumos profesionales",
+    description: "KM Detail Line es fabricante argentino de insumos profesionales para pulido automotriz, chapa-pintura, repintado y detailing. Canal comercial para distribuidores y pinturerias.",
+    eyebrow: "Fabricante argentino",
+    heading: "KM Detail Line fabricante de insumos profesionales",
+    lead: "KM Detail Line fabrica y desarrolla productos profesionales para procesos de pulido automotriz, chapa-pintura, repintado y detailing. La comercializacion se realiza a traves de distribuidores, pinturerias y comercios especializados.",
+    sections: [
+      {
+        title: "Marca KM Detail Line",
+        body: "KM Detail Line es una linea tecnica de productos profesionales para terminacion automotriz. La marca ordena sus productos por familias, medidas, sistema de sujecion, nivel de corte y funcion dentro del proceso de trabajo."
+      },
+      {
+        title: "Fabricacion y desarrollo tecnico",
+        body: "La propuesta de KM no se basa en productos aislados. Se organiza como sistema de trabajo compuesto por panos, pads, poliespumas, backings, interfaces, aplicadores y tacos de lijado para uso profesional."
+      },
+      {
+        title: "Canal comercial en Argentina y Sudamerica",
+        body: "KM desarrolla su red comercial junto a distribuidores, pinturerias y comercios especializados. La plataforma permite a cuentas aprobadas consultar productos activos, precios netos, condiciones comerciales y pedidos."
+      },
+      {
+        title: "Rubros profesionales",
+        body: "La linea esta orientada a pulido automotriz, repintado, chapa-pintura, correccion de superficies, abrillantado, terminacion y detailing profesional."
+      }
+    ],
+    faq: [
+      ["Que es KM Detail Line?", "KM Detail Line es una marca fabricante de insumos profesionales para procesos de pulido automotriz, chapa-pintura, repintado y detailing."],
+      ["KM vende al consumidor final?", "No. La comercializacion se realiza a traves de distribuidores, pinturerias y comercios especializados."],
+      ["Donde esta KM Detail Line?", "La oficina comercial se encuentra en Rosario, Santa Fe, Argentina, con desarrollo comercial en Argentina y Sudamerica."]
+    ],
+    keywords: ["KM Detail", "KM Detail Line", "km-detail.com", "fabricante KM Detail", "fabricante argentino de insumos para pulido", "productos KM Detail Line", "insumos profesionales para pulido automotriz", "fabricante para detailing", "fabricante de pads para pulido", "fabricante de backings", "canal comercial KM"]
+  }],
   ["/panos-para-pulir-autos", {
     title: "Panos para pulir autos | KM Detail Line",
     description: "Panos, boinas y pads fabricados para pulido automotriz profesional. Corte, correccion, abrillantado y terminacion KM Detail Line.",
@@ -481,11 +512,16 @@ function organizationSchema() {
     "@type": ["Organization", "Brand"],
     "@id": `${SITE_URL}/#organization`,
     name: "KM Detail Line",
+    alternateName: ["KM Detail", "KM", "km-detail.com"],
     description: "Fabricante de insumos profesionales para pulido automotriz, chapa-pintura, repintado y detailing.",
     url: `${SITE_URL}/`,
     logo: `${SITE_URL}/assets/km-metal-logo.png`,
     email: "ventas@km-detail.com",
     telephone: "+54 9 341 253 1269",
+    foundingLocation: {
+      "@type": "Place",
+      name: "Rosario, Santa Fe, Argentina"
+    },
     address: {
       "@type": "PostalAddress",
       streetAddress: "Cordoba 645, piso 10, oficina 7",
@@ -494,7 +530,18 @@ function organizationSchema() {
       postalCode: "2000",
       addressCountry: "AR"
     },
-    areaServed: ["Argentina", "Sudamerica"]
+    areaServed: ["Argentina", "Sudamerica"],
+    knowsAbout: [
+      "pulido automotriz",
+      "chapa-pintura",
+      "repintado automotriz",
+      "detailing profesional",
+      "pads para pulido",
+      "panos para pulir",
+      "backings para pulidora",
+      "poliespumas",
+      "tacos de lijado automotriz"
+    ]
   };
 }
 
