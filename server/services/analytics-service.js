@@ -66,6 +66,11 @@ export function getAnalyticsDashboard(db, { days = 30 } = {}) {
     FROM analytics_events
     WHERE created_at >= datetime('now', ?) AND customer_id IS NOT NULL
   `).get(sinceModifier)?.count || 0;
+  const ordersCreated = db.prepare(`
+    SELECT COUNT(DISTINCT order_id) AS count
+    FROM analytics_events
+    WHERE created_at >= datetime('now', ?) AND event_type = 'order_created' AND order_id IS NOT NULL
+  `).get(sinceModifier)?.count || 0;
   const productsViewed = db.prepare(`
     SELECT p.id, p.km_code AS kmCode, p.name AS productName, COUNT(*) AS views
     FROM analytics_events ae
@@ -86,13 +91,49 @@ export function getAnalyticsDashboard(db, { days = 30 } = {}) {
     LIMIT 12
   `).all(sinceModifier);
   const searches = db.prepare(`
-    SELECT LOWER(TRIM(json_extract(metadata_json, '$.query'))) AS query, COUNT(*) AS count
+    SELECT LOWER(TRIM(json_extract(metadata_json, '$.query'))) AS query, COUNT(*) AS count,
+      MIN(CAST(json_extract(metadata_json, '$.resultCount') AS INTEGER)) AS minResults
     FROM analytics_events
     WHERE created_at >= datetime('now', ?) AND event_type = 'search' AND LENGTH(TRIM(json_extract(metadata_json, '$.query'))) >= 2
     GROUP BY query
     ORDER BY count DESC, query ASC
     LIMIT 12
   `).all(sinceModifier);
+  const noResultSearches = db.prepare(`
+    SELECT LOWER(TRIM(json_extract(metadata_json, '$.query'))) AS query, COUNT(*) AS count
+    FROM analytics_events
+    WHERE created_at >= datetime('now', ?)
+      AND event_type = 'search'
+      AND LENGTH(TRIM(json_extract(metadata_json, '$.query'))) >= 2
+      AND CAST(json_extract(metadata_json, '$.resultCount') AS INTEGER) = 0
+    GROUP BY query
+    ORDER BY count DESC, query ASC
+    LIMIT 12
+  `).all(sinceModifier);
+  const productConversion = db.prepare(`
+    WITH product_activity AS (
+      SELECT product_id,
+        SUM(CASE WHEN event_type IN ('product_view', 'product_zoom') THEN 1 ELSE 0 END) AS views,
+        SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS adds,
+        SUM(CASE WHEN event_type = 'add_to_cart' THEN COALESCE(CAST(json_extract(metadata_json, '$.quantity') AS INTEGER), 0) ELSE 0 END) AS addedUnits,
+        COUNT(DISTINCT CASE WHEN event_type = 'order_created' THEN order_id END) AS orders,
+        SUM(CASE WHEN event_type = 'order_created' THEN COALESCE(CAST(json_extract(metadata_json, '$.quantity') AS INTEGER), 0) ELSE 0 END) AS orderedUnits
+      FROM analytics_events
+      WHERE created_at >= datetime('now', ?) AND product_id IS NOT NULL
+      GROUP BY product_id
+    )
+    SELECT p.id, p.km_code AS kmCode, p.name AS productName,
+      pa.views, pa.adds, pa.addedUnits, pa.orders, pa.orderedUnits,
+      CASE WHEN pa.views > 0 THEN ROUND(pa.adds * 100.0 / pa.views, 1) ELSE 0 END AS cartRate,
+      CASE WHEN pa.views > 0 THEN ROUND(pa.orders * 100.0 / pa.views, 1) ELSE 0 END AS orderRate
+    FROM product_activity pa
+    JOIN products p ON p.id = pa.product_id
+    ORDER BY pa.views DESC, pa.adds DESC, p.km_code ASC
+    LIMIT 20
+  `).all(sinceModifier);
+  const interestWithoutOrder = productConversion
+    .filter((row) => (row.views || 0) >= 2 && !(row.orders || 0))
+    .slice(0, 12);
   const recent = db.prepare(`
     SELECT ae.event_type AS eventType, ae.path, ae.created_at AS createdAt, ae.metadata_json AS metadataJson,
       c.business_name AS businessName, p.km_code AS kmCode
@@ -116,12 +157,15 @@ export function getAnalyticsDashboard(db, { days = 30 } = {}) {
       searches: count("search"),
       cartAdds: count("add_to_cart"),
       checkoutStarts: count("checkout_start"),
-      ordersCreated: count("order_created"),
+      ordersCreated,
       priceListDownloads: count("price_list_download")
     },
     productsViewed,
     productsAdded,
     searches,
+    noResultSearches,
+    productConversion,
+    interestWithoutOrder,
     recent
   };
 }

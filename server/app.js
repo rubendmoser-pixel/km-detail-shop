@@ -210,6 +210,16 @@ export function createApp({
           path: url.pathname,
           metadata: { orderNumber: order.orderNumber, totalCents: order.totalCents }
         });
+        order.items.forEach((item) => {
+          recordServerAnalyticsEvent(db, request, user, {
+            eventType: "order_created",
+            sessionId: "",
+            productId: item.productId,
+            orderId: order.id,
+            path: url.pathname,
+            metadata: { orderNumber: order.orderNumber, kmCode: item.kmCode, quantity: item.quantity, subtotalNetCents: item.subtotalNetCents }
+          });
+        });
         emailService.queueOrderCreated(order.id);
         return sendJson(response, 201, { order, availabilityNotice: "Pedido sujeto a confirmación de disponibilidad." });
       }

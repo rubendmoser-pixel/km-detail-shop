@@ -66,6 +66,7 @@ const state = {
   operationalView: null,
   analyticsSessionId: readAnalyticsSessionId(),
   trackedProductViews: new Set(),
+  lastSearchAnalyticsKey: "",
   cart: readCart()
 };
 
@@ -118,7 +119,6 @@ function bindEvents() {
     state.search = event.target.value.trim().toLowerCase();
     resetProductPagination();
     renderProducts();
-    trackSearch(state.search);
   });
   els.cutFilter.addEventListener("change", (event) => {
     state.cut = event.target.value;
@@ -428,6 +428,7 @@ function renderProducts() {
   if (isApprovedCustomer()) els.catalogNotice.textContent = catalogPricingNotice(true);
   const visible = filtered.slice(0, state.productVisibleCount);
   const remaining = Math.max(0, filtered.length - visible.length);
+  trackSearchResult(state.search, filtered.length);
   els.productGrid.innerHTML = filtered.length
     ? `${visible.map(renderProductCard).join("")}${remaining ? renderProductLoadMore(remaining) : ""}`
     : `<article class="product-card empty-card"><div class="product-body"><h3>Sin resultados</h3><p>Proba cambiar la busqueda o limpiar los filtros.</p></div></article>`;
@@ -1555,10 +1556,18 @@ function trackPageView() {
   });
 }
 
-const trackSearch = debounce((query) => {
+const trackSearch = debounce((query, resultCount) => {
   if (!query || query.length < 2) return;
-  trackAnalytics("search", { query });
+  trackAnalytics("search", { query, resultCount });
 }, 700);
+
+function trackSearchResult(query, resultCount) {
+  if (!query || query.length < 2) return;
+  const key = `${query}:${resultCount}`;
+  if (state.lastSearchAnalyticsKey === key) return;
+  state.lastSearchAnalyticsKey = key;
+  trackSearch(query, resultCount);
+}
 
 function trackAnalytics(eventType, metadata = {}, extra = {}) {
   const payload = {

@@ -2164,6 +2164,18 @@ function renderAnalyticsDashboard(dashboard) {
         <div class="panel-heading"><p class="eyebrow">Busqueda</p><h3>Terminos frecuentes</h3></div>
         ${renderAnalyticsSearchRows(dashboard.searches || [])}
       </section>
+      <section class="operation-panel">
+        <div class="panel-heading"><p class="eyebrow">Oportunidad</p><h3>Busquedas sin resultado</h3></div>
+        ${renderAnalyticsNoResultRows(dashboard.noResultSearches || [])}
+      </section>
+      <section class="operation-panel wide">
+        <div class="panel-heading"><p class="eyebrow">Conversion</p><h3>Vista, carrito y pedido</h3></div>
+        ${renderAnalyticsConversionRows(dashboard.productConversion || [])}
+      </section>
+      <section class="operation-panel wide">
+        <div class="panel-heading"><p class="eyebrow">Oportunidad</p><h3>Interes sin pedido</h3></div>
+        ${renderAnalyticsInterestRows(dashboard.interestWithoutOrder || [])}
+      </section>
       <section class="operation-panel wide">
         <div class="panel-heading"><p class="eyebrow">Reciente</p><h3>Ultima actividad</h3></div>
         ${renderAnalyticsRecentRows(dashboard.recent || [])}
@@ -2191,11 +2203,50 @@ function renderAnalyticsSearchRows(rows) {
       ${rows.slice(0, 12).map((row) => `
         <div class="operation-row static">
           <span><strong>${escapeAdmin(row.query)}</strong><small>Busqueda en catalogo</small></span>
-          <span><strong>${row.count || 0}</strong><small>veces</small></span>
+          <span><strong>${row.count || 0}</strong><small>${Number(row.minResults || 0) === 0 ? "incluye sin resultado" : "veces"}</small></span>
         </div>
       `).join("")}
     </div>
   ` : `<p class="admin-note">Todavia no hay busquedas registradas.</p>`;
+}
+
+function renderAnalyticsNoResultRows(rows) {
+  return rows.length ? `
+    <div class="operation-list">
+      ${rows.slice(0, 12).map((row) => `
+        <div class="operation-row static">
+          <span><strong>${escapeAdmin(row.query)}</strong><small>No encontro productos</small></span>
+          <span><strong>${row.count || 0}</strong><small>veces</small></span>
+        </div>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">No hay busquedas sin resultado. Buen signo.</p>`;
+}
+
+function renderAnalyticsConversionRows(rows) {
+  return rows.length ? `
+    <div class="operation-list product-rank">
+      ${rows.slice(0, 12).map((row) => `
+        <button type="button" class="operation-row" data-analytics-product="${row.id}">
+          <span><strong>${escapeAdmin(row.kmCode)}</strong><small>${escapeAdmin(row.productName)}</small></span>
+          <span><strong>${row.views || 0} / ${row.addedUnits || 0} / ${row.orderedUnits || 0}</strong><small>${row.cartRate || 0}% carrito | ${row.orderRate || 0}% pedido</small></span>
+        </button>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Todavia no hay conversion registrada.</p>`;
+}
+
+function renderAnalyticsInterestRows(rows) {
+  return rows.length ? `
+    <div class="operation-list product-rank">
+      ${rows.slice(0, 12).map((row) => `
+        <button type="button" class="operation-row" data-analytics-product="${row.id}">
+          <span><strong>${escapeAdmin(row.kmCode)}</strong><small>${escapeAdmin(row.productName)}</small></span>
+          <span><strong>${row.views || 0} vistas</strong><small>${row.addedUnits || 0} unidades en carrito | 0 pedidos</small></span>
+        </button>
+      `).join("")}
+    </div>
+  ` : `<p class="admin-note">Sin productos con interes pendiente por ahora.</p>`;
 }
 
 function renderAnalyticsRecentRows(rows) {
