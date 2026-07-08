@@ -7,7 +7,7 @@ const projectRoot = path.resolve(import.meta.dirname, "../..");
 export function getStorageStatus() {
   const databasePath = path.resolve(config.databasePath);
   const uploadsPath = path.resolve(config.uploadsPath);
-  const backupPath = path.resolve(process.env.BACKUP_PATH || path.join(projectRoot, "backups"));
+  const backupPath = resolveBackupPath(databasePath);
   const backupDirs = listBackupDirs(backupPath);
   const latestBackup = backupDirs[0] || null;
   const warnings = [];
@@ -54,6 +54,12 @@ export function getStorageStatus() {
     health: warnings.length ? "warning" : "ok",
     warnings
   };
+}
+
+function resolveBackupPath(databasePath) {
+  if (process.env.BACKUP_PATH) return path.resolve(process.env.BACKUP_PATH);
+  if (isInsideDataVolume(databasePath)) return "/data/backups";
+  return path.join(projectRoot, "backups");
 }
 
 function listBackupDirs(backupPath) {
