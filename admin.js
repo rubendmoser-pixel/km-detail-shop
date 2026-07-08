@@ -1,7 +1,7 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null, salesReps: [], pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
+  securityEvents: [], securitySummary: null, salesReps: [], salesRepDashboard: null, pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -72,7 +72,7 @@ const adminEls = Object.fromEntries([
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
   "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
-  "salesRepMessage", "salesRepsTableBody", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
+  "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
@@ -224,6 +224,7 @@ async function loadSalesReps() {
   renderSalesReps();
   renderCommissionSalesRepFilter();
   await loadSalesCommissions();
+  await loadSalesRepDashboard();
   renderCustomers();
 }
 
@@ -239,6 +240,72 @@ function renderSalesReps() {
     </tr>
   `).join("") : `<tr><td colspan="6">Todavia no hay vendedores cargados.</td></tr>`;
   adminEls.salesRepsTableBody.querySelectorAll("[data-edit-sales-rep]").forEach((button) => button.addEventListener("click", editSalesRep));
+}
+
+async function loadSalesRepDashboard() {
+  if (!adminEls.salesRepDashboard) return;
+  const { dashboard } = await adminApi("/api/admin/sales-reps/dashboard");
+  adminState.salesRepDashboard = dashboard;
+  renderSalesRepDashboard();
+}
+
+function renderSalesRepDashboard() {
+  if (!adminEls.salesRepDashboard) return;
+  const dashboard = adminState.salesRepDashboard;
+  if (!dashboard) {
+    adminEls.salesRepDashboard.innerHTML = "";
+    return;
+  }
+  const summary = dashboard.summary || {};
+  const reps = dashboard.reps || [];
+  adminEls.salesRepDashboard.innerHTML = `
+    <div class="sales-dashboard-cards">
+      ${salesDashboardCard("Vendedores activos", summary.activeSalesReps || 0, "Equipo disponible")}
+      ${salesDashboardCard("Clientes asignados", summary.assignedCustomers || 0, "Cartera comercial")}
+      ${salesDashboardCard("Ventas del mes", adminMoney.format((summary.monthTotalCents || 0) / 100), `${summary.monthOrders || 0} pedidos`)}
+      ${salesDashboardCard("Cobrado del mes", adminMoney.format((summary.monthPaidCents || 0) / 100), "Importe acreditado")}
+      ${salesDashboardCard("Pendiente liquidar", adminMoney.format((summary.pendingCommissionCents || 0) / 100), "Comisiones cobradas")}
+      ${salesDashboardCard("Liquidado mes", adminMoney.format((summary.settledCommissionCents || 0) / 100), "Comisiones cerradas")}
+    </div>
+    <section class="sales-ranking-panel">
+      <div class="panel-heading">
+        <p class="eyebrow">Tablero comercial</p>
+        <h3>Resumen por vendedor</h3>
+      </div>
+      <div class="sales-ranking-list">
+        ${reps.length ? reps.map(renderSalesRepDashboardRow).join("") : `<p class="admin-note">Todavia no hay vendedores para analizar.</p>`}
+      </div>
+    </section>
+  `;
+}
+
+function salesDashboardCard(label, value, note) {
+  return `
+    <div>
+      <span>${escapeAdmin(label)}</span>
+      <strong>${escapeAdmin(String(value))}</strong>
+      <small>${escapeAdmin(note)}</small>
+    </div>
+  `;
+}
+
+function renderSalesRepDashboardRow(rep) {
+  const lastActivity = rep.lastOrderAt
+    ? `Ultimo pedido ${formatDate(rep.lastOrderAt)}`
+    : "Sin pedidos este mes";
+  return `
+    <article class="sales-ranking-row">
+      <div>
+        <strong>${escapeAdmin(rep.name)}</strong>
+        <small>${escapeAdmin(rep.email)} · ${rep.status === "active" ? "Activo" : "Inactivo"} · ${formatBps(rep.defaultCommissionBps || 0)}</small>
+      </div>
+      <div><span>Clientes</span><strong>${rep.customerCount || 0}</strong><small>${rep.approvedCustomerCount || 0} aprobados</small></div>
+      <div><span>Venta mes</span><strong>${adminMoney.format((rep.monthTotalCents || 0) / 100)}</strong><small>${rep.monthOrders || 0} pedidos</small></div>
+      <div><span>Cobrado</span><strong>${adminMoney.format((rep.monthPaidCents || 0) / 100)}</strong><small>${escapeAdmin(lastActivity)}</small></div>
+      <div><span>Pendiente</span><strong>${adminMoney.format((rep.pendingCommissionCents || 0) / 100)}</strong><small>${rep.pendingOrders || 0} para liquidar</small></div>
+      <div><span>Liquidado</span><strong>${adminMoney.format((rep.settledCommissionCents || 0) / 100)}</strong><small>${rep.settlementsCount || 0} liquidaciones</small></div>
+    </article>
+  `;
 }
 
 function editSalesRep(event) {

@@ -52,6 +52,7 @@ import {
 import {
   assignSalesRepToCustomer,
   createSalesCommissionSettlement,
+  getSalesRepDashboard,
   getSalesCommissionSettlement,
   listPendingSalesCommissions,
   listSalesCommissionSettlements,
@@ -334,6 +335,9 @@ export function createApp({
             status: url.searchParams.get("status") || ""
           })
         });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/sales-reps/dashboard") {
+        return sendJson(response, 200, { dashboard: getSalesRepDashboard(db) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/sales-reps") {
         return sendJson(response, 201, { salesRep: upsertSalesRep(db, await readJson(request)) });

@@ -617,6 +617,84 @@
   align-items: start;
 }
 
+.sales-dashboard {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.sales-dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sales-dashboard-cards div {
+  display: grid;
+  gap: 6px;
+  min-height: 118px;
+  padding: 16px;
+  background: #15161a;
+  border: 1px solid #34363b;
+  border-top: 4px solid #aeb5bf;
+}
+
+.sales-dashboard-cards span,
+.sales-dashboard-cards small,
+.sales-ranking-row span,
+.sales-ranking-row small {
+  color: #a7abb2;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sales-dashboard-cards strong {
+  color: #f5f6f7;
+  font-size: clamp(1.25rem, 2vw, 1.9rem);
+  line-height: 1.05;
+}
+
+.sales-ranking-panel {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  background: #111214;
+  border: 1px solid #34363b;
+}
+
+.sales-ranking-list {
+  display: grid;
+  gap: 8px;
+}
+
+.sales-ranking-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) repeat(5, minmax(120px, 1fr));
+  gap: 0;
+  border: 1px solid #34363b;
+  background: #15161a;
+}
+
+.sales-ranking-row > div {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-height: 84px;
+  padding: 14px;
+  border-right: 1px solid #34363b;
+}
+
+.sales-ranking-row > div:last-child {
+  border-right: 0;
+}
+
+.sales-ranking-row strong {
+  color: #f5f6f7;
+  font-size: 1.02rem;
+}
+
 .sales-rep-form {
   display: grid;
   gap: 12px;
@@ -1945,6 +2023,14 @@ button.operation-row:hover {
     grid-template-columns: 1fr;
   }
 
+  .sales-dashboard-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sales-ranking-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .sales-rep-form fieldset,
   .compact-toolbar,
   .commission-summary {
@@ -2030,6 +2116,21 @@ button.operation-row:hover {
 
   .operation-row {
     grid-template-columns: 1fr;
+  }
+
+  .sales-dashboard-cards,
+  .sales-ranking-row {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-ranking-row > div {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #34363b;
+  }
+
+  .sales-ranking-row > div:last-child {
+    border-bottom: 0;
   }
 
   .storage-status-grid {

@@ -27,6 +27,100 @@ export function listSalesReps(db, filters = {}) {
   `).all(...params);
 }
 
+export function getSalesRepDashboard(db) {
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const salesReps = listSalesReps(db);
+  const customersByRep = keyedBySalesRep(db.prepare(`
+    SELECT sales_rep_id,
+           COUNT(*) AS customer_count,
+           SUM(CASE WHEN approval_status = 'approved' THEN 1 ELSE 0 END) AS approved_customer_count
+    FROM customers
+    WHERE sales_rep_id IS NOT NULL
+    GROUP BY sales_rep_id
+  `).all());
+  const monthOrdersByRep = keyedBySalesRep(db.prepare(`
+    SELECT sales_rep_id,
+           COUNT(*) AS orders_count,
+           SUM(total_cents) AS total_cents,
+           SUM(paid_cents) AS paid_cents,
+           SUM(balance_cents) AS balance_cents,
+           SUM(sales_commission_cents) AS commission_cents,
+           MAX(created_at) AS last_order_at
+    FROM orders
+    WHERE sales_rep_id IS NOT NULL
+      AND status != 'cancelled'
+      AND created_at >= ?
+    GROUP BY sales_rep_id
+  `).all(monthStart));
+  const pendingByRep = keyedBySalesRep(db.prepare(`
+    SELECT sales_rep_id,
+           COUNT(*) AS pending_orders,
+           SUM(sales_commission_base_cents) AS pending_base_cents,
+           SUM(sales_commission_cents) AS pending_commission_cents
+    FROM orders
+    WHERE sales_rep_id IS NOT NULL
+      AND sales_commission_cents > 0
+      AND sales_commission_settlement_id IS NULL
+      AND status != 'cancelled'
+      AND payment_status IN ('paid', 'settled_adjustment')
+      AND balance_cents = 0
+    GROUP BY sales_rep_id
+  `).all());
+  const settledByRep = keyedBySalesRep(db.prepare(`
+    SELECT sales_rep_id,
+           COUNT(*) AS settlements_count,
+           SUM(commission_cents) AS settled_commission_cents,
+           MAX(created_at) AS last_settlement_at
+    FROM sales_commission_settlements
+    WHERE created_at >= ?
+    GROUP BY sales_rep_id
+  `).all(monthStart));
+
+  const reps = salesReps.map((rep) => {
+    const customer = customersByRep.get(rep.id) || {};
+    const month = monthOrdersByRep.get(rep.id) || {};
+    const pending = pendingByRep.get(rep.id) || {};
+    const settled = settledByRep.get(rep.id) || {};
+    return {
+      id: rep.id,
+      name: rep.name,
+      email: rep.email,
+      status: rep.status,
+      defaultCommissionBps: rep.default_commission_bps,
+      customerCount: Number(customer.customer_count || 0),
+      approvedCustomerCount: Number(customer.approved_customer_count || 0),
+      monthOrders: Number(month.orders_count || 0),
+      monthTotalCents: Number(month.total_cents || 0),
+      monthPaidCents: Number(month.paid_cents || 0),
+      monthBalanceCents: Number(month.balance_cents || 0),
+      monthCommissionCents: Number(month.commission_cents || 0),
+      pendingOrders: Number(pending.pending_orders || 0),
+      pendingBaseCents: Number(pending.pending_base_cents || 0),
+      pendingCommissionCents: Number(pending.pending_commission_cents || 0),
+      settledCommissionCents: Number(settled.settled_commission_cents || 0),
+      settlementsCount: Number(settled.settlements_count || 0),
+      lastOrderAt: month.last_order_at || "",
+      lastSettlementAt: settled.last_settlement_at || ""
+    };
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    period: { from: monthStart, to: today },
+    summary: {
+      activeSalesReps: reps.filter((rep) => rep.status === "active").length,
+      assignedCustomers: reps.reduce((total, rep) => total + rep.customerCount, 0),
+      monthOrders: reps.reduce((total, rep) => total + rep.monthOrders, 0),
+      monthTotalCents: reps.reduce((total, rep) => total + rep.monthTotalCents, 0),
+      monthPaidCents: reps.reduce((total, rep) => total + rep.monthPaidCents, 0),
+      pendingCommissionCents: reps.reduce((total, rep) => total + rep.pendingCommissionCents, 0),
+      settledCommissionCents: reps.reduce((total, rep) => total + rep.settledCommissionCents, 0)
+    },
+    reps: reps.sort((a, b) => b.monthTotalCents - a.monthTotalCents || b.pendingCommissionCents - a.pendingCommissionCents || a.name.localeCompare(b.name))
+  };
+}
+
 export function upsertSalesRep(db, input = {}) {
   const id = Number(input.id || 0);
   const name = requiredText(input.name, "name", { min: 2, max: 160 });
@@ -83,6 +177,10 @@ export function upsertSalesRep(db, input = {}) {
     if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Sales rep email already exists");
     throw error;
   }
+}
+
+function keyedBySalesRep(rows) {
+  return new Map(rows.map((row) => [Number(row.sales_rep_id), row]));
 }
 
 export function listPendingSalesCommissions(db, filters = {}) {
