@@ -10,7 +10,6 @@ export function getStorageStatus() {
   const backupDirs = listBackupDirs(backupPath);
   const latestBackup = backupDirs[0] || null;
   const warnings = [];
-  const latestBackupAgeDays = latestBackup ? daysBetween(latestBackup.createdAt, new Date()) : null;
 
   if (!fs.existsSync(databasePath)) {
     warnings.push("No se encontro la base de datos.");
@@ -25,9 +24,6 @@ export function getStorageStatus() {
   }
   if (!latestBackup) {
     warnings.push("No hay backups registrados.");
-  }
-  if (latestBackupAgeDays !== null && latestBackupAgeDays > 7) {
-    warnings.push(`El ultimo backup tiene ${latestBackupAgeDays} dias.`);
   }
 
   return {
@@ -47,9 +43,7 @@ export function getStorageStatus() {
       path: backupPath,
       exists: fs.existsSync(backupPath),
       count: backupDirs.length,
-      latest: latestBackup,
-      latestAgeDays: latestBackupAgeDays,
-      latestBytes: latestBackup ? latestBackup.databaseBytes + latestBackup.uploadBytes : 0
+      latest: latestBackup
     },
     persistent: {
       databaseInData: isInsideDataVolume(databasePath),
@@ -91,12 +85,6 @@ function listBackupDirs(backupPath) {
 
 function isInsideDataVolume(filePath) {
   return normalizePath(filePath).startsWith("/data/");
-}
-
-function daysBetween(dateValue, now) {
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) return null;
-  return Math.floor((now.getTime() - date.getTime()) / 86400000);
 }
 
 function normalizePath(filePath) {

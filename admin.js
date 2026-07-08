@@ -2483,27 +2483,12 @@ function renderStorageStatus(storage = {}) {
   const warnings = storage.warnings || [];
   const statusLabel = storage.health === "ok" ? "Correcto" : "Revisar";
   const statusClass = storage.health === "ok" ? "ok" : "warning";
-  const latestAge = Number(storage.backups?.latestAgeDays);
-  const latestAgeLabel = latest
-    ? latestAge <= 0 ? "Creado hoy" : `Hace ${latestAge} dias`
-    : "Todavia no hay respaldo";
-  const latestSize = latest ? formatFileSize(storage.backups?.latestBytes || 0) : "-";
-  const recommendation = latest
-    ? latestAge > 7
-      ? "Crear un nuevo backup antes de cargar imagenes, modificar precios o publicar cambios."
-      : "Backup vigente. Recomendado crear uno nuevo antes de cambios importantes."
-    : "Crear el primer backup para proteger base, clientes, pedidos, precios e imagenes.";
   return `
     <div class="storage-status ${statusClass}">
       <div>
         <span class="storage-status-badge">${escapeAdmin(statusLabel)}</span>
         <strong>${latest ? `Ultimo backup: ${escapeAdmin(formatAdminDate(latest.createdAt))}` : "Sin backup registrado"}</strong>
         <small>${escapeAdmin(storage.backups?.count || 0)} backups | ${escapeAdmin(storage.uploads?.files || 0)} archivos subidos | ${formatFileSize(storage.uploads?.bytes || 0)}</small>
-        <div class="storage-backup-summary">
-          <span><b>Antiguedad</b><em>${escapeAdmin(latestAgeLabel)}</em></span>
-          <span><b>Ultimo respaldo</b><em>${escapeAdmin(latestSize)}</em></span>
-          <span><b>Recomendacion</b><em>${escapeAdmin(recommendation)}</em></span>
-        </div>
         <button class="ghost-button storage-backup-button" type="button" data-create-backup>Crear backup ahora</button>
       </div>
       <div class="storage-status-grid">

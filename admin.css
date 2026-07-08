@@ -1725,46 +1725,6 @@ button.operation-row:hover {
   margin-top: 14px;
 }
 
-.storage-backup-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  max-width: 760px;
-  margin-top: 12px;
-  overflow: hidden;
-  background: #34363b;
-  border: 1px solid #34363b;
-}
-
-.storage-backup-summary span {
-  min-width: 0;
-  padding: 10px;
-  background: #111214;
-}
-
-.storage-backup-summary span:last-child {
-  grid-column: 1 / -1;
-}
-
-.storage-backup-summary b,
-.storage-backup-summary em {
-  display: block;
-  font-style: normal;
-}
-
-.storage-backup-summary b {
-  color: #9aa0aa;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.storage-backup-summary em {
-  margin-top: 4px;
-  color: #f7f7f5;
-}
-
 .storage-status small {
   margin-top: 5px;
   color: #b8bdc4;
@@ -2079,14 +2039,6 @@ button.operation-row:hover {
 
   .storage-status-grid {
     grid-template-columns: 1fr;
-  }
-
-  .storage-backup-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .storage-backup-summary span:last-child {
-    grid-column: auto;
   }
 
   .current-account-actions,
