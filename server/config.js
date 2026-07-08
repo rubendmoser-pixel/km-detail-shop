@@ -1,10 +1,11 @@
 import path from "node:path";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
+const defaultHost = process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1";
 
 export const config = {
   port: Number(process.env.PORT || 4180),
-  host: process.env.HOST || "127.0.0.1",
+  host: process.env.HOST || defaultHost,
   databasePath: process.env.DATABASE_PATH || path.join(projectRoot, "data", "km-detail.sqlite"),
   uploadsPath: process.env.UPLOADS_PATH || path.join(projectRoot, "uploads"),
   sessionDays: Number(process.env.SESSION_DAYS || 30),
