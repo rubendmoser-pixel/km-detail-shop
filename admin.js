@@ -2489,7 +2489,6 @@ function renderStorageStatus(storage = {}) {
         <span class="storage-status-badge">${escapeAdmin(statusLabel)}</span>
         <strong>${latest ? `Ultimo backup: ${escapeAdmin(formatAdminDate(latest.createdAt))}` : "Sin backup registrado"}</strong>
         <small>${escapeAdmin(storage.backups?.count || 0)} backups | ${escapeAdmin(storage.uploads?.files || 0)} archivos subidos | ${formatFileSize(storage.uploads?.bytes || 0)}</small>
-        <button class="ghost-button storage-backup-button" type="button" data-create-backup>Crear backup ahora</button>
       </div>
       <div class="storage-status-grid">
         <span><strong>Base</strong><small>${formatFileSize(storage.database?.bytes || 0)}</small></span>
@@ -2509,31 +2508,10 @@ function formatFileSize(bytes) {
 }
 
 function handleOperationDashboardClick(event) {
-  const backupButton = event.target.closest("[data-create-backup]");
-  if (backupButton && adminEls.operationDashboard.contains(backupButton)) {
-    createBackupFromDashboard(backupButton);
-    return;
-  }
   const button = event.target.closest("[data-dashboard-order]");
   if (!button || !adminEls.operationDashboard.contains(button)) return;
   showAdminView("orders");
   openOrderDetail(Number(button.dataset.dashboardOrder), button);
-}
-
-async function createBackupFromDashboard(button) {
-  button.disabled = true;
-  button.textContent = "Creando backup...";
-  try {
-    const { dashboard } = await adminApi("/api/admin/operation/backups", { method: "POST" });
-    adminState.operationDashboard = dashboard;
-    renderOperationDashboard(dashboard);
-    renderCurrentAccountDashboard(dashboard);
-    showAdminToast("Backup creado correctamente.");
-  } catch (error) {
-    showAdminToast(error.message);
-    button.disabled = false;
-    button.textContent = "Crear backup ahora";
-  }
 }
 
 function renderCurrentAccountDashboard(dashboard = adminState.operationDashboard) {
