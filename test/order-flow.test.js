@@ -6,7 +6,7 @@ import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import { registerCustomer } from "../server/services/auth-service.js";
 import { setCustomerDiscounts, setCustomerPaymentTerms, setCustomerStatus, upsertCustomerProductDiscount } from "../server/services/customer-service.js";
-import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, recordMercadoPagoPayment, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
+import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
 import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
@@ -338,78 +338,6 @@ test("order snapshots customer assigned payment accounts", async (t) => {
   upsertPaymentAccount(db, { ...second, alias: "KM.MP.NUEVO" }, admin.id);
   const persisted = getOrder(db, order.id, registration.customer.id, false);
   assert.equal(persisted.bank.alias, "KM.MP");
-});
-
-test("mercado pago approved payment closes order balance", async (t) => {
-  const databasePath = path.join(os.tmpdir(), `km-detail-mp-${Date.now()}.sqlite`);
-  const db = await openDatabase({ databasePath, adminEmail: "admin-mp@km-detail.com", adminPassword: "secure-admin-password" });
-  t.after(() => {
-    db.close();
-    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
-  });
-
-  const admin = db.prepare("SELECT id FROM users WHERE email = ?").get("admin-mp@km-detail.com");
-  const registration = await registerCustomer(db, {
-    email: "cliente-mp@example.com",
-    password: "customer-password-123",
-    firstName: "Marta",
-    lastName: "Gomez",
-    businessName: "Distribuidor MP",
-    taxId: "30-12345678-1",
-    taxCondition: "Responsable inscripto",
-    customerType: "Distribuidor",
-    industry: "Detailing",
-    city: "Rosario",
-    province: "Santa Fe",
-    postalCode: "2000",
-    address: "Calle 123",
-    phone: "3410000000",
-    whatsapp: "5493410000000",
-    contactPerson: "Marta Gomez",
-    acceptTerms: true,
-    acceptPrivacy: true
-  });
-  setCustomerStatus(db, registration.customer.id, "approved", admin.id);
-
-  const product = upsertProduct(db, {
-    kmCode: "MP01K",
-    ean13: "7791234567890",
-    name: "Producto Mercado Pago",
-    familyName: "Backings",
-    basePriceCents: 50_000,
-    priceEffectiveFrom: "2026-01-01"
-  });
-  const order = createOrder(db, registration.customer.id, {
-    items: [{ productId: product.id, quantity: 2 }],
-    shipping: {
-      recipient: "Marta Gomez",
-      address: "Calle 123",
-      city: "Rosario",
-      province: "Santa Fe",
-      postalCode: "2000",
-      contactPhone: "3410000000"
-    }
-  });
-  const confirmed = confirmOrderAvailability(db, order.id, {
-    items: order.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity }))
-  }, admin.id);
-
-  const paid = recordMercadoPagoPayment(db, {
-    orderId: order.id,
-    paymentId: "mp-test-1",
-    preferenceId: "pref-test-1",
-    status: "approved",
-    amountCents: confirmed.totalCents,
-    raw: { id: "mp-test-1", status: "approved" }
-  });
-
-  assert.equal(paid.newlyApproved, true);
-  assert.equal(paid.order.paymentMethod, "mercadopago");
-  assert.equal(paid.order.paymentStatus, "paid");
-  assert.equal(paid.order.paidCents, confirmed.totalCents);
-  assert.equal(paid.order.balanceCents, 0);
-  assert.equal(paid.order.mercadoPagoPayments.length, 1);
-  assert.equal(paid.order.mercadoPagoPayments[0].paymentId, "mp-test-1");
 });
 
 test("new orders inherit customer payment terms and can confirm availability with that default", async (t) => {

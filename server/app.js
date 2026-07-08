@@ -64,7 +64,6 @@ import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
-import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
 import { createRateLimiter } from "./rate-limit.js";
 import { renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
@@ -104,17 +103,6 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/analytics/events") {
         return sendJson(response, 202, recordAnalyticsEvents(db, request, currentUser, await readJson(request, 1_000_000)));
-      }
-      if (request.method === "POST" && url.pathname === "/api/webhooks/mercadopago") {
-        const result = await handleMercadoPagoWebhook(db, {
-          query: Object.fromEntries(url.searchParams),
-          body: await readJson(request, 1_000_000).catch(() => ({}))
-        }, config);
-        if (result?.newlyApproved && result.order?.id) {
-          emailService.queuePaymentReceiptReviewed(result.order.id, "accepted", "Pago acreditado por Mercado Pago");
-          void emailService.flush();
-        }
-        return sendJson(response, 200, { ok: true, ignored: Boolean(result?.ignored) });
       }
       if (request.method === "GET" && url.pathname === "/sitemap.xml") {
         const body = renderSitemap(listPublicProductsForSeo(db));
@@ -212,7 +200,7 @@ export function createApp({
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/public-settings") {
-        return sendJson(response, 200, { settings: { ...getPublicSettings(db), mercadopago: publicMercadoPagoConfig(config) } });
+        return sendJson(response, 200, { settings: getPublicSettings(db) });
       }
       if (request.method === "POST" && url.pathname === "/api/orders") {
         const user = requireApprovedCustomer(currentUser);
@@ -241,13 +229,6 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/orders") {
         const user = requireApprovedCustomer(currentUser);
         return sendJson(response, 200, { orders: listCustomerOrders(db, user.customerId) });
-      }
-      let mercadoPagoPreferenceMatch = url.pathname.match(/^\/api\/orders\/(\d+)\/mercadopago\/preference$/);
-      if (request.method === "POST" && mercadoPagoPreferenceMatch) {
-        const user = requireApprovedCustomer(currentUser);
-        return sendJson(response, 201, {
-          preference: await createMercadoPagoPreference(db, Number(mercadoPagoPreferenceMatch[1]), user.customerId, config)
-        });
       }
       if (request.method === "GET" && url.pathname === "/api/shipping-addresses") {
         const user = requireApprovedCustomer(currentUser);
