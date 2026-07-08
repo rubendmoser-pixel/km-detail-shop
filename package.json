@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch server/index.js",
     "start": "node --env-file-if-exists=.env server/index.js",
-    "start:production": "node server/scripts/import-catalog.js && node server/index.js",
+    "start:production": "node server/index.js",
     "test": "node --test",
     "db:check": "node server/scripts/check-database.js",
     "backup": "node --env-file-if-exists=.env server/scripts/backup-data.js",
