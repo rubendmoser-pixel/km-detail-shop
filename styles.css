@@ -2139,26 +2139,6 @@ body.customer-app .customer-order-summary {
   cursor: pointer;
 }
 
-.mercadopago-button {
-  display: inline-flex;
-  min-height: 52px;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 20px;
-  color: #07141f;
-  background: linear-gradient(180deg, #6fd4ff, #28a7e8);
-  border: 1px solid #8adfff;
-  border-radius: 6px;
-  box-shadow: 0 14px 28px rgba(40, 167, 232, 0.18);
-  font-weight: 950;
-  cursor: pointer;
-}
-
-.mercadopago-button:disabled {
-  cursor: wait;
-  opacity: 0.74;
-}
-
 .receipt-upload span {
   color: #09090a;
 }

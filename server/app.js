@@ -70,7 +70,6 @@ import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
 import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
-import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -104,17 +103,6 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/analytics/events") {
         return sendJson(response, 202, recordAnalyticsEvents(db, request, currentUser, await readJson(request, 1_000_000)));
-      }
-      if (request.method === "POST" && url.pathname === "/api/webhooks/mercadopago") {
-        const result = await handleMercadoPagoWebhook(db, {
-          query: Object.fromEntries(url.searchParams),
-          body: await readJson(request, 1_000_000).catch(() => ({}))
-        }, config);
-        if (result?.newlyApproved && result.order?.id) {
-          emailService.queuePaymentReceiptReviewed(result.order.id, "accepted", "Pago acreditado por Mercado Pago");
-          void emailService.flush();
-        }
-        return sendJson(response, 200, { ok: true, ignored: Boolean(result?.ignored) });
       }
       if (request.method === "GET" && url.pathname === "/sitemap.xml") {
         const body = renderSitemap(listPublicProductsForSeo(db));
@@ -212,7 +200,7 @@ export function createApp({
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/public-settings") {
-        return sendJson(response, 200, { settings: { ...getPublicSettings(db), mercadopago: publicMercadoPagoConfig(config) } });
+        return sendJson(response, 200, { settings: getPublicSettings(db) });
       }
       if (request.method === "POST" && url.pathname === "/api/orders") {
         const user = requireApprovedCustomer(currentUser);
@@ -278,12 +266,6 @@ export function createApp({
         const order = addPaymentReceipt(db, Number(match[1]), user.customerId, user.id, await readJson(request, 12_500_000), uploadsPath);
         emailService.queuePaymentReceiptUploaded(order.id);
         return sendJson(response, 201, { order });
-      }
-      match = url.pathname.match(/^\/api\/orders\/(\d+)\/mercadopago\/preference$/);
-      if (request.method === "POST" && match) {
-        const user = requireApprovedCustomer(currentUser);
-        const preference = await createMercadoPagoPreference(db, Number(match[1]), user.customerId, config);
-        return sendJson(response, 201, { preference });
       }
       match = url.pathname.match(/^\/api\/orders\/(\d+)\/accept$/);
       if (request.method === "POST" && match) {

@@ -54,7 +54,7 @@ const state = {
   purchaseFilter: "open",
   purchaseVisibleCount: 10,
   purchasesRefreshing: false,
-  settings: { vatBps: 2100, whatsappNumber: "", mercadopago: { enabled: false } },
+  settings: { vatBps: 2100, whatsappNumber: "" },
   category: "Todos",
   search: "",
   cut: "",
@@ -204,7 +204,7 @@ async function loadSettings() {
   try {
     state.settings = (await api("/api/public-settings")).settings;
   } catch {
-    state.settings = { vatBps: 2100, whatsappNumber: "", mercadopago: { enabled: false } };
+    state.settings = { vatBps: 2100, whatsappNumber: "" };
   }
 }
 
@@ -987,9 +987,6 @@ function renderCustomerOrders() {
   els.customerOrders.querySelectorAll("[data-confirm-received]").forEach((button) => {
     button.addEventListener("click", () => confirmReceived(Number(button.dataset.confirmReceived)));
   });
-  els.customerOrders.querySelectorAll("[data-mercadopago-order]").forEach((button) => {
-    button.addEventListener("click", () => payWithMercadoPago(Number(button.dataset.mercadopagoOrder), button));
-  });
 }
 
 function renderPushPermissionCard() {
@@ -1037,9 +1034,6 @@ function renderCustomerOrder(order) {
     && !["paid", "settled_adjustment"].includes(order.paymentStatus)
     && !needsAcceptance
     && (order.balanceCents || order.totalCents) > 0;
-  const canPayMercadoPago = canUpload
-    && Boolean(state.settings?.mercadopago?.enabled)
-    && !["receipt_uploaded"].includes(order.paymentStatus);
   const bank = order.bank || {};
   const visibleItems = items.filter((item) => order.status === "order_created" || item.confirmedQuantity > 0).slice(0, 5);
   const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
@@ -1089,7 +1083,6 @@ function renderCustomerOrder(order) {
           <div class="purchase-actions">
             ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Aceptar disponibilidad</button>` : ""}
             ${canConfirmReceived ? `<button class="primary-button" type="button" data-confirm-received="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Confirmar pedido recibido</button>` : ""}
-            ${canPayMercadoPago ? `<button class="mercadopago-button" type="button" data-mercadopago-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Pagar con Mercado Pago</button>` : ""}
             ${canUpload ? `<label class="receipt-upload ${state.purchasesRefreshing ? "disabled" : ""}"><span>Cargar comprobante de pago</span><small>PDF, JPG o PNG</small><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""} /></label>` : paymentHelperText(order)}
             ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
           </div>
@@ -1322,26 +1315,6 @@ async function uploadReceipt(event) {
     });
     showToast("Comprobante cargado. KM lo revisara.");
   });
-}
-
-async function payWithMercadoPago(orderId, button) {
-  if (!orderId || button?.disabled) return;
-  if (button) {
-    button.disabled = true;
-    button.textContent = "Abriendo Mercado Pago...";
-  }
-  try {
-    const { preference } = await api(`/api/orders/${orderId}/mercadopago/preference`, { method: "POST", body: {} });
-    const target = preference?.initPoint || preference?.sandboxInitPoint;
-    if (!target) throw new Error("Mercado Pago no devolvio un enlace de pago.");
-    window.location.href = target;
-  } catch (error) {
-    showToast(error.message || "No se pudo abrir Mercado Pago.");
-    if (button) {
-      button.disabled = false;
-      button.textContent = "Pagar con Mercado Pago";
-    }
-  }
 }
 
 async function runPurchaseAction(action, { fallbackFilter = null } = {}) {

@@ -1739,8 +1739,6 @@ function orderEventText(type) {
     availability_confirmed: "Disponibilidad confirmada",
     payment_receipt_uploaded: "Comprobante cargado",
     payment_receipt_reviewed: "Comprobante revisado",
-    mercadopago_payment_approved: "Pago Mercado Pago acreditado",
-    mercadopago_payment_updated: "Mercado Pago actualizado",
     credit_authorized: "Cuenta corriente autorizada",
     commercial_adjustment_applied: "Ajuste comercial aplicado",
     commission_settled: "Comision liquidada",

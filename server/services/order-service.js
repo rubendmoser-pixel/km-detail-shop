@@ -155,7 +155,6 @@ export function getOrder(db, orderId, customerId = null, isAdmin = false) {
   if (!order || (!isAdmin && order.customer_id !== customerId)) throw new NotFoundError("Order not found");
   const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
   const receipts = db.prepare("SELECT * FROM payment_receipts WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(orderId);
-  const mercadoPagoPayments = db.prepare("SELECT * FROM mercadopago_payments WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(orderId);
   const events = isAdmin ? db.prepare(`
     SELECT e.id, e.event_type, e.reason, e.created_at, u.email AS actor_email, u.role AS actor_role
     FROM order_events e
@@ -164,7 +163,7 @@ export function getOrder(db, orderId, customerId = null, isAdmin = false) {
     ORDER BY e.created_at DESC, e.id DESC
     LIMIT 40
   `).all(orderId) : [];
-  return mapOrder(order, items, receipts, events, mercadoPagoPayments);
+  return mapOrder(order, items, receipts, events);
 }
 
 export function createShippingLabels(db, orderId, packageCount) {
@@ -286,8 +285,7 @@ export function listCustomerOrders(db, customerId) {
   `).all(customerId).map((order) => {
     const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(order.id);
     const receipts = db.prepare("SELECT * FROM payment_receipts WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(order.id);
-    const mercadoPagoPayments = db.prepare("SELECT * FROM mercadopago_payments WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(order.id);
-    return mapOrder(order, items, receipts, [], mercadoPagoPayments);
+    return mapOrder(order, items, receipts);
   });
 }
 
@@ -600,11 +598,9 @@ export function deleteTestOrders(db, uploadsPath, input = {}) {
       items: countRows(db, "order_items"),
       events: countRows(db, "order_events"),
       receipts: countRows(db, "payment_receipts"),
-      mercadoPagoPayments: countRows(db, "mercadopago_payments"),
       emails: db.prepare(`SELECT COUNT(*) AS count FROM email_outbox WHERE event_type IN (${emailPlaceholders})`).get(...ORDER_EMAIL_EVENTS).count
     };
     db.prepare(`DELETE FROM email_outbox WHERE event_type IN (${emailPlaceholders})`).run(...ORDER_EMAIL_EVENTS);
-    db.prepare("DELETE FROM mercadopago_payments").run();
     db.prepare("DELETE FROM payment_receipts").run();
     db.prepare("DELETE FROM order_events").run();
     db.prepare("DELETE FROM order_items").run();
@@ -648,65 +644,6 @@ export function updateOrderFulfillment(db, orderId, input, adminUserId) {
     fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking, fulfillmentEstimatedDate, fulfillmentNotes
   });
   return getOrder(db, orderId, null, true);
-}
-
-export function recordMercadoPagoPayment(db, input) {
-  const paymentId = requiredText(input.paymentId, "paymentId", { max: 80 });
-  const status = requiredText(input.status, "status", { max: 40 });
-  const statusDetail = optionalText(input.statusDetail, "statusDetail", { max: 120 });
-  const amountCents = normalizeMoneyCents(input.amountCents || 0, "amountCents", 2_000_000_000);
-  const order = resolveMercadoPagoOrder(db, input);
-  const existing = db.prepare("SELECT * FROM mercadopago_payments WHERE payment_id = ?").get(paymentId);
-  const wasApproved = existing?.status === "approved";
-  const isApproved = status === "approved";
-
-  return transaction(db, () => {
-    if (existing) {
-      db.prepare(`
-        UPDATE mercadopago_payments
-        SET order_id = ?, preference_id = ?, status = ?, status_detail = ?, amount_cents = ?,
-          raw_json = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE payment_id = ?
-      `).run(order.id, input.preferenceId || existing.preference_id || "", status, statusDetail, amountCents, JSON.stringify(input.raw || {}), paymentId);
-    } else {
-      db.prepare(`
-        INSERT INTO mercadopago_payments (
-          order_id, preference_id, payment_id, status, status_detail, amount_cents, raw_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(order.id, input.preferenceId || "", paymentId, status, statusDetail, amountCents, JSON.stringify(input.raw || {}));
-    }
-
-    let updatedOrder = getOrder(db, order.id, null, true);
-    if (isApproved && !wasApproved) {
-      const paidCents = sumAcceptedPayments(db, order.id);
-      const adjustmentCents = order.commercial_adjustment_cents || 0;
-      const balanceCents = Math.max(0, order.total_cents - paidCents - adjustmentCents);
-      updateOrderCommercialBalance(db, order.id, {
-        paymentStatus: balanceCents === 0 ? paymentStatusForClosedBalance(adjustmentCents) : "credit_account",
-        paidCents,
-        balanceCents,
-        termsDays: order.payment_terms_days || 0,
-        dueDate: balanceCents > 0 ? order.payment_due_date || "" : "",
-        creditAuthorized: false,
-        adminUserId: null
-      });
-      db.prepare("UPDATE orders SET payment_method = 'mercadopago', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(order.id);
-      addOrderEvent(db, order.id, null, "mercadopago_payment_approved", statusDetail, null, {
-        paymentId,
-        amountCents,
-        paidCents,
-        balanceCents
-      });
-      updatedOrder = getOrder(db, order.id, null, true);
-    } else if (!isApproved && (!existing || existing.status !== status)) {
-      addOrderEvent(db, order.id, null, "mercadopago_payment_updated", statusDetail, null, {
-        paymentId,
-        status,
-        amountCents
-      });
-    }
-    return { order: updatedOrder, newlyApproved: isApproved && !wasApproved };
-  });
 }
 
 export function acceptModifiedOrder(db, orderId, customerId, userId) {
@@ -880,28 +817,11 @@ function normalizeDueDate(value) {
 }
 
 function sumAcceptedPayments(db, orderId) {
-  const manualPaidCents = db.prepare(`
+  return db.prepare(`
     SELECT COALESCE(SUM(amount_cents), 0) AS paid_cents
     FROM payment_receipts
     WHERE order_id = ? AND status = 'accepted'
   `).get(orderId).paid_cents || 0;
-  const mercadoPagoPaidCents = db.prepare(`
-    SELECT COALESCE(SUM(amount_cents), 0) AS paid_cents
-    FROM mercadopago_payments
-    WHERE order_id = ? AND status = 'approved'
-  `).get(orderId).paid_cents || 0;
-  return Number(manualPaidCents || 0) + Number(mercadoPagoPaidCents || 0);
-}
-
-function resolveMercadoPagoOrder(db, input) {
-  const orderId = Number(input.orderId || 0);
-  const orderNumber = optionalText(input.orderNumber, "orderNumber", { max: 40 });
-  const order = orderId
-    ? db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId)
-    : db.prepare("SELECT * FROM orders WHERE order_number = ?").get(orderNumber);
-  if (!order) throw new NotFoundError("Order not found");
-  if (order.status === "cancelled") throw new ValidationError("Cancelled orders cannot receive payments");
-  return order;
 }
 
 function paymentStatusForClosedBalance(adjustmentCents) {
@@ -981,7 +901,7 @@ function deleteReceiptFiles(uploadsPath, filenames) {
   return result;
 }
 
-function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments = []) {
+function mapOrder(order, items, receipts = [], events = []) {
   return {
     id: order.id,
     orderNumber: order.order_number,
@@ -1042,16 +962,6 @@ function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments 
       reviewReason: receipt.review_reason || "",
       reviewedAt: receipt.reviewed_at || "",
       createdAt: receipt.created_at
-    })),
-    mercadoPagoPayments: mercadoPagoPayments.map((payment) => ({
-      id: payment.id,
-      preferenceId: payment.preference_id || "",
-      paymentId: payment.payment_id || "",
-      status: payment.status || "",
-      statusDetail: payment.status_detail || "",
-      amountCents: payment.amount_cents || 0,
-      createdAt: payment.created_at,
-      updatedAt: payment.updated_at
     })),
     events: events.map((event) => ({
       id: event.id,
