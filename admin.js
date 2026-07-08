@@ -1,7 +1,7 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null, salesReps: [], salesRepDashboard: null, pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
+  securityEvents: [], securitySummary: null, salesReps: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -72,7 +72,7 @@ const adminEls = Object.fromEntries([
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
   "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
-  "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
+  "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "salesRepProfile", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
@@ -130,6 +130,8 @@ function bindAdminEvents() {
   adminEls.salesRepStatusFilter.addEventListener("change", loadSalesReps);
   adminEls.reloadSalesReps.addEventListener("click", loadSalesReps);
   adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
+  adminEls.salesRepDashboard?.addEventListener("click", handleSalesRepDashboardClick);
+  adminEls.salesRepProfile?.addEventListener("click", handleSalesRepProfileClick);
   document.querySelector("#resetSalesRepForm").addEventListener("click", resetSalesRepForm);
   adminEls.commissionSalesRepFilter.addEventListener("change", loadSalesCommissions);
   adminEls.reloadCommissions.addEventListener("click", loadSalesCommissions);
@@ -246,7 +248,14 @@ async function loadSalesRepDashboard() {
   if (!adminEls.salesRepDashboard) return;
   const { dashboard } = await adminApi("/api/admin/sales-reps/dashboard");
   adminState.salesRepDashboard = dashboard;
+  const reps = dashboard.reps || [];
+  if (adminState.selectedSalesRepId && !reps.some((rep) => rep.id === adminState.selectedSalesRepId)) {
+    adminState.selectedSalesRepId = null;
+  }
+  if (!adminState.selectedSalesRepId && reps.length) adminState.selectedSalesRepId = reps[0].id;
   renderSalesRepDashboard();
+  if (adminState.selectedSalesRepId) await loadSalesRepProfile(adminState.selectedSalesRepId);
+  else renderSalesRepProfile(null);
 }
 
 function renderSalesRepDashboard() {
@@ -293,8 +302,9 @@ function renderSalesRepDashboardRow(rep) {
   const lastActivity = rep.lastOrderAt
     ? `Ultimo pedido ${formatDate(rep.lastOrderAt)}`
     : "Sin pedidos este mes";
+  const activeClass = rep.id === adminState.selectedSalesRepId ? " active" : "";
   return `
-    <article class="sales-ranking-row">
+    <button class="sales-ranking-row${activeClass}" type="button" data-sales-profile="${rep.id}">
       <div>
         <strong>${escapeAdmin(rep.name)}</strong>
         <small>${escapeAdmin(rep.email)} · ${rep.status === "active" ? "Activo" : "Inactivo"} · ${formatBps(rep.defaultCommissionBps || 0)}</small>
@@ -304,12 +314,177 @@ function renderSalesRepDashboardRow(rep) {
       <div><span>Cobrado</span><strong>${adminMoney.format((rep.monthPaidCents || 0) / 100)}</strong><small>${escapeAdmin(lastActivity)}</small></div>
       <div><span>Pendiente</span><strong>${adminMoney.format((rep.pendingCommissionCents || 0) / 100)}</strong><small>${rep.pendingOrders || 0} para liquidar</small></div>
       <div><span>Liquidado</span><strong>${adminMoney.format((rep.settledCommissionCents || 0) / 100)}</strong><small>${rep.settlementsCount || 0} liquidaciones</small></div>
+    </button>
+  `;
+}
+
+async function handleSalesRepDashboardClick(event) {
+  const button = event.target.closest("[data-sales-profile]");
+  if (!button) return;
+  adminState.selectedSalesRepId = Number(button.dataset.salesProfile);
+  renderSalesRepDashboard();
+  await loadSalesRepProfile(adminState.selectedSalesRepId);
+}
+
+function handleSalesRepProfileClick(event) {
+  const editButton = event.target.closest("[data-profile-edit-sales-rep]");
+  if (!editButton) return;
+  editSalesRepById(Number(editButton.dataset.profileEditSalesRep));
+}
+
+async function loadSalesRepProfile(salesRepId) {
+  if (!adminEls.salesRepProfile || !salesRepId) return;
+  adminEls.salesRepProfile.hidden = false;
+  adminEls.salesRepProfile.innerHTML = `<p class="admin-note">Cargando ficha del vendedor...</p>`;
+  const { profile } = await adminApi(`/api/admin/sales-reps/${salesRepId}/profile`);
+  adminState.salesRepProfile = profile;
+  renderSalesRepProfile(profile);
+}
+
+function renderSalesRepProfile(profile) {
+  if (!adminEls.salesRepProfile) return;
+  if (!profile) {
+    adminEls.salesRepProfile.hidden = true;
+    adminEls.salesRepProfile.innerHTML = "";
+    return;
+  }
+  const rep = profile.salesRep;
+  const summary = profile.summary || {};
+  adminEls.salesRepProfile.hidden = false;
+  adminEls.salesRepProfile.innerHTML = `
+    <section class="sales-profile-shell">
+      <header class="sales-profile-header">
+        <div>
+          <p class="eyebrow">Ficha del vendedor</p>
+          <h3>${escapeAdmin(rep.name)}</h3>
+          <p>${escapeAdmin(rep.email)}${rep.whatsapp ? ` - WhatsApp ${escapeAdmin(rep.whatsapp)}` : ""}</p>
+        </div>
+        <div class="sales-profile-actions">
+          <span class="status-badge ${rep.status === "active" ? "approved" : "suspended"}">${rep.status === "active" ? "Activo" : "Inactivo"}</span>
+          <button class="ghost-button" type="button" data-profile-edit-sales-rep="${rep.id}">Editar vendedor</button>
+        </div>
+      </header>
+      <div class="sales-profile-metrics">
+        ${salesProfileMetric("Clientes", summary.customerCount || 0, `${summary.approvedCustomerCount || 0} aprobados`)}
+        ${salesProfileMetric("Pedidos abiertos", summary.openOrders || 0, `${summary.totalOrders || 0} historicos`)}
+        ${salesProfileMetric("Venta mes", adminMoney.format((summary.monthTotalCents || 0) / 100), "Total reservado")}
+        ${salesProfileMetric("Cobrado mes", adminMoney.format((summary.monthPaidCents || 0) / 100), "Pagos acreditados")}
+        ${salesProfileMetric("Pendiente liquidar", adminMoney.format((summary.pendingCommissionCents || 0) / 100), `${summary.pendingOrders || 0} pedidos`)}
+        ${salesProfileMetric("Liquidado", adminMoney.format((summary.settledCommissionCents || 0) / 100), `${summary.settlementsCount || 0} liquidaciones`)}
+      </div>
+      <div class="sales-profile-grid">
+        <section class="sales-profile-card">
+          <div class="panel-heading">
+            <p class="eyebrow">Cartera</p>
+            <h4>Clientes asignados</h4>
+          </div>
+          <div class="sales-profile-list">
+            ${profile.customers.length ? profile.customers.slice(0, 8).map(renderSalesProfileCustomer).join("") : `<p class="admin-note">Sin clientes asignados.</p>`}
+          </div>
+        </section>
+        <section class="sales-profile-card">
+          <div class="panel-heading">
+            <p class="eyebrow">Operacion</p>
+            <h4>Pedidos recientes</h4>
+          </div>
+          <div class="sales-profile-list">
+            ${profile.recentOrders.length ? profile.recentOrders.slice(0, 8).map(renderSalesProfileOrder).join("") : `<p class="admin-note">Sin pedidos recientes.</p>`}
+          </div>
+        </section>
+        <section class="sales-profile-card">
+          <div class="panel-heading">
+            <p class="eyebrow">Banco</p>
+            <h4>Datos para liquidacion</h4>
+          </div>
+          ${renderSalesProfileBank(rep)}
+        </section>
+        <section class="sales-profile-card">
+          <div class="panel-heading">
+            <p class="eyebrow">Liquidaciones</p>
+            <h4>Historial reciente</h4>
+          </div>
+          <div class="sales-profile-list">
+            ${profile.settlements.length ? profile.settlements.map(renderSalesProfileSettlement).join("") : `<p class="admin-note">Todavia no hay liquidaciones.</p>`}
+          </div>
+        </section>
+      </div>
+    </section>
+  `;
+}
+
+function salesProfileMetric(label, value, note) {
+  return `
+    <div>
+      <span>${escapeAdmin(label)}</span>
+      <strong>${escapeAdmin(String(value))}</strong>
+      <small>${escapeAdmin(note)}</small>
+    </div>
+  `;
+}
+
+function renderSalesProfileCustomer(customer) {
+  const location = [customer.city, customer.province].filter(Boolean).join(", ") || "Sin localidad";
+  return `
+    <article>
+      <div>
+        <strong>${escapeAdmin(customer.business_name)}</strong>
+        <small>${escapeAdmin(customer.email)} - ${escapeAdmin(location)}</small>
+      </div>
+      <span class="status-badge ${customer.approval_status === "approved" ? "approved" : "pending"}">${escapeAdmin(statusLabels[customer.approval_status] || customer.approval_status)}</span>
+    </article>
+  `;
+}
+
+function renderSalesProfileOrder(order) {
+  return `
+    <article>
+      <div>
+        <strong>${escapeAdmin(order.order_number)}</strong>
+        <small>${escapeAdmin(order.business_name)} - ${formatDate(order.created_at)}</small>
+      </div>
+      <div class="sales-profile-order-states">
+        ${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}
+        ${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}
+        <strong>${adminMoney.format((order.sales_commission_cents || 0) / 100)}</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderSalesProfileBank(rep) {
+  const rows = [
+    ["Banco", rep.bankName || "Sin banco"],
+    ["Titular", rep.bankAccountHolder || "Sin titular"],
+    ["CUIT", rep.bankTaxId || "-"],
+    ["Tipo", rep.bankAccountType || "-"],
+    ["CBU", rep.bankCbu || "-"],
+    ["Alias", rep.bankAlias || "-"]
+  ];
+  return `
+    <dl class="sales-profile-bank">
+      ${rows.map(([label, value]) => `<div><dt>${escapeAdmin(label)}</dt><dd>${escapeAdmin(value)}</dd></div>`).join("")}
+    </dl>
+  `;
+}
+
+function renderSalesProfileSettlement(settlement) {
+  return `
+    <article>
+      <div>
+        <strong>${escapeAdmin(settlement.settlement_number)}</strong>
+        <small>${formatDate(settlement.created_at)} - ${settlement.orders_count || 0} pedidos</small>
+      </div>
+      <strong>${adminMoney.format((settlement.commission_cents || 0) / 100)}</strong>
     </article>
   `;
 }
 
 function editSalesRep(event) {
-  const rep = adminState.salesReps.find((item) => item.id === Number(event.currentTarget.dataset.editSalesRep));
+  editSalesRepById(Number(event.currentTarget.dataset.editSalesRep));
+}
+
+function editSalesRepById(id) {
+  const rep = adminState.salesReps.find((item) => item.id === id);
   if (!rep) return;
   adminEls.salesRepFormTitle.textContent = `Editar ${rep.name}`;
   adminEls.salesRepForm.elements.id.value = rep.id;

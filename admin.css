@@ -673,8 +673,25 @@
   display: grid;
   grid-template-columns: minmax(220px, 1.3fr) repeat(5, minmax(120px, 1fr));
   gap: 0;
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   border: 1px solid #34363b;
   background: #15161a;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.sales-ranking-row:hover,
+.sales-ranking-row.active {
+  border-color: #9ed6ff;
+  box-shadow: 0 0 0 1px rgba(158, 214, 255, 0.18), 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.sales-ranking-row.active {
+  transform: translateY(-1px);
 }
 
 .sales-ranking-row > div {
@@ -693,6 +710,146 @@
 .sales-ranking-row strong {
   color: #f5f6f7;
   font-size: 1.02rem;
+}
+
+.sales-rep-profile {
+  margin-bottom: 18px;
+}
+
+.sales-profile-shell {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  background: #101113;
+  border: 1px solid #34363b;
+  border-left: 5px solid #9ed6ff;
+}
+
+.sales-profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.sales-profile-header h3,
+.sales-profile-card h4 {
+  margin: 0;
+}
+
+.sales-profile-header p {
+  margin: 4px 0 0;
+  color: #c8ccd2;
+}
+
+.sales-profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sales-profile-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  border: 1px solid #34363b;
+}
+
+.sales-profile-metrics > div {
+  display: grid;
+  gap: 6px;
+  min-height: 96px;
+  padding: 14px;
+  background: #17191d;
+  border-right: 1px solid #34363b;
+}
+
+.sales-profile-metrics > div:last-child {
+  border-right: 0;
+}
+
+.sales-profile-metrics span,
+.sales-profile-metrics small,
+.sales-profile-bank dt {
+  color: #a7abb2;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sales-profile-metrics strong {
+  color: #f5f6f7;
+  font-size: 1.25rem;
+}
+
+.sales-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sales-profile-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+  background: #15161a;
+  border: 1px solid #34363b;
+}
+
+.sales-profile-list {
+  display: grid;
+  gap: 8px;
+}
+
+.sales-profile-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #2d3035;
+  background: #101113;
+}
+
+.sales-profile-list strong {
+  color: #f5f6f7;
+}
+
+.sales-profile-list small {
+  display: block;
+  margin-top: 3px;
+  color: #aeb4bd;
+}
+
+.sales-profile-order-states {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sales-profile-bank {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.sales-profile-bank div {
+  padding: 12px;
+  border: 1px solid #2d3035;
+  background: #101113;
+}
+
+.sales-profile-bank dd {
+  margin: 6px 0 0;
+  color: #f5f6f7;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .sales-rep-form {
@@ -2027,6 +2184,14 @@ button.operation-row:hover {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .sales-profile-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sales-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
   .sales-ranking-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2119,8 +2284,30 @@ button.operation-row:hover {
   }
 
   .sales-dashboard-cards,
-  .sales-ranking-row {
+  .sales-ranking-row,
+  .sales-profile-metrics,
+  .sales-profile-bank {
     grid-template-columns: 1fr;
+  }
+
+  .sales-profile-header,
+  .sales-profile-list article {
+    display: grid;
+  }
+
+  .sales-profile-actions,
+  .sales-profile-order-states {
+    justify-content: flex-start;
+  }
+
+  .sales-profile-metrics > div {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #34363b;
+  }
+
+  .sales-profile-metrics > div:last-child {
+    border-bottom: 0;
   }
 
   .sales-ranking-row > div {

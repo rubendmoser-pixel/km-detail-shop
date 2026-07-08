@@ -121,6 +121,119 @@ export function getSalesRepDashboard(db) {
   };
 }
 
+export function getSalesRepProfile(db, salesRepId) {
+  const id = positiveInteger(Number(salesRepId), "salesRepId");
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const rep = db.prepare(`
+    SELECT id, name, email, phone, whatsapp,
+           bank_name, bank_account_holder, bank_tax_id, bank_account_type, bank_cbu, bank_alias,
+           default_commission_bps, status, notes, created_at, updated_at
+    FROM sales_reps
+    WHERE id = ?
+  `).get(id);
+  if (!rep) throw new NotFoundError("Sales rep not found");
+
+  const customers = db.prepare(`
+    SELECT c.id, c.business_name, c.tax_id, c.approval_status, c.commercial_class,
+           c.city, c.province, c.sales_commission_bps,
+           u.email
+    FROM customers c
+    JOIN users u ON u.id = c.user_id
+    WHERE c.sales_rep_id = ?
+    ORDER BY c.approval_status = 'approved' DESC, c.business_name COLLATE NOCASE
+    LIMIT 80
+  `).all(id);
+
+  const recentOrders = db.prepare(`
+    SELECT o.id, o.order_number, o.status, o.payment_status, o.fulfillment_status,
+           o.total_cents, o.paid_cents, o.balance_cents,
+           o.sales_commission_bps, o.sales_commission_base_cents, o.sales_commission_cents,
+           o.sales_commission_settlement_id, o.created_at, o.updated_at,
+           c.business_name
+    FROM orders o
+    JOIN customers c ON c.id = o.customer_id
+    WHERE o.sales_rep_id = ?
+    ORDER BY o.created_at DESC, o.id DESC
+    LIMIT 12
+  `).all(id);
+
+  const settlements = db.prepare(`
+    SELECT id, settlement_number, period_from, period_to, orders_count,
+           commission_base_cents, commission_cents, created_at
+    FROM sales_commission_settlements
+    WHERE sales_rep_id = ?
+    ORDER BY created_at DESC, id DESC
+    LIMIT 8
+  `).all(id);
+
+  const orderSummary = db.prepare(`
+    SELECT COUNT(*) AS total_orders,
+           SUM(CASE WHEN status != 'cancelled' AND fulfillment_status != 'delivered' THEN 1 ELSE 0 END) AS open_orders,
+           SUM(CASE WHEN status != 'cancelled' AND created_at >= ? THEN total_cents ELSE 0 END) AS month_total_cents,
+           SUM(CASE WHEN status != 'cancelled' AND created_at >= ? THEN paid_cents ELSE 0 END) AS month_paid_cents
+    FROM orders
+    WHERE sales_rep_id = ?
+  `).get(monthStart, monthStart, id) || {};
+
+  const pending = db.prepare(`
+    SELECT COUNT(*) AS pending_orders,
+           SUM(sales_commission_base_cents) AS pending_base_cents,
+           SUM(sales_commission_cents) AS pending_commission_cents
+    FROM orders
+    WHERE sales_rep_id = ?
+      AND sales_commission_cents > 0
+      AND sales_commission_settlement_id IS NULL
+      AND status != 'cancelled'
+      AND payment_status IN ('paid', 'settled_adjustment')
+      AND balance_cents = 0
+  `).get(id) || {};
+
+  const settled = db.prepare(`
+    SELECT COUNT(*) AS settlements_count,
+           SUM(commission_cents) AS settled_commission_cents
+    FROM sales_commission_settlements
+    WHERE sales_rep_id = ?
+  `).get(id) || {};
+
+  return {
+    salesRep: {
+      id: rep.id,
+      name: rep.name,
+      email: rep.email,
+      phone: rep.phone,
+      whatsapp: rep.whatsapp,
+      bankName: rep.bank_name,
+      bankAccountHolder: rep.bank_account_holder,
+      bankTaxId: rep.bank_tax_id,
+      bankAccountType: rep.bank_account_type,
+      bankCbu: rep.bank_cbu,
+      bankAlias: rep.bank_alias,
+      defaultCommissionBps: rep.default_commission_bps,
+      status: rep.status,
+      notes: rep.notes,
+      createdAt: rep.created_at,
+      updatedAt: rep.updated_at
+    },
+    summary: {
+      customerCount: customers.length,
+      approvedCustomerCount: customers.filter((customer) => customer.approval_status === "approved").length,
+      totalOrders: Number(orderSummary.total_orders || 0),
+      openOrders: Number(orderSummary.open_orders || 0),
+      monthTotalCents: Number(orderSummary.month_total_cents || 0),
+      monthPaidCents: Number(orderSummary.month_paid_cents || 0),
+      pendingOrders: Number(pending.pending_orders || 0),
+      pendingBaseCents: Number(pending.pending_base_cents || 0),
+      pendingCommissionCents: Number(pending.pending_commission_cents || 0),
+      settlementsCount: Number(settled.settlements_count || 0),
+      settledCommissionCents: Number(settled.settled_commission_cents || 0)
+    },
+    customers,
+    recentOrders,
+    settlements
+  };
+}
+
 export function upsertSalesRep(db, input = {}) {
   const id = Number(input.id || 0);
   const name = requiredText(input.name, "name", { min: 2, max: 160 });

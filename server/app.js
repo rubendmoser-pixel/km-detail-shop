@@ -53,6 +53,7 @@ import {
   assignSalesRepToCustomer,
   createSalesCommissionSettlement,
   getSalesRepDashboard,
+  getSalesRepProfile,
   getSalesCommissionSettlement,
   listPendingSalesCommissions,
   listSalesCommissionSettlements,
@@ -338,6 +339,10 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/sales-reps/dashboard") {
         return sendJson(response, 200, { dashboard: getSalesRepDashboard(db) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/sales-reps\/(\d+)\/profile$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { profile: getSalesRepProfile(db, Number(match[1])) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/sales-reps") {
         return sendJson(response, 201, { salesRep: upsertSalesRep(db, await readJson(request)) });
