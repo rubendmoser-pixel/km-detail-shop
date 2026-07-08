@@ -1,13 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
-
-const projectRoot = path.resolve(import.meta.dirname, "../..");
+import { defaultBackupRoot } from "./backup-service.js";
 
 export function getStorageStatus() {
   const databasePath = path.resolve(config.databasePath);
   const uploadsPath = path.resolve(config.uploadsPath);
-  const backupPath = path.resolve(process.env.BACKUP_PATH || path.join(projectRoot, "backups"));
+  const backupPath = path.resolve(defaultBackupRoot());
   const backupDirs = listBackupDirs(backupPath);
   const latestBackup = backupDirs[0] || null;
   const warnings = [];

@@ -1720,6 +1720,11 @@ button.operation-row:hover {
   font-size: 1.05rem;
 }
 
+.storage-backup-button {
+  width: max-content;
+  margin-top: 14px;
+}
+
 .storage-status small {
   margin-top: 5px;
   color: #b8bdc4;

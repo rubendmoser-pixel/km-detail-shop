@@ -66,6 +66,7 @@ import { createRateLimiter } from "./rate-limit.js";
 import { renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
+import { createDataBackup } from "./services/backup-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
 import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
 
@@ -502,6 +503,10 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/operation/dashboard") {
         return sendJson(response, 200, { dashboard: getAdminOperationDashboard(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/operation/backups") {
+        const backup = createDataBackup();
+        return sendJson(response, 201, { backup, dashboard: getAdminOperationDashboard(db) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/analytics/dashboard") {
         return sendJson(response, 200, { dashboard: getAnalyticsDashboard(db, { days: url.searchParams.get("days") }) });
