@@ -6,7 +6,7 @@ import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import { registerCustomer } from "../server/services/auth-service.js";
 import { setCustomerDiscounts, setCustomerPaymentTerms, setCustomerStatus, upsertCustomerProductDiscount } from "../server/services/customer-service.js";
-import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
+import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, recordMercadoPagoPayment, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
 import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
@@ -401,4 +401,90 @@ test("new orders inherit customer payment terms and can confirm availability wit
   assert.equal(confirmed.paymentStatus, "credit_account");
   assert.equal(confirmed.paymentTermsDays, 21);
   assert.match(confirmed.paymentDueDate, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test("approved Mercado Pago payment closes pending order balance once", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-mercadopago-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath, adminEmail: "admin-mp@km-detail.com", adminPassword: "secure-admin-password" });
+  t.after(() => {
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const admin = db.prepare("SELECT id FROM users WHERE email = ?").get("admin-mp@km-detail.com");
+  const registration = await registerCustomer(db, {
+    email: "cliente-mp@example.com",
+    password: "customer-password-123",
+    firstName: "MP",
+    lastName: "Cliente",
+    businessName: "Comercio MP",
+    taxId: "30-12345678-1",
+    taxCondition: "Responsable inscripto",
+    customerType: "Comercio especializado",
+    industry: "Detailing",
+    city: "Rosario",
+    province: "Santa Fe",
+    postalCode: "2000",
+    address: "Calle MP",
+    phone: "3410000000",
+    whatsapp: "5493410000000",
+    contactPerson: "MP Cliente",
+    acceptTerms: true,
+    acceptPrivacy: true
+  });
+  setCustomerStatus(db, registration.customer.id, "approved", admin.id);
+
+  const product = upsertProduct(db, {
+    kmCode: "MP001K",
+    ean13: "7791234567814",
+    name: "Producto Mercado Pago",
+    familyName: "Poliespumas",
+    basePriceCents: 10_000,
+    priceEffectiveFrom: "2026-01-01"
+  });
+  const order = createOrder(db, registration.customer.id, {
+    items: [{ productId: product.id, quantity: 2 }],
+    shipping: {
+      recipient: "MP Cliente",
+      address: "Calle MP",
+      city: "Rosario",
+      province: "Santa Fe",
+      postalCode: "2000",
+      contactPhone: "3410000000"
+    }
+  });
+  const confirmed = confirmOrderAvailability(db, order.id, {
+    items: order.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity })),
+    paymentCondition: "advance_payment"
+  }, admin.id);
+
+  const payment = recordMercadoPagoPayment(db, {
+    orderId: confirmed.id,
+    orderNumber: confirmed.orderNumber,
+    paymentId: "123456789",
+    preferenceId: "pref-123",
+    status: "approved",
+    statusDetail: "accredited",
+    amountCents: confirmed.totalCents,
+    raw: { id: 123456789, status: "approved" }
+  });
+  assert.equal(payment.order.paymentStatus, "paid");
+  assert.equal(payment.order.paymentMethod, "mercadopago");
+  assert.equal(payment.order.paidCents, confirmed.totalCents);
+  assert.equal(payment.order.balanceCents, 0);
+  assert.equal(payment.newlyApproved, true);
+
+  const duplicate = recordMercadoPagoPayment(db, {
+    orderId: confirmed.id,
+    orderNumber: confirmed.orderNumber,
+    paymentId: "123456789",
+    preferenceId: "pref-123",
+    status: "approved",
+    statusDetail: "accredited",
+    amountCents: confirmed.totalCents,
+    raw: { id: 123456789, status: "approved" }
+  });
+  assert.equal(duplicate.order.paidCents, confirmed.totalCents);
+  assert.equal(duplicate.order.balanceCents, 0);
+  assert.equal(duplicate.newlyApproved, false);
 });

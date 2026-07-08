@@ -363,6 +363,19 @@ function migrate(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS mercadopago_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      preference_id TEXT NOT NULL DEFAULT '',
+      payment_id TEXT UNIQUE,
+      status TEXT NOT NULL DEFAULT 'preference_created',
+      status_detail TEXT NOT NULL DEFAULT '',
+      amount_cents INTEGER NOT NULL DEFAULT 0 CHECK (amount_cents >= 0),
+      raw_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS email_outbox (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       event_type TEXT NOT NULL,
@@ -461,6 +474,7 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id, sort_order, id);
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
+    CREATE INDEX IF NOT EXISTS idx_mp_payments_order ON mercadopago_payments(order_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
     CREATE INDEX IF NOT EXISTS idx_commission_settlements_rep ON sales_commission_settlements(sales_rep_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_commission_items_settlement ON sales_commission_settlement_items(settlement_id);
