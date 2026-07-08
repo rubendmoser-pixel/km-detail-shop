@@ -2727,18 +2727,24 @@ function renderStorageStatus(storage = {}) {
   const warnings = storage.warnings || [];
   const statusLabel = storage.health === "ok" ? "Correcto" : "Revisar";
   const statusClass = storage.health === "ok" ? "ok" : "warning";
+  const backupCount = Number(storage.backups?.count || 0);
   return `
     <div class="storage-status ${statusClass}">
       <div>
         <span class="storage-status-badge">${escapeAdmin(statusLabel)}</span>
         <strong>${latest ? `Ultimo backup: ${escapeAdmin(formatAdminDate(latest.createdAt))}` : "Sin backup registrado"}</strong>
-        <small>${escapeAdmin(storage.backups?.count || 0)} backups | ${escapeAdmin(storage.uploads?.files || 0)} archivos subidos | ${formatFileSize(storage.uploads?.bytes || 0)}</small>
+        <small>${escapeAdmin(backupCount)} backups (${formatFileSize(storage.backups?.bytes || 0)}) | ${escapeAdmin(storage.uploads?.files || 0)} archivos subidos | ${formatFileSize(storage.uploads?.bytes || 0)}</small>
       </div>
       <div class="storage-status-grid">
         <span><strong>Base</strong><small>${formatFileSize(storage.database?.bytes || 0)}</small></span>
         <span><strong>Uploads</strong><small>${escapeAdmin(storage.uploads?.exists ? "Disponible" : "No encontrado")}</small></span>
         <span><strong>Persistencia</strong><small>${storage.persistent?.databaseInData && storage.persistent?.uploadsInData ? "Volumen /data" : "Verificar Railway"}</small></span>
       </div>
+      ${backupCount > 1 ? `
+        <div class="storage-actions">
+          <button type="button" class="ghost-button" data-prune-backups>Limpiar backups antiguos</button>
+        </div>
+      ` : ""}
       ${warnings.length ? `<div class="storage-warnings">${warnings.map((warning) => `<small>${escapeAdmin(warning)}</small>`).join("")}</div>` : ""}
     </div>
   `;
@@ -2752,10 +2758,33 @@ function formatFileSize(bytes) {
 }
 
 function handleOperationDashboardClick(event) {
+  const pruneButton = event.target.closest("[data-prune-backups]");
+  if (pruneButton && adminEls.operationDashboard.contains(pruneButton)) {
+    pruneBackups(pruneButton);
+    return;
+  }
   const button = event.target.closest("[data-dashboard-order]");
   if (!button || !adminEls.operationDashboard.contains(button)) return;
   showAdminView("orders");
   openOrderDetail(Number(button.dataset.dashboardOrder), button);
+}
+
+async function pruneBackups(button) {
+  if (!confirm("Se conservara el ultimo backup y se eliminaran los backups antiguos. No se borran productos, clientes ni imagenes activas. Continuar?")) return;
+  setBusy(button, true);
+  try {
+    const { result } = await adminApi("/api/admin/operation/prune-backups", { method: "POST", body: { keepLatest: 1 } });
+    adminState.operationDashboard = {
+      ...adminState.operationDashboard,
+      storage: result.storage
+    };
+    renderOperationDashboard(adminState.operationDashboard);
+    showToast(`Backups eliminados: ${result.deleted?.length || 0}. Espacio liberado: ${formatFileSize(result.deletedBytes || 0)}.`);
+  } catch (error) {
+    showToast(error.message, "error");
+  } finally {
+    setBusy(button, false);
+  }
 }
 
 function renderCurrentAccountDashboard(dashboard = adminState.operationDashboard) {

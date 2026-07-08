@@ -10,6 +10,7 @@ export function getStorageStatus() {
   const backupPath = resolveBackupPath(databasePath);
   const backupDirs = listBackupDirs(backupPath);
   const latestBackup = backupDirs[0] || null;
+  const backupBytes = backupDirs.reduce((total, backup) => total + Number(backup.bytes || 0), 0);
   const warnings = [];
 
   if (!fs.existsSync(databasePath)) {
@@ -44,6 +45,7 @@ export function getStorageStatus() {
       path: backupPath,
       exists: fs.existsSync(backupPath),
       count: backupDirs.length,
+      bytes: backupBytes,
       latest: latestBackup
     },
     persistent: {
@@ -53,6 +55,27 @@ export function getStorageStatus() {
     },
     health: warnings.length ? "warning" : "ok",
     warnings
+  };
+}
+
+export function pruneBackups({ keepLatest = 1 } = {}) {
+  const databasePath = path.resolve(config.databasePath);
+  const backupPath = resolveBackupPath(databasePath);
+  const backupDirs = listBackupDirs(backupPath);
+  const keep = Math.max(0, Number(keepLatest || 0));
+  const removable = backupDirs.slice(keep);
+  const deleted = [];
+  for (const backup of removable) {
+    fs.rmSync(backup.path, { recursive: true, force: true });
+    deleted.push({
+      name: backup.name,
+      bytes: backup.bytes || 0
+    });
+  }
+  return {
+    deleted,
+    deletedBytes: deleted.reduce((total, backup) => total + Number(backup.bytes || 0), 0),
+    storage: getStorageStatus()
   };
 }
 
@@ -84,7 +107,8 @@ function listBackupDirs(backupPath) {
         createdAt: manifest.createdAt || stats.mtime.toISOString(),
         databaseBytes: Number(manifest.files?.database?.bytes || 0),
         uploadFiles: Number(manifest.files?.uploads?.files || 0),
-        uploadBytes: Number(manifest.files?.uploads?.bytes || 0)
+        uploadBytes: Number(manifest.files?.uploads?.bytes || 0),
+        bytes: directorySize(fullPath)
       };
     })
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));

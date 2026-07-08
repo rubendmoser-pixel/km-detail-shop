@@ -1999,6 +1999,12 @@ button.operation-row:hover {
   font-size: 0.85rem;
 }
 
+.storage-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-start;
+}
+
 .storage-warnings {
   grid-column: 1 / -1;
   display: grid;

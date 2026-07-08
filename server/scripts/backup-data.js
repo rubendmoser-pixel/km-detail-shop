@@ -4,7 +4,8 @@ import { DatabaseSync } from "node:sqlite";
 import { config } from "../config.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "../..");
-const backupRoot = path.resolve(process.env.BACKUP_PATH || path.join(projectRoot, "backups"));
+const sourceDbPath = path.resolve(config.databasePath);
+const backupRoot = path.resolve(process.env.BACKUP_PATH || (isInsideDataVolume(sourceDbPath) ? "/data/backups" : path.join(projectRoot, "backups")));
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const targetDir = path.join(backupRoot, `km-detail-backup-${stamp}`);
 const databaseBackup = path.join(targetDir, "km-detail.sqlite");
@@ -13,7 +14,6 @@ const manifestPath = path.join(targetDir, "manifest.json");
 
 fs.mkdirSync(targetDir, { recursive: true });
 
-const sourceDbPath = path.resolve(config.databasePath);
 if (!fs.existsSync(sourceDbPath)) {
   throw new Error(`No existe la base de datos: ${sourceDbPath}`);
 }
@@ -86,4 +86,8 @@ function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function isInsideDataVolume(filePath) {
+  return path.resolve(filePath).replaceAll("\\", "/").startsWith("/data/");
 }

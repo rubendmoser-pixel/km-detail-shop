@@ -71,6 +71,7 @@ import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
 import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
+import { pruneBackups } from "./services/storage-status-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -536,6 +537,9 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/operation/delete-test-orders") {
         return sendJson(response, 200, { result: deleteTestOrders(db, uploadsPath, await readJson(request)) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/operation/prune-backups") {
+        return sendJson(response, 200, { result: pruneBackups(await readJson(request)) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/emails/flush") {
         const result = await emailService.flush();
