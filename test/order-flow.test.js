@@ -6,7 +6,7 @@ import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import { registerCustomer } from "../server/services/auth-service.js";
 import { setCustomerDiscounts, setCustomerPaymentTerms, setCustomerStatus, upsertCustomerProductDiscount } from "../server/services/customer-service.js";
-import { authorizeOrderCredit, confirmOrderAvailability, createOrder, getOrder, recordMercadoPagoPayment, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
+import { authorizeOrderCredit, clientPayableBalanceCents, confirmOrderAvailability, createOrder, getOrder, recordMercadoPagoPayment, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
 import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
@@ -410,6 +410,83 @@ test("mercado pago approved payment closes order balance", async (t) => {
   assert.equal(paid.order.balanceCents, 0);
   assert.equal(paid.order.mercadoPagoPayments.length, 1);
   assert.equal(paid.order.mercadoPagoPayments[0].paymentId, "mp-test-1");
+});
+
+test("mercado pago charges class N customers net amount and closes IVA internally", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-mp-n-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath, adminEmail: "admin-mp-n@km-detail.com", adminPassword: "secure-admin-password" });
+  t.after(() => {
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+
+  const admin = db.prepare("SELECT id FROM users WHERE email = ?").get("admin-mp-n@km-detail.com");
+  const registration = await registerCustomer(db, {
+    email: "cliente-mp-n@example.com",
+    password: "customer-password-123",
+    firstName: "Cliente",
+    lastName: "Clase N",
+    businessName: "Comercio N",
+    taxId: "30-12345678-1",
+    taxCondition: "Responsable inscripto",
+    customerType: "Pintureria",
+    industry: "Detailing",
+    city: "Rosario",
+    province: "Santa Fe",
+    postalCode: "2000",
+    address: "Calle 123",
+    phone: "3410000000",
+    whatsapp: "5493410000000",
+    contactPerson: "Cliente N",
+    acceptTerms: true,
+    acceptPrivacy: true
+  });
+  setCustomerStatus(db, registration.customer.id, "approved", admin.id, "N");
+
+  const product = upsertProduct(db, {
+    kmCode: "MPN01K",
+    ean13: "7791234567891",
+    name: "Producto Mercado Pago N",
+    familyName: "Backings",
+    basePriceCents: 100_000,
+    priceEffectiveFrom: "2026-01-01"
+  });
+  const order = createOrder(db, registration.customer.id, {
+    items: [{ productId: product.id, quantity: 1 }],
+    shipping: {
+      recipient: "Cliente N",
+      address: "Calle 123",
+      city: "Rosario",
+      province: "Santa Fe",
+      postalCode: "2000",
+      contactPhone: "3410000000"
+    }
+  });
+  const confirmed = confirmOrderAvailability(db, order.id, {
+    items: order.items.map((item) => ({ id: item.id, confirmedQuantity: item.quantity }))
+  }, admin.id);
+
+  assert.equal(confirmed.commercialClass, "N");
+  assert.equal(confirmed.subtotalNetCents, 100_000);
+  assert.equal(confirmed.vatCents, 21_000);
+  assert.equal(confirmed.totalCents, 121_000);
+  assert.equal(clientPayableBalanceCents(confirmed), 100_000);
+
+  const paid = recordMercadoPagoPayment(db, {
+    orderId: order.id,
+    paymentId: "mp-test-n-1",
+    preferenceId: "pref-test-n-1",
+    status: "approved",
+    amountCents: confirmed.subtotalNetCents,
+    raw: { id: "mp-test-n-1", status: "approved" }
+  });
+
+  assert.equal(paid.newlyApproved, true);
+  assert.equal(paid.order.paymentMethod, "mercadopago");
+  assert.equal(paid.order.paymentStatus, "settled_adjustment");
+  assert.equal(paid.order.paidCents, confirmed.subtotalNetCents);
+  assert.equal(paid.order.commercialAdjustmentCents, confirmed.vatCents);
+  assert.equal(paid.order.balanceCents, 0);
 });
 
 test("new orders inherit customer payment terms and can confirm availability with that default", async (t) => {

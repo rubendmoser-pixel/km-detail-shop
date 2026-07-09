@@ -527,8 +527,22 @@ export function recordMercadoPagoPayment(db, input = {}) {
     const newlyApproved = status === "approved" && existing?.status !== "approved";
     if (newlyApproved) {
       const paidCents = sumAcceptedPayments(db, order.id);
-      const balanceCents = Math.max(0, order.total_cents - paidCents - (order.commercial_adjustment_cents || 0));
-      const paymentStatus = balanceCents === 0 ? paymentStatusForClosedBalance(order.commercial_adjustment_cents || 0) : "credit_account";
+      const commercialAdjustmentCents = resolvedCommercialAdjustmentCents(order);
+      const balanceCents = clientPayableBalanceCents({ ...order, paid_cents: paidCents, commercial_adjustment_cents: commercialAdjustmentCents });
+      const paymentStatus = balanceCents === 0 ? paymentStatusForClosedBalance(commercialAdjustmentCents) : "credit_account";
+      if (commercialAdjustmentCents !== (order.commercial_adjustment_cents || 0)) {
+        db.prepare(`
+          UPDATE orders
+          SET commercial_adjustment_cents = ?, commercial_adjustment_reason = ?,
+            commercial_adjusted_at = ?, commercial_adjusted_by = NULL
+          WHERE id = ?
+        `).run(
+          commercialAdjustmentCents,
+          "Ajuste comercial interno por condicion N",
+          new Date().toISOString(),
+          order.id
+        );
+      }
       updateOrderCommercialBalance(db, order.id, {
         paymentStatus,
         paidCents,
@@ -540,7 +554,7 @@ export function recordMercadoPagoPayment(db, input = {}) {
       });
       db.prepare("UPDATE orders SET payment_method = 'mercadopago', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(order.id);
       addOrderEvent(db, order.id, null, "mercadopago_payment_approved", "Pago acreditado por Mercado Pago", order, {
-        paymentId, amountCents, paidCents, balanceCents, paymentStatus
+        paymentId, amountCents, paidCents, balanceCents, paymentStatus, commercialAdjustmentCents
       });
     } else {
       addOrderEvent(db, order.id, null, "mercadopago_payment_updated", status, existing || null, {
@@ -549,6 +563,15 @@ export function recordMercadoPagoPayment(db, input = {}) {
     }
     return { order: getOrder(db, order.id, null, true), newlyApproved };
   });
+}
+
+export function clientPayableBalanceCents(order = {}) {
+  const paidCents = Math.max(0, Number(order.paid_cents || order.paidCents || 0));
+  const totalCents = Math.max(0, Number(order.total_cents || order.totalCents || 0));
+  const subtotalNetCents = Math.max(0, Number(order.subtotal_net_cents || order.subtotalNetCents || 0));
+  const adjustmentCents = Math.max(0, Number(order.commercial_adjustment_cents || order.commercialAdjustmentCents || 0));
+  const payableBaseCents = isCommercialClassN(order) ? subtotalNetCents : Math.max(0, totalCents - adjustmentCents);
+  return Math.max(0, payableBaseCents - paidCents);
 }
 
 export function ensureMercadoPagoPaymentStorage(db) {
@@ -905,6 +928,19 @@ function sumAcceptedPayments(db, orderId) {
 
 function paymentStatusForClosedBalance(adjustmentCents) {
   return adjustmentCents > 0 ? "settled_adjustment" : "paid";
+}
+
+function resolvedCommercialAdjustmentCents(order = {}) {
+  const currentAdjustment = Math.max(0, Number(order.commercial_adjustment_cents || order.commercialAdjustmentCents || 0));
+  if (!isCommercialClassN(order)) return currentAdjustment;
+  const totalCents = Math.max(0, Number(order.total_cents || order.totalCents || 0));
+  const subtotalNetCents = Math.max(0, Number(order.subtotal_net_cents || order.subtotalNetCents || 0));
+  const taxAdjustmentCents = Math.max(0, totalCents - subtotalNetCents);
+  return Math.max(currentAdjustment, taxAdjustmentCents);
+}
+
+function isCommercialClassN(order = {}) {
+  return String(order.commercial_class || order.commercialClass || "B").trim().toUpperCase() === "N";
 }
 
 function normalizePaymentStatus(status) {

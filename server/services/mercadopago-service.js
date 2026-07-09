@@ -1,5 +1,5 @@
 import { NotFoundError, ValidationError, positiveInteger } from "../domain/validation.js";
-import { ensureMercadoPagoPaymentStorage, recordMercadoPagoPayment } from "./order-service.js";
+import { clientPayableBalanceCents, ensureMercadoPagoPaymentStorage, recordMercadoPagoPayment } from "./order-service.js";
 
 const API_BASE = "https://api.mercadopago.com";
 const PAYABLE_ORDER_STATUSES = new Set(["availability_confirmed", "confirmed", "in_preparation", "ready"]);
@@ -23,7 +23,7 @@ export async function createMercadoPagoPreference(db, orderId, customerId, confi
   if (order.payment_status === "receipt_uploaded") {
     throw new ValidationError("Hay un comprobante pendiente de revision");
   }
-  const balanceCents = Math.max(0, Number(order.balance_cents || 0));
+  const balanceCents = clientPayableBalanceCents(order);
   if (!balanceCents) throw new ValidationError("El pedido no tiene saldo pendiente");
 
   const baseUrl = String(config.publicBaseUrl || "https://www.km-detail.com").replace(/\/$/, "");
