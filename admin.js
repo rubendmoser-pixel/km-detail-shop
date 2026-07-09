@@ -106,6 +106,8 @@ function bindAdminEvents() {
   document.querySelector("#newProduct").addEventListener("click", resetProductForm);
   document.querySelector("#resetProductForm").addEventListener("click", resetProductForm);
   adminEls.productForm.addEventListener("submit", saveProduct);
+  productField("familyName")?.addEventListener("change", syncSelectedFamilyDescription);
+  productField("familyName")?.addEventListener("blur", syncSelectedFamilyDescription);
   adminEls.productImageInput.addEventListener("change", uploadProductImages);
   adminEls.orderSearch.addEventListener("input", debounce(loadOrders, 250));
   adminEls.orderStatusFilter.addEventListener("change", loadOrders);
@@ -679,6 +681,15 @@ function renderProductFamilies() {
   adminEls.familyNameOptions.innerHTML = adminState.families.map((family) => `<option value="${escapeAdmin(family.name)}"></option>`).join("");
 }
 
+function syncSelectedFamilyDescription() {
+  const familyName = productField("familyName")?.value?.trim();
+  if (!familyName) return;
+  const family = adminState.families.find((item) => item.name.toLowerCase() === familyName.toLowerCase());
+  if (family && !productField("familyDescription").value.trim()) {
+    productField("familyDescription").value = family.description || "";
+  }
+}
+
 function renderProducts() {
   adminEls.productsTableBody.innerHTML = adminState.products.length ? adminState.products.map((product) => `
     <tr data-product-id="${product.id}">
@@ -707,6 +718,7 @@ function editProduct(event) {
   productField("ean13").value = product.ean13;
   productField("name").value = product.name;
   productField("familyName").value = product.family.name;
+  productField("familyDescription").value = product.family.description || "";
   productField("subfamily").value = product.subfamily || "";
   productField("familySortOrder").value = product.family.sortOrder || 0;
   productField("webSortOrder").value = product.webSortOrder || 0;
@@ -739,6 +751,7 @@ function resetProductForm() {
   adminEls.productFormTitle.textContent = "Nuevo producto";
   productField("active").checked = true;
   productField("familySortOrder").value = 0;
+  productField("familyDescription").value = "";
   productField("webSortOrder").value = 0;
   productField("warehouseLocation").value = "";
   productField("priceEffectiveFrom").value = new Date().toISOString().slice(0, 10);
@@ -760,6 +773,7 @@ async function saveProduct(event) {
     ean13: values.ean13,
     name: values.name,
     familyName: values.familyName,
+    familyDescription: values.familyDescription,
     subfamily: values.subfamily,
     familySortOrder: Number(values.familySortOrder || 0),
     webSortOrder: Number(values.webSortOrder || 0),

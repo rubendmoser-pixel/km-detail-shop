@@ -435,7 +435,7 @@ function renderProducts() {
   const remaining = Math.max(0, filtered.length - visible.length);
   trackSearchResult(state.search, filtered.length);
   els.productGrid.innerHTML = filtered.length
-    ? `${visible.map(renderProductCard).join("")}${remaining ? renderProductLoadMore(remaining) : ""}`
+    ? `${renderProductFamilySections(visible)}${remaining ? renderProductLoadMore(remaining) : ""}`
     : `<article class="product-card empty-card"><div class="product-body"><h3>Sin resultados</h3><p>Proba cambiar la busqueda o limpiar los filtros.</p></div></article>`;
 
   els.productGrid.querySelector("[data-load-more-products]")?.addEventListener("click", () => {
@@ -465,6 +465,55 @@ function renderProducts() {
     });
   });
   trackVisibleProducts(visible);
+}
+
+function renderProductFamilySections(products) {
+  const groups = new Map();
+  products.forEach((product) => {
+    const familyName = product.family?.name || "Otros productos";
+    if (!groups.has(familyName)) groups.set(familyName, []);
+    groups.get(familyName).push(product);
+  });
+  return Array.from(groups.entries()).map(([familyName, familyProducts]) => renderProductFamilySection(familyName, familyProducts)).join("");
+}
+
+function renderProductFamilySection(familyName, products) {
+  const description = products.find((product) => product.family?.description)?.family.description
+    || familyDescriptionFallback(familyName);
+  return `
+    <section class="product-family-section">
+      <header class="product-family-header">
+        <div>
+          <span class="eyebrow">Familia</span>
+          <h3>${escapeHtml(familyName)}</h3>
+          ${description ? `<p>${escapeHtml(description)}</p>` : ""}
+        </div>
+        <span class="product-family-count">${products.length} producto${products.length === 1 ? "" : "s"}</span>
+      </header>
+      <div class="product-family-grid">
+        ${products.map(renderProductCard).join("")}
+      </div>
+    </section>`;
+}
+
+function familyDescriptionFallback(familyName) {
+  const name = String(familyName || "").toLowerCase();
+  if (name.includes("backing")) {
+    return "Soportes para pulidora desarrollados para controlar fijacion, flexibilidad y respuesta de la herramienta.";
+  }
+  if (name.includes("taco")) {
+    return "Soluciones de lijado para preparacion y terminacion de superficies en chapa-pintura y repintado.";
+  }
+  if (name.includes("lana")) {
+    return "Consumibles de alto rendimiento para corte, correccion y terminacion segun superficie, herramienta y resultado buscado.";
+  }
+  if (name.includes("poliespuma") || name.includes("espuma")) {
+    return "Poliespumas para correccion, pulido intermedio, brillo y acabado final dentro del sistema KM.";
+  }
+  if (name.includes("aplicador")) {
+    return "Aplicadores para terminacion, limpieza y trabajo manual de detalle.";
+  }
+  return "Familia tecnica del sistema KM desarrollada para combinarse con otros productos segun proceso, superficie y herramienta.";
 }
 
 function renderProductLoadMore(remaining) {

@@ -118,6 +118,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
       ean13: "7791234567890",
       name: "Pad de prueba API",
       familyName: "Poliespumas",
+      familyDescription: "Poliespumas para prueba API",
       warehouseLocation: "A-03-02",
       basePriceCents: 100_000,
       priceEffectiveFrom: "2026-01-01"
@@ -144,6 +145,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(adminProducts.products[0].kmCode, "API001K");
   assert.equal(adminProducts.products[0].basePriceCents, 100_000);
   assert.equal(adminProducts.products[0].warehouseLocation, "A-03-02");
+  assert.equal(adminProducts.products[0].family.description, "Poliespumas para prueba API");
   const imageResponse = await fetch(`${baseUrl}/api/admin/products/${product.id}/images`, {
     method: "POST",
     headers: jsonHeaders(adminCookie),
@@ -180,6 +182,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.match(sitemap, /api001k-pad-de-prueba-api-imagen-1-/);
   const adminFamilies = await getJson(`${baseUrl}/api/admin/product-families`, adminCookie);
   assert.equal(adminFamilies.families.some((family) => family.name === "Poliespumas"), true);
+  assert.equal(adminFamilies.families.find((family) => family.name === "Poliespumas").description, "Poliespumas para prueba API");
 
   assert.equal((await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/status`, {
     method: "PATCH", headers: jsonHeaders(adminCookie), body: JSON.stringify({ status: "approved" })
@@ -190,6 +193,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(productsWithoutDiscounts.products[0].basePriceCents, 100_000);
   assert.equal(productsWithoutDiscounts.products[0].finalPriceCents, 100_000);
   assert.equal(Number.isFinite(productsWithoutDiscounts.products[0].finalPriceCents), true);
+  assert.equal(productsWithoutDiscounts.products[0].family.description, "Poliespumas para prueba API");
   assert.equal((await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/discounts`, {
     method: "PATCH", headers: jsonHeaders(adminCookie), body: JSON.stringify({ discountsBps: [3000, 2000, 1000] })
   })).status, 200);

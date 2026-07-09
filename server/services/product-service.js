@@ -14,7 +14,7 @@ const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export function listProducts(db, user) {
   const rows = db.prepare(`
-    SELECT p.*, f.name AS family_name, f.slug AS family_slug,
+    SELECT p.*, f.name AS family_name, f.slug AS family_slug, f.description AS family_description,
            pi.stored_filename AS primary_image_filename
     FROM products p JOIN product_families f ON f.id = p.family_id
     LEFT JOIN product_images pi ON pi.id = (
@@ -94,7 +94,7 @@ export function activeCustomerProductSpecialDiscount(row, discountsByProduct = n
 
 export function listPublicProductsForSeo(db) {
   const rows = db.prepare(`
-    SELECT p.*, f.name AS family_name, f.slug AS family_slug,
+    SELECT p.*, f.name AS family_name, f.slug AS family_slug, f.description AS family_description,
            pi.stored_filename AS primary_image_filename
     FROM products p JOIN product_families f ON f.id = p.family_id
     LEFT JOIN product_images pi ON pi.id = (
@@ -114,7 +114,7 @@ export function getPublicProductBySlug(db, slug) {
   const normalizedSlug = String(slug || "").trim().toLowerCase();
   if (!/^[a-z0-9-]+$/.test(normalizedSlug)) return null;
   const row = db.prepare(`
-    SELECT p.*, f.name AS family_name, f.slug AS family_slug,
+    SELECT p.*, f.name AS family_name, f.slug AS family_slug, f.description AS family_description,
            pi.stored_filename AS primary_image_filename
     FROM products p JOIN product_families f ON f.id = p.family_id
     LEFT JOIN product_images pi ON pi.id = (
@@ -133,7 +133,7 @@ export function getPublicProductBySlug(db, slug) {
 
 function listRelatedPublicProducts(db, productRow) {
   const rows = db.prepare(`
-    SELECT p.*, f.name AS family_name, f.slug AS family_slug,
+    SELECT p.*, f.name AS family_name, f.slug AS family_slug, f.description AS family_description,
            pi.stored_filename AS primary_image_filename
     FROM products p JOIN product_families f ON f.id = p.family_id
     LEFT JOIN product_images pi ON pi.id = (
@@ -214,6 +214,7 @@ export function listAdminProducts(db, filters = {}) {
            p.currency, p.price_effective_from,
            p.active, p.web_sort_order, p.created_at, p.updated_at,
            f.id AS family_id, f.name AS family_name, f.slug AS family_slug,
+           f.description AS family_description,
            f.sort_order AS family_sort_order,
            pi.stored_filename AS primary_image_filename,
            (SELECT COUNT(*) FROM product_images WHERE product_id = p.id) AS image_count
@@ -335,11 +336,19 @@ export function upsertProduct(db, input) {
   const familyName = requiredText(input.familyName, "familyName");
   const familySlug = slugify(input.familySlug || familyName);
   const family = db.prepare(`
-    INSERT INTO product_families (name, slug, sort_order)
-    VALUES (?, ?, ?)
-    ON CONFLICT(slug) DO UPDATE SET name = excluded.name
+    INSERT INTO product_families (name, slug, description, sort_order)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(slug) DO UPDATE SET
+      name = excluded.name,
+      description = COALESCE(NULLIF(excluded.description, ''), product_families.description),
+      sort_order = excluded.sort_order
     RETURNING id
-  `).get(familyName, familySlug, Number.isInteger(input.familySortOrder) ? input.familySortOrder : 0);
+  `).get(
+    familyName,
+    familySlug,
+    optionalText(input.familyDescription, "familyDescription", { max: 1200 }),
+    Number.isInteger(input.familySortOrder) ? input.familySortOrder : 0
+  );
 
   if (!Number.isSafeInteger(input.basePriceCents) || input.basePriceCents < 0) {
     throw new ValidationError("basePriceCents must be a non-negative integer");
@@ -448,7 +457,13 @@ function adminProduct(row) {
     ean13: row.ean13,
     name: row.name,
     slug: row.slug,
-    family: { id: row.family_id, name: row.family_name, slug: row.family_slug, sortOrder: row.family_sort_order },
+    family: {
+      id: row.family_id,
+      name: row.family_name,
+      slug: row.family_slug,
+      description: row.family_description || "",
+      sortOrder: row.family_sort_order
+    },
     subfamily: row.subfamily,
     material: row.material,
     color: row.color,
@@ -487,7 +502,7 @@ function publicProduct(row, images = []) {
     ean13: row.ean13,
     name: row.name,
     slug: row.slug,
-    family: { name: row.family_name, slug: row.family_slug },
+    family: { name: row.family_name, slug: row.family_slug, description: row.family_description || "" },
     subfamily: row.subfamily,
     material: row.material,
     color: row.color,
