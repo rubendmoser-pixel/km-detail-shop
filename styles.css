@@ -3640,6 +3640,7 @@ textarea,
 
 .company-heading {
   max-width: 840px;
+  padding-top: clamp(46px, 5vw, 76px);
 }
 
 .company-heading p {
@@ -3844,6 +3845,10 @@ textarea,
   .company-heading p,
   .company-story p {
     font-size: 0.95rem;
+  }
+
+  .company-heading {
+    padding-top: 48px;
   }
 
   h1 {
