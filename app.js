@@ -83,11 +83,21 @@ function productFamilyName(product) {
   return product.family?.name?.trim() || "Otros productos";
 }
 
-function setCatalogCategory(category) {
+function showCatalogResults() {
+  clearActionFocus();
+  setOperationalView("catalog");
+  if (window.location.hash !== "#catalogo") history.replaceState(null, "", "#catalogo");
+  requestAnimationFrame(() => {
+    document.querySelector(".products-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function setCatalogCategory(category, options = {}) {
   state.category = category || "Todos";
   resetProductPagination();
   renderCategoryFilters();
   renderProducts();
+  if (options.focusResults) showCatalogResults();
 }
 
 const els = Object.fromEntries([
@@ -127,10 +137,12 @@ function normalizeInitialRoute() {
 
 function bindEvents() {
   document.querySelectorAll("[data-category-link]").forEach((link) => {
-    link.addEventListener("click", () => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       const linkKey = familyFilterKey(link.dataset.categoryLink);
       const match = state.products.find((product) => familyFilterKey(productFamilyName(product)).includes(linkKey));
-      setCatalogCategory(match ? productFamilyName(match) : "Todos");
+      setCatalogCategory(match ? productFamilyName(match) : "Todos", { focusResults: true });
     });
   });
   els.searchInput.addEventListener("input", (event) => {
@@ -420,8 +432,10 @@ function renderCategoryFilters() {
     <button type="button" class="${familyFilterKey(category) === familyFilterKey(state.category) ? "active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>
   `).join("");
   els.categoryFilters.querySelectorAll("button").forEach((button) => {
-    button.addEventListener("click", () => {
-      setCatalogCategory(button.dataset.category);
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setCatalogCategory(button.dataset.category, { focusResults: true });
     });
   });
 }
