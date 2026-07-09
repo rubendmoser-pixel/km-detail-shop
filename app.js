@@ -162,6 +162,11 @@ function bindEvents() {
     handleHashNavigation().catch((error) => showToast(error.message || "No se pudo abrir la seccion."));
     trackPageView();
   });
+  window.addEventListener("focus", resetMercadoPagoButtons);
+  window.addEventListener("pageshow", resetMercadoPagoButtons);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) resetMercadoPagoButtons();
+  });
   document.querySelector("#configureShippingAddresses").addEventListener("click", toggleShippingAddressManager);
   document.querySelector("#newShippingAddress").addEventListener("click", () => openShippingAddressForm());
   document.querySelector("#editShippingAddress").addEventListener("click", editSelectedShippingAddress);
@@ -1087,8 +1092,19 @@ function renderCustomerOrder(order) {
           <div class="purchase-actions">
             ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Aceptar disponibilidad</button>` : ""}
             ${canConfirmReceived ? `<button class="primary-button" type="button" data-confirm-received="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Confirmar pedido recibido</button>` : ""}
-            ${canPayMercadoPago ? `<button class="mercadopago-button" type="button" data-mercadopago-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Pagar con Mercado Pago</button>` : ""}
-            ${canUpload ? `<label class="receipt-upload ${state.purchasesRefreshing ? "disabled" : ""}"><span>Cargar comprobante de pago</span><small>PDF, JPG o PNG</small><input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""} /></label>` : paymentHelperText(order)}
+            ${canUpload ? `
+              <div class="payment-options" aria-label="Opciones de pago">
+                <strong>Elegir forma de pago</strong>
+                <div>
+                  ${canPayMercadoPago ? `<button class="mercadopago-button" type="button" data-mercadopago-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Pagar con Mercado Pago</button>` : ""}
+                  <label class="receipt-upload ${state.purchasesRefreshing ? "disabled" : ""}">
+                    <span>Transferencia bancaria</span>
+                    <small>Cargar comprobante PDF, JPG o PNG</small>
+                    <input type="file" accept="application/pdf,image/jpeg,image/png" data-receipt-input="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""} />
+                  </label>
+                </div>
+              </div>
+            ` : paymentHelperText(order)}
             ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
           </div>
           ${canUpload ? renderBankSummary(bank) : ""}
@@ -1309,6 +1325,7 @@ async function uploadReceipt(event) {
   const file = event.currentTarget.files?.[0];
   const orderId = Number(event.currentTarget.dataset.receiptInput);
   event.currentTarget.value = "";
+  resetMercadoPagoButtons();
   if (!file || !orderId) return;
   if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) return showToast("Formato no permitido. Usa PDF, JPG o PNG.");
   if (file.size > 8 * 1024 * 1024) return showToast("El comprobante no puede superar 8 MB.");
@@ -1327,6 +1344,7 @@ async function payWithMercadoPago(orderId, button) {
   const originalText = button?.textContent || "Pagar con Mercado Pago";
   if (button) {
     button.disabled = true;
+    button.dataset.mercadopagoOpening = "true";
     button.textContent = "Abriendo Mercado Pago...";
   }
   try {
@@ -1338,9 +1356,18 @@ async function payWithMercadoPago(orderId, button) {
     showToast(error.message || "No se pudo iniciar Mercado Pago.");
     if (button) {
       button.disabled = false;
+      delete button.dataset.mercadopagoOpening;
       button.textContent = originalText;
     }
   }
+}
+
+function resetMercadoPagoButtons() {
+  document.querySelectorAll("[data-mercadopago-opening='true']").forEach((button) => {
+    button.disabled = false;
+    button.textContent = "Pagar con Mercado Pago";
+    delete button.dataset.mercadopagoOpening;
+  });
 }
 
 async function runPurchaseAction(action, { fallbackFilter = null } = {}) {

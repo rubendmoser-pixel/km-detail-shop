@@ -2102,6 +2102,28 @@ body.customer-app .customer-order-summary {
   color: #b8bcc3;
 }
 
+.payment-options {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #2f3339;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+}
+
+.payment-options > strong {
+  color: #f4f6f8;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.payment-options > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .purchase-bank {
   max-width: 760px;
 }
@@ -2137,6 +2159,11 @@ body.customer-app .customer-order-summary {
   box-shadow: 0 12px 24px rgba(180, 188, 196, 0.16);
   font-weight: 900;
   cursor: pointer;
+}
+
+.receipt-upload {
+  flex-direction: column;
+  text-align: center;
 }
 
 .receipt-upload span {
@@ -2956,6 +2983,19 @@ body.customer-app .customer-order-summary {
   }
 
   .receipt-upload {
+    width: 100%;
+  }
+
+  .payment-options {
+    padding: 12px;
+  }
+
+  .payment-options > div {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-options .mercadopago-button,
+  .payment-options .receipt-upload {
     width: 100%;
   }
 
