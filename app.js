@@ -573,10 +573,10 @@ function renderProductCard(product) {
   const mainAlt = images[0]?.altText || product.name;
   const productUrl = product.publicUrl || `/producto/${encodeURIComponent(product.slug || product.kmCode.toLowerCase())}`;
   const zoomCaption = `${product.kmCode} · ${product.name}`;
-  const promotionBadge = promotionBadgeHtml(product.promotion);
-  const specialBadge = specialDiscountBadgeHtml(product.specialDiscount);
-  const promotionClass = product.promotion?.active ? " is-promo" : "";
-  const specialClass = product.specialDiscount?.active ? " is-special-price" : "";
+  const promotionBadge = approved ? promotionBadgeHtml(product.promotion) : "";
+  const specialBadge = approved ? specialDiscountBadgeHtml(product.specialDiscount) : "";
+  const promotionClass = approved && product.promotion?.active ? " is-promo" : "";
+  const specialClass = approved && product.specialDiscount?.active ? " is-special-price" : "";
   const visual = images.length
     ? `<div class="product-visual has-image"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${specialBadge}${promotionBadge}</div><figure><button class="product-image-zoom" type="button" data-zoom-image="${escapeHtml(images[0].url)}" data-zoom-alt="${escapeHtml(mainAlt)}" data-zoom-caption="${escapeHtml(zoomCaption)}" data-zoom-product-id="${product.id}" data-zoom-km="${escapeHtml(product.kmCode)}" aria-label="Ampliar imagen de ${escapeHtml(product.kmCode)}"><img src="${escapeHtml(images[0].url)}" alt="${escapeHtml(mainAlt)}" loading="lazy" decoding="async" /></button></figure>${gallery}</div>`
     : `<div class="product-visual ${familyClass}"><div class="product-visual-head"><span class="product-code">${escapeHtml(product.kmCode)}</span>${specialBadge}${promotionBadge}</div></div>`;
