@@ -264,6 +264,8 @@ export function addProductImage(db, productId, input, uploadsPath) {
   const maxOrder = db.prepare("SELECT COALESCE(MAX(sort_order), -1) AS value FROM product_images WHERE product_id = ?").get(productId).value;
   const imageOrder = Number(maxOrder) + 1;
   const storedFilename = `${product.slug || slugify(`${product.km_code}-${product.name}`)}-imagen-${imageOrder + 1}-${randomUUID().slice(0, 8)}${extension}`;
+  fs.writeFileSync(path.join(productsPath, storedFilename), bytes);
+
   const isPrimary = imageCount === 0 ? 1 : 0;
   if (isPrimary) db.prepare("UPDATE product_images SET is_primary = 0 WHERE product_id = ?").run(productId);
   const altText = optionalText(input.altText, "altText", { max: 180 }) || buildProductImageAlt(product, imageOrder);
@@ -284,32 +286,7 @@ export function addProductImage(db, productId, input, uploadsPath) {
     imageOrder,
     isPrimary
   );
-  try {
-    fs.writeFileSync(path.join(productsPath, storedFilename), bytes);
-  } catch (error) {
-    db.prepare("DELETE FROM product_images WHERE id = ?").run(row.id);
-    throw error;
-  }
   return productImage(row);
-}
-
-export function cleanupOrphanProductImageFiles(db, uploadsPath) {
-  const productsPath = path.join(uploadsPath, "products");
-  if (!fs.existsSync(productsPath)) return { deleted: 0, bytes: 0, files: [] };
-  const known = new Set(db.prepare("SELECT stored_filename FROM product_images").all().map((row) => row.stored_filename));
-  const deletedFiles = [];
-  for (const entry of fs.readdirSync(productsPath, { withFileTypes: true })) {
-    if (!entry.isFile() || known.has(entry.name)) continue;
-    const fullPath = path.join(productsPath, entry.name);
-    const bytes = fs.statSync(fullPath).size;
-    fs.rmSync(fullPath, { force: true });
-    deletedFiles.push({ name: entry.name, bytes });
-  }
-  return {
-    deleted: deletedFiles.length,
-    bytes: deletedFiles.reduce((total, file) => total + file.bytes, 0),
-    files: deletedFiles.slice(0, 30)
-  };
 }
 
 export function setPrimaryProductImage(db, productId, imageId) {
