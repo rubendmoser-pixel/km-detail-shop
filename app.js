@@ -70,6 +70,26 @@ const state = {
   cart: readCart()
 };
 
+function familyFilterKey(value) {
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase("es-AR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function productFamilyName(product) {
+  return product.family?.name?.trim() || "Otros productos";
+}
+
+function setCatalogCategory(category) {
+  state.category = category || "Todos";
+  resetProductPagination();
+  renderCategoryFilters();
+  renderProducts();
+}
+
 const els = Object.fromEntries([
   "categoryFilters", "cutFilter", "sizeFilter", "searchInput", "sortSelect", "productGrid",
   "resultCount", "catalogNotice", "cartCount", "cartDrawer", "cartItems",
@@ -108,11 +128,9 @@ function normalizeInitialRoute() {
 function bindEvents() {
   document.querySelectorAll("[data-category-link]").forEach((link) => {
     link.addEventListener("click", () => {
-      const match = state.products.find((product) => product.family.name.toLowerCase().includes(link.dataset.categoryLink.toLowerCase()));
-      state.category = match?.family.name || "Todos";
-      resetProductPagination();
-      renderCategoryFilters();
-      renderProducts();
+      const linkKey = familyFilterKey(link.dataset.categoryLink);
+      const match = state.products.find((product) => familyFilterKey(productFamilyName(product)).includes(linkKey));
+      setCatalogCategory(match ? productFamilyName(match) : "Todos");
     });
   });
   els.searchInput.addEventListener("input", (event) => {
@@ -395,17 +413,15 @@ function setOperationalView(view = currentOperationalView()) {
 }
 
 function renderCategoryFilters() {
-  const categories = ["Todos", ...new Set(state.products.map((product) => product.family.name))];
-  if (!categories.includes(state.category)) state.category = "Todos";
+  const categories = ["Todos", ...new Set(state.products.map(productFamilyName))];
+  const selectedKey = familyFilterKey(state.category);
+  if (state.category !== "Todos" && !categories.some((category) => familyFilterKey(category) === selectedKey)) state.category = "Todos";
   els.categoryFilters.innerHTML = categories.map((category) => `
-    <button type="button" class="${category === state.category ? "active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>
+    <button type="button" class="${familyFilterKey(category) === familyFilterKey(state.category) ? "active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>
   `).join("");
   els.categoryFilters.querySelectorAll("button").forEach((button) => {
     button.addEventListener("click", () => {
-      state.category = button.dataset.category;
-      resetProductPagination();
-      renderCategoryFilters();
-      renderProducts();
+      setCatalogCategory(button.dataset.category);
     });
   });
 }
@@ -421,9 +437,10 @@ function renderSelectOptions() {
 
 function renderProducts() {
   let filtered = state.products.filter((product) => {
-    const haystack = [product.kmCode, product.ean13, product.name, product.family.name, product.subfamily,
+    const familyName = productFamilyName(product);
+    const haystack = [product.kmCode, product.ean13, product.name, familyName, product.subfamily,
       product.material, product.color, product.attachmentSystem].join(" ").toLowerCase();
-    return (state.category === "Todos" || product.family.name === state.category)
+    return (state.category === "Todos" || familyFilterKey(familyName) === familyFilterKey(state.category))
       && (!state.search || haystack.includes(state.search))
       && (!state.cut || product.cutLevel === state.cut)
       && (!state.size || product.measure === state.size);
@@ -470,7 +487,7 @@ function renderProducts() {
 function renderProductFamilySections(products) {
   const groups = new Map();
   products.forEach((product) => {
-    const familyName = product.family?.name || "Otros productos";
+    const familyName = productFamilyName(product);
     if (!groups.has(familyName)) groups.set(familyName, []);
     groups.get(familyName).push(product);
   });
