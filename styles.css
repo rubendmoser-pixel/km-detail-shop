@@ -1526,17 +1526,84 @@ body.checkout-focus .order-form {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 22px;
-  background: #111214;
-  border: 1px solid #3c3e43;
+  padding: clamp(22px, 3vw, 30px);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(232, 238, 244, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(44, 47, 52, 0.96), rgba(12, 13, 15, 0.98) 52%, rgba(8, 9, 10, 0.98));
+  border: 1px solid #68717c;
   border-radius: 8px;
+  box-shadow: inset 5px 0 0 #d7dde4, 0 22px 60px rgba(0, 0, 0, 0.32);
 }
 
 .order-access strong {
   display: block;
-  margin-bottom: 6px;
+  max-width: 740px;
+  margin-bottom: 8px;
   font-family: var(--font-display);
-  font-size: 1.08rem;
+  font-size: clamp(1.55rem, 2.7vw, 2.25rem);
+  line-height: 1.06;
+}
+
+.order-access p {
+  max-width: 780px;
+  color: #d8dce2;
+  font-size: 1.02rem;
+}
+
+.cta-kicker {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: #f2e7a5;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cta-badges,
+.order-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cta-badges {
+  margin-top: 16px;
+}
+
+.cta-badges span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  color: #08090a;
+  background: #edf1f5;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.order-access-actions {
+  justify-content: flex-end;
+  min-width: min(100%, 420px);
+}
+
+.order-access-actions button {
+  flex: 1 1 190px;
+  min-height: 56px;
+}
+
+.cta-primary {
+  background: linear-gradient(180deg, #f4f7fa, #bcc5ce);
+  border-color: #f4f7fa;
+  box-shadow: 0 12px 34px rgba(216, 221, 228, 0.18);
+}
+
+.cta-secondary {
+  color: #f7f7f5;
+  background: rgba(5, 6, 7, 0.45);
+  border-color: #6d747c;
 }
 
 .distributor-layout {
