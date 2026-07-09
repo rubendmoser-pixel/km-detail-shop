@@ -3635,12 +3635,16 @@ textarea,
 }
 
 .company-visual {
-  min-height: clamp(620px, 62vw, 760px);
+  align-items: start;
+  min-height: clamp(520px, 46vw, 640px);
+}
+
+.company-visual .section-visual-content {
+  padding-top: clamp(118px, 10vw, 160px);
 }
 
 .company-heading {
   max-width: 840px;
-  padding-top: clamp(46px, 5vw, 76px);
 }
 
 .company-heading p {
@@ -3649,16 +3653,6 @@ textarea,
   color: #d4d5d8;
   font-size: 1rem;
   line-height: 1.65;
-}
-
-.company-visual .company-story {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.company-visual .company-story article {
-  background: rgba(17, 18, 20, 0.72);
-  border-color: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(6px);
 }
 
 .cart-shell {
@@ -3847,8 +3841,8 @@ textarea,
     font-size: 0.95rem;
   }
 
-  .company-heading {
-    padding-top: 48px;
+  .company-visual .section-visual-content {
+    padding-top: 86px;
   }
 
   h1 {
