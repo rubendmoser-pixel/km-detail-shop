@@ -856,10 +856,10 @@ async function uploadProductImages(event) {
     for (const file of files) {
       if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error(`${file.name}: formato no permitido.`);
       if (file.size > 5 * 1024 * 1024) throw new Error(`${file.name}: maximo 5 MB.`);
-      const dataBase64 = await fileToBase64(file);
+      const optimized = await optimizeProductImage(file);
       const { images } = await adminApi(`/api/admin/products/${adminState.selectedProductId}/images`, {
         method: "POST",
-        body: { originalFilename: file.name, mimeType: file.type, dataBase64 }
+        body: { originalFilename: optimized.filename, mimeType: optimized.mimeType, dataBase64: optimized.dataBase64 }
       });
       adminState.productImages = images;
     }
@@ -897,6 +897,44 @@ async function deleteProductImage(event) {
   } catch (error) {
     renderProductImages(error.message);
   }
+}
+
+async function optimizeProductImage(file) {
+  const image = await loadImage(file);
+  const maxWidth = 1400;
+  const maxHeight = 900;
+  const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { alpha: false });
+  context.fillStyle = "#000";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+  URL.revokeObjectURL(image.src);
+  const blob = await canvasToBlob(canvas, "image/webp", 0.84);
+  return {
+    filename: file.name.replace(/\.[^.]+$/, "") + ".webp",
+    mimeType: "image/webp",
+    dataBase64: await fileToBase64(blob)
+  };
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image), { once: true });
+    image.addEventListener("error", () => reject(new Error(`No se pudo procesar ${file.name}.`)), { once: true });
+    image.src = URL.createObjectURL(file);
+  });
+}
+
+function canvasToBlob(canvas, mimeType, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("No se pudo optimizar la imagen.")), mimeType, quality);
+  });
 }
 
 function fileToBase64(file) {
@@ -2745,6 +2783,9 @@ function renderStorageStatus(storage = {}) {
           <button type="button" class="ghost-button" data-prune-backups>Limpiar backups antiguos</button>
         </div>
       ` : ""}
+      <div class="storage-actions">
+        <button type="button" class="ghost-button" data-cleanup-orphan-images>Limpiar imagenes huerfanas</button>
+      </div>
       ${warnings.length ? `<div class="storage-warnings">${warnings.map((warning) => `<small>${escapeAdmin(warning)}</small>`).join("")}</div>` : ""}
     </div>
   `;
@@ -2761,6 +2802,11 @@ function handleOperationDashboardClick(event) {
   const pruneButton = event.target.closest("[data-prune-backups]");
   if (pruneButton && adminEls.operationDashboard.contains(pruneButton)) {
     pruneBackups(pruneButton);
+    return;
+  }
+  const cleanupButton = event.target.closest("[data-cleanup-orphan-images]");
+  if (cleanupButton && adminEls.operationDashboard.contains(cleanupButton)) {
+    cleanupOrphanImages(cleanupButton);
     return;
   }
   const button = event.target.closest("[data-dashboard-order]");
@@ -2780,6 +2826,20 @@ async function pruneBackups(button) {
     };
     renderOperationDashboard(adminState.operationDashboard);
     showToast(`Backups eliminados: ${result.deleted?.length || 0}. Espacio liberado: ${formatFileSize(result.deletedBytes || 0)}.`);
+  } catch (error) {
+    showToast(error.message, "error");
+  } finally {
+    setBusy(button, false);
+  }
+}
+
+async function cleanupOrphanImages(button) {
+  if (!confirm("Se eliminaran archivos de imagen que no estan asociados a ningun producto. No se borran imagenes activas. Continuar?")) return;
+  setBusy(button, true);
+  try {
+    const { result } = await adminApi("/api/admin/operation/cleanup-orphan-images", { method: "POST", body: {} });
+    await loadOperationDashboard();
+    showToast(`Imagenes huerfanas eliminadas: ${result.deleted || 0}. Espacio liberado: ${formatFileSize(result.bytes || 0)}.`);
   } catch (error) {
     showToast(error.message, "error");
   } finally {

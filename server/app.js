@@ -33,6 +33,7 @@ import {
 } from "./services/order-service.js";
 import {
   addProductImage,
+  cleanupOrphanProductImageFiles,
   deleteProductImage,
   getPublicProductBySlug,
   listAdminProducts,
@@ -540,6 +541,9 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/operation/prune-backups") {
         return sendJson(response, 200, { result: pruneBackups(await readJson(request)) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/operation/cleanup-orphan-images") {
+        return sendJson(response, 200, { result: cleanupOrphanProductImageFiles(db, uploadsPath) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/emails/flush") {
         const result = await emailService.flush();
