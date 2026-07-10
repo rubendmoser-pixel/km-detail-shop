@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Portal vendedor | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260710b" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260710c" />
   </head>
   <body>
     <header class="seller-header">
@@ -48,6 +48,43 @@
 
         <div class="seller-stats" id="sellerStats"></div>
 
+        <section class="seller-panel order-builder">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Pedido asistido</p>
+              <h2>Cargar pedido para cliente asignado</h2>
+            </div>
+          </div>
+          <form class="seller-order-form" id="sellerOrderForm">
+            <div class="order-builder-grid">
+              <label class="seller-field">
+                <span>Cliente</span>
+                <select id="sellerOrderCustomer" required></select>
+              </label>
+              <label class="seller-field">
+                <span>Buscar producto</span>
+                <input id="sellerProductSearch" type="search" placeholder="Codigo, articulo, EAN..." autocomplete="off" />
+              </label>
+            </div>
+            <div class="order-builder-grid">
+              <div>
+                <p class="seller-section-label">Resultados</p>
+                <div class="seller-product-results" id="sellerProductResults"></div>
+              </div>
+              <div>
+                <p class="seller-section-label">Pedido en armado</p>
+                <div class="seller-order-items" id="sellerOrderItems"></div>
+                <div class="seller-order-total" id="sellerOrderTotal"></div>
+              </div>
+            </div>
+            <div class="seller-actions">
+              <button class="primary-button" type="submit">Enviar pedido a KM</button>
+              <button class="ghost-button" type="button" id="clearSellerOrder">Limpiar</button>
+            </div>
+            <p class="form-message" id="sellerOrderMessage" role="status"></p>
+          </form>
+        </section>
+
         <div class="seller-grid">
           <section class="seller-panel">
             <div class="panel-heading">
@@ -72,6 +109,6 @@
       </section>
     </main>
 
-    <script src="/vendedor.js?v=20260710b" type="module"></script>
+    <script src="/vendedor.js?v=20260710c" type="module"></script>
   </body>
 </html>

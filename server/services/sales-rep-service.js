@@ -422,6 +422,26 @@ export function getSalesRepPortalDashboard(db, salesRepId) {
   };
 }
 
+export function getAssignedApprovedCustomerForSalesRep(db, salesRepId, customerId) {
+  const repId = positiveInteger(Number(salesRepId), "salesRepId");
+  const id = positiveInteger(Number(customerId), "customerId");
+  const customer = db.prepare(`
+    SELECT c.id, c.user_id, c.business_name, c.approval_status, c.sales_rep_id,
+           (
+        SELECT sa.id
+        FROM customer_shipping_addresses sa
+        WHERE sa.customer_id = c.id
+        ORDER BY sa.is_default DESC, sa.id ASC
+        LIMIT 1
+      ) AS default_shipping_address_id
+    FROM customers c
+    WHERE c.id = ? AND c.sales_rep_id = ?
+  `).get(id, repId);
+  if (!customer) throw new NotFoundError("Cliente no asignado al vendedor");
+  if (customer.approval_status !== "approved") throw new ValidationError("El cliente no esta aprobado");
+  return customer;
+}
+
 function keyedBySalesRep(rows) {
   return new Map(rows.map((row) => [Number(row.sales_rep_id), row]));
 }

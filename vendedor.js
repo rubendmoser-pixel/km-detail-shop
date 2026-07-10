@@ -1,6 +1,12 @@
 const state = {
   salesRep: null,
-  dashboard: null
+  dashboard: null,
+  order: {
+    customerId: "",
+    products: [],
+    loadingProducts: false,
+    items: []
+  }
 };
 
 const nodes = {
@@ -14,7 +20,15 @@ const nodes = {
   stats: document.getElementById("sellerStats"),
   customers: document.getElementById("sellerCustomers"),
   orders: document.getElementById("sellerOrders"),
-  refresh: document.getElementById("refreshSellerDashboard")
+  refresh: document.getElementById("refreshSellerDashboard"),
+  orderForm: document.getElementById("sellerOrderForm"),
+  orderCustomer: document.getElementById("sellerOrderCustomer"),
+  productSearch: document.getElementById("sellerProductSearch"),
+  productResults: document.getElementById("sellerProductResults"),
+  orderItems: document.getElementById("sellerOrderItems"),
+  orderTotal: document.getElementById("sellerOrderTotal"),
+  orderMessage: document.getElementById("sellerOrderMessage"),
+  clearOrder: document.getElementById("clearSellerOrder")
 };
 
 function escapeHtml(value) {
@@ -79,6 +93,7 @@ const paymentStatusLabels = {
   pending_review: "Pago en revision",
   paid: "Pago acreditado",
   rejected: "Pago rechazado",
+  credit_account: "Cuenta corriente",
   current_account: "Cuenta corriente",
   settled_adjustment: "Ajuste comercial"
 };
@@ -197,6 +212,144 @@ function renderOrders(orders = []) {
   }).join("");
 }
 
+function approvedCustomers() {
+  return (state.dashboard?.customers || []).filter((customer) => customer.approval_status === "approved");
+}
+
+function findProduct(productId) {
+  return state.order.products.find((product) => Number(product.id) === Number(productId));
+}
+
+function productSearchText(product) {
+  return [
+    product.kmCode,
+    product.ean13,
+    product.name,
+    product.family?.name,
+    product.subfamily,
+    product.material,
+    product.measure
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function renderOrderBuilder() {
+  const customers = approvedCustomers();
+  if (!customers.length) {
+    nodes.orderCustomer.innerHTML = `<option value="">Sin clientes aprobados</option>`;
+    nodes.productResults.innerHTML = `<div class="empty-state">No hay clientes aprobados para cargar pedidos.</div>`;
+    nodes.orderItems.innerHTML = `<div class="empty-state">Selecciona un cliente aprobado.</div>`;
+    nodes.orderTotal.textContent = "";
+    return;
+  }
+
+  if (!state.order.customerId || !customers.some((customer) => String(customer.id) === String(state.order.customerId))) {
+    state.order.customerId = String(customers[0].id);
+  }
+
+  nodes.orderCustomer.innerHTML = customers.map((customer) => `
+    <option value="${customer.id}" ${String(customer.id) === String(state.order.customerId) ? "selected" : ""}>
+      ${escapeHtml(customer.business_name)}
+    </option>
+  `).join("");
+  renderProductResults();
+  renderOrderItems();
+}
+
+async function loadSellerProducts(customerId) {
+  if (!customerId) return;
+  state.order.loadingProducts = true;
+  state.order.products = [];
+  renderProductResults();
+  try {
+    const payload = await sellerApi(`/api/sales/products?customerId=${encodeURIComponent(customerId)}`);
+    state.order.products = payload.products || [];
+  } catch (error) {
+    nodes.productResults.innerHTML = `<div class="empty-state">${escapeHtml(error.message || "No se pudieron cargar productos.")}</div>`;
+    return;
+  } finally {
+    state.order.loadingProducts = false;
+  }
+  renderProductResults();
+}
+
+function renderProductResults() {
+  if (state.order.loadingProducts) {
+    nodes.productResults.innerHTML = `<div class="empty-state">Cargando productos...</div>`;
+    return;
+  }
+  if (!state.order.products.length) {
+    nodes.productResults.innerHTML = `<div class="empty-state">Selecciona un cliente para ver productos.</div>`;
+    return;
+  }
+  const query = (nodes.productSearch.value || "").trim().toLowerCase();
+  const products = state.order.products
+    .filter((product) => !query || productSearchText(product).includes(query))
+    .slice(0, query ? 12 : 8);
+  if (!products.length) {
+    nodes.productResults.innerHTML = `<div class="empty-state">No encontramos productos para esa busqueda.</div>`;
+    return;
+  }
+  nodes.productResults.innerHTML = products.map((product) => `
+    <article class="seller-product-row">
+      <div>
+        <strong>${escapeHtml(product.kmCode)} - ${escapeHtml(product.name)}</strong>
+        <div class="seller-meta">${escapeHtml(product.family?.name || "")} ${product.ean13 ? `| EAN ${escapeHtml(product.ean13)}` : ""}</div>
+        <div class="seller-meta">${money(product.finalPriceCents || 0)} + IVA</div>
+      </div>
+      <button class="ghost-button compact" type="button" data-add-product="${product.id}">Agregar</button>
+    </article>
+  `).join("");
+}
+
+function addOrderItem(productId) {
+  const product = findProduct(productId);
+  if (!product) return;
+  const existing = state.order.items.find((item) => Number(item.productId) === Number(productId));
+  if (existing) existing.quantity += 1;
+  else state.order.items.push({ productId: Number(productId), quantity: 1 });
+  nodes.orderMessage.textContent = "";
+  renderOrderItems();
+}
+
+function updateOrderItem(productId, delta) {
+  const item = state.order.items.find((entry) => Number(entry.productId) === Number(productId));
+  if (!item) return;
+  item.quantity += delta;
+  if (item.quantity <= 0) {
+    state.order.items = state.order.items.filter((entry) => Number(entry.productId) !== Number(productId));
+  }
+  renderOrderItems();
+}
+
+function renderOrderItems() {
+  if (!state.order.items.length) {
+    nodes.orderItems.innerHTML = `<div class="empty-state">Todavia no agregaste productos.</div>`;
+    nodes.orderTotal.textContent = "";
+    return;
+  }
+  let total = 0;
+  nodes.orderItems.innerHTML = state.order.items.map((item) => {
+    const product = findProduct(item.productId);
+    if (!product) return "";
+    const lineTotal = Number(product.finalPriceCents || 0) * Number(item.quantity || 0);
+    total += lineTotal;
+    return `
+      <article class="seller-order-row">
+        <div>
+          <strong>${escapeHtml(product.kmCode)} - ${escapeHtml(product.name)}</strong>
+          <div class="seller-meta">${item.quantity} x ${money(product.finalPriceCents || 0)} = ${money(lineTotal)}</div>
+        </div>
+        <div class="seller-qty">
+          <button type="button" data-dec-product="${product.id}">-</button>
+          <span>${item.quantity}</span>
+          <button type="button" data-inc-product="${product.id}">+</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+  nodes.orderTotal.textContent = `Subtotal neto estimado: ${money(total)} + IVA`;
+}
+
 function renderDashboard(payload) {
   state.salesRep = payload.salesRep;
   state.dashboard = payload.dashboard;
@@ -206,8 +359,12 @@ function renderDashboard(payload) {
   renderStats(state.dashboard?.summary || {});
   renderCustomers(state.dashboard?.customers || []);
   renderOrders(state.dashboard?.orders || []);
+  renderOrderBuilder();
   nodes.login.classList.add("hidden");
   nodes.dashboard.classList.remove("hidden");
+  if (state.order.customerId && !state.order.products.length && !state.order.loadingProducts) {
+    loadSellerProducts(state.order.customerId);
+  }
 }
 
 function showLogin(message = "") {
@@ -259,5 +416,64 @@ nodes.loginForm?.addEventListener("submit", async (event) => {
 });
 
 nodes.refresh?.addEventListener("click", loadDashboard);
+
+nodes.orderCustomer?.addEventListener("change", async (event) => {
+  state.order.customerId = event.currentTarget.value;
+  state.order.items = [];
+  nodes.orderMessage.textContent = "";
+  await loadSellerProducts(state.order.customerId);
+  renderOrderItems();
+});
+
+nodes.productSearch?.addEventListener("input", renderProductResults);
+
+nodes.productResults?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-add-product]");
+  if (!button) return;
+  addOrderItem(button.dataset.addProduct);
+});
+
+nodes.orderItems?.addEventListener("click", (event) => {
+  const dec = event.target.closest("[data-dec-product]");
+  const inc = event.target.closest("[data-inc-product]");
+  if (dec) updateOrderItem(dec.dataset.decProduct, -1);
+  if (inc) updateOrderItem(inc.dataset.incProduct, 1);
+});
+
+nodes.clearOrder?.addEventListener("click", () => {
+  state.order.items = [];
+  nodes.orderMessage.textContent = "";
+  renderOrderItems();
+});
+
+nodes.orderForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  nodes.orderMessage.textContent = "";
+  if (!state.order.items.length) {
+    nodes.orderMessage.textContent = "Agrega productos antes de enviar el pedido.";
+    return;
+  }
+  const button = event.currentTarget.querySelector("button[type='submit']");
+  button.disabled = true;
+  try {
+    const payload = await sellerApi("/api/sales/orders", {
+      method: "POST",
+      body: {
+        customerId: Number(state.order.customerId),
+        items: state.order.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity
+        }))
+      }
+    });
+    state.order.items = [];
+    nodes.orderMessage.textContent = `Pedido ${payload.order?.orderNumber || ""} enviado a KM.`;
+    await loadDashboard();
+  } catch (error) {
+    nodes.orderMessage.textContent = error.message || "No se pudo enviar el pedido.";
+  } finally {
+    button.disabled = false;
+  }
+});
 
 loadDashboard();

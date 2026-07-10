@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { ValidationError } from "./domain/validation.js";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import {
   createAdminCustomer,
@@ -54,6 +55,7 @@ import {
   assignSalesRepToCustomer,
   authenticateSalesRep,
   createSalesCommissionSettlement,
+  getAssignedApprovedCustomerForSalesRep,
   getSalesRepPortalDashboard,
   getSalesRepDashboard,
   getSalesRepProfile,
@@ -204,6 +206,31 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/sales/dashboard") {
         const salesRep = requireSalesRep(currentSalesRep);
         return sendJson(response, 200, { salesRep, dashboard: getSalesRepPortalDashboard(db, salesRep.id) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/sales/products") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, url.searchParams.get("customerId"));
+        return sendJson(response, 200, {
+          products: listProducts(db, {
+            role: "customer",
+            approvalStatus: "approved",
+            customerId: customer.id
+          })
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/sales/orders") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const body = await readJson(request);
+        const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, body.customerId);
+        if (!customer.default_shipping_address_id) {
+          throw new ValidationError("El cliente no tiene lugar de entrega cargado");
+        }
+        const order = createOrder(db, customer.id, {
+          items: body.items,
+          shippingAddressId: customer.default_shipping_address_id
+        });
+        emailService.queueOrderCreated(order.id);
+        return sendJson(response, 201, { order, message: "Pedido enviado a KM." });
       }
       if (request.method === "GET" && url.pathname === "/api/me") {
         return sendJson(response, 200, { user: requireUser(currentUser) });
