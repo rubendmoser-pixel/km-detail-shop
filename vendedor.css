@@ -103,20 +103,20 @@ p {
 }
 
 h1 {
-  margin-bottom: 1rem;
-  font-size: clamp(2rem, 5vw, 4.5rem);
-  line-height: 0.98;
+  margin-bottom: 0.75rem;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1.05;
   letter-spacing: 0;
 }
 
 h2 {
   margin-bottom: 0;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
 }
 
 p {
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   line-height: 1.5;
 }
 
@@ -205,15 +205,16 @@ input:focus {
 
 .seller-stats {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   border: 1px solid var(--line);
   margin-bottom: 1.5rem;
 }
 
 .seller-stat {
-  min-height: 7rem;
-  padding: 1rem;
+  min-height: 5.7rem;
+  padding: 0.9rem 1rem;
   border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   background: rgba(23, 26, 29, 0.88);
 }
 
@@ -224,11 +225,14 @@ input:focus {
 .seller-stat strong {
   display: block;
   margin-bottom: 0.35rem;
-  font-size: 1.8rem;
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .seller-stat span {
   color: var(--muted);
+  font-size: 0.9rem;
   font-weight: 800;
 }
 
@@ -254,7 +258,7 @@ input:focus {
 }
 
 .seller-card {
-  padding: 1rem;
+  padding: 0.9rem;
 }
 
 .seller-card-top {
@@ -265,7 +269,7 @@ input:focus {
 }
 
 .seller-card strong {
-  font-size: 1.05rem;
+  font-size: 0.98rem;
 }
 
 .seller-card small,
@@ -291,7 +295,7 @@ input:focus {
   padding: 0.25rem 0.6rem;
   color: var(--text);
   background: #20242a;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 900;
   text-transform: uppercase;
 }
