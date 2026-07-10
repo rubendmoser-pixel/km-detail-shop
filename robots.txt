@@ -3,6 +3,6 @@ Allow: /
 Disallow: /admin.html
 Disallow: /reset.html
 Disallow: /api/
-Disallow: /uploads/
+Allow: /uploads/
 
 Sitemap: https://www.km-detail.com/sitemap.xml
