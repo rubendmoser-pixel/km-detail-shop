@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 17;
+const SCHEMA_VERSION = 18;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -118,11 +118,20 @@ function migrate(db) {
       bank_account_type TEXT NOT NULL DEFAULT '',
       bank_cbu TEXT NOT NULL DEFAULT '',
       bank_alias TEXT NOT NULL DEFAULT '',
+      password_hash TEXT NOT NULL DEFAULT '',
       default_commission_bps INTEGER NOT NULL DEFAULT 0 CHECK (default_commission_bps BETWEEN 0 AND 10000),
       status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
       notes TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sales_rep_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS sales_commission_settlements (
@@ -481,6 +490,7 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
+    CREATE INDEX IF NOT EXISTS idx_sales_rep_sessions_token ON sales_rep_sessions(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_commission_settlements_rep ON sales_commission_settlements(sales_rep_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_commission_items_settlement ON sales_commission_settlement_items(settlement_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, expires_at);
@@ -559,6 +569,17 @@ function migrate(db) {
   ensureColumn(db, "sales_reps", "bank_account_type", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "sales_reps", "bank_cbu", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "sales_reps", "bank_alias", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "sales_reps", "password_hash", "TEXT NOT NULL DEFAULT ''");
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sales_rep_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_sales_rep_sessions_token ON sales_rep_sessions(token_hash, expires_at);
+  `);
   db.exec("CREATE INDEX IF NOT EXISTS idx_orders_commission_pending ON orders(sales_rep_id, sales_commission_settlement_id, payment_status);");
   db.exec(`
     UPDATE orders

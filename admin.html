@@ -141,6 +141,7 @@
               <label><span>WhatsApp</span><input name="whatsapp" /></label>
               <label><span>Comision general (%)</span><input name="defaultCommission" type="number" min="0" max="100" step="0.01" value="0" /></label>
               <label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label>
+              <label class="wide"><span>Clave portal vendedor</span><input name="portalPassword" type="password" autocomplete="new-password" minlength="10" maxlength="200" placeholder="Completar solo para crear o cambiar clave" /></label>
               <fieldset class="wide">
                 <legend>Datos bancarios para liquidacion</legend>
                 <label><span>Banco</span><input name="bankName" maxlength="120" /></label>
@@ -159,7 +160,7 @@
             </form>
             <div class="orders-table-wrap">
               <table class="admin-table">
-                <thead><tr><th>Vendedor</th><th>Contacto</th><th>Banco</th><th>Comision</th><th>Estado</th><th>Editar</th></tr></thead>
+                <thead><tr><th>Vendedor</th><th>Contacto</th><th>Banco</th><th>Comision</th><th>Estado</th><th>Portal</th><th>Editar</th></tr></thead>
                 <tbody id="salesRepsTableBody"></tbody>
               </table>
             </div>

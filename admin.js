@@ -254,9 +254,10 @@ function renderSalesReps() {
       <td>${escapeAdmin(rep.bank_name || "Sin banco")}<br><span>${escapeAdmin(rep.bank_alias || rep.bank_cbu || "-")}</span></td>
       <td>${formatBps(rep.default_commission_bps)}</td>
       <td><span class="status-badge ${rep.status === "active" ? "approved" : "suspended"}">${rep.status === "active" ? "Activo" : "Inactivo"}</span></td>
+      <td><span class="status-badge ${Number(rep.has_portal_access || 0) ? "approved" : "pending"}">${Number(rep.has_portal_access || 0) ? "Activo" : "Sin clave"}</span></td>
       <td><button class="ghost-button row-button" type="button" data-edit-sales-rep="${rep.id}">Editar</button></td>
     </tr>
-  `).join("") : `<tr><td colspan="6">Todavia no hay vendedores cargados.</td></tr>`;
+  `).join("") : `<tr><td colspan="7">Todavia no hay vendedores cargados.</td></tr>`;
   adminEls.salesRepsTableBody.querySelectorAll("[data-edit-sales-rep]").forEach((button) => button.addEventListener("click", editSalesRep));
 }
 
@@ -516,6 +517,7 @@ function editSalesRepById(id) {
   adminEls.salesRepForm.elements.bankAlias.value = rep.bank_alias || "";
   adminEls.salesRepForm.elements.defaultCommission.value = rep.default_commission_bps / 100;
   adminEls.salesRepForm.elements.status.value = rep.status;
+  adminEls.salesRepForm.elements.portalPassword.value = "";
   adminEls.salesRepForm.elements.notes.value = rep.notes || "";
   adminEls.salesRepMessage.textContent = "";
 }
@@ -525,6 +527,7 @@ function resetSalesRepForm() {
   adminEls.salesRepForm.elements.id.value = "";
   adminEls.salesRepForm.elements.defaultCommission.value = "0";
   adminEls.salesRepForm.elements.status.value = "active";
+  adminEls.salesRepForm.elements.portalPassword.value = "";
   adminEls.salesRepFormTitle.textContent = "Nuevo vendedor";
   adminEls.salesRepMessage.textContent = "";
 }
@@ -550,6 +553,7 @@ async function saveSalesRep(event) {
         bankAlias: values.bankAlias,
         defaultCommissionBps: Math.round(Number(values.defaultCommission || 0) * 100),
         status: values.status,
+        portalPassword: values.portalPassword,
         notes: values.notes
       }
     });

@@ -52,17 +52,22 @@ import {
 } from "./services/payment-account-service.js";
 import {
   assignSalesRepToCustomer,
+  authenticateSalesRep,
   createSalesCommissionSettlement,
+  getSalesRepPortalDashboard,
   getSalesRepDashboard,
   getSalesRepProfile,
   getSalesCommissionSettlement,
   listPendingSalesCommissions,
   listSalesCommissionSettlements,
+  loginSalesRep,
+  logoutSalesRep,
   listSalesReps,
+  requireSalesRep,
   upsertSalesRep
 } from "./services/sales-rep-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
-import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSessionCookie, parseCookies, readJson, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
+import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSalesRepSessionCookie, clearSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
 import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
@@ -89,6 +94,7 @@ export function createApp({
     const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
     const cookies = parseCookies(request);
     const currentUser = authenticate(db, cookies.km_session);
+    const currentSalesRep = authenticateSalesRep(db, cookies.km_sales_session);
 
     try {
       const retryAfter = checkRateLimit(request, url.pathname);
@@ -178,6 +184,26 @@ export function createApp({
         const body = await readJson(request);
         const result = await resetPassword(db, body.token, body.password, config);
         return sendJson(response, 200, result);
+      }
+      if (request.method === "POST" && url.pathname === "/api/sales/login") {
+        const result = await loginSalesRep(db, await readJson(request), config.sessionDays || 30);
+        return sendJson(response, 200, { salesRep: result.salesRep, expiresAt: result.expiresAt }, {
+          "set-cookie": salesRepSessionCookie(result.token, {
+            secure: config.secureCookies,
+            maxAgeSeconds: (config.sessionDays || 30) * 86_400
+          })
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/sales/logout") {
+        logoutSalesRep(db, cookies.km_sales_session);
+        return sendJson(response, 200, { ok: true }, { "set-cookie": clearSalesRepSessionCookie({ secure: config.secureCookies }) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/sales/me") {
+        return sendJson(response, 200, { salesRep: requireSalesRep(currentSalesRep) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/sales/dashboard") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        return sendJson(response, 200, { salesRep, dashboard: getSalesRepPortalDashboard(db, salesRep.id) });
       }
       if (request.method === "GET" && url.pathname === "/api/me") {
         return sendJson(response, 200, { user: requireUser(currentUser) });
@@ -391,7 +417,7 @@ export function createApp({
         return sendJson(response, 200, { profile: getSalesRepProfile(db, Number(match[1])) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/sales-reps") {
-        return sendJson(response, 201, { salesRep: upsertSalesRep(db, await readJson(request)) });
+        return sendJson(response, 201, { salesRep: await upsertSalesRep(db, await readJson(request)) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/sales-commissions") {
         const salesRepId = Number(url.searchParams.get("salesRepId") || 0);

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Portal vendedor | KM Detail Line</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/vendedor.css" />
+  </head>
+  <body>
+    <header class="seller-header">
+      <a class="seller-brand" href="/vendedor.html" aria-label="KM Detail Line vendedores">
+        <img src="/assets/km-metal-logo-small.png" alt="KM Detail Line" />
+        <span>VENDEDORES</span>
+      </a>
+      <div class="seller-session" id="sellerSession"></div>
+    </header>
+
+    <main class="seller-shell">
+      <section class="seller-login" id="sellerLogin">
+        <p class="eyebrow">Acceso comercial</p>
+        <h1>Portal de vendedores</h1>
+        <p>Consulta clientes asignados, pedidos y comisiones desde una herramienta separada del panel de administracion.</p>
+        <form id="sellerLoginForm" class="seller-login-form">
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            <span>Clave</span>
+            <input name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="primary-button" type="submit">Ingresar</button>
+          <p class="form-message" id="sellerLoginMessage" role="status"></p>
+        </form>
+      </section>
+
+      <section class="seller-dashboard hidden" id="sellerDashboard">
+        <div class="dashboard-heading">
+          <div>
+            <p class="eyebrow">Herramienta comercial</p>
+            <h1 id="sellerTitle">Mi cartera</h1>
+            <p id="sellerSubtitle">Clientes asignados y pedidos activos.</p>
+          </div>
+          <button class="ghost-button" id="refreshSellerDashboard" type="button">Actualizar</button>
+        </div>
+
+        <div class="seller-stats" id="sellerStats"></div>
+
+        <div class="seller-grid">
+          <section class="seller-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Clientes</p>
+                <h2>Cuentas asignadas</h2>
+              </div>
+            </div>
+            <div class="seller-list" id="sellerCustomers"></div>
+          </section>
+
+          <section class="seller-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Pedidos</p>
+                <h2>Seguimiento de cartera</h2>
+              </div>
+            </div>
+            <div class="seller-list" id="sellerOrders"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="/vendedor.js" type="module"></script>
+  </body>
+</html>

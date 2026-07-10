@@ -117,6 +117,21 @@ export function clearSessionCookie({ secure = false } = {}) {
   return sessionCookie("", { secure, maxAgeSeconds: 0 });
 }
 
+export function salesRepSessionCookie(token, { secure = false, maxAgeSeconds = 2_592_000 } = {}) {
+  return [
+    `km_sales_session=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${maxAgeSeconds}`,
+    secure ? "Secure" : ""
+  ].filter(Boolean).join("; ");
+}
+
+export function clearSalesRepSessionCookie({ secure = false } = {}) {
+  return salesRepSessionCookie("", { secure, maxAgeSeconds: 0 });
+}
+
 export function serveStatic(response, projectRoot, pathname) {
   const requested = pathname === "/" ? "/index.html" : pathname;
   const decoded = decodeURIComponent(requested);

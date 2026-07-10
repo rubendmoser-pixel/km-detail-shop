@@ -1,4 +1,5 @@
-import { NotFoundError, ValidationError, basisPoints, normalizeEmail, optionalText, positiveInteger, requiredText } from "../domain/validation.js";
+import { createSessionToken, hashPassword, hashToken, verifyPassword } from "../security.js";
+import { AuthError, NotFoundError, ValidationError, basisPoints, normalizeEmail, optionalText, positiveInteger, requiredText } from "../domain/validation.js";
 
 const SALES_REP_STATUSES = new Set(["active", "inactive"]);
 
@@ -20,7 +21,8 @@ export function listSalesReps(db, filters = {}) {
   return db.prepare(`
     SELECT id, name, email, phone, whatsapp,
            bank_name, bank_account_holder, bank_tax_id, bank_account_type, bank_cbu, bank_alias,
-           default_commission_bps, status, notes, created_at, updated_at
+           default_commission_bps, status, notes, created_at, updated_at,
+           CASE WHEN password_hash != '' THEN 1 ELSE 0 END AS has_portal_access
     FROM sales_reps
     ${whereSql}
     ORDER BY status = 'inactive', name COLLATE NOCASE
@@ -128,7 +130,8 @@ export function getSalesRepProfile(db, salesRepId) {
   const rep = db.prepare(`
     SELECT id, name, email, phone, whatsapp,
            bank_name, bank_account_holder, bank_tax_id, bank_account_type, bank_cbu, bank_alias,
-           default_commission_bps, status, notes, created_at, updated_at
+           default_commission_bps, status, notes, created_at, updated_at,
+           CASE WHEN password_hash != '' THEN 1 ELSE 0 END AS has_portal_access
     FROM sales_reps
     WHERE id = ?
   `).get(id);
@@ -212,6 +215,7 @@ export function getSalesRepProfile(db, salesRepId) {
       defaultCommissionBps: rep.default_commission_bps,
       status: rep.status,
       notes: rep.notes,
+      hasPortalAccess: Boolean(rep.has_portal_access),
       createdAt: rep.created_at,
       updatedAt: rep.updated_at
     },
@@ -234,7 +238,7 @@ export function getSalesRepProfile(db, salesRepId) {
   };
 }
 
-export function upsertSalesRep(db, input = {}) {
+export async function upsertSalesRep(db, input = {}) {
   const id = Number(input.id || 0);
   const name = requiredText(input.name, "name", { min: 2, max: 160 });
   const email = normalizeEmail(input.email);
@@ -250,46 +254,172 @@ export function upsertSalesRep(db, input = {}) {
   const status = optionalText(input.status, "status", { max: 20 }) || "active";
   if (!SALES_REP_STATUSES.has(status)) throw new ValidationError("Invalid sales rep status");
   const notes = optionalText(input.notes, "notes", { max: 1000 });
+  const portalPassword = optionalText(input.portalPassword, "portalPassword", { max: 200 });
+  let passwordHash = "";
+  if (portalPassword) {
+    try {
+      passwordHash = await hashPassword(portalPassword);
+    } catch {
+      throw new ValidationError("La clave del vendedor debe tener entre 10 y 200 caracteres");
+    }
+  }
 
   try {
     if (id) {
+      const setPassword = passwordHash ? ", password_hash = ?" : "";
+      const params = [
+        name, email, phone, whatsapp,
+        bankName, bankAccountHolder, bankTaxId, bankAccountType, bankCbu, bankAlias,
+        defaultCommissionBps, status, notes
+      ];
+      if (passwordHash) params.push(passwordHash);
+      params.push(id);
       const updated = db.prepare(`
         UPDATE sales_reps
         SET name = ?, email = ?, phone = ?, whatsapp = ?,
             bank_name = ?, bank_account_holder = ?, bank_tax_id = ?, bank_account_type = ?, bank_cbu = ?, bank_alias = ?,
             default_commission_bps = ?,
-            status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            status = ?, notes = ?${setPassword}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-        RETURNING id, name, email, phone, whatsapp,
-                  bank_name, bank_account_holder, bank_tax_id, bank_account_type, bank_cbu, bank_alias,
-                  default_commission_bps, status, notes, created_at, updated_at
-      `).get(
-        name, email, phone, whatsapp,
-        bankName, bankAccountHolder, bankTaxId, bankAccountType, bankCbu, bankAlias,
-        defaultCommissionBps, status, notes, id
-      );
-      if (!updated) throw new NotFoundError("Sales rep not found");
-      return updated;
+      `).run(...params);
+      if (!updated.changes) throw new NotFoundError("Sales rep not found");
+      return getSalesRepRow(db, id);
     }
-    return db.prepare(`
+    const inserted = db.prepare(`
       INSERT INTO sales_reps (
         name, email, phone, whatsapp,
         bank_name, bank_account_holder, bank_tax_id, bank_account_type, bank_cbu, bank_alias,
-        default_commission_bps, status, notes
+        password_hash, default_commission_bps, status, notes
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      RETURNING id, name, email, phone, whatsapp,
-                bank_name, bank_account_holder, bank_tax_id, bank_account_type, bank_cbu, bank_alias,
-                default_commission_bps, status, notes, created_at, updated_at
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING id
     `).get(
       name, email, phone, whatsapp,
       bankName, bankAccountHolder, bankTaxId, bankAccountType, bankCbu, bankAlias,
-      defaultCommissionBps, status, notes
+      passwordHash, defaultCommissionBps, status, notes
     );
+    return getSalesRepRow(db, inserted.id);
   } catch (error) {
     if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Sales rep email already exists");
     throw error;
   }
+}
+
+function getSalesRepRow(db, id) {
+  const row = db.prepare(`
+    SELECT id, name, email, phone, whatsapp,
+           bank_name, bank_account_holder, bank_tax_id, bank_account_type, bank_cbu, bank_alias,
+           default_commission_bps, status, notes, created_at, updated_at,
+           CASE WHEN password_hash != '' THEN 1 ELSE 0 END AS has_portal_access
+    FROM sales_reps
+    WHERE id = ?
+  `).get(id);
+  if (!row) throw new NotFoundError("Sales rep not found");
+  return row;
+}
+
+function publicSalesRep(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone || "",
+    whatsapp: row.whatsapp || "",
+    status: row.status,
+    hasPortalAccess: Boolean(row.has_portal_access),
+    defaultCommissionBps: row.default_commission_bps || 0
+  };
+}
+
+export async function loginSalesRep(db, input = {}, sessionDays = 30) {
+  const email = normalizeEmail(input.email);
+  const password = requiredText(input.password, "password", { min: 1, max: 200 });
+  const row = db.prepare(`
+    SELECT id, name, email, phone, whatsapp, default_commission_bps, status, password_hash,
+           CASE WHEN password_hash != '' THEN 1 ELSE 0 END AS has_portal_access
+    FROM sales_reps
+    WHERE email = ?
+  `).get(email);
+  if (!row || row.status !== "active" || !row.password_hash || !(await verifyPassword(password, row.password_hash))) {
+    throw new AuthError("Invalid email or password", 401);
+  }
+  const { token, tokenHash } = createSessionToken();
+  const expiresAt = new Date(Date.now() + sessionDays * 86_400_000).toISOString();
+  db.prepare("INSERT INTO sales_rep_sessions (sales_rep_id, token_hash, expires_at) VALUES (?, ?, ?)").run(row.id, tokenHash, expiresAt);
+  return { salesRep: publicSalesRep(row), token, expiresAt };
+}
+
+export function authenticateSalesRep(db, token) {
+  if (!token) return null;
+  const tokenHash = hashToken(token);
+  const row = db.prepare(`
+    SELECT sr.id, sr.name, sr.email, sr.phone, sr.whatsapp, sr.default_commission_bps, sr.status,
+           CASE WHEN sr.password_hash != '' THEN 1 ELSE 0 END AS has_portal_access
+    FROM sales_rep_sessions s
+    JOIN sales_reps sr ON sr.id = s.sales_rep_id
+    WHERE s.token_hash = ? AND s.expires_at > ? AND sr.status = 'active'
+  `).get(tokenHash, new Date().toISOString());
+  return row ? publicSalesRep(row) : null;
+}
+
+export function logoutSalesRep(db, token) {
+  if (!token) return;
+  db.prepare("DELETE FROM sales_rep_sessions WHERE token_hash = ?").run(hashToken(token));
+}
+
+export function requireSalesRep(salesRep) {
+  if (!salesRep) throw new AuthError("Sales rep authentication required", 401);
+  return salesRep;
+}
+
+export function getSalesRepPortalDashboard(db, salesRepId) {
+  const id = positiveInteger(Number(salesRepId), "salesRepId");
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const customers = db.prepare(`
+    SELECT c.id, c.business_name, c.tax_id, c.approval_status, c.commercial_class,
+           c.city, c.province, c.phone, c.whatsapp, c.contact_person,
+           u.email
+    FROM customers c
+    JOIN users u ON u.id = c.user_id
+    WHERE c.sales_rep_id = ?
+    ORDER BY c.approval_status = 'approved' DESC, c.business_name COLLATE NOCASE
+  `).all(id);
+  const orders = db.prepare(`
+    SELECT o.id, o.order_number, o.status, o.payment_status, o.fulfillment_status,
+           o.total_cents, o.paid_cents, o.balance_cents, o.payment_due_date,
+           o.sales_commission_bps, o.sales_commission_base_cents, o.sales_commission_cents,
+           o.sales_commission_settlement_id, o.created_at, o.updated_at,
+           c.business_name, c.commercial_class
+    FROM orders o
+    JOIN customers c ON c.id = o.customer_id
+    WHERE (o.sales_rep_id = ? OR c.sales_rep_id = ?)
+      AND o.status != 'cancelled'
+    ORDER BY o.created_at DESC, o.id DESC
+    LIMIT 120
+  `).all(id, id);
+  const monthOrders = orders.filter((order) => String(order.created_at || "").slice(0, 10) >= monthStart);
+  const closedFulfillmentStatuses = new Set(["delivered", "customer_received"]);
+  const openOrders = orders.filter((order) => !closedFulfillmentStatuses.has(order.fulfillment_status));
+  const pendingCommission = orders
+    .filter((order) => Number(order.sales_commission_cents || 0) > 0 && !order.sales_commission_settlement_id && order.balance_cents === 0)
+    .reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0);
+  return {
+    generatedAt: new Date().toISOString(),
+    salesRepId: id,
+    period: { from: monthStart, to: today },
+    summary: {
+      customerCount: customers.length,
+      approvedCustomerCount: customers.filter((customer) => customer.approval_status === "approved").length,
+      openOrders: openOrders.length,
+      monthOrders: monthOrders.length,
+      monthTotalCents: monthOrders.reduce((total, order) => total + Number(order.total_cents || 0), 0),
+      balanceCents: openOrders.reduce((total, order) => total + Number(order.balance_cents || 0), 0),
+      pendingCommissionCents: pendingCommission
+    },
+    customers,
+    orders
+  };
 }
 
 function keyedBySalesRep(rows) {
