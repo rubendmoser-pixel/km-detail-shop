@@ -1611,27 +1611,10 @@ body.checkout-focus .order-form {
   text-transform: uppercase;
 }
 
-.cta-badges,
 .order-access-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-}
-
-.cta-badges {
-  margin-top: 16px;
-}
-
-.cta-badges span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 7px 11px;
-  color: #08090a;
-  background: #edf1f5;
-  border-radius: 999px;
-  font-size: 0.86rem;
-  font-weight: 900;
 }
 
 .order-access-actions {
