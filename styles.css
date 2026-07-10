@@ -662,6 +662,9 @@ textarea:focus {
   min-width: min(260px, calc(100% - 36px));
   min-height: 58px;
   justify-content: center;
+  overflow: hidden;
+  isolation: isolate;
+  contain: paint;
 }
 
 .price-list-section {
