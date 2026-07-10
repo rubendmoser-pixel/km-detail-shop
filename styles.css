@@ -634,6 +634,25 @@ textarea:focus {
   justify-content: flex-end;
 }
 
+.catalog-cover-card {
+  width: min(100%, 620px);
+  margin: 30px auto 0;
+  padding: clamp(10px, 1.4vw, 16px);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    #111214;
+  border: 1px solid #3f4146;
+  border-radius: 10px;
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.36);
+}
+
+.catalog-cover-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
 .catalog-download-card {
   display: flex;
   align-items: center;
