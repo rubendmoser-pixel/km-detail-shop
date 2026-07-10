@@ -59,7 +59,58 @@
                 <option value="rejected">Rechazados</option><option value="suspended">Suspendidos</option><option value="inactive">Inactivos</option>
               </select>
               <button class="ghost-button" id="reloadCustomers" type="button">Actualizar</button>
+              <button class="ghost-button" id="toggleCustomerCreate" type="button">Crear cliente</button>
             </div>
+          </div>
+          <div class="customer-create-panel" id="customerCreatePanel" hidden>
+            <form id="customerCreateForm" class="customer-create-form">
+              <div class="form-section-title"><span>Alta interna</span><strong>Cliente aprobado por KM</strong></div>
+              <label><span>Email de acceso</span><input name="email" type="email" required autocomplete="off" /></label>
+              <label><span>Contraseña inicial</span><input name="password" type="text" minlength="8" required autocomplete="off" /></label>
+              <label><span>Razón social</span><input name="businessName" required /></label>
+              <label><span>CUIT</span><input name="taxId" required placeholder="30-00000000-0" /></label>
+              <label><span>Condición fiscal</span><select name="taxCondition" required>
+                <option value="Responsable inscripto">Responsable inscripto</option>
+                <option value="Monotributo">Monotributo</option>
+                <option value="Exento">Exento</option>
+                <option value="No responsable">No responsable</option>
+              </select></label>
+              <label><span>Tipo de cliente</span><select name="customerType" required>
+                <option value="Distribuidor">Distribuidor</option>
+                <option value="Pintureria">Pintureria</option>
+                <option value="Comercio especializado">Comercio especializado</option>
+                <option value="Mayorista">Mayorista</option>
+              </select></label>
+              <label><span>Nombre</span><input name="firstName" required /></label>
+              <label><span>Apellido</span><input name="lastName" required /></label>
+              <label><span>Contacto comercial</span><input name="contactPerson" required /></label>
+              <label><span>Rubro</span><input name="industry" required placeholder="Pintureria, distribuidor, comercio..." /></label>
+              <label><span>Provincia</span><select name="province" required>
+                <option>Buenos Aires</option><option>Ciudad Autonoma de Buenos Aires</option><option>Catamarca</option><option>Chaco</option><option>Chubut</option>
+                <option>Cordoba</option><option>Corrientes</option><option>Entre Rios</option><option>Formosa</option><option>Jujuy</option><option>La Pampa</option><option>La Rioja</option>
+                <option>Mendoza</option><option>Misiones</option><option>Neuquen</option><option>Rio Negro</option><option>Salta</option><option>San Juan</option><option>San Luis</option>
+                <option>Santa Cruz</option><option selected>Santa Fe</option><option>Santiago del Estero</option><option>Tierra del Fuego</option><option>Tucuman</option>
+              </select></label>
+              <label><span>Localidad</span><input name="city" required /></label>
+              <label><span>Código postal</span><input name="postalCode" required /></label>
+              <label class="wide"><span>Dirección principal</span><input name="address" required /></label>
+              <label><span>Teléfono</span><input name="phone" required /></label>
+              <label><span>WhatsApp</span><input name="whatsapp" required /></label>
+              <label><span>B / N</span><select name="commercialClass"><option value="B">B</option><option value="N">N</option></select></label>
+              <label><span>Forma de pago</span><select name="paymentCondition"><option value="advance_payment">Pago anticipado</option><option value="credit_account">Cuenta corriente</option></select></label>
+              <label data-create-payment-terms hidden><span>Días cta. cte.</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="15" disabled /></label>
+              <label><span>Vendedor</span><select name="salesRepId"></select></label>
+              <label><span>Comisión vendedor (%)</span><input name="commission" type="number" min="0" max="100" step="0.01" placeholder="General" /></label>
+              <label><span>Desc. 1 (%)</span><input name="discount1" type="number" min="0" max="100" step="0.01" value="0" /></label>
+              <label><span>Desc. 2 (%)</span><input name="discount2" type="number" min="0" max="100" step="0.01" value="0" /></label>
+              <label><span>Desc. 3 (%)</span><input name="discount3" type="number" min="0" max="100" step="0.01" value="0" /></label>
+              <label class="wide"><span>Notas internas</span><textarea name="notes" rows="3"></textarea></label>
+              <div class="wide form-actions">
+                <button class="ghost-button" type="submit">Crear cliente aprobado</button>
+                <button class="ghost-button" id="cancelCustomerCreate" type="button">Cancelar</button>
+              </div>
+              <p class="admin-note wide" id="customerCreateMessage"></p>
+            </form>
           </div>
           <div class="admin-stats" id="customerStats"></div>
           <div class="customer-list" id="customerList"></div>

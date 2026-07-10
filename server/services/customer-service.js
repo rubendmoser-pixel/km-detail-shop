@@ -1,4 +1,15 @@
-import { NotFoundError, ValidationError, basisPoints, optionalText, requiredText } from "../domain/validation.js";
+import { transaction } from "../db.js";
+import { ValidationError, NotFoundError, basisPoints, normalizeEmail, optionalText, requiredText } from "../domain/validation.js";
+import { hashPassword } from "../security.js";
+import {
+  ARGENTINA_PROVINCES,
+  CUSTOMER_TYPES,
+  TAX_CONDITIONS,
+  allowedValue,
+  normalizeArgentineTaxId,
+  normalizePhone,
+  normalizePostalCode
+} from "./auth-service.js";
 
 const ALLOWED_STATUSES = new Set(["pending", "approved", "rejected", "suspended", "inactive"]);
 const ALLOWED_COMMERCIAL_CLASSES = new Set(["B", "N"]);
@@ -46,6 +57,81 @@ export function listCustomers(db, filters = "") {
     ${whereSql}
     ORDER BY c.created_at DESC
   `).all(...params);
+}
+
+export async function createAdminCustomer(db, input = {}, adminUserId) {
+  const email = normalizeEmail(input.email);
+  const password = requiredText(String(input.password || ""), "password", { min: 8, max: 100 });
+  const passwordHash = await hashPassword(password);
+  const customer = {
+    firstName: requiredText(input.firstName, "firstName", { max: 120 }),
+    lastName: requiredText(input.lastName, "lastName", { max: 120 }),
+    businessName: requiredText(input.businessName, "businessName", { max: 180 }),
+    taxId: normalizeArgentineTaxId(input.taxId),
+    taxCondition: allowedValue(input.taxCondition, TAX_CONDITIONS, "taxCondition"),
+    customerType: allowedValue(input.customerType, CUSTOMER_TYPES, "customerType"),
+    industry: requiredText(input.industry, "industry", { max: 120 }),
+    city: requiredText(input.city, "city", { min: 2, max: 80 }),
+    province: allowedValue(input.province, ARGENTINA_PROVINCES, "province"),
+    postalCode: normalizePostalCode(input.postalCode),
+    address: requiredText(input.address, "address", { max: 240 }),
+    phone: normalizePhone(input.phone, "phone"),
+    whatsapp: normalizePhone(input.whatsapp, "whatsapp"),
+    contactPerson: requiredText(input.contactPerson, "contactPerson", { max: 160 }),
+    notes: optionalText(input.notes, "notes", { max: 2000 })
+  };
+  const salesRepId = normalizeOptionalSalesRep(db, input.salesRepId);
+  const salesCommissionBps = normalizeOptionalCommission(input.commissionBps);
+  const commercialClass = normalizeCommercialClass(input.commercialClass || "B");
+  const paymentCondition = normalizeCustomerPaymentCondition(input.paymentCondition || "advance_payment");
+  const paymentTermsDays = paymentCondition === "credit_account" ? normalizeCustomerPaymentTermsDays(input.paymentTermsDays || 15) : 0;
+  const discounts = [
+    basisPoints(Number(input.discount1Bps || 0), "discount1Bps"),
+    basisPoints(Number(input.discount2Bps || 0), "discount2Bps"),
+    basisPoints(Number(input.discount3Bps || 0), "discount3Bps")
+  ];
+  const now = new Date().toISOString();
+
+  try {
+    return transaction(db, () => {
+      const user = db.prepare(`
+        INSERT INTO users (email, password_hash, role, status)
+        VALUES (?, ?, 'customer', 'active')
+        RETURNING id, email, role, status
+      `).get(email, passwordHash);
+      const created = db.prepare(`
+        INSERT INTO customers (
+          user_id, first_name, last_name, business_name, tax_id, tax_condition, customer_type,
+          industry, city, province, postal_code, address, phone, whatsapp, contact_person, notes,
+          sales_rep_id, sales_commission_bps, commercial_class, approval_status,
+          terms_accepted_at, privacy_accepted_at, approved_at, approved_by,
+          payment_condition, payment_terms_days
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?, ?, ?)
+        RETURNING id
+      `).get(
+        user.id, customer.firstName, customer.lastName, customer.businessName, customer.taxId,
+        customer.taxCondition, customer.customerType, customer.industry, customer.city,
+        customer.province, customer.postalCode, customer.address, customer.phone, customer.whatsapp,
+        customer.contactPerson, customer.notes, salesRepId, salesCommissionBps, commercialClass,
+        now, now, now, adminUserId, paymentCondition, paymentTermsDays
+      );
+      db.prepare(`
+        INSERT INTO customer_discounts (customer_id, discount_1_bps, discount_2_bps, discount_3_bps, updated_by)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(created.id, discounts[0], discounts[1], discounts[2], adminUserId);
+      db.prepare(`
+        INSERT INTO customer_shipping_addresses (
+          customer_id, label, recipient, address, city, province, postal_code, contact_phone, notes, is_default
+        ) VALUES (?, 'Principal', ?, ?, ?, ?, ?, ?, '', 1)
+      `).run(created.id, customer.contactPerson || customer.businessName, customer.address, customer.city, customer.province, customer.postalCode, customer.whatsapp);
+      return listCustomers(db, { search: email }).find((row) => row.id === created.id);
+    });
+  } catch (error) {
+    if (String(error.message).includes("UNIQUE constraint failed")) {
+      throw new ValidationError("Email o CUIT ya registrado");
+    }
+    throw error;
+  }
 }
 
 export function setCustomerStatus(db, customerId, status, adminUserId, commercialClass = "") {
@@ -225,6 +311,20 @@ function customerProductDiscount(row) {
     note: row.note || "",
     updatedAt: row.updated_at
   };
+}
+
+function normalizeOptionalSalesRep(db, value) {
+  const id = Number(value || 0);
+  if (!id) return null;
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("salesRepId is invalid");
+  const rep = db.prepare("SELECT id FROM sales_reps WHERE id = ?").get(id);
+  if (!rep) throw new NotFoundError("Sales rep not found");
+  return id;
+}
+
+function normalizeOptionalCommission(value) {
+  if (value === undefined || value === null || value === "") return null;
+  return basisPoints(Number(value), "commissionBps");
 }
 
 function normalizeCommercialClass(value) {

@@ -62,7 +62,8 @@ const fulfillmentStateClasses = {
 
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
-  "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "ordersTableBody",
+  "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "toggleCustomerCreate",
+  "customerCreatePanel", "customerCreateForm", "customerCreateMessage", "cancelCustomerCreate", "ordersTableBody",
   "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter", "orderOpsStats",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
   "orderHistoryPanel",
@@ -100,6 +101,10 @@ function bindAdminEvents() {
   adminEls.customerSearch.addEventListener("input", debounce(loadCustomers, 250));
   adminEls.customerStatusFilter.addEventListener("change", loadCustomers);
   document.querySelector("#reloadCustomers").addEventListener("click", loadCustomers);
+  adminEls.toggleCustomerCreate?.addEventListener("click", toggleCustomerCreatePanel);
+  adminEls.cancelCustomerCreate?.addEventListener("click", () => toggleCustomerCreatePanel(false));
+  adminEls.customerCreateForm?.addEventListener("submit", createCustomerFromAdmin);
+  adminEls.customerCreateForm?.elements.paymentCondition?.addEventListener("change", syncCustomerCreatePaymentForm);
   adminEls.productSearch.addEventListener("input", debounce(loadProducts, 250));
   adminEls.productFamilyFilter.addEventListener("change", loadProducts);
   adminEls.productStatusFilter.addEventListener("change", loadProducts);
@@ -233,6 +238,7 @@ async function loadSalesReps() {
   if (adminEls.salesRepStatusFilter.value) params.set("status", adminEls.salesRepStatusFilter.value);
   const { salesReps } = await adminApi(`/api/admin/sales-reps${params.toString() ? `?${params}` : ""}`);
   adminState.salesReps = salesReps;
+  refreshCustomerCreateSalesReps();
   renderSalesReps();
   renderCommissionSalesRepFilter();
   await loadSalesCommissions();
@@ -1061,6 +1067,87 @@ function fileToBase64(file) {
 
 function productField(name) {
   return adminEls.productForm.querySelector(`[name="${name}"]`);
+}
+
+function toggleCustomerCreatePanel(forceOpen) {
+  const open = typeof forceOpen === "boolean" ? forceOpen : adminEls.customerCreatePanel.hidden;
+  adminEls.customerCreatePanel.hidden = !open;
+  adminEls.toggleCustomerCreate.textContent = open ? "Cerrar alta" : "Crear cliente";
+  if (open) {
+    refreshCustomerCreateSalesReps();
+    syncCustomerCreatePaymentForm();
+    adminEls.customerCreateMessage.textContent = "";
+    adminEls.customerCreateForm.elements.email?.focus();
+  }
+}
+
+function refreshCustomerCreateSalesReps() {
+  const select = adminEls.customerCreateForm?.elements.salesRepId;
+  if (!select) return;
+  const selected = Number(select.value || 0);
+  select.innerHTML = salesRepOptions(selected);
+}
+
+function syncCustomerCreatePaymentForm() {
+  const form = adminEls.customerCreateForm;
+  if (!form) return;
+  const isCredit = normalizeCustomerPaymentCondition(form.elements.paymentCondition?.value) === "credit_account";
+  const field = form.querySelector("[data-create-payment-terms]");
+  const input = form.elements.paymentTermsDays;
+  if (field) field.hidden = !isCredit;
+  if (input) {
+    input.disabled = !isCredit;
+    if (isCredit && !input.value) input.value = "15";
+  }
+}
+
+async function createCustomerFromAdmin(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const values = Object.fromEntries(new FormData(form));
+  const body = {
+    email: values.email,
+    password: values.password,
+    businessName: values.businessName,
+    taxId: values.taxId,
+    taxCondition: values.taxCondition,
+    customerType: values.customerType,
+    firstName: values.firstName,
+    lastName: values.lastName,
+    contactPerson: values.contactPerson,
+    industry: values.industry,
+    province: values.province,
+    city: values.city,
+    postalCode: values.postalCode,
+    address: values.address,
+    phone: values.phone,
+    whatsapp: values.whatsapp,
+    commercialClass: values.commercialClass,
+    paymentCondition: values.paymentCondition,
+    paymentTermsDays: values.paymentTermsDays ? Number(values.paymentTermsDays) : 0,
+    salesRepId: values.salesRepId ? Number(values.salesRepId) : null,
+    commissionBps: values.commission === "" ? null : Math.round(Number(values.commission || 0) * 100),
+    discount1Bps: Math.round(Number(values.discount1 || 0) * 100),
+    discount2Bps: Math.round(Number(values.discount2 || 0) * 100),
+    discount3Bps: Math.round(Number(values.discount3 || 0) * 100),
+    notes: values.notes || ""
+  };
+  setBusy(form, true);
+  adminEls.customerCreateMessage.textContent = "";
+  try {
+    const { customer } = await adminApi("/api/admin/customers", { method: "POST", body });
+    adminState.selectedCustomerId = customer?.id || null;
+    form.reset();
+    syncCustomerCreatePaymentForm();
+    toggleCustomerCreatePanel(false);
+    await loadCustomers();
+    showAdminToast("Cliente creado y aprobado.");
+  } catch (error) {
+    adminEls.customerCreateMessage.textContent = error.message;
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
+  }
 }
 
 function renderCustomerStats() {

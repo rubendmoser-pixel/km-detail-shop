@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import {
+  createAdminCustomer,
   deleteCustomerProductDiscount,
   listCustomerProductDiscounts,
   listCustomers,
@@ -311,6 +312,9 @@ export function createApp({
             search: url.searchParams.get("q") || ""
           })
         });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/customers") {
+        return sendJson(response, 201, { customer: await createAdminCustomer(db, await readJson(request), currentUser.id) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/distributors") {
         return sendJson(response, 200, {

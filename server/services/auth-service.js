@@ -2,19 +2,19 @@ import { createSessionToken, hashPassword, hashToken, verifyPassword } from "../
 import { transaction } from "../db.js";
 import { AuthError, ValidationError, normalizeEmail, optionalText, requiredText } from "../domain/validation.js";
 
-const CUSTOMER_FIELDS = [
+export const CUSTOMER_FIELDS = [
   "firstName", "lastName", "businessName", "taxId", "taxCondition", "customerType",
   "industry", "city", "province", "postalCode", "address", "phone", "whatsapp", "contactPerson"
 ];
 
-const TAX_CONDITIONS = new Set([
+export const TAX_CONDITIONS = new Set([
   "Responsable inscripto",
   "Monotributo",
   "Exento",
   "No responsable"
 ]);
 
-const CUSTOMER_TYPES = new Set([
+export const CUSTOMER_TYPES = new Set([
   "Distribuidor",
   "Pintureria",
   "Comercio especializado",
@@ -82,7 +82,7 @@ export function allowedValue(value, allowed, field) {
   return value;
 }
 
-function normalizeArgentineTaxId(value) {
+export function normalizeArgentineTaxId(value) {
   const digits = String(value || "").replace(/\D/g, "");
   if (!/^\d{11}$/.test(digits)) throw new ValidationError("CUIT debe tener 11 digitos");
   const prefix = digits.slice(0, 2);
