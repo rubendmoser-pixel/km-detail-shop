@@ -1640,20 +1640,73 @@ body.checkout-focus .order-form {
 }
 
 .order-access-actions button {
+  position: relative;
   flex: 1 1 190px;
   min-height: 56px;
+  overflow: hidden;
 }
 
 .cta-primary {
-  background: linear-gradient(180deg, #f4f7fa, #bcc5ce);
-  border-color: #f4f7fa;
-  box-shadow: 0 12px 34px rgba(216, 221, 228, 0.18);
+  color: #06110d;
+  background:
+    linear-gradient(135deg, #e7ff8d 0%, #a8f56d 44%, #60d98a 100%);
+  border: 1px solid rgba(204, 255, 146, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.36),
+    0 0 28px rgba(126, 235, 128, 0.28),
+    0 16px 38px rgba(48, 179, 113, 0.24);
+  text-shadow: none;
+  animation: cta-attention-pulse 2.8s ease-in-out infinite;
+}
+
+.cta-primary::after {
+  content: "";
+  position: absolute;
+  inset: -40% auto -40% -55%;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.48), transparent);
+  transform: skewX(-18deg);
+  animation: cta-attention-sweep 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.cta-primary:hover {
+  border-color: #f3ffd6;
+  filter: brightness(1.04);
 }
 
 .cta-secondary {
   color: #f7f7f5;
   background: rgba(5, 6, 7, 0.45);
   border-color: #6d747c;
+}
+
+@keyframes cta-attention-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(0, 0, 0, 0.36),
+      0 0 22px rgba(126, 235, 128, 0.22),
+      0 16px 38px rgba(48, 179, 113, 0.2);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(0, 0, 0, 0.36),
+      0 0 34px rgba(126, 235, 128, 0.38),
+      0 18px 44px rgba(48, 179, 113, 0.3);
+  }
+}
+
+@keyframes cta-attention-sweep {
+  0%,
+  62% {
+    left: -55%;
+  }
+
+  100% {
+    left: 118%;
+  }
 }
 
 .distributor-layout {
