@@ -39,6 +39,7 @@ const routeSections = new Map([
 
 const state = {
   products: [],
+  officialDistributors: [],
   user: null,
   orders: [],
   shippingAddresses: [],
@@ -111,13 +112,13 @@ const els = Object.fromEntries([
   "accountDialog", "accountTitle", "loginForm", "registerForm", "accountMessage",
   "showLogin", "showRegister", "sessionPanel", "sessionBusiness", "sessionStatus",
   "imageLightbox", "imageLightboxImage", "imageLightboxCaption", "closeImageLightbox", "closeImageLightboxBackdrop",
-  "catalogPrev", "catalogNext", "catalogPageLabel", "catalogPageImage", "catalogThumbs"
+  "catalogPrev", "catalogNext", "catalogPageLabel", "catalogPageImage", "catalogThumbs", "officialDistributorPanel"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function init() {
   normalizeInitialRoute();
   bindEvents();
-  await Promise.all([loadSession(), loadSettings()]);
+  await Promise.all([loadSession(), loadSettings(), loadOfficialDistributors()]);
   await loadProducts();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js").catch(() => {});
@@ -253,6 +254,15 @@ async function loadProducts() {
   }
 }
 
+async function loadOfficialDistributors() {
+  try {
+    const { distributors } = await api("/api/distributors/public");
+    state.officialDistributors = distributors || [];
+  } catch {
+    state.officialDistributors = [];
+  }
+}
+
 async function loadPushState() {
   if (!state.push.supported || !isApprovedCustomer()) return;
   try {
@@ -324,6 +334,47 @@ function renderAll() {
   renderProducts();
   renderCart();
   renderCustomerOrders();
+  renderOfficialDistributors();
+}
+
+function renderOfficialDistributors() {
+  if (!els.officialDistributorPanel) return;
+  const distributors = state.officialDistributors || [];
+  if (!distributors.length) {
+    els.officialDistributorPanel.innerHTML = `
+      <span class="cta-kicker">Pr&oacute;ximamente</span>
+      <strong>Distribuidores oficiales</strong>
+      <p>Publicaremos los puntos de venta y distribuidores autorizados de KM Detail Line.</p>
+    `;
+    return;
+  }
+  els.officialDistributorPanel.innerHTML = `
+    <span class="cta-kicker">Red oficial</span>
+    <strong>Distribuidores autorizados</strong>
+    <div class="official-distributor-list">
+      ${distributors.map((distributor) => {
+        const whatsapp = distributorWhatsAppUrl(distributor.whatsapp);
+        return `
+          <article class="official-distributor-item">
+            <h3>${escapeHtml(distributor.name)}</h3>
+            <p>${escapeHtml([distributor.city, distributor.province].filter(Boolean).join(", ") || distributor.coverage || "Argentina")}</p>
+            ${distributor.address ? `<small>${escapeHtml(distributor.address)}</small>` : ""}
+            ${distributor.coverage ? `<small>${escapeHtml(distributor.coverage)}</small>` : ""}
+            <div class="official-distributor-actions">
+              ${whatsapp ? `<a href="${whatsapp}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+              ${distributor.email ? `<a href="mailto:${escapeHtml(distributor.email)}">Email</a>` : ""}
+              ${distributor.website ? `<a href="${escapeHtml(distributor.website)}" target="_blank" rel="noopener">Web</a>` : ""}
+            </div>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function distributorWhatsAppUrl(value) {
+  const digits = String(value || "").replace(/[^\d]/g, "");
+  return digits ? `https://wa.me/${digits}` : "";
 }
 
 function renderCatalogBook() {

@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=61" />
-    <link rel="stylesheet" href="./admin.css?v=42" />
+    <link rel="stylesheet" href="./admin.css?v=43" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -38,6 +38,7 @@
         <nav class="admin-tabs" aria-label="Secciones administrativas">
           <button class="active" type="button" data-admin-view="customers">Clientes</button>
           <button type="button" data-admin-view="sales">Vendedores</button>
+          <button type="button" data-admin-view="distributors">Distribuidores</button>
           <button type="button" data-admin-view="products">Productos</button>
           <button type="button" data-admin-view="orders">Pedidos</button>
           <button type="button" data-admin-view="accounts">Cta. corriente</button>
@@ -132,6 +133,51 @@
             </div>
             <div class="commission-settlements" id="commissionSettlements"></div>
           </section>
+        </section>
+
+        <section class="admin-view" id="distributorsView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Red oficial</p><h1>Distribuidores publicados</h1></div>
+            <div class="admin-toolbar">
+              <input id="distributorSearch" type="search" placeholder="Buscar nombre, zona, email o WhatsApp" aria-label="Buscar distribuidores" />
+              <select id="distributorStatusFilter" aria-label="Filtrar distribuidores">
+                <option value="">Todos</option>
+                <option value="published">Publicados</option>
+                <option value="draft">No publicados</option>
+              </select>
+              <button class="ghost-button" id="reloadDistributors" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="sales-admin-layout distributor-admin-layout">
+            <form class="sales-rep-form" id="distributorForm">
+              <div class="form-heading"><p class="eyebrow">Ficha publica</p><h2 id="distributorFormTitle">Nuevo distribuidor</h2></div>
+              <input name="id" type="hidden" />
+              <label><span>Nombre comercial</span><input name="name" required maxlength="160" /></label>
+              <label><span>Provincia</span><input name="province" maxlength="100" /></label>
+              <label><span>Ciudad / zona</span><input name="city" maxlength="100" /></label>
+              <label><span>Orden</span><input name="sortOrder" type="number" step="1" value="0" /></label>
+              <label class="wide"><span>Direccion</span><input name="address" maxlength="180" /></label>
+              <label><span>Telefono</span><input name="phone" maxlength="60" /></label>
+              <label><span>WhatsApp</span><input name="whatsapp" maxlength="60" /></label>
+              <label><span>Email</span><input name="email" type="email" maxlength="180" /></label>
+              <label><span>Web / tienda</span><input name="website" maxlength="240" placeholder="https://..." /></label>
+              <label><span>Contacto</span><input name="contactPerson" maxlength="120" /></label>
+              <label class="wide"><span>Cobertura</span><input name="coverage" maxlength="220" placeholder="Ej: Rosario y zona, Santa Fe, envios al interior" /></label>
+              <label class="wide"><span>Notas internas</span><textarea name="notes" rows="3"></textarea></label>
+              <label class="checkbox-label wide"><input name="isPublished" type="checkbox" /><span>Publicar como distribuidor oficial</span></label>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">Guardar distribuidor</button>
+                <button class="ghost-button" id="resetDistributorForm" type="button">Limpiar</button>
+              </div>
+              <p class="form-message" id="distributorMessage" role="status"></p>
+            </form>
+            <div class="orders-table-wrap">
+              <table class="admin-table">
+                <thead><tr><th>Distribuidor</th><th>Zona</th><th>Contacto</th><th>Publicacion</th><th>Acciones</th></tr></thead>
+                <tbody id="distributorsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <section class="admin-view" id="productsView" hidden>
@@ -441,6 +487,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=61" defer></script>
+    <script src="./admin.js?v=62" defer></script>
   </body>
 </html>

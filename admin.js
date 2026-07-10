@@ -1,11 +1,11 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null, salesReps: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
+  securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const adminViews = new Set(["customers", "sales", "products", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
+const adminViews = new Set(["customers", "sales", "distributors", "products", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -74,6 +74,7 @@ const adminEls = Object.fromEntries([
   "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "salesRepProfile", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
+  "distributorSearch", "distributorStatusFilter", "reloadDistributors", "distributorForm", "distributorFormTitle", "distributorMessage", "distributorsTableBody",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
   "analyticsDays", "analyticsDashboard", "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
@@ -141,6 +142,12 @@ function bindAdminEvents() {
   adminEls.selectAllCommissions.addEventListener("change", toggleAllCommissions);
   adminEls.commissionsTableBody.addEventListener("change", renderCommissionSummary);
   adminEls.commissionSettlements.addEventListener("click", handleCommissionSettlementClick);
+  adminEls.distributorSearch.addEventListener("input", debounce(loadDistributors, 250));
+  adminEls.distributorStatusFilter.addEventListener("change", loadDistributors);
+  adminEls.reloadDistributors.addEventListener("click", loadDistributors);
+  adminEls.distributorForm.addEventListener("submit", saveDistributor);
+  adminEls.distributorsTableBody.addEventListener("click", handleDistributorsTableClick);
+  document.querySelector("#resetDistributorForm").addEventListener("click", resetDistributorForm);
   adminEls.settingsForm.addEventListener("submit", saveSettings);
   adminEls.paymentAccountForm.addEventListener("submit", savePaymentAccount);
   document.querySelector("#resetPaymentAccountForm").addEventListener("click", resetPaymentAccountForm);
@@ -179,10 +186,11 @@ async function enterWorkspace() {
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
   await loadSalesReps();
-  await Promise.all([loadCustomers(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents(), loadAnalyticsDashboard(), loadOperationDashboard()]);
+  await Promise.all([loadCustomers(), loadDistributors(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents(), loadAnalyticsDashboard(), loadOperationDashboard()]);
   showAdminView(currentAdminView(), false);
   resetProductForm();
   resetSalesRepForm();
+  resetDistributorForm();
 }
 
 async function logoutAdmin() {
@@ -655,6 +663,135 @@ function handleCommissionSettlementClick(event) {
   const button = event.target.closest("[data-settlement-id]");
   if (!button) return;
   window.open(`./commission-settlement.html?settlement=${button.dataset.settlementId}`, "_blank", "noopener");
+}
+
+async function loadDistributors() {
+  if (!adminEls.distributorsTableBody) return;
+  const params = new URLSearchParams();
+  const search = adminEls.distributorSearch.value.trim();
+  if (search) params.set("q", search);
+  if (adminEls.distributorStatusFilter.value) params.set("status", adminEls.distributorStatusFilter.value);
+  const query = params.toString();
+  const { distributors } = await adminApi(`/api/admin/distributors${query ? `?${query}` : ""}`);
+  adminState.distributors = distributors || [];
+  renderDistributors();
+}
+
+function renderDistributors() {
+  if (!adminEls.distributorsTableBody) return;
+  adminEls.distributorsTableBody.innerHTML = adminState.distributors.length ? adminState.distributors.map((distributor) => `
+    <tr>
+      <td>
+        <strong>${escapeAdmin(distributor.name)}</strong>
+        <br><span>${escapeAdmin(distributor.coverage || "Sin cobertura cargada")}</span>
+      </td>
+      <td>
+        ${escapeAdmin([distributor.city, distributor.province].filter(Boolean).join(", ") || "Sin zona")}
+        <br><span>${escapeAdmin(distributor.address || "")}</span>
+      </td>
+      <td>
+        ${escapeAdmin(distributor.contactPerson || "Sin contacto")}
+        <br><span>${escapeAdmin([
+          distributor.whatsapp ? `WhatsApp ${distributor.whatsapp}` : "",
+          distributor.email
+        ].filter(Boolean).join(" | ") || "Sin datos")}</span>
+      </td>
+      <td>
+        <span class="state-badge ${distributor.isPublished ? "success" : "neutral"}">${distributor.isPublished ? "Publicado" : "No publicado"}</span>
+        <br><span>Orden ${Number(distributor.sortOrder || 0)}</span>
+      </td>
+      <td>
+        <button class="ghost-button small-button" type="button" data-edit-distributor="${distributor.id}">Editar</button>
+        <button class="ghost-button danger small-button" type="button" data-delete-distributor="${distributor.id}">Eliminar</button>
+      </td>
+    </tr>
+  `).join("") : `<tr><td colspan="5">Todavia no hay distribuidores cargados.</td></tr>`;
+}
+
+function distributorField(name) {
+  return adminEls.distributorForm?.elements?.[name];
+}
+
+function resetDistributorForm() {
+  if (!adminEls.distributorForm) return;
+  adminEls.distributorForm.reset();
+  distributorField("id").value = "";
+  distributorField("sortOrder").value = "0";
+  adminEls.distributorFormTitle.textContent = "Nuevo distribuidor";
+  adminEls.distributorMessage.textContent = "";
+}
+
+function fillDistributorForm(distributor) {
+  if (!distributor || !adminEls.distributorForm) return;
+  adminEls.distributorFormTitle.textContent = `Editar ${distributor.name}`;
+  distributorField("id").value = distributor.id;
+  distributorField("name").value = distributor.name || "";
+  distributorField("province").value = distributor.province || "";
+  distributorField("city").value = distributor.city || "";
+  distributorField("sortOrder").value = distributor.sortOrder || 0;
+  distributorField("address").value = distributor.address || "";
+  distributorField("phone").value = distributor.phone || "";
+  distributorField("whatsapp").value = distributor.whatsapp || "";
+  distributorField("email").value = distributor.email || "";
+  distributorField("website").value = distributor.website || "";
+  distributorField("contactPerson").value = distributor.contactPerson || "";
+  distributorField("coverage").value = distributor.coverage || "";
+  distributorField("notes").value = distributor.notes || "";
+  distributorField("isPublished").checked = Boolean(distributor.isPublished);
+  adminEls.distributorMessage.textContent = "";
+  adminEls.distributorForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function saveDistributor(event) {
+  event.preventDefault();
+  const formData = new FormData(adminEls.distributorForm);
+  const id = Number(formData.get("id") || 0);
+  const body = {
+    name: formData.get("name"),
+    province: formData.get("province"),
+    city: formData.get("city"),
+    address: formData.get("address"),
+    phone: formData.get("phone"),
+    whatsapp: formData.get("whatsapp"),
+    email: formData.get("email"),
+    website: formData.get("website"),
+    contactPerson: formData.get("contactPerson"),
+    coverage: formData.get("coverage"),
+    notes: formData.get("notes"),
+    sortOrder: Number(formData.get("sortOrder") || 0),
+    isPublished: formData.has("isPublished")
+  };
+  setBusy(adminEls.distributorForm, true);
+  try {
+    await adminApi(id ? `/api/admin/distributors/${id}` : "/api/admin/distributors", {
+      method: id ? "PUT" : "POST",
+      body
+    });
+    resetDistributorForm();
+    adminEls.distributorMessage.textContent = "Distribuidor guardado.";
+    await loadDistributors();
+  } catch (error) {
+    adminEls.distributorMessage.textContent = error.message;
+  } finally {
+    setBusy(adminEls.distributorForm, false);
+  }
+}
+
+async function handleDistributorsTableClick(event) {
+  const editButton = event.target.closest("[data-edit-distributor]");
+  if (editButton) {
+    const distributor = adminState.distributors.find((item) => item.id === Number(editButton.dataset.editDistributor));
+    fillDistributorForm(distributor);
+    return;
+  }
+  const deleteButton = event.target.closest("[data-delete-distributor]");
+  if (!deleteButton) return;
+  const id = Number(deleteButton.dataset.deleteDistributor);
+  const distributor = adminState.distributors.find((item) => item.id === id);
+  if (!confirm(`Eliminar ${distributor?.name || "distribuidor"}?`)) return;
+  await adminApi(`/api/admin/distributors/${id}`, { method: "DELETE" });
+  if (Number(distributorField("id")?.value || 0) === id) resetDistributorForm();
+  await loadDistributors();
 }
 
 async function loadProducts() {

@@ -72,6 +72,7 @@ import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
 import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
 import { pruneBackups } from "./services/storage-status-service.js";
+import { deleteOfficialDistributor, listOfficialDistributors, upsertOfficialDistributor } from "./services/distributor-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -215,6 +216,9 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/public-settings") {
         return sendJson(response, 200, { settings: { ...getPublicSettings(db), mercadopago: publicMercadoPagoConfig(config) } });
       }
+      if (request.method === "GET" && url.pathname === "/api/distributors/public") {
+        return sendJson(response, 200, { distributors: listOfficialDistributors(db, { publishedOnly: true }) });
+      }
       if (request.method === "POST" && url.pathname === "/api/orders") {
         const user = requireApprovedCustomer(currentUser);
         const order = createOrder(db, user.customerId, await readJson(request));
@@ -307,6 +311,24 @@ export function createApp({
             search: url.searchParams.get("q") || ""
           })
         });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/distributors") {
+        return sendJson(response, 200, {
+          distributors: listOfficialDistributors(db, {
+            status: url.searchParams.get("status") || "",
+            search: url.searchParams.get("q") || ""
+          })
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/distributors") {
+        return sendJson(response, 201, { distributor: upsertOfficialDistributor(db, await readJson(request)) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/distributors\/(\d+)$/);
+      if (request.method === "PUT" && match) {
+        return sendJson(response, 200, { distributor: upsertOfficialDistributor(db, { ...(await readJson(request)), id: Number(match[1]) }) });
+      }
+      if (request.method === "DELETE" && match) {
+        return sendJson(response, 200, deleteOfficialDistributor(db, Number(match[1])));
       }
       match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/status$/);
       if (request.method === "PATCH" && match) {
