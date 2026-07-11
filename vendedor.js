@@ -141,23 +141,40 @@ function onlyDigits(value) {
 
 function quoteShareText(quote) {
   const customerName = quote.customerContact || quote.businessName || "cliente";
+  const vatBps = Number(quote.vatBps || 0);
+  const vatLabel = vatBps ? `IVA ${(vatBps / 100).toFixed(2).replace(".", ",")}%` : "IVA";
   const lines = [
-    `Hola ${customerName}, te envio el presupuesto ${quote.quoteNumber || ""} de KM Detail Line.`,
+    "*KM Detail Line*",
+    "*Presupuesto comercial*",
     "",
-    `Cliente: ${quote.businessName || ""}`,
-    `Total: ${money(quote.totalCents || 0)}`,
-    quote.validUntil ? `Valido hasta: ${shortDate(quote.validUntil)}` : "",
+    `Hola ${customerName}, te envio el presupuesto ${quote.quoteNumber || ""}.`,
+    quote.businessName ? `Cliente: ${quote.businessName}` : "",
+    quote.validUntil ? `Validez: ${shortDate(quote.validUntil)}` : "",
     "",
-    "Detalle:"
+    "*Articulos cotizados*"
   ].filter(Boolean);
   (quote.items || []).slice(0, 25).forEach((item) => {
-    lines.push(`- ${item.quantity} x ${item.kmCode} - ${item.productName}`);
+    lines.push(
+      "",
+      `${item.quantity} x ${item.kmCode} - ${item.productName}`,
+      `Precio unitario sin IVA: ${money(item.finalUnitPriceCents || 0)}`,
+      `Subtotal sin IVA: ${money(item.subtotalNetCents || 0)}`
+    );
   });
-  if ((quote.items || []).length > 25) lines.push("- Ver detalle completo en el presupuesto.");
+  if ((quote.items || []).length > 25) lines.push("", "El presupuesto incluye mas articulos. Consultar detalle completo.");
+  lines.push(
+    "",
+    "*Resumen del presupuesto*",
+    `Subtotal sin IVA: ${money(quote.subtotalNetCents || 0)}`,
+    `${vatLabel}: ${money(quote.vatCents || 0)}`,
+    `*Total con IVA: ${money(quote.totalCents || 0)}*`,
+    "",
+    "Importes expresados en pesos argentinos."
+  );
   if (quote.notes) {
     lines.push("", `Nota: ${quote.notes}`);
   }
-  lines.push("", "Para confirmar o consultar, respondeme este mensaje.");
+  lines.push("", "Para confirmar o consultar este presupuesto, respondeme este mensaje.");
   return lines.join("\n");
 }
 
