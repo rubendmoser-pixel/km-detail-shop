@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Gestion de ventas | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260711d" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260711e" />
   </head>
   <body>
     <header class="seller-header">
@@ -66,7 +66,7 @@
               <span class="eyebrow">Alta comercial</span>
               <strong>Solicitar cuenta para cliente</strong>
             </span>
-            <span class="summary-action">Abrir formulario</span>
+            <span class="summary-action" id="sellerRequestToggleText">Abrir formulario</span>
           </summary>
           <form id="sellerCustomerRequestForm" class="seller-request-form">
             <div class="seller-form-grid">
@@ -232,6 +232,22 @@
               <h2>Presupuestos generados</h2>
             </div>
           </div>
+          <div class="seller-list-tools">
+            <label class="seller-field">
+              <span>Buscar</span>
+              <input id="sellerQuoteSearch" type="search" placeholder="Presupuesto, cliente..." autocomplete="off" />
+            </label>
+            <label class="seller-field">
+              <span>Estado</span>
+              <select id="sellerQuoteStatus">
+                <option value="">Todos</option>
+                <option value="generated">Generado</option>
+                <option value="converted">Convertido</option>
+                <option value="cancelled">Cancelado</option>
+                <option value="expired">Vencido</option>
+              </select>
+            </label>
+          </div>
           <div class="seller-list" id="sellerQuotes"></div>
         </section>
         </section>
@@ -256,6 +272,22 @@
                 <h2>Seguimiento de cartera</h2>
               </div>
             </div>
+            <div class="seller-list-tools">
+              <label class="seller-field">
+                <span>Buscar</span>
+                <input id="sellerOrderSearch" type="search" placeholder="Pedido, cliente..." autocomplete="off" />
+              </label>
+              <label class="seller-field">
+                <span>Estado</span>
+                <select id="sellerOrderStatus">
+                  <option value="">Todos</option>
+                  <option value="open">Abiertos</option>
+                  <option value="to_collect">Para cobrar</option>
+                  <option value="shipped">Despachados</option>
+                  <option value="closed">Finalizados</option>
+                </select>
+              </label>
+            </div>
             <div class="seller-list" id="sellerOrders"></div>
           </section>
         </section>
@@ -263,6 +295,6 @@
       </section>
     </main>
 
-    <script src="/vendedor.js?v=20260711d" type="module"></script>
+    <script src="/vendedor.js?v=20260711e" type="module"></script>
   </body>
 </html>

@@ -8,6 +8,10 @@ const state = {
   openOrderId: null,
   activeView: "summary",
   mode: "order",
+  quoteSearch: "",
+  quoteStatus: "",
+  orderSearch: "",
+  orderStatus: "",
   order: {
     customerId: "",
     products: [],
@@ -41,11 +45,19 @@ const nodes = {
   itemsLabel: document.getElementById("sellerItemsLabel"),
   orderSubmit: document.getElementById("sellerOrderSubmit"),
   quotes: document.getElementById("sellerQuotes"),
+  quoteSearch: document.getElementById("sellerQuoteSearch"),
+  quoteStatus: document.getElementById("sellerQuoteStatus"),
+  orderSearch: document.getElementById("sellerOrderSearch"),
+  orderStatus: document.getElementById("sellerOrderStatus"),
   customerRequestForm: document.getElementById("sellerCustomerRequestForm"),
   customerRequestMessage: document.getElementById("sellerCustomerRequestMessage"),
+  customerRequestPanel: document.querySelector(".seller-request-panel"),
+  customerRequestToggleText: document.getElementById("sellerRequestToggleText"),
   viewButtons: document.querySelectorAll("[data-seller-view-button]"),
   views: document.querySelectorAll("[data-seller-view]")
 };
+
+const SELLER_LIST_LIMIT = 20;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -188,6 +200,56 @@ function orderTone(order) {
   if (order.payment_status === "current_account") return "blue";
   if (order.balance_cents > 0) return "gold";
   return "";
+}
+
+function normalizedText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function orderMatchesStatus(order) {
+  if (!state.orderStatus) return true;
+  const payment = order.payment_status || "";
+  const fulfillment = order.fulfillment_status || "";
+  if (state.orderStatus === "to_collect") return Number(order.balance_cents || 0) > 0;
+  if (state.orderStatus === "shipped") return ["shipped", "ready", "ready_to_ship"].includes(fulfillment);
+  if (state.orderStatus === "closed") return ["customer_received", "delivered"].includes(fulfillment);
+  if (state.orderStatus === "open") {
+    return !["customer_received", "delivered"].includes(fulfillment)
+      && !["cancelled", "refunded"].includes(payment);
+  }
+  return true;
+}
+
+function filterOrders(orders = []) {
+  const query = normalizedText(state.orderSearch);
+  return orders.filter((order) => {
+    if (!orderMatchesStatus(order)) return false;
+    if (!query) return true;
+    return normalizedText([
+      order.order_number,
+      order.business_name,
+      order.payment_status,
+      order.fulfillment_status,
+      order.status
+    ].join(" ")).includes(query);
+  });
+}
+
+function filterQuotes(quotes = []) {
+  const query = normalizedText(state.quoteSearch);
+  return quotes.filter((quote) => {
+    if (state.quoteStatus && quote.status !== state.quoteStatus) return false;
+    if (!query) return true;
+    return normalizedText([
+      quote.quoteNumber,
+      quote.businessName,
+      quote.status
+    ].join(" ")).includes(query);
+  });
 }
 
 function renderSession() {
@@ -336,11 +398,13 @@ function renderQuoteDetail(quoteId) {
 }
 
 function renderOrders(orders = []) {
-  if (!orders.length) {
+  const filteredOrders = filterOrders(orders);
+  const visibleOrders = filteredOrders.slice(0, SELLER_LIST_LIMIT);
+  if (!filteredOrders.length) {
     nodes.orders.innerHTML = `<div class="empty-state">Todavia no hay pedidos asociados a tu cartera.</div>`;
     return;
   }
-  nodes.orders.innerHTML = orders.map((order) => {
+  nodes.orders.innerHTML = visibleOrders.map((order) => {
     const total = money(order.total_cents || 0);
     const balance = money(order.balance_cents || 0);
     const commission = money(order.sales_commission_cents || 0);
@@ -376,7 +440,9 @@ function renderOrders(orders = []) {
         ${String(state.openOrderId) === String(order.id) ? renderOrderDetail(order.id) : ""}
       </article>
     `;
-  }).join("");
+  }).join("") + (filteredOrders.length > visibleOrders.length
+    ? `<div class="seller-list-note">Mostrando ${visibleOrders.length} de ${filteredOrders.length}. Ajusta la busqueda o el estado para encontrar un pedido puntual.</div>`
+    : "");
 }
 
 function quoteTone(status) {
@@ -387,11 +453,13 @@ function quoteTone(status) {
 
 function renderQuotes() {
   if (!nodes.quotes) return;
-  if (!state.quotes.length) {
+  const filteredQuotes = filterQuotes(state.quotes);
+  const visibleQuotes = filteredQuotes.slice(0, SELLER_LIST_LIMIT);
+  if (!filteredQuotes.length) {
     nodes.quotes.innerHTML = `<div class="empty-state">Todavia no hay presupuestos generados.</div>`;
     return;
   }
-  nodes.quotes.innerHTML = state.quotes.map((quote) => `
+  nodes.quotes.innerHTML = visibleQuotes.map((quote) => `
     <article class="seller-card quote-card">
       <div class="seller-card-top">
         <div>
@@ -421,7 +489,9 @@ function renderQuotes() {
       </div>
       ${String(state.openQuoteId) === String(quote.id) ? renderQuoteDetail(quote.id) : ""}
     </article>
-  `).join("");
+  `).join("") + (filteredQuotes.length > visibleQuotes.length
+    ? `<div class="seller-list-note">Mostrando ${visibleQuotes.length} de ${filteredQuotes.length}. Ajusta la busqueda o el estado para encontrar un presupuesto puntual.</div>`
+    : "");
 }
 
 async function loadQuotes() {
@@ -708,6 +778,37 @@ nodes.customerRequestForm?.addEventListener("submit", async (event) => {
 });
 
 nodes.refresh?.addEventListener("click", loadDashboard);
+
+nodes.customerRequestPanel?.addEventListener("toggle", () => {
+  if (!nodes.customerRequestToggleText) return;
+  nodes.customerRequestToggleText.textContent = nodes.customerRequestPanel.open
+    ? "Cerrar formulario"
+    : "Abrir formulario";
+});
+
+nodes.quoteSearch?.addEventListener("input", (event) => {
+  state.quoteSearch = event.currentTarget.value;
+  state.openQuoteId = null;
+  renderQuotes();
+});
+
+nodes.quoteStatus?.addEventListener("change", (event) => {
+  state.quoteStatus = event.currentTarget.value;
+  state.openQuoteId = null;
+  renderQuotes();
+});
+
+nodes.orderSearch?.addEventListener("input", (event) => {
+  state.orderSearch = event.currentTarget.value;
+  state.openOrderId = null;
+  renderOrders(state.dashboard?.orders || []);
+});
+
+nodes.orderStatus?.addEventListener("change", (event) => {
+  state.orderStatus = event.currentTarget.value;
+  state.openOrderId = null;
+  renderOrders(state.dashboard?.orders || []);
+});
 
 nodes.viewButtons?.forEach((button) => {
   button.addEventListener("click", () => {

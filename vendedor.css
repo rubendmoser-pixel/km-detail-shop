@@ -10,8 +10,10 @@
   --gold: #e1c25b;
   --green: #83e49b;
   --blue: #79c5ff;
-  --action: #8dde9f;
-  --action-dark: #17351f;
+  --action: #b7b8ff;
+  --action-dark: #171a38;
+  --action-strong: #7f85ff;
+  --action-soft: rgba(127, 133, 255, 0.12);
   --red: #ff8a8a;
 }
 
@@ -187,12 +189,12 @@ textarea:focus {
 .primary-button,
 .ghost-button {
   min-height: 3.35rem;
-  border: 1px solid rgba(141, 222, 159, 0.56);
+  border: 1px solid rgba(183, 184, 255, 0.56);
   border-radius: 6px;
   padding: 0 1.2rem;
-  color: #07130b;
-  background: linear-gradient(180deg, #a8f0b7, #69c77e);
-  box-shadow: 0 0 0 1px rgba(141, 222, 159, 0.08), 0 10px 26px rgba(0, 0, 0, 0.25);
+  color: #050615;
+  background: linear-gradient(180deg, #d6d8ff, #7f85ff);
+  box-shadow: 0 0 0 1px rgba(183, 184, 255, 0.08), 0 10px 26px rgba(0, 0, 0, 0.25);
   font-weight: 900;
   cursor: pointer;
 }
@@ -205,13 +207,13 @@ textarea:focus {
 
 .ghost-button {
   color: var(--action);
-  border-color: rgba(141, 222, 159, 0.42);
-  background: rgba(141, 222, 159, 0.07);
+  border-color: rgba(183, 184, 255, 0.42);
+  background: var(--action-soft);
 }
 
 .primary-button:hover,
 .ghost-button:hover {
-  border-color: rgba(141, 222, 159, 0.9);
+  border-color: rgba(183, 184, 255, 0.9);
   filter: brightness(1.06);
 }
 
@@ -253,18 +255,18 @@ textarea:focus {
 
 .seller-tabs button {
   min-height: 3.1rem;
-  border: 1px solid rgba(141, 222, 159, 0.28);
+  border: 1px solid rgba(183, 184, 255, 0.28);
   border-radius: 6px;
-  background: rgba(141, 222, 159, 0.05);
+  background: rgba(183, 184, 255, 0.06);
   color: var(--muted);
   font-weight: 900;
   cursor: pointer;
 }
 
 .seller-tabs button.active {
-  color: #07130b;
-  border-color: rgba(141, 222, 159, 0.82);
-  background: linear-gradient(180deg, #a8f0b7, #69c77e);
+  color: #050615;
+  border-color: rgba(183, 184, 255, 0.82);
+  background: linear-gradient(180deg, #d6d8ff, #7f85ff);
 }
 
 .seller-view {
@@ -324,6 +326,23 @@ textarea:focus {
   display: grid;
   gap: 0.75rem;
   padding: 1rem;
+}
+
+.seller-list-tools {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.35fr);
+  gap: 0.8rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(17, 19, 21, 0.72);
+}
+
+.seller-list-note {
+  border: 1px solid rgba(183, 184, 255, 0.24);
+  background: rgba(183, 184, 255, 0.07);
+  color: var(--muted);
+  padding: 0.85rem 1rem;
+  font-size: 0.92rem;
 }
 
 .seller-card {
@@ -417,9 +436,9 @@ textarea:focus {
 
 .seller-mode-toggle button {
   min-height: 2.55rem;
-  border: 1px solid rgba(141, 222, 159, 0.28);
+  border: 1px solid rgba(183, 184, 255, 0.28);
   border-radius: 6px;
-  background: rgba(141, 222, 159, 0.05);
+  background: rgba(183, 184, 255, 0.06);
   color: var(--muted);
   padding: 0 0.95rem;
   font-weight: 900;
@@ -427,9 +446,9 @@ textarea:focus {
 }
 
 .seller-mode-toggle button.active {
-  border-color: rgba(131, 228, 155, 0.85);
-  background: linear-gradient(180deg, rgba(168, 240, 183, 0.98), rgba(105, 199, 126, 0.98));
-  color: #07130b;
+  border-color: rgba(183, 184, 255, 0.85);
+  background: linear-gradient(180deg, rgba(214, 216, 255, 0.98), rgba(127, 133, 255, 0.98));
+  color: #050615;
 }
 
 .quote-card {
@@ -558,9 +577,9 @@ textarea:focus {
 
 .summary-action {
   flex: 0 0 auto;
-  border: 1px solid rgba(141, 222, 159, 0.48);
+  border: 1px solid rgba(183, 184, 255, 0.48);
   border-radius: 6px;
-  background: rgba(141, 222, 159, 0.09);
+  background: var(--action-soft);
   color: var(--action);
   padding: 0.65rem 0.9rem;
   font-size: 0.82rem;
@@ -568,9 +587,9 @@ textarea:focus {
 }
 
 .seller-request-panel[open] .summary-action {
-  color: #07130b;
-  background: linear-gradient(180deg, #a8f0b7, #69c77e);
-  border-color: rgba(136, 221, 159, 0.82);
+  color: #050615;
+  background: linear-gradient(180deg, #d6d8ff, #7f85ff);
+  border-color: rgba(183, 184, 255, 0.82);
 }
 
 .seller-form-grid {
@@ -674,8 +693,8 @@ textarea:focus {
 }
 
 .seller-qty-input:focus {
-  color: #07130b;
-  background: linear-gradient(180deg, #a8f0b7, #69c77e);
+  color: #050615;
+  background: linear-gradient(180deg, #d6d8ff, #7f85ff);
 }
 
 .seller-qty-input::-webkit-outer-spin-button,
