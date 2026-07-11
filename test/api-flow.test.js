@@ -248,6 +248,11 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const quotesPayload = await getJson(`${baseUrl}/api/sales/quotes`, salesCookie);
   assert.equal(quotesPayload.quotes.length, 1);
   assert.equal(quotesPayload.quotes[0].quoteNumber, quotePayload.quote.quoteNumber);
+  assert.equal(quotesPayload.quotes[0].customerEmail, "cliente-api@example.com");
+  const quoteDetail = await getJson(`${baseUrl}/api/sales/quotes/${quotePayload.quote.id}`, salesCookie);
+  assert.equal(quoteDetail.quote.items.length, 1);
+  assert.equal(quoteDetail.quote.customerEmail, "cliente-api@example.com");
+  assert.equal(quoteDetail.quote.customerWhatsapp, "5493510000000");
   const blockedPriceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`);
   assert.equal(blockedPriceListResponse.status, 401);
   const priceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`, { headers: { cookie: customerCookie } });

@@ -387,6 +387,17 @@ select:focus {
   border-left: 4px solid var(--blue);
 }
 
+.quote-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.quote-actions .ghost-button {
+  min-height: 2.25rem;
+}
+
 .seller-order-form {
   display: grid;
   gap: 1rem;

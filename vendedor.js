@@ -2,6 +2,7 @@ const state = {
   salesRep: null,
   dashboard: null,
   quotes: [],
+  quoteDetails: {},
   mode: "order",
   order: {
     customerId: "",
@@ -78,6 +79,39 @@ function shortDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
   return date.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function onlyDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function quoteShareText(quote) {
+  const customerName = quote.customerContact || quote.businessName || "cliente";
+  const lines = [
+    `Hola ${customerName}, te envio el presupuesto ${quote.quoteNumber || ""} de KM Detail Line.`,
+    "",
+    `Cliente: ${quote.businessName || ""}`,
+    `Total: ${money(quote.totalCents || 0)}`,
+    quote.validUntil ? `Valido hasta: ${shortDate(quote.validUntil)}` : "",
+    "",
+    "Detalle:"
+  ].filter(Boolean);
+  (quote.items || []).slice(0, 25).forEach((item) => {
+    lines.push(`- ${item.quantity} x ${item.kmCode} - ${item.productName}`);
+  });
+  if ((quote.items || []).length > 25) lines.push("- Ver detalle completo en el presupuesto.");
+  if (quote.notes) {
+    lines.push("", `Nota: ${quote.notes}`);
+  }
+  lines.push("", "Para confirmar o consultar, respondeme este mensaje.");
+  return lines.join("\n");
+}
+
+async function getQuoteDetail(quoteId) {
+  if (state.quoteDetails[quoteId]) return state.quoteDetails[quoteId];
+  const payload = await sellerApi(`/api/sales/quotes/${encodeURIComponent(quoteId)}`);
+  state.quoteDetails[quoteId] = payload.quote;
+  return payload.quote;
 }
 
 const customerStatusLabels = {
@@ -255,6 +289,14 @@ function renderQuotes() {
         ${badge(`${quote.itemCount || 0} productos`)}
       </div>
       ${quote.validUntil ? `<div class="seller-meta">Valido hasta ${shortDate(quote.validUntil)}</div>` : ""}
+      <div class="quote-actions">
+        <button class="ghost-button compact" type="button" data-share-quote-whatsapp="${quote.id}" ${onlyDigits(quote.customerWhatsapp).length ? "" : "disabled"}>
+          WhatsApp cliente
+        </button>
+        <button class="ghost-button compact" type="button" data-share-quote-email="${quote.id}" ${quote.customerEmail ? "" : "disabled"}>
+          Email cliente
+        </button>
+      </div>
     </article>
   `).join("");
 }
@@ -528,6 +570,32 @@ nodes.orderItems?.addEventListener("click", (event) => {
   const inc = event.target.closest("[data-inc-product]");
   if (dec) updateOrderItem(dec.dataset.decProduct, -1);
   if (inc) updateOrderItem(inc.dataset.incProduct, 1);
+});
+
+nodes.quotes?.addEventListener("click", async (event) => {
+  const whatsappButton = event.target.closest("[data-share-quote-whatsapp]");
+  const emailButton = event.target.closest("[data-share-quote-email]");
+  if (!whatsappButton && !emailButton) return;
+  const button = whatsappButton || emailButton;
+  const quoteId = whatsappButton?.dataset.shareQuoteWhatsapp || emailButton?.dataset.shareQuoteEmail;
+  button.disabled = true;
+  try {
+    const quote = await getQuoteDetail(quoteId);
+    const text = quoteShareText(quote);
+    if (whatsappButton) {
+      const phone = onlyDigits(quote.customerWhatsapp);
+      if (!phone) throw new Error("El cliente no tiene WhatsApp cargado.");
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    } else {
+      if (!quote.customerEmail) throw new Error("El cliente no tiene email cargado.");
+      const subject = `Presupuesto ${quote.quoteNumber || ""} | KM Detail Line`;
+      window.location.href = `mailto:${encodeURIComponent(quote.customerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+    }
+  } catch (error) {
+    nodes.orderMessage.textContent = error.message || "No se pudo compartir el presupuesto.";
+  } finally {
+    button.disabled = false;
+  }
 });
 
 nodes.clearOrder?.addEventListener("click", () => {

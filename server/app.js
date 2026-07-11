@@ -68,7 +68,7 @@ import {
   requireSalesRep,
   upsertSalesRep
 } from "./services/sales-rep-service.js";
-import { createSalesQuote, listSalesQuotesForSalesRep } from "./services/sales-quote-service.js";
+import { createSalesQuote, getSalesQuote, listSalesQuotesForSalesRep } from "./services/sales-quote-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSalesRepSessionCookie, clearSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
@@ -236,6 +236,13 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/sales/quotes") {
         const salesRep = requireSalesRep(currentSalesRep);
         return sendJson(response, 200, { quotes: listSalesQuotesForSalesRep(db, salesRep.id) });
+      }
+      {
+        const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)$/);
+        if (request.method === "GET" && match) {
+          const salesRep = requireSalesRep(currentSalesRep);
+          return sendJson(response, 200, { quote: getSalesQuote(db, Number(match[1]), salesRep.id) });
+        }
       }
       if (request.method === "POST" && url.pathname === "/api/sales/quotes") {
         const salesRep = requireSalesRep(currentSalesRep);

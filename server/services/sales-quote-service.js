@@ -99,10 +99,12 @@ export function createSalesQuote(db, salesRep, customerId, input = {}) {
 export function listSalesQuotesForSalesRep(db, salesRepId) {
   const id = positiveInteger(Number(salesRepId), "salesRepId");
   const rows = db.prepare(`
-    SELECT q.*, c.business_name,
+    SELECT q.*, c.business_name, c.contact_person AS customer_contact,
+           c.whatsapp AS customer_whatsapp, u.email AS customer_email,
            (SELECT COUNT(*) FROM sales_quote_items qi WHERE qi.quote_id = q.id) AS item_count
     FROM sales_quotes q
     JOIN customers c ON c.id = q.customer_id
+    JOIN users u ON u.id = c.user_id
     WHERE q.sales_rep_id = ?
     ORDER BY q.created_at DESC, q.id DESC
     LIMIT 80
@@ -119,9 +121,11 @@ export function getSalesQuote(db, quoteId, salesRepId = null) {
     params.push(positiveInteger(Number(salesRepId), "salesRepId"));
   }
   const quote = db.prepare(`
-    SELECT q.*, c.business_name
+    SELECT q.*, c.business_name, c.contact_person AS customer_contact,
+           c.whatsapp AS customer_whatsapp, u.email AS customer_email
     FROM sales_quotes q
     JOIN customers c ON c.id = q.customer_id
+    JOIN users u ON u.id = c.user_id
     WHERE q.id = ?${whereSalesRep}
   `).get(...params);
   if (!quote) throw new NotFoundError("Presupuesto no encontrado");
@@ -142,6 +146,9 @@ function mapQuote(row, items = [], itemCount = 0) {
     quoteNumber: row.quote_number,
     customerId: row.customer_id,
     businessName: row.business_name,
+    customerContact: row.customer_contact,
+    customerWhatsapp: row.customer_whatsapp,
+    customerEmail: row.customer_email,
     salesRepId: row.sales_rep_id,
     salesRepName: row.sales_rep_name,
     salesRepEmail: row.sales_rep_email,
