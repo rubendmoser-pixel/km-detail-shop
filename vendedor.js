@@ -8,6 +8,8 @@ const state = {
   openOrderId: null,
   activeView: "summary",
   mode: "order",
+  summaryDateFrom: "",
+  summaryDateTo: "",
   quoteSearch: "",
   quoteStatus: "",
   quoteDateFrom: "",
@@ -33,6 +35,8 @@ const nodes = {
   title: document.getElementById("sellerTitle"),
   subtitle: document.getElementById("sellerSubtitle"),
   stats: document.getElementById("sellerStats"),
+  summaryDateFrom: document.getElementById("sellerSummaryDateFrom"),
+  summaryDateTo: document.getElementById("sellerSummaryDateTo"),
   customers: document.getElementById("sellerCustomers"),
   orders: document.getElementById("sellerOrders"),
   refresh: document.getElementById("refreshSellerDashboard"),
@@ -104,6 +108,11 @@ function money(cents) {
 
 function shortDate(value) {
   if (!value) return "Sin fecha";
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    const [year, month, day] = text.split("-");
+    return `${day}/${month}/${year}`;
+  }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
   return date.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -247,6 +256,31 @@ function orderMatchesStatus(order) {
       && !["cancelled", "refunded"].includes(payment);
   }
   return true;
+}
+
+function summaryForPeriod(dashboard = {}) {
+  const summary = dashboard.summary || {};
+  const orders = (dashboard.orders || []).filter((order) =>
+    matchesDateRange(order.created_at || order.createdAt, state.summaryDateFrom, state.summaryDateTo)
+  );
+  if (!state.summaryDateFrom && !state.summaryDateTo) return summary;
+  const commissionToSettleCents = orders
+    .filter((order) => Number(order.sales_commission_cents || 0) > 0
+      && !order.sales_commission_settlement_id
+      && Number(order.balance_cents || 0) === 0
+      && ["paid", "settled_adjustment"].includes(order.payment_status))
+    .reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0);
+  const settledCommissionCents = orders
+    .filter((order) => order.sales_commission_settlement_id)
+    .reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0);
+  return {
+    ...summary,
+    generatedSalesCents: orders.reduce((total, order) => total + Number(order.total_cents || 0), 0),
+    generatedCommissionCents: orders.reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0),
+    commissionToSettleCents,
+    settledCommissionCents,
+    settlementBalanceCents: commissionToSettleCents
+  };
 }
 
 function filterOrders(orders = []) {
@@ -729,10 +763,14 @@ function renderOrderItems() {
 function renderDashboard(payload) {
   state.salesRep = payload.salesRep;
   state.dashboard = payload.dashboard;
+  if (!state.summaryDateFrom && state.dashboard?.period?.from) state.summaryDateFrom = dateKey(state.dashboard.period.from);
+  if (!state.summaryDateTo && state.dashboard?.period?.to) state.summaryDateTo = dateKey(state.dashboard.period.to);
+  if (nodes.summaryDateFrom) nodes.summaryDateFrom.value = state.summaryDateFrom;
+  if (nodes.summaryDateTo) nodes.summaryDateTo.value = state.summaryDateTo;
   nodes.title.textContent = "Gestion de ventas";
-  nodes.subtitle.textContent = `${state.salesRep?.name || "Vendedor"} | ${state.dashboard?.customers?.length || 0} clientes asignados. Periodo ${shortDate(state.dashboard?.period?.from)} al ${shortDate(state.dashboard?.period?.to)}.`;
+  nodes.subtitle.textContent = `${state.salesRep?.name || "Vendedor"} | ${state.dashboard?.customers?.length || 0} clientes asignados. Periodo ${shortDate(state.summaryDateFrom)} al ${shortDate(state.summaryDateTo)}.`;
   renderSession();
-  renderStats(state.dashboard?.summary || {});
+  renderStats(summaryForPeriod(state.dashboard || {}));
   renderCustomers(state.dashboard?.customers || []);
   renderOrders(state.dashboard?.orders || []);
   renderQuotes();
@@ -820,6 +858,21 @@ nodes.customerRequestPanel?.addEventListener("toggle", () => {
   nodes.customerRequestToggleText.textContent = nodes.customerRequestPanel.open
     ? "Cerrar formulario"
     : "Abrir formulario";
+});
+
+function refreshSummaryPeriod() {
+  nodes.subtitle.textContent = `${state.salesRep?.name || "Vendedor"} | ${state.dashboard?.customers?.length || 0} clientes asignados. Periodo ${shortDate(state.summaryDateFrom)} al ${shortDate(state.summaryDateTo)}.`;
+  renderStats(summaryForPeriod(state.dashboard || {}));
+}
+
+nodes.summaryDateFrom?.addEventListener("change", (event) => {
+  state.summaryDateFrom = event.currentTarget.value;
+  refreshSummaryPeriod();
+});
+
+nodes.summaryDateTo?.addEventListener("change", (event) => {
+  state.summaryDateTo = event.currentTarget.value;
+  refreshSummaryPeriod();
 });
 
 nodes.quoteSearch?.addEventListener("input", (event) => {
