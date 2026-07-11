@@ -347,8 +347,9 @@ textarea:focus {
 
 .seller-list-tools {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.35fr);
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 0.38fr) repeat(2, minmax(140px, 0.28fr));
   gap: 0.8rem;
+  align-items: end;
   padding: 1rem;
   border-bottom: 1px solid var(--line);
   background: rgba(17, 19, 21, 0.72);
@@ -635,6 +636,7 @@ textarea:focus {
 .seller-field {
   display: grid;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 .seller-field span,
@@ -645,6 +647,11 @@ textarea:focus {
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.seller-field input,
+.seller-field select {
+  min-width: 0;
 }
 
 .seller-product-results,
@@ -754,6 +761,7 @@ button:disabled {
   .seller-form-grid,
   .seller-detail-grid,
   .order-builder-grid,
+  .seller-list-tools,
   .dashboard-heading,
   .panel-heading {
     grid-template-columns: 1fr;
@@ -762,6 +770,10 @@ button:disabled {
 
   .seller-mode-toggle {
     justify-content: flex-start;
+  }
+
+  .seller-list-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -794,6 +806,11 @@ button:disabled {
 
   .seller-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .seller-list-tools {
+    grid-template-columns: 1fr;
+    padding: 0.85rem;
   }
 
   .seller-stat {

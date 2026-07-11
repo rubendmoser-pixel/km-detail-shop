@@ -10,8 +10,12 @@ const state = {
   mode: "order",
   quoteSearch: "",
   quoteStatus: "",
+  quoteDateFrom: "",
+  quoteDateTo: "",
   orderSearch: "",
   orderStatus: "",
+  orderDateFrom: "",
+  orderDateTo: "",
   order: {
     customerId: "",
     products: [],
@@ -47,8 +51,12 @@ const nodes = {
   quotes: document.getElementById("sellerQuotes"),
   quoteSearch: document.getElementById("sellerQuoteSearch"),
   quoteStatus: document.getElementById("sellerQuoteStatus"),
+  quoteDateFrom: document.getElementById("sellerQuoteDateFrom"),
+  quoteDateTo: document.getElementById("sellerQuoteDateTo"),
   orderSearch: document.getElementById("sellerOrderSearch"),
   orderStatus: document.getElementById("sellerOrderStatus"),
+  orderDateFrom: document.getElementById("sellerOrderDateFrom"),
+  orderDateTo: document.getElementById("sellerOrderDateTo"),
   customerRequestForm: document.getElementById("sellerCustomerRequestForm"),
   customerRequestMessage: document.getElementById("sellerCustomerRequestMessage"),
   customerRequestPanel: document.querySelector(".seller-request-panel"),
@@ -99,6 +107,23 @@ function shortDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
   return date.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function dateKey(value) {
+  if (!value) return "";
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function matchesDateRange(value, from, to) {
+  const key = dateKey(value);
+  if (!key) return true;
+  if (from && key < from) return false;
+  if (to && key > to) return false;
+  return true;
 }
 
 function onlyDigits(value) {
@@ -228,6 +253,7 @@ function filterOrders(orders = []) {
   const query = normalizedText(state.orderSearch);
   return orders.filter((order) => {
     if (!orderMatchesStatus(order)) return false;
+    if (!matchesDateRange(order.created_at || order.createdAt, state.orderDateFrom, state.orderDateTo)) return false;
     if (!query) return true;
     return normalizedText([
       order.order_number,
@@ -243,6 +269,7 @@ function filterQuotes(quotes = []) {
   const query = normalizedText(state.quoteSearch);
   return quotes.filter((quote) => {
     if (state.quoteStatus && quote.status !== state.quoteStatus) return false;
+    if (!matchesDateRange(quote.createdAt || quote.created_at, state.quoteDateFrom, state.quoteDateTo)) return false;
     if (!query) return true;
     return normalizedText([
       quote.quoteNumber,
@@ -807,6 +834,18 @@ nodes.quoteStatus?.addEventListener("change", (event) => {
   renderQuotes();
 });
 
+nodes.quoteDateFrom?.addEventListener("change", (event) => {
+  state.quoteDateFrom = event.currentTarget.value;
+  state.openQuoteId = null;
+  renderQuotes();
+});
+
+nodes.quoteDateTo?.addEventListener("change", (event) => {
+  state.quoteDateTo = event.currentTarget.value;
+  state.openQuoteId = null;
+  renderQuotes();
+});
+
 nodes.orderSearch?.addEventListener("input", (event) => {
   state.orderSearch = event.currentTarget.value;
   state.openOrderId = null;
@@ -815,6 +854,18 @@ nodes.orderSearch?.addEventListener("input", (event) => {
 
 nodes.orderStatus?.addEventListener("change", (event) => {
   state.orderStatus = event.currentTarget.value;
+  state.openOrderId = null;
+  renderOrders(state.dashboard?.orders || []);
+});
+
+nodes.orderDateFrom?.addEventListener("change", (event) => {
+  state.orderDateFrom = event.currentTarget.value;
+  state.openOrderId = null;
+  renderOrders(state.dashboard?.orders || []);
+});
+
+nodes.orderDateTo?.addEventListener("change", (event) => {
+  state.orderDateTo = event.currentTarget.value;
   state.openOrderId = null;
   renderOrders(state.dashboard?.orders || []);
 });
