@@ -512,9 +512,13 @@ function renderProductResults() {
     return;
   }
   const query = (nodes.productSearch.value || "").trim().toLowerCase();
+  if (!query) {
+    nodes.productResults.innerHTML = `<div class="empty-state">Busca por codigo, producto o EAN para agregar articulos.</div>`;
+    return;
+  }
   const products = state.order.products
-    .filter((product) => !query || productSearchText(product).includes(query))
-    .slice(0, query ? 12 : 8);
+    .filter((product) => productSearchText(product).includes(query))
+    .slice(0, 12);
   if (!products.length) {
     nodes.productResults.innerHTML = `<div class="empty-state">No encontramos productos para esa busqueda.</div>`;
     return;

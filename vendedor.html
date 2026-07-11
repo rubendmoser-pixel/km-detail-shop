@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Gestion de ventas | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260711a" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260711b" />
   </head>
   <body>
     <header class="seller-header">
@@ -48,13 +48,14 @@
 
         <div class="seller-stats" id="sellerStats"></div>
 
-        <section class="seller-panel seller-request-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Alta comercial</p>
-              <h2>Solicitar cuenta para cliente</h2>
-            </div>
-          </div>
+        <details class="seller-panel seller-request-panel">
+          <summary class="request-summary">
+            <span>
+              <span class="eyebrow">Alta comercial</span>
+              <strong>Solicitar cuenta para cliente</strong>
+            </span>
+            <span class="summary-action">Abrir formulario</span>
+          </summary>
           <form id="sellerCustomerRequestForm" class="seller-request-form">
             <div class="seller-form-grid">
               <label class="seller-field">
@@ -165,7 +166,7 @@
             </div>
             <p class="form-message" id="sellerCustomerRequestMessage" role="status"></p>
           </form>
-        </section>
+        </details>
 
         <section class="seller-panel order-builder">
           <div class="panel-heading">
@@ -191,7 +192,7 @@
             </div>
             <div class="order-builder-grid">
               <div>
-                <p class="seller-section-label">Resultados</p>
+                <p class="seller-section-label">Buscar y agregar</p>
                 <div class="seller-product-results" id="sellerProductResults"></div>
               </div>
               <div>
@@ -242,6 +243,6 @@
       </section>
     </main>
 
-    <script src="/vendedor.js?v=20260711a" type="module"></script>
+    <script src="/vendedor.js?v=20260711b" type="module"></script>
   </body>
 </html>

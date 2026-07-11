@@ -495,6 +495,46 @@ textarea:focus {
   gap: 1rem;
 }
 
+.seller-request-panel {
+  padding: 0;
+}
+
+.request-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.request-summary::-webkit-details-marker {
+  display: none;
+}
+
+.request-summary strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.summary-action {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.seller-request-panel[open] .summary-action {
+  background: rgba(136, 221, 159, 0.15);
+  border-color: rgba(136, 221, 159, 0.45);
+}
+
 .seller-form-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -677,5 +717,10 @@ button:disabled {
 
   .seller-actions > * {
     width: 100%;
+  }
+
+  .request-summary {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
