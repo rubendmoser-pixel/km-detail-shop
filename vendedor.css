@@ -10,6 +10,8 @@
   --gold: #e1c25b;
   --green: #83e49b;
   --blue: #79c5ff;
+  --action: #8dde9f;
+  --action-dark: #17351f;
   --red: #ff8a8a;
 }
 
@@ -185,11 +187,12 @@ textarea:focus {
 .primary-button,
 .ghost-button {
   min-height: 3.35rem;
-  border: 1px solid var(--line);
-  border-radius: 0;
+  border: 1px solid rgba(141, 222, 159, 0.56);
+  border-radius: 6px;
   padding: 0 1.2rem;
-  color: #080909;
-  background: linear-gradient(180deg, #f6f8f8, #bfc5c9);
+  color: #07130b;
+  background: linear-gradient(180deg, #a8f0b7, #69c77e);
+  box-shadow: 0 0 0 1px rgba(141, 222, 159, 0.08), 0 10px 26px rgba(0, 0, 0, 0.25);
   font-weight: 900;
   cursor: pointer;
 }
@@ -201,13 +204,15 @@ textarea:focus {
 }
 
 .ghost-button {
-  color: var(--text);
-  background: #0b0c0d;
+  color: var(--action);
+  border-color: rgba(141, 222, 159, 0.42);
+  background: rgba(141, 222, 159, 0.07);
 }
 
 .primary-button:hover,
 .ghost-button:hover {
-  border-color: var(--gold);
+  border-color: rgba(141, 222, 159, 0.9);
+  filter: brightness(1.06);
 }
 
 .form-message {
@@ -237,7 +242,37 @@ textarea:focus {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   border: 1px solid var(--line);
-  margin-bottom: 1.5rem;
+}
+
+.seller-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+}
+
+.seller-tabs button {
+  min-height: 3.1rem;
+  border: 1px solid rgba(141, 222, 159, 0.28);
+  border-radius: 6px;
+  background: rgba(141, 222, 159, 0.05);
+  color: var(--muted);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.seller-tabs button.active {
+  color: #07130b;
+  border-color: rgba(141, 222, 159, 0.82);
+  background: linear-gradient(180deg, #a8f0b7, #69c77e);
+}
+
+.seller-view {
+  display: none;
+}
+
+.seller-view.active {
+  display: block;
 }
 
 .seller-stat {
@@ -382,8 +417,9 @@ textarea:focus {
 
 .seller-mode-toggle button {
   min-height: 2.55rem;
-  border: 1px solid var(--line);
-  background: #0b0c0d;
+  border: 1px solid rgba(141, 222, 159, 0.28);
+  border-radius: 6px;
+  background: rgba(141, 222, 159, 0.05);
   color: var(--muted);
   padding: 0 0.95rem;
   font-weight: 900;
@@ -392,7 +428,7 @@ textarea:focus {
 
 .seller-mode-toggle button.active {
   border-color: rgba(131, 228, 155, 0.85);
-  background: linear-gradient(180deg, rgba(131, 228, 155, 0.98), rgba(88, 174, 112, 0.98));
+  background: linear-gradient(180deg, rgba(168, 240, 183, 0.98), rgba(105, 199, 126, 0.98));
   color: #07130b;
 }
 
@@ -522,17 +558,19 @@ textarea:focus {
 
 .summary-action {
   flex: 0 0 auto;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
+  border: 1px solid rgba(141, 222, 159, 0.48);
+  border-radius: 6px;
+  background: rgba(141, 222, 159, 0.09);
+  color: var(--action);
   padding: 0.65rem 0.9rem;
   font-size: 0.82rem;
   font-weight: 900;
 }
 
 .seller-request-panel[open] .summary-action {
-  background: rgba(136, 221, 159, 0.15);
-  border-color: rgba(136, 221, 159, 0.45);
+  color: #07130b;
+  background: linear-gradient(180deg, #a8f0b7, #69c77e);
+  border-color: rgba(136, 221, 159, 0.82);
 }
 
 .seller-form-grid {
@@ -645,6 +683,10 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .seller-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .seller-stat {
     border-bottom: 1px solid var(--line);
   }
@@ -689,6 +731,10 @@ button:disabled {
 
   .seller-stats {
     grid-template-columns: 1fr;
+  }
+
+  .seller-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .seller-stat {

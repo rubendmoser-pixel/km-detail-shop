@@ -6,6 +6,7 @@ const state = {
   orderDetails: {},
   openQuoteId: null,
   openOrderId: null,
+  activeView: "summary",
   mode: "order",
   order: {
     customerId: "",
@@ -41,7 +42,9 @@ const nodes = {
   orderSubmit: document.getElementById("sellerOrderSubmit"),
   quotes: document.getElementById("sellerQuotes"),
   customerRequestForm: document.getElementById("sellerCustomerRequestForm"),
-  customerRequestMessage: document.getElementById("sellerCustomerRequestMessage")
+  customerRequestMessage: document.getElementById("sellerCustomerRequestMessage"),
+  viewButtons: document.querySelectorAll("[data-seller-view-button]"),
+  views: document.querySelectorAll("[data-seller-view]")
 };
 
 function escapeHtml(value) {
@@ -214,6 +217,15 @@ function renderStats(summary = {}) {
       <span>${escapeHtml(label)}</span>
     </article>
   `).join("");
+}
+
+function renderSellerView() {
+  nodes.viewButtons?.forEach((button) => {
+    button.classList.toggle("active", button.dataset.sellerViewButton === state.activeView);
+  });
+  nodes.views?.forEach((view) => {
+    view.classList.toggle("active", view.dataset.sellerView === state.activeView);
+  });
 }
 
 function renderCustomers(customers = []) {
@@ -597,6 +609,7 @@ function renderDashboard(payload) {
   renderOrders(state.dashboard?.orders || []);
   renderQuotes();
   renderOrderBuilder();
+  renderSellerView();
   nodes.login.classList.add("hidden");
   nodes.dashboard.classList.remove("hidden");
   if (state.order.customerId && !state.order.products.length && !state.order.loadingProducts) {
@@ -673,6 +686,14 @@ nodes.customerRequestForm?.addEventListener("submit", async (event) => {
 });
 
 nodes.refresh?.addEventListener("click", loadDashboard);
+
+nodes.viewButtons?.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.activeView = button.dataset.sellerViewButton || "summary";
+    nodes.orderMessage.textContent = "";
+    renderSellerView();
+  });
+});
 
 nodes.modeButtons?.forEach((button) => {
   button.addEventListener("click", () => {

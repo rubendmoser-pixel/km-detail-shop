@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Gestion de ventas | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260711b" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260711c" />
   </head>
   <body>
     <header class="seller-header">
@@ -46,8 +46,20 @@
           <button class="ghost-button" id="refreshSellerDashboard" type="button">Actualizar</button>
         </div>
 
-        <div class="seller-stats" id="sellerStats"></div>
+        <nav class="seller-tabs" aria-label="Navegacion de gestion de ventas">
+          <button class="active" type="button" data-seller-view-button="summary">Resumen</button>
+          <button type="button" data-seller-view-button="builder">Operacion</button>
+          <button type="button" data-seller-view-button="quotes">Presupuestos</button>
+          <button type="button" data-seller-view-button="orders">Pedidos</button>
+          <button type="button" data-seller-view-button="customers">Clientes</button>
+          <button type="button" data-seller-view-button="request">Alta comercial</button>
+        </nav>
 
+        <section class="seller-view active" data-seller-view="summary">
+          <div class="seller-stats" id="sellerStats"></div>
+        </section>
+
+        <section class="seller-view" data-seller-view="request">
         <details class="seller-panel seller-request-panel">
           <summary class="request-summary">
             <span>
@@ -167,7 +179,9 @@
             <p class="form-message" id="sellerCustomerRequestMessage" role="status"></p>
           </form>
         </details>
+        </section>
 
+        <section class="seller-view" data-seller-view="builder">
         <section class="seller-panel order-builder">
           <div class="panel-heading">
             <div>
@@ -208,7 +222,9 @@
             <p class="form-message" id="sellerOrderMessage" role="status"></p>
           </form>
         </section>
+        </section>
 
+        <section class="seller-view" data-seller-view="quotes">
         <section class="seller-panel quote-history">
           <div class="panel-heading">
             <div>
@@ -218,8 +234,9 @@
           </div>
           <div class="seller-list" id="sellerQuotes"></div>
         </section>
+        </section>
 
-        <div class="seller-grid">
+        <section class="seller-view" data-seller-view="customers">
           <section class="seller-panel">
             <div class="panel-heading">
               <div>
@@ -229,7 +246,9 @@
             </div>
             <div class="seller-list" id="sellerCustomers"></div>
           </section>
+        </section>
 
+        <section class="seller-view" data-seller-view="orders">
           <section class="seller-panel">
             <div class="panel-heading">
               <div>
@@ -239,10 +258,11 @@
             </div>
             <div class="seller-list" id="sellerOrders"></div>
           </section>
-        </div>
+        </section>
+
       </section>
     </main>
 
-    <script src="/vendedor.js?v=20260711b" type="module"></script>
+    <script src="/vendedor.js?v=20260711c" type="module"></script>
   </body>
 </html>
