@@ -661,6 +661,29 @@ textarea:focus {
   font-weight: 900;
 }
 
+.seller-qty-input {
+  width: 100%;
+  min-height: 2.3rem;
+  border: 0;
+  padding: 0;
+  text-align: center;
+  color: var(--text);
+  background: #0f1114;
+  font-weight: 900;
+  outline: none;
+}
+
+.seller-qty-input:focus {
+  color: #07130b;
+  background: linear-gradient(180deg, #a8f0b7, #69c77e);
+}
+
+.seller-qty-input::-webkit-outer-spin-button,
+.seller-qty-input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
 .seller-order-total {
   min-height: 1.4rem;
   color: var(--green);

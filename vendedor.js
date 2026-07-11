@@ -554,7 +554,10 @@ function addOrderItem(productId) {
   if (existing) existing.quantity += 1;
   else state.order.items.push({ productId: Number(productId), quantity: 1 });
   nodes.orderMessage.textContent = "";
+  nodes.productSearch.value = "";
+  renderProductResults();
   renderOrderItems();
+  focusOrderQuantity(productId);
 }
 
 function updateOrderItem(productId, delta) {
@@ -565,6 +568,25 @@ function updateOrderItem(productId, delta) {
     state.order.items = state.order.items.filter((entry) => Number(entry.productId) !== Number(productId));
   }
   renderOrderItems();
+}
+
+function updateOrderQuantity(productId, value) {
+  const item = state.order.items.find((entry) => Number(entry.productId) === Number(productId));
+  if (!item) return;
+  const quantity = Math.max(1, Number.parseInt(value, 10) || 1);
+  item.quantity = quantity;
+  renderOrderItems();
+  focusOrderQuantity(productId);
+}
+
+function focusOrderQuantity(productId) {
+  window.requestAnimationFrame(() => {
+    const input = nodes.orderItems.querySelector(`[data-qty-product="${Number(productId)}"]`);
+    if (!input) return;
+    input.closest(".seller-order-row")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    input.focus();
+    input.select();
+  });
 }
 
 function renderOrderItems() {
@@ -587,7 +609,7 @@ function renderOrderItems() {
         </div>
         <div class="seller-qty">
           <button type="button" data-dec-product="${product.id}">-</button>
-          <span>${item.quantity}</span>
+          <input class="seller-qty-input" type="number" min="1" step="1" value="${item.quantity}" data-qty-product="${product.id}" aria-label="Cantidad ${escapeHtml(product.kmCode)}" />
           <button type="button" data-inc-product="${product.id}">+</button>
         </div>
       </article>
@@ -745,6 +767,19 @@ nodes.orderItems?.addEventListener("click", (event) => {
   const inc = event.target.closest("[data-inc-product]");
   if (dec) updateOrderItem(dec.dataset.decProduct, -1);
   if (inc) updateOrderItem(inc.dataset.incProduct, 1);
+});
+
+nodes.orderItems?.addEventListener("change", (event) => {
+  const input = event.target.closest("[data-qty-product]");
+  if (!input) return;
+  updateOrderQuantity(input.dataset.qtyProduct, input.value);
+});
+
+nodes.orderItems?.addEventListener("keydown", (event) => {
+  const input = event.target.closest("[data-qty-product]");
+  if (!input || event.key !== "Enter") return;
+  event.preventDefault();
+  input.blur();
 });
 
 nodes.quotes?.addEventListener("click", async (event) => {
