@@ -266,15 +266,14 @@ function renderSession() {
 
 function renderStats(summary = {}) {
   const stats = [
-    ["Clientes", summary.customerCount || 0],
-    ["Aprobados", summary.approvedCustomerCount || 0],
-    ["Pedidos abiertos", summary.openOrders || 0],
-    ["Pedidos del mes", summary.monthOrders || 0],
-    ["Venta mes", money(summary.monthTotalCents || 0)],
-    ["Comision pendiente", money(summary.pendingCommissionCents || 0)]
+    ["Ventas generadas", money(summary.generatedSalesCents ?? summary.monthTotalCents ?? 0)],
+    ["Comisiones generadas", money(summary.generatedCommissionCents || 0)],
+    ["Comisiones a liquidar", money(summary.commissionToSettleCents ?? summary.pendingCommissionCents ?? 0)],
+    ["Comisiones liquidadas", money(summary.settledCommissionCents || 0)],
+    ["Saldo pendiente de liquidacion", money(summary.settlementBalanceCents ?? summary.pendingCommissionCents ?? 0)]
   ];
   nodes.stats.innerHTML = stats.map(([label, value]) => `
-    <article class="seller-stat">
+    <article class="seller-stat commission-stat">
       <strong>${escapeHtml(value)}</strong>
       <span>${escapeHtml(label)}</span>
     </article>
@@ -408,10 +407,11 @@ function renderOrders(orders = []) {
     const total = money(order.total_cents || 0);
     const balance = money(order.balance_cents || 0);
     const commission = money(order.sales_commission_cents || 0);
+    const origin = sellerOrderOrigin(order);
     const commissionStatus = order.sales_commission_settlement_id
       ? badge("Comision liquidada", "green")
       : Number(order.sales_commission_cents || 0) > 0 && Number(order.balance_cents || 0) === 0
-        ? badge("Comision pendiente", "gold")
+        ? badge("Comision a liquidar", "gold")
         : "";
     return `
       <article class="seller-card order-card">
@@ -426,6 +426,7 @@ function renderOrders(orders = []) {
           </div>
         </div>
         <div class="seller-badges">
+          ${badge(origin.label, origin.tone)}
           ${badge(orderStatusLabels[order.status] || order.status || "Pedido", orderTone(order))}
           ${badge(paymentStatusLabels[order.payment_status] || order.payment_status || "Pago", order.payment_status === "paid" ? "green" : "gold")}
           ${badge(fulfillmentStatusLabels[order.fulfillment_status] || order.fulfillment_status || "Logistica", order.fulfillment_status === "shipped" ? "blue" : "")}
@@ -443,6 +444,14 @@ function renderOrders(orders = []) {
   }).join("") + (filteredOrders.length > visibleOrders.length
     ? `<div class="seller-list-note">Mostrando ${visibleOrders.length} de ${filteredOrders.length}. Ajusta la busqueda o el estado para encontrar un pedido puntual.</div>`
     : "");
+}
+
+function sellerOrderOrigin(order = {}) {
+  const role = String(order.created_by_role || "").toLowerCase();
+  if (role === "sales_rep") return { label: "Generado por vos", tone: "blue" };
+  if (role === "customer") return { label: "Generado por cliente", tone: "green" };
+  if (role === "admin") return { label: "Generado por KM", tone: "" };
+  return { label: "Origen KM", tone: "" };
 }
 
 function quoteTone(status) {

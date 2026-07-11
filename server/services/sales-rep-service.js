@@ -456,7 +456,8 @@ export function getSalesRepPortalDashboard(db, salesRepId) {
     SELECT o.id, o.order_number, o.status, o.payment_status, o.fulfillment_status,
            o.total_cents, o.paid_cents, o.balance_cents, o.payment_due_date,
            o.sales_commission_bps, o.sales_commission_base_cents, o.sales_commission_cents,
-           o.sales_commission_settlement_id, o.created_at, o.updated_at,
+           o.sales_commission_settlement_id, o.created_by_role, o.created_by_sales_rep_id,
+           o.created_at, o.updated_at,
            c.business_name, c.commercial_class
     FROM orders o
     JOIN customers c ON c.id = o.customer_id
@@ -469,8 +470,19 @@ export function getSalesRepPortalDashboard(db, salesRepId) {
   const closedFulfillmentStatuses = new Set(["delivered", "customer_received"]);
   const openOrders = orders.filter((order) => !closedFulfillmentStatuses.has(order.fulfillment_status));
   const pendingCommission = orders
-    .filter((order) => Number(order.sales_commission_cents || 0) > 0 && !order.sales_commission_settlement_id && order.balance_cents === 0)
+    .filter((order) => Number(order.sales_commission_cents || 0) > 0
+      && !order.sales_commission_settlement_id
+      && Number(order.balance_cents || 0) === 0
+      && ["paid", "settled_adjustment"].includes(order.payment_status))
     .reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0);
+  const settledCommission = db.prepare(`
+    SELECT SUM(commission_cents) AS settled_commission_cents
+    FROM sales_commission_settlements
+    WHERE sales_rep_id = ?
+  `).get(id) || {};
+  const generatedCommission = monthOrders
+    .reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0);
+  const monthTotal = monthOrders.reduce((total, order) => total + Number(order.total_cents || 0), 0);
   return {
     generatedAt: new Date().toISOString(),
     salesRepId: id,
@@ -480,9 +492,14 @@ export function getSalesRepPortalDashboard(db, salesRepId) {
       approvedCustomerCount: customers.filter((customer) => customer.approval_status === "approved").length,
       openOrders: openOrders.length,
       monthOrders: monthOrders.length,
-      monthTotalCents: monthOrders.reduce((total, order) => total + Number(order.total_cents || 0), 0),
+      monthTotalCents: monthTotal,
+      generatedSalesCents: monthTotal,
+      generatedCommissionCents: generatedCommission,
       balanceCents: openOrders.reduce((total, order) => total + Number(order.balance_cents || 0), 0),
-      pendingCommissionCents: pendingCommission
+      pendingCommissionCents: pendingCommission,
+      commissionToSettleCents: pendingCommission,
+      settledCommissionCents: Number(settledCommission.settled_commission_cents || 0),
+      settlementBalanceCents: pendingCommission
     },
     customers,
     orders

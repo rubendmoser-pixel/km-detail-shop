@@ -285,6 +285,23 @@ textarea:focus {
   background: rgba(23, 26, 29, 0.88);
 }
 
+.seller-stat.commission-stat {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(183, 184, 255, 0.22);
+  background:
+    linear-gradient(145deg, rgba(183, 184, 255, 0.13), transparent 52%),
+    rgba(23, 26, 29, 0.92);
+}
+
+.seller-stat.commission-stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--action), var(--blue));
+}
+
 .seller-stat:last-child {
   border-right: 0;
 }
