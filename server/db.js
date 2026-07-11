@@ -364,6 +364,50 @@ function migrate(db) {
       availability_note TEXT NOT NULL DEFAULT ''
     );
 
+    CREATE TABLE IF NOT EXISTS sales_quotes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quote_number TEXT UNIQUE,
+      customer_id INTEGER NOT NULL REFERENCES customers(id),
+      sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      sales_rep_name TEXT NOT NULL DEFAULT '',
+      sales_rep_email TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'generated'
+        CHECK (status IN ('generated', 'converted', 'cancelled', 'expired')),
+      currency TEXT NOT NULL DEFAULT 'ARS' CHECK (currency = 'ARS'),
+      discount_1_bps INTEGER NOT NULL DEFAULT 0,
+      discount_2_bps INTEGER NOT NULL DEFAULT 0,
+      discount_3_bps INTEGER NOT NULL DEFAULT 0,
+      commercial_class TEXT NOT NULL DEFAULT 'B' CHECK (commercial_class IN ('B', 'N')),
+      subtotal_net_cents INTEGER NOT NULL DEFAULT 0,
+      vat_bps INTEGER NOT NULL DEFAULT 0,
+      vat_cents INTEGER NOT NULL DEFAULT 0,
+      total_cents INTEGER NOT NULL DEFAULT 0,
+      valid_until TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sales_quote_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quote_id INTEGER NOT NULL REFERENCES sales_quotes(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      km_code TEXT NOT NULL,
+      ean13 TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      quantity INTEGER NOT NULL CHECK (quantity > 0),
+      base_price_cents INTEGER NOT NULL,
+      discount_1_bps INTEGER NOT NULL DEFAULT 0,
+      discount_2_bps INTEGER NOT NULL DEFAULT 0,
+      discount_3_bps INTEGER NOT NULL DEFAULT 0,
+      special_discount_bps INTEGER NOT NULL DEFAULT 0 CHECK (special_discount_bps BETWEEN 0 AND 10000),
+      special_discount_note TEXT NOT NULL DEFAULT '',
+      promotion_bps INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000),
+      promotion_label TEXT NOT NULL DEFAULT '',
+      final_unit_price_cents INTEGER NOT NULL,
+      subtotal_net_cents INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS order_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -489,6 +533,9 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id, sort_order, id);
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
+    CREATE INDEX IF NOT EXISTS idx_sales_quotes_rep_created ON sales_quotes(sales_rep_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_sales_quotes_customer_created ON sales_quotes(customer_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_sales_quote_items_quote ON sales_quote_items(quote_id);
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
     CREATE INDEX IF NOT EXISTS idx_sales_rep_sessions_token ON sales_rep_sessions(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_commission_settlements_rep ON sales_commission_settlements(sales_rep_id, created_at DESC);

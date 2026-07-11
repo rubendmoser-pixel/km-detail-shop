@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Portal vendedor | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260710c" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260710d" />
   </head>
   <body>
     <header class="seller-header">
@@ -51,8 +51,12 @@
         <section class="seller-panel order-builder">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Pedido asistido</p>
-              <h2>Cargar pedido para cliente asignado</h2>
+              <p class="eyebrow">Operacion asistida</p>
+              <h2 id="sellerBuilderTitle">Cargar pedido para cliente asignado</h2>
+            </div>
+            <div class="seller-mode-toggle" role="tablist" aria-label="Tipo de operacion">
+              <button class="active" type="button" data-seller-mode="order">Pedido</button>
+              <button type="button" data-seller-mode="quote">Presupuesto</button>
             </div>
           </div>
           <form class="seller-order-form" id="sellerOrderForm">
@@ -72,17 +76,27 @@
                 <div class="seller-product-results" id="sellerProductResults"></div>
               </div>
               <div>
-                <p class="seller-section-label">Pedido en armado</p>
+                <p class="seller-section-label" id="sellerItemsLabel">Pedido en armado</p>
                 <div class="seller-order-items" id="sellerOrderItems"></div>
                 <div class="seller-order-total" id="sellerOrderTotal"></div>
               </div>
             </div>
             <div class="seller-actions">
-              <button class="primary-button" type="submit">Enviar pedido a KM</button>
+              <button class="primary-button" type="submit" id="sellerOrderSubmit">Enviar pedido a KM</button>
               <button class="ghost-button" type="button" id="clearSellerOrder">Limpiar</button>
             </div>
             <p class="form-message" id="sellerOrderMessage" role="status"></p>
           </form>
+        </section>
+
+        <section class="seller-panel quote-history">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Presupuestos</p>
+              <h2>Presupuestos generados</h2>
+            </div>
+          </div>
+          <div class="seller-list" id="sellerQuotes"></div>
         </section>
 
         <div class="seller-grid">
@@ -109,6 +123,6 @@
       </section>
     </main>
 
-    <script src="/vendedor.js?v=20260710c" type="module"></script>
+    <script src="/vendedor.js?v=20260710d" type="module"></script>
   </body>
 </html>

@@ -68,6 +68,7 @@ import {
   requireSalesRep,
   upsertSalesRep
 } from "./services/sales-rep-service.js";
+import { createSalesQuote, listSalesQuotesForSalesRep } from "./services/sales-quote-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSalesRepSessionCookie, clearSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
@@ -231,6 +232,21 @@ export function createApp({
         });
         emailService.queueOrderCreated(order.id);
         return sendJson(response, 201, { order, message: "Pedido enviado a KM." });
+      }
+      if (request.method === "GET" && url.pathname === "/api/sales/quotes") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        return sendJson(response, 200, { quotes: listSalesQuotesForSalesRep(db, salesRep.id) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/sales/quotes") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const body = await readJson(request);
+        const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, body.customerId);
+        const quote = createSalesQuote(db, salesRep, customer.id, {
+          items: body.items,
+          validUntil: body.validUntil,
+          notes: body.notes
+        });
+        return sendJson(response, 201, { quote, message: "Presupuesto generado." });
       }
       if (request.method === "GET" && url.pathname === "/api/me") {
         return sendJson(response, 200, { user: requireUser(currentUser) });

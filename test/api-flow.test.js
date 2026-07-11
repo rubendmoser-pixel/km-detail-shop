@@ -205,6 +205,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
       email: "vendedor-api@km-detail.com",
       phone: "3410000000",
       whatsapp: "5493410000000",
+      portalPassword: "sales-portal-password-456",
       defaultCommissionBps: 500,
       status: "active"
     })
@@ -224,6 +225,29 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(products.products[0].primaryImageUrl, images[0].url);
   assert.equal(products.products[0].images.length, 1);
   assert.equal(products.products[0].images[0].url, images[0].url);
+  const salesCookie = await salesLoginCookie(baseUrl, "vendedor-api@km-detail.com", "sales-portal-password-456");
+  const salesProducts = await getJson(`${baseUrl}/api/sales/products?customerId=${registration.customer.id}`, salesCookie);
+  assert.equal(salesProducts.products[0].finalPriceCents, 50_400);
+  const quoteResponse = await fetch(`${baseUrl}/api/sales/quotes`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({
+      customerId: registration.customer.id,
+      validUntil: "2026-08-15",
+      notes: "Presupuesto API",
+      items: [{ productId: product.id, quantity: 3 }]
+    })
+  });
+  assert.equal(quoteResponse.status, 201);
+  const quotePayload = await quoteResponse.json();
+  assert.match(quotePayload.quote.quoteNumber, /^PR-\d{4}-\d{6}$/);
+  assert.equal(quotePayload.quote.items.length, 1);
+  assert.equal(quotePayload.quote.items[0].quantity, 3);
+  assert.equal(quotePayload.quote.subtotalNetCents, 151_200);
+  assert.equal(quotePayload.quote.totalCents, 182_952);
+  const quotesPayload = await getJson(`${baseUrl}/api/sales/quotes`, salesCookie);
+  assert.equal(quotesPayload.quotes.length, 1);
+  assert.equal(quotesPayload.quotes[0].quoteNumber, quotePayload.quote.quoteNumber);
   const blockedPriceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`);
   assert.equal(blockedPriceListResponse.status, 401);
   const priceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`, { headers: { cookie: customerCookie } });
@@ -736,6 +760,16 @@ test("push notification endpoints stay safe when VAPID is not configured", async
 
 async function loginCookie(baseUrl, email, password) {
   const response = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+  assert.equal(response.status, 200);
+  return response.headers.get("set-cookie").split(";")[0];
+}
+
+async function salesLoginCookie(baseUrl, email, password) {
+  const response = await fetch(`${baseUrl}/api/sales/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ email, password })

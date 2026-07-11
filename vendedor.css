@@ -264,6 +264,10 @@ select:focus {
 }
 
 .panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid var(--line);
 }
@@ -350,6 +354,37 @@ select:focus {
 
 .order-builder {
   margin-bottom: 1.5rem;
+}
+
+.quote-history {
+  margin-bottom: 1.5rem;
+}
+
+.seller-mode-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.seller-mode-toggle button {
+  min-height: 2.55rem;
+  border: 1px solid var(--line);
+  background: #0b0c0d;
+  color: var(--muted);
+  padding: 0 0.95rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.seller-mode-toggle button.active {
+  border-color: rgba(131, 228, 155, 0.85);
+  background: linear-gradient(180deg, rgba(131, 228, 155, 0.98), rgba(88, 174, 112, 0.98));
+  color: #07130b;
+}
+
+.quote-card {
+  border-left: 4px solid var(--blue);
 }
 
 .seller-order-form {
@@ -458,9 +493,14 @@ button:disabled {
 
   .seller-grid,
   .order-builder-grid,
-  .dashboard-heading {
+  .dashboard-heading,
+  .panel-heading {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .seller-mode-toggle {
+    justify-content: flex-start;
   }
 }
 

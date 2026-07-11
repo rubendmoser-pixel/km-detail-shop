@@ -1,6 +1,8 @@
 const state = {
   salesRep: null,
   dashboard: null,
+  quotes: [],
+  mode: "order",
   order: {
     customerId: "",
     products: [],
@@ -28,7 +30,12 @@ const nodes = {
   orderItems: document.getElementById("sellerOrderItems"),
   orderTotal: document.getElementById("sellerOrderTotal"),
   orderMessage: document.getElementById("sellerOrderMessage"),
-  clearOrder: document.getElementById("clearSellerOrder")
+  clearOrder: document.getElementById("clearSellerOrder"),
+  modeButtons: document.querySelectorAll("[data-seller-mode]"),
+  builderTitle: document.getElementById("sellerBuilderTitle"),
+  itemsLabel: document.getElementById("sellerItemsLabel"),
+  orderSubmit: document.getElementById("sellerOrderSubmit"),
+  quotes: document.getElementById("sellerQuotes")
 };
 
 function escapeHtml(value) {
@@ -105,6 +112,13 @@ const fulfillmentStatusLabels = {
   shipped: "Despachado",
   delivered: "Recibido por cliente",
   customer_received: "Recibido por cliente"
+};
+
+const quoteStatusLabels = {
+  generated: "Generado",
+  converted: "Convertido",
+  cancelled: "Cancelado",
+  expired: "Vencido"
 };
 
 function badge(label, tone = "") {
@@ -212,6 +226,50 @@ function renderOrders(orders = []) {
   }).join("");
 }
 
+function quoteTone(status) {
+  if (status === "converted") return "green";
+  if (status === "expired" || status === "cancelled") return "";
+  return "blue";
+}
+
+function renderQuotes() {
+  if (!nodes.quotes) return;
+  if (!state.quotes.length) {
+    nodes.quotes.innerHTML = `<div class="empty-state">Todavia no hay presupuestos generados.</div>`;
+    return;
+  }
+  nodes.quotes.innerHTML = state.quotes.map((quote) => `
+    <article class="seller-card quote-card">
+      <div class="seller-card-top">
+        <div>
+          <strong>${escapeHtml(quote.quoteNumber || "Presupuesto")}</strong>
+          <div class="seller-meta">${escapeHtml(quote.businessName || "")} | ${shortDate(quote.createdAt)}</div>
+        </div>
+        <div class="order-money">
+          <strong>${money(quote.totalCents || 0)}</strong>
+          <small>Neto ${money(quote.subtotalNetCents || 0)} + IVA</small>
+        </div>
+      </div>
+      <div class="seller-badges">
+        ${badge(quoteStatusLabels[quote.status] || quote.status || "Generado", quoteTone(quote.status))}
+        ${badge(`${quote.itemCount || 0} productos`)}
+      </div>
+      ${quote.validUntil ? `<div class="seller-meta">Valido hasta ${shortDate(quote.validUntil)}</div>` : ""}
+    </article>
+  `).join("");
+}
+
+async function loadQuotes() {
+  if (!nodes.quotes) return;
+  try {
+    const payload = await sellerApi("/api/sales/quotes");
+    state.quotes = payload.quotes || [];
+    renderQuotes();
+  } catch (error) {
+    nodes.quotes.innerHTML = `<div class="empty-state">${escapeHtml(error.message || "No se pudieron cargar presupuestos.")}</div>`;
+  }
+}
+
 function approvedCustomers() {
   return (state.dashboard?.customers || []).filter((customer) => customer.approval_status === "approved");
 }
@@ -233,6 +291,7 @@ function productSearchText(product) {
 }
 
 function renderOrderBuilder() {
+  renderBuilderMode();
   const customers = approvedCustomers();
   if (!customers.length) {
     nodes.orderCustomer.innerHTML = `<option value="">Sin clientes aprobados</option>`;
@@ -253,6 +312,24 @@ function renderOrderBuilder() {
   `).join("");
   renderProductResults();
   renderOrderItems();
+}
+
+function renderBuilderMode() {
+  const isQuote = state.mode === "quote";
+  nodes.modeButtons?.forEach((button) => {
+    button.classList.toggle("active", button.dataset.sellerMode === state.mode);
+  });
+  if (nodes.builderTitle) {
+    nodes.builderTitle.textContent = isQuote
+      ? "Generar presupuesto para cliente asignado"
+      : "Cargar pedido para cliente asignado";
+  }
+  if (nodes.itemsLabel) {
+    nodes.itemsLabel.textContent = isQuote ? "Presupuesto en armado" : "Pedido en armado";
+  }
+  if (nodes.orderSubmit) {
+    nodes.orderSubmit.textContent = isQuote ? "Generar presupuesto" : "Enviar pedido a KM";
+  }
 }
 
 async function loadSellerProducts(customerId) {
@@ -347,7 +424,9 @@ function renderOrderItems() {
       </article>
     `;
   }).join("");
-  nodes.orderTotal.textContent = `Subtotal neto estimado: ${money(total)} + IVA`;
+  nodes.orderTotal.textContent = state.mode === "quote"
+    ? `Subtotal neto presupuestado: ${money(total)} + IVA`
+    : `Subtotal neto estimado: ${money(total)} + IVA`;
 }
 
 function renderDashboard(payload) {
@@ -359,12 +438,14 @@ function renderDashboard(payload) {
   renderStats(state.dashboard?.summary || {});
   renderCustomers(state.dashboard?.customers || []);
   renderOrders(state.dashboard?.orders || []);
+  renderQuotes();
   renderOrderBuilder();
   nodes.login.classList.add("hidden");
   nodes.dashboard.classList.remove("hidden");
   if (state.order.customerId && !state.order.products.length && !state.order.loadingProducts) {
     loadSellerProducts(state.order.customerId);
   }
+  loadQuotes();
 }
 
 function showLogin(message = "") {
@@ -417,6 +498,15 @@ nodes.loginForm?.addEventListener("submit", async (event) => {
 
 nodes.refresh?.addEventListener("click", loadDashboard);
 
+nodes.modeButtons?.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.mode = button.dataset.sellerMode === "quote" ? "quote" : "order";
+    nodes.orderMessage.textContent = "";
+    renderBuilderMode();
+    renderOrderItems();
+  });
+});
+
 nodes.orderCustomer?.addEventListener("change", async (event) => {
   state.order.customerId = event.currentTarget.value;
   state.order.items = [];
@@ -456,7 +546,8 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
   const button = event.currentTarget.querySelector("button[type='submit']");
   button.disabled = true;
   try {
-    const payload = await sellerApi("/api/sales/orders", {
+    const isQuote = state.mode === "quote";
+    const payload = await sellerApi(isQuote ? "/api/sales/quotes" : "/api/sales/orders", {
       method: "POST",
       body: {
         customerId: Number(state.order.customerId),
@@ -467,10 +558,12 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
       }
     });
     state.order.items = [];
-    nodes.orderMessage.textContent = `Pedido ${payload.order?.orderNumber || ""} enviado a KM.`;
+    nodes.orderMessage.textContent = isQuote
+      ? `Presupuesto ${payload.quote?.quoteNumber || ""} generado.`
+      : `Pedido ${payload.order?.orderNumber || ""} enviado a KM.`;
     await loadDashboard();
   } catch (error) {
-    nodes.orderMessage.textContent = error.message || "No se pudo enviar el pedido.";
+    nodes.orderMessage.textContent = error.message || "No se pudo completar la operacion.";
   } finally {
     button.disabled = false;
   }
