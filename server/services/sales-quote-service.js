@@ -141,6 +141,22 @@ export function markSalesQuoteConverted(db, quoteId, salesRepId = null) {
   return getSalesQuote(db, quote.id, salesRepId);
 }
 
+export function markSalesQuoteShared(db, quoteId, salesRepId = null, channel = "") {
+  const quote = getSalesQuote(db, quoteId, salesRepId);
+  if (quote.status !== "generated") throw new ValidationError("El presupuesto ya fue convertido o no esta vigente");
+  if (channel === "email") {
+    db.prepare("UPDATE sales_quotes SET email_sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+      .run(quote.id);
+    return getSalesQuote(db, quote.id, salesRepId);
+  }
+  if (channel === "whatsapp") {
+    db.prepare("UPDATE sales_quotes SET whatsapp_sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+      .run(quote.id);
+    return getSalesQuote(db, quote.id, salesRepId);
+  }
+  throw new ValidationError("Canal de envio no valido");
+}
+
 function optionalDate(value, field) {
   const text = optionalText(value, field, { max: 10 });
   if (!text) return "";
@@ -172,6 +188,8 @@ function mapQuote(row, items = [], itemCount = 0) {
     totalCents: row.total_cents,
     validUntil: row.valid_until,
     notes: row.notes,
+    emailSentAt: row.email_sent_at,
+    whatsappSentAt: row.whatsapp_sent_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     itemCount,

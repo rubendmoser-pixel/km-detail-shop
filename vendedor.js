@@ -168,6 +168,14 @@ async function getQuoteDetail(quoteId) {
   return payload.quote;
 }
 
+function updateQuoteState(quote) {
+  if (!quote?.id) return;
+  state.quoteDetails[quote.id] = quote;
+  state.quotes = state.quotes.map((current) =>
+    Number(current.id) === Number(quote.id) ? { ...current, ...quote } : current
+  );
+}
+
 async function getOrderDetail(orderId) {
   if (state.orderDetails[orderId]) return state.orderDetails[orderId];
   const payload = await sellerApi(`/api/sales/orders/${encodeURIComponent(orderId)}`);
@@ -529,37 +537,44 @@ function renderQuotes() {
     nodes.quotes.innerHTML = `<div class="empty-state">Todavia no hay presupuestos generados.</div>`;
     return;
   }
-  nodes.quotes.innerHTML = visibleQuotes.map((quote) => `
-    <article class="seller-card quote-card">
-      <div class="seller-card-top">
-        <div>
-          <strong>${escapeHtml(quote.quoteNumber || "Presupuesto")}</strong>
-          <div class="seller-meta">${escapeHtml(quote.businessName || "")} | ${shortDate(quote.createdAt)}</div>
+  nodes.quotes.innerHTML = visibleQuotes.map((quote) => {
+    const canShareQuote = quote.status === "generated";
+    return `
+      <article class="seller-card quote-card">
+        <div class="seller-card-top">
+          <div>
+            <strong>${escapeHtml(quote.quoteNumber || "Presupuesto")}</strong>
+            <div class="seller-meta">${escapeHtml(quote.businessName || "")} | ${shortDate(quote.createdAt)}</div>
+          </div>
+          <div class="order-money">
+            <strong>${money(quote.totalCents || 0)}</strong>
+            <small>Neto ${money(quote.subtotalNetCents || 0)} + IVA</small>
+          </div>
         </div>
-        <div class="order-money">
-          <strong>${money(quote.totalCents || 0)}</strong>
-          <small>Neto ${money(quote.subtotalNetCents || 0)} + IVA</small>
+        <div class="seller-badges">
+          ${badge(quoteStatusLabels[quote.status] || quote.status || "Generado", quoteTone(quote.status))}
+          ${badge(`${quote.itemCount || 0} productos`)}
+          ${quote.emailSentAt ? badge(`Email enviado ${shortDate(quote.emailSentAt)}`, "green") : ""}
+          ${quote.whatsappSentAt ? badge(`WhatsApp abierto ${shortDate(quote.whatsappSentAt)}`, "blue") : ""}
         </div>
-      </div>
-      <div class="seller-badges">
-        ${badge(quoteStatusLabels[quote.status] || quote.status || "Generado", quoteTone(quote.status))}
-        ${badge(`${quote.itemCount || 0} productos`)}
-      </div>
-      ${quote.validUntil ? `<div class="seller-meta">Valido hasta ${shortDate(quote.validUntil)}</div>` : ""}
-      <div class="quote-actions">
-        <button class="ghost-button compact" type="button" data-view-quote="${quote.id}">
-          ${String(state.openQuoteId) === String(quote.id) ? "Cerrar detalle" : "Ver"}
-        </button>
-        <button class="ghost-button compact" type="button" data-share-quote-whatsapp="${quote.id}" ${onlyDigits(quote.customerWhatsapp).length ? "" : "disabled"}>
-          WhatsApp cliente
-        </button>
-        <button class="ghost-button compact" type="button" data-share-quote-email="${quote.id}" ${quote.customerEmail ? "" : "disabled"}>
-          Email cliente
-        </button>
-      </div>
-      ${String(state.openQuoteId) === String(quote.id) ? renderQuoteDetail(quote.id) : ""}
-    </article>
-  `).join("") + (filteredQuotes.length > visibleQuotes.length
+        ${quote.validUntil ? `<div class="seller-meta">Valido hasta ${shortDate(quote.validUntil)}</div>` : ""}
+        <div class="quote-actions">
+          <button class="ghost-button compact" type="button" data-view-quote="${quote.id}">
+            ${String(state.openQuoteId) === String(quote.id) ? "Cerrar detalle" : "Ver"}
+          </button>
+          ${canShareQuote ? `
+            <button class="ghost-button compact" type="button" data-share-quote-whatsapp="${quote.id}" ${onlyDigits(quote.customerWhatsapp).length ? "" : "disabled"}>
+              WhatsApp cliente
+            </button>
+            <button class="ghost-button compact" type="button" data-share-quote-email="${quote.id}" ${quote.customerEmail ? "" : "disabled"}>
+              Email cliente
+            </button>
+          ` : ""}
+        </div>
+        ${String(state.openQuoteId) === String(quote.id) ? renderQuoteDetail(quote.id) : ""}
+      </article>
+    `;
+  }).join("") + (filteredQuotes.length > visibleQuotes.length
     ? `<div class="seller-list-note">Mostrando ${visibleQuotes.length} de ${filteredQuotes.length}. Ajusta la busqueda o el estado para encontrar un presupuesto puntual.</div>`
     : "");
 }
@@ -1029,7 +1044,7 @@ nodes.quotes?.addEventListener("click", async (event) => {
         method: "POST",
         body: {}
       });
-      state.quoteDetails[quoteId] = payload.quote;
+      updateQuoteState(payload.quote);
       if (payload.order?.id) state.orderDetails[payload.order.id] = payload.order;
       nodes.orderMessage.textContent = `Pedido ${payload.order?.orderNumber || ""} generado desde presupuesto.`;
       await loadDashboard();
@@ -1047,18 +1062,32 @@ nodes.quotes?.addEventListener("click", async (event) => {
   button.disabled = true;
   try {
     const quote = await getQuoteDetail(quoteId);
+    if (quote.status !== "generated") {
+      throw new Error("El presupuesto ya fue convertido o no esta vigente.");
+    }
     if (whatsappButton) {
       const text = quoteShareText(quote);
       const phone = onlyDigits(quote.customerWhatsapp);
       if (!phone) throw new Error("El cliente no tiene WhatsApp cargado.");
+      nodes.orderMessage.textContent = "Abriendo WhatsApp del cliente...";
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+      const payload = await sellerApi(`/api/sales/quotes/${encodeURIComponent(quoteId)}/whatsapp`, {
+        method: "POST",
+        body: {}
+      });
+      updateQuoteState(payload.quote);
+      nodes.orderMessage.textContent = payload.message || "WhatsApp abierto y registrado.";
+      renderQuotes();
     } else {
       if (!quote.customerEmail) throw new Error("El cliente no tiene email cargado.");
+      nodes.orderMessage.textContent = "Enviando presupuesto por email...";
       const payload = await sellerApi(`/api/sales/quotes/${encodeURIComponent(quoteId)}/email`, {
         method: "POST",
         body: {}
       });
+      updateQuoteState(payload.quote);
       nodes.orderMessage.textContent = payload.message || "Presupuesto enviado por email.";
+      renderQuotes();
     }
   } catch (error) {
     nodes.orderMessage.textContent = error.message || "No se pudo compartir el presupuesto.";

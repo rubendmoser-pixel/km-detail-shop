@@ -387,6 +387,8 @@ function migrate(db) {
       total_cents INTEGER NOT NULL DEFAULT 0,
       valid_until TEXT NOT NULL DEFAULT '',
       notes TEXT NOT NULL DEFAULT '',
+      email_sent_at TEXT,
+      whatsapp_sent_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -623,6 +625,8 @@ function migrate(db) {
   ensureColumn(db, "sales_reps", "bank_cbu", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "sales_reps", "bank_alias", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "sales_reps", "password_hash", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "sales_quotes", "email_sent_at", "TEXT");
+  ensureColumn(db, "sales_quotes", "whatsapp_sent_at", "TEXT");
   db.exec(`
     CREATE TABLE IF NOT EXISTS sales_rep_sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

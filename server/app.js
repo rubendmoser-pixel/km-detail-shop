@@ -69,7 +69,7 @@ import {
   requestCommercialCustomer,
   upsertSalesRep
 } from "./services/sales-rep-service.js";
-import { createSalesQuote, getSalesQuote, listSalesQuotesForSalesRep, markSalesQuoteConverted } from "./services/sales-quote-service.js";
+import { createSalesQuote, getSalesQuote, listSalesQuotesForSalesRep, markSalesQuoteConverted, markSalesQuoteShared } from "./services/sales-quote-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSalesRepSessionCookie, clearSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
@@ -288,7 +288,18 @@ export function createApp({
           const quote = getSalesQuote(db, Number(match[1]), salesRep.id);
           if (!quote.customerEmail) throw new ValidationError("El cliente no tiene email cargado");
           emailService.queueSalesQuoteCustomer(quote);
-          return sendJson(response, 200, { message: `Presupuesto ${quote.quoteNumber || ""} enviado por email.` });
+          const updatedQuote = markSalesQuoteShared(db, quote.id, salesRep.id, "email");
+          return sendJson(response, 200, { quote: updatedQuote, message: `Presupuesto ${quote.quoteNumber || ""} enviado por email.` });
+        }
+      }
+      {
+        const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)\/whatsapp$/);
+        if (request.method === "POST" && match) {
+          const salesRep = requireSalesRep(currentSalesRep);
+          const quote = getSalesQuote(db, Number(match[1]), salesRep.id);
+          if (!quote.customerWhatsapp) throw new ValidationError("El cliente no tiene WhatsApp cargado");
+          const updatedQuote = markSalesQuoteShared(db, quote.id, salesRep.id, "whatsapp");
+          return sendJson(response, 200, { quote: updatedQuote, message: `WhatsApp del presupuesto ${quote.quoteNumber || ""} abierto y registrado.` });
         }
       }
       {

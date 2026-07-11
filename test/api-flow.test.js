@@ -253,6 +253,26 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(quoteDetail.quote.items.length, 1);
   assert.equal(quoteDetail.quote.customerEmail, "cliente-api@example.com");
   assert.equal(quoteDetail.quote.customerWhatsapp, "5493510000000");
+  const quoteEmailResponse = await fetch(`${baseUrl}/api/sales/quotes/${quotePayload.quote.id}/email`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({})
+  });
+  assert.equal(quoteEmailResponse.status, 200);
+  const quoteEmailPayload = await quoteEmailResponse.json();
+  assert.ok(quoteEmailPayload.quote.emailSentAt);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS count FROM email_outbox WHERE event_type = 'sales_quote_customer'").get().count,
+    1
+  );
+  const quoteWhatsappResponse = await fetch(`${baseUrl}/api/sales/quotes/${quotePayload.quote.id}/whatsapp`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({})
+  });
+  assert.equal(quoteWhatsappResponse.status, 200);
+  const quoteWhatsappPayload = await quoteWhatsappResponse.json();
+  assert.ok(quoteWhatsappPayload.quote.whatsappSentAt);
   const blockedPriceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`);
   assert.equal(blockedPriceListResponse.status, 401);
   const priceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`, { headers: { cookie: customerCookie } });
