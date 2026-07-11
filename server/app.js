@@ -66,6 +66,7 @@ import {
   logoutSalesRep,
   listSalesReps,
   requireSalesRep,
+  requestCommercialCustomer,
   upsertSalesRep
 } from "./services/sales-rep-service.js";
 import { createSalesQuote, getSalesQuote, listSalesQuotesForSalesRep } from "./services/sales-quote-service.js";
@@ -208,6 +209,12 @@ export function createApp({
         const salesRep = requireSalesRep(currentSalesRep);
         return sendJson(response, 200, { salesRep, dashboard: getSalesRepPortalDashboard(db, salesRep.id) });
       }
+      if (request.method === "POST" && url.pathname === "/api/sales/customer-requests") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const result = await requestCommercialCustomer(db, salesRep, await readJson(request));
+        emailService.queueCustomerRegistration(result.customer.id);
+        return sendJson(response, 201, { ...result, message: "Solicitud enviada a KM." });
+      }
       if (request.method === "GET" && url.pathname === "/api/sales/products") {
         const salesRep = requireSalesRep(currentSalesRep);
         const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, url.searchParams.get("customerId"));
@@ -228,7 +235,9 @@ export function createApp({
         }
         const order = createOrder(db, customer.id, {
           items: body.items,
-          shippingAddressId: customer.default_shipping_address_id
+          shippingAddressId: customer.default_shipping_address_id,
+          createdByRole: "sales_rep",
+          createdBySalesRepId: salesRep.id
         });
         emailService.queueOrderCreated(order.id);
         return sendJson(response, 201, { order, message: "Pedido enviado a KM." });

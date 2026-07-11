@@ -63,7 +63,7 @@ const FULFILLMENT_STATUSES = new Set(["pending", "ready", "shipped", "delivered"
 const AVAILABILITY_CONFIRMED_STATUSES = new Set(["availability_confirmed", "confirmed", "in_preparation", "ready"]);
 const PAYMENT_STATUSES_ALLOWING_FULFILLMENT = new Set(["paid", "credit_account", "settled_adjustment"]);
 
-export function createOrder(db, customerId, input) {
+export function createOrder(db, customerId, input = {}) {
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("Order requires at least one item");
   if (input.items.length > 200) throw new ValidationError("Order contains too many items");
 
@@ -75,6 +75,10 @@ export function createOrder(db, customerId, input) {
     ? normalizeCustomerDefaultTermsDays(customer.payment_terms_days)
     : 0;
   const salesRep = resolveCustomerSalesRep(db, customerId);
+  const createdByRole = normalizeOrderOriginRole(input.createdByRole);
+  const createdBySalesRepId = createdByRole === "sales_rep"
+    ? positiveInteger(Number(input.createdBySalesRepId), "createdBySalesRepId")
+    : null;
   const settings = getCommercialSettings(db);
   const paymentAccounts = resolvePaymentAccountsForCustomer(db, customerId);
   const shipping = input.shippingAddressId
@@ -108,15 +112,16 @@ export function createOrder(db, customerId, input) {
     const order = db.prepare(`
       INSERT INTO orders (
         customer_id, status, payment_status, discount_1_bps, discount_2_bps, discount_3_bps,
-        commercial_class, sales_rep_id, sales_rep_name, sales_rep_email, sales_commission_bps,
+        commercial_class, created_by_role, created_by_sales_rep_id,
+        sales_rep_id, sales_rep_name, sales_rep_email, sales_commission_bps,
         sales_commission_base_cents, sales_commission_cents,
         subtotal_net_cents, vat_bps, vat_cents, total_cents, paid_cents, balance_cents, bank_snapshot_json,
         requested_payment_condition, payment_terms_days, shipping_snapshot_json, price_reserved_at, customer_accepted_at
-      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, 'order_created', 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `).get(
       customerId, ...discounts,
-      customer.commercial_class || "B",
+      customer.commercial_class || "B", createdByRole, createdBySalesRepId,
       salesRep.id, salesRep.name, salesRep.email, salesRep.commissionBps,
       totals.subtotalNetCents, commissionCents,
       totals.subtotalNetCents, totals.vatBps, totals.vatCents,
@@ -315,6 +320,7 @@ export function listAdminOrders(db, filters = {}) {
   return db.prepare(`
     SELECT o.id, o.order_number, o.status, o.payment_status, o.total_cents, o.paid_cents, o.balance_cents,
            o.payment_due_date, o.currency, o.commercial_class,
+           o.created_by_role, o.created_by_sales_rep_id, o.sales_rep_name, o.sales_rep_email,
            o.fulfillment_status, o.created_at, c.business_name, c.tax_id
     FROM orders o JOIN customers c ON c.id = o.customer_id
     ${whereSql} ORDER BY o.created_at DESC
@@ -947,6 +953,12 @@ function normalizePaymentStatus(status) {
   return status === "partial_payment" ? "credit_account" : status;
 }
 
+function normalizeOrderOriginRole(value) {
+  const role = String(value || "customer").trim();
+  if (["customer", "sales_rep", "admin"].includes(role)) return role;
+  return "customer";
+}
+
 function normalizePaymentCondition(value) {
   const raw = String(value || "advance_payment").trim();
   const condition = raw === "prepaid" ? "advance_payment" : raw;
@@ -1045,6 +1057,14 @@ function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments 
     customerWhatsapp: order.whatsapp,
     email: order.email,
     status: order.status,
+    createdBy: {
+      role: order.created_by_role || "customer",
+      salesRepId: order.created_by_sales_rep_id || null,
+      salesRepName: (order.created_by_role || "customer") === "sales_rep" ? (order.sales_rep_name || "") : "",
+      salesRepEmail: (order.created_by_role || "customer") === "sales_rep" ? (order.sales_rep_email || "") : ""
+    },
+    createdByRole: order.created_by_role || "customer",
+    createdBySalesRepId: order.created_by_sales_rep_id || null,
     commercialClass: order.commercial_class || "B",
     paymentStatus: order.payment_status,
     requestedPaymentCondition: normalizePaymentCondition(order.requested_payment_condition || "advance_payment"),

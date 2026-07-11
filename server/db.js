@@ -51,6 +51,7 @@ function migrate(db) {
       contact_person TEXT NOT NULL,
       notes TEXT NOT NULL DEFAULT '',
       sales_rep_id INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL,
+      requested_by_sales_rep_id INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL,
       sales_commission_bps INTEGER,
       commercial_class TEXT NOT NULL DEFAULT 'B' CHECK (commercial_class IN ('B', 'N')),
       approval_status TEXT NOT NULL DEFAULT 'pending'
@@ -303,6 +304,8 @@ function migrate(db) {
       discount_2_bps INTEGER NOT NULL,
       discount_3_bps INTEGER NOT NULL,
       commercial_class TEXT NOT NULL DEFAULT 'B' CHECK (commercial_class IN ('B', 'N')),
+      created_by_role TEXT NOT NULL DEFAULT 'customer' CHECK (created_by_role IN ('customer', 'sales_rep', 'admin')),
+      created_by_sales_rep_id INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL,
       sales_rep_id INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL,
       sales_rep_name TEXT NOT NULL DEFAULT '',
       sales_rep_email TEXT NOT NULL DEFAULT '',
@@ -570,6 +573,8 @@ function migrate(db) {
   ensureColumn(db, "products", "promotion_active", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_active IN (0, 1))");
   ensureColumn(db, "orders", "payment_method", "TEXT NOT NULL DEFAULT 'bank_transfer'");
   ensureColumn(db, "orders", "commercial_class", "TEXT NOT NULL DEFAULT 'B' CHECK (commercial_class IN ('B', 'N'))");
+  ensureColumn(db, "orders", "created_by_role", "TEXT NOT NULL DEFAULT 'customer' CHECK (created_by_role IN ('customer', 'sales_rep', 'admin'))");
+  ensureColumn(db, "orders", "created_by_sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
   ensureColumn(db, "orders", "fulfillment_status", "TEXT NOT NULL DEFAULT 'pending'");
   ensureColumn(db, "orders", "fulfillment_method", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "fulfillment_carrier", "TEXT NOT NULL DEFAULT ''");
@@ -606,6 +611,7 @@ function migrate(db) {
   ensureColumn(db, "email_outbox", "html_body", "TEXT");
   ensureColumn(db, "customers", "postal_code", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "customers", "sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
+  ensureColumn(db, "customers", "requested_by_sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
   ensureColumn(db, "customers", "sales_commission_bps", "INTEGER");
   ensureColumn(db, "customers", "commercial_class", "TEXT NOT NULL DEFAULT 'B' CHECK (commercial_class IN ('B', 'N'))");
   ensureColumn(db, "customers", "payment_condition", "TEXT NOT NULL DEFAULT 'prepaid'");

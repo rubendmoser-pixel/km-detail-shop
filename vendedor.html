@@ -4,15 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>Portal vendedor | KM Detail Line</title>
+    <title>Gestion de ventas | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260710e" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260710f" />
   </head>
   <body>
     <header class="seller-header">
       <a class="seller-brand" href="/vendedor.html" aria-label="KM Detail Line vendedores">
         <img src="/assets/km-metal-logo-small.png" alt="KM Detail Line" />
-        <span>VENDEDORES</span>
+        <span>GESTION DE VENTAS</span>
       </a>
       <div class="seller-session" id="sellerSession"></div>
     </header>
@@ -20,7 +20,7 @@
     <main class="seller-shell">
       <section class="seller-login" id="sellerLogin">
         <p class="eyebrow">Acceso comercial</p>
-        <h1>Portal de vendedores</h1>
+        <h1>Gestion de ventas</h1>
         <p>Consulta clientes asignados, pedidos y comisiones desde una herramienta separada del panel de administracion.</p>
         <form id="sellerLoginForm" class="seller-login-form">
           <label>
@@ -47,6 +47,125 @@
         </div>
 
         <div class="seller-stats" id="sellerStats"></div>
+
+        <section class="seller-panel seller-request-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Alta comercial</p>
+              <h2>Solicitar cuenta para cliente</h2>
+            </div>
+          </div>
+          <form id="sellerCustomerRequestForm" class="seller-request-form">
+            <div class="seller-form-grid">
+              <label class="seller-field">
+                <span>Empresa</span>
+                <input name="businessName" required />
+              </label>
+              <label class="seller-field">
+                <span>CUIT</span>
+                <input name="taxId" required inputmode="numeric" placeholder="20123456789" />
+              </label>
+              <label class="seller-field">
+                <span>Condicion fiscal</span>
+                <select name="taxCondition" required>
+                  <option value="">Seleccionar</option>
+                  <option>Responsable inscripto</option>
+                  <option>Monotributo</option>
+                  <option>Exento</option>
+                  <option>No responsable</option>
+                </select>
+              </label>
+              <label class="seller-field">
+                <span>Tipo de cliente</span>
+                <select name="customerType" required>
+                  <option value="">Seleccionar</option>
+                  <option>Distribuidor</option>
+                  <option>Pintureria</option>
+                  <option>Comercio especializado</option>
+                  <option>Mayorista</option>
+                </select>
+              </label>
+              <label class="seller-field">
+                <span>Rubro</span>
+                <input name="industry" required placeholder="Pintureria, distribuidor..." />
+              </label>
+              <label class="seller-field">
+                <span>Contacto</span>
+                <input name="contactPerson" required />
+              </label>
+              <label class="seller-field">
+                <span>Nombre</span>
+                <input name="firstName" />
+              </label>
+              <label class="seller-field">
+                <span>Apellido</span>
+                <input name="lastName" />
+              </label>
+              <label class="seller-field">
+                <span>Email</span>
+                <input name="email" type="email" required />
+              </label>
+              <label class="seller-field">
+                <span>Telefono</span>
+                <input name="phone" required />
+              </label>
+              <label class="seller-field">
+                <span>WhatsApp</span>
+                <input name="whatsapp" required />
+              </label>
+              <label class="seller-field">
+                <span>Direccion</span>
+                <input name="address" required />
+              </label>
+              <label class="seller-field">
+                <span>Localidad</span>
+                <input name="city" required />
+              </label>
+              <label class="seller-field">
+                <span>Provincia</span>
+                <select name="province" required>
+                  <option value="">Seleccionar</option>
+                  <option>Buenos Aires</option>
+                  <option>Ciudad Autonoma de Buenos Aires</option>
+                  <option>Catamarca</option>
+                  <option>Chaco</option>
+                  <option>Chubut</option>
+                  <option>Cordoba</option>
+                  <option>Corrientes</option>
+                  <option>Entre Rios</option>
+                  <option>Formosa</option>
+                  <option>Jujuy</option>
+                  <option>La Pampa</option>
+                  <option>La Rioja</option>
+                  <option>Mendoza</option>
+                  <option>Misiones</option>
+                  <option>Neuquen</option>
+                  <option>Rio Negro</option>
+                  <option>Salta</option>
+                  <option>San Juan</option>
+                  <option>San Luis</option>
+                  <option>Santa Cruz</option>
+                  <option>Santa Fe</option>
+                  <option>Santiago del Estero</option>
+                  <option>Tierra del Fuego</option>
+                  <option>Tucuman</option>
+                </select>
+              </label>
+              <label class="seller-field">
+                <span>Codigo postal</span>
+                <input name="postalCode" required />
+              </label>
+            </div>
+            <label class="seller-field seller-wide-field">
+              <span>Notas para KM</span>
+              <textarea name="notes" placeholder="Zona, potencial, referencias o condicion comercial sugerida"></textarea>
+            </label>
+            <div class="seller-actions">
+              <button class="primary-button" type="submit">Enviar solicitud a KM</button>
+            </div>
+            <p class="form-message" id="sellerCustomerRequestMessage" role="status"></p>
+          </form>
+        </section>
 
         <section class="seller-panel order-builder">
           <div class="panel-heading">
@@ -123,6 +242,6 @@
       </section>
     </main>
 
-    <script src="/vendedor.js?v=20260710e" type="module"></script>
+    <script src="/vendedor.js?v=20260710f" type="module"></script>
   </body>
 </html>

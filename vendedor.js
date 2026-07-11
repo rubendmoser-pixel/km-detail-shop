@@ -36,7 +36,9 @@ const nodes = {
   builderTitle: document.getElementById("sellerBuilderTitle"),
   itemsLabel: document.getElementById("sellerItemsLabel"),
   orderSubmit: document.getElementById("sellerOrderSubmit"),
-  quotes: document.getElementById("sellerQuotes")
+  quotes: document.getElementById("sellerQuotes"),
+  customerRequestForm: document.getElementById("sellerCustomerRequestForm"),
+  customerRequestMessage: document.getElementById("sellerCustomerRequestMessage")
 };
 
 function escapeHtml(value) {
@@ -124,7 +126,11 @@ const customerStatusLabels = {
 const orderStatusLabels = {
   order_created: "Pedido recibido",
   availability_confirmed: "Disponibilidad confirmada",
+  confirmed: "Pedido confirmado",
+  in_preparation: "Pendiente de preparacion",
+  ready: "Preparado para despacho",
   ready_to_ship: "Preparado para despacho",
+  delivered: "Compra finalizada",
   customer_received: "Recibido por cliente",
   cancelled: "Cancelado"
 };
@@ -132,16 +138,20 @@ const orderStatusLabels = {
 const paymentStatusLabels = {
   pending_payment: "Pago pendiente",
   pending_review: "Pago en revision",
+  receipt_uploaded: "Comprobante cargado",
   paid: "Pago acreditado",
   rejected: "Pago rechazado",
   credit_account: "Cuenta corriente",
   current_account: "Cuenta corriente",
-  settled_adjustment: "Ajuste comercial"
+  settled_adjustment: "Ajuste comercial",
+  overdue: "Saldo vencido",
+  refunded: "Reintegrado"
 };
 
 const fulfillmentStatusLabels = {
   pending: "Pendiente",
   pending_preparation: "Pendiente de preparacion",
+  ready: "Preparado para despacho",
   ready_to_ship: "Preparado para despacho",
   shipped: "Despachado",
   delivered: "Recibido por cliente",
@@ -474,8 +484,8 @@ function renderOrderItems() {
 function renderDashboard(payload) {
   state.salesRep = payload.salesRep;
   state.dashboard = payload.dashboard;
-  nodes.title.textContent = state.salesRep?.name || "Mi cartera";
-  nodes.subtitle.textContent = `${state.dashboard?.customers?.length || 0} clientes asignados. Periodo ${shortDate(state.dashboard?.period?.from)} al ${shortDate(state.dashboard?.period?.to)}.`;
+  nodes.title.textContent = "Gestion de ventas";
+  nodes.subtitle.textContent = `${state.salesRep?.name || "Vendedor"} | ${state.dashboard?.customers?.length || 0} clientes asignados. Periodo ${shortDate(state.dashboard?.period?.from)} al ${shortDate(state.dashboard?.period?.to)}.`;
   renderSession();
   renderStats(state.dashboard?.summary || {});
   renderCustomers(state.dashboard?.customers || []);
@@ -533,6 +543,25 @@ nodes.loginForm?.addEventListener("submit", async (event) => {
     renderDashboard({ salesRep: payload.salesRep, dashboard: (await sellerApi("/api/sales/dashboard")).dashboard });
   } catch (error) {
     nodes.loginMessage.textContent = error.message || "No se pudo ingresar";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+nodes.customerRequestForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  nodes.customerRequestMessage.textContent = "";
+  const button = event.currentTarget.querySelector("button[type='submit']");
+  button.disabled = true;
+  try {
+    const form = new FormData(event.currentTarget);
+    const body = Object.fromEntries(form.entries());
+    const payload = await sellerApi("/api/sales/customer-requests", { method: "POST", body });
+    nodes.customerRequestMessage.textContent = payload.message || "Solicitud enviada a KM.";
+    event.currentTarget.reset();
+    await loadDashboard();
+  } catch (error) {
+    nodes.customerRequestMessage.textContent = error.message || "No se pudo enviar la solicitud.";
   } finally {
     button.disabled = false;
   }

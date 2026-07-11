@@ -1,7 +1,74 @@
+import { randomUUID } from "node:crypto";
+import { transaction } from "../db.js";
 import { createSessionToken, hashPassword, hashToken, verifyPassword } from "../security.js";
 import { AuthError, NotFoundError, ValidationError, basisPoints, normalizeEmail, optionalText, positiveInteger, requiredText } from "../domain/validation.js";
+import {
+  ARGENTINA_PROVINCES,
+  CUSTOMER_TYPES,
+  TAX_CONDITIONS,
+  allowedValue,
+  normalizeArgentineTaxId,
+  normalizePhone,
+  normalizePostalCode
+} from "./auth-service.js";
 
 const SALES_REP_STATUSES = new Set(["active", "inactive"]);
+
+export async function requestCommercialCustomer(db, salesRep, input = {}) {
+  const salesRepId = positiveInteger(Number(salesRep?.id), "salesRepId");
+  const email = normalizeEmail(input.email);
+  const businessName = requiredText(input.businessName, "businessName", { min: 2, max: 160 });
+  const taxId = normalizeArgentineTaxId(input.taxId);
+  const taxCondition = allowedValue(input.taxCondition, TAX_CONDITIONS, "taxCondition");
+  const customerType = allowedValue(input.customerType, CUSTOMER_TYPES, "customerType");
+  const industry = requiredText(input.industry, "industry", { min: 2, max: 120 });
+  const city = requiredText(input.city, "city", { min: 2, max: 120 });
+  const province = allowedValue(input.province, ARGENTINA_PROVINCES, "province");
+  const postalCode = normalizePostalCode(input.postalCode);
+  const address = requiredText(input.address, "address", { min: 3, max: 180 });
+  const phone = normalizePhone(input.phone, "phone");
+  const whatsapp = normalizePhone(input.whatsapp, "whatsapp");
+  const contactPerson = requiredText(input.contactPerson, "contactPerson", { min: 2, max: 140 });
+  const nameParts = contactPerson.split(/\s+/).filter(Boolean);
+  const firstName = optionalText(input.firstName, "firstName", { max: 80 }) || nameParts[0] || contactPerson;
+  const lastName = optionalText(input.lastName, "lastName", { max: 80 }) || nameParts.slice(1).join(" ") || ".";
+  const notes = optionalText(input.notes, "notes", { max: 1000 });
+  const sellerNote = `Solicitud iniciada por vendedor: ${salesRep.name || "Vendedor"} (${salesRep.email || ""}).`;
+  const combinedNotes = notes ? `${sellerNote}\n${notes}` : sellerNote;
+  const passwordHash = await hashPassword(randomUUID());
+  const acceptedAt = new Date().toISOString();
+
+  try {
+    return transaction(db, () => {
+      const user = db.prepare("INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'customer') RETURNING id, email, role, status").get(email, passwordHash);
+      const customer = db.prepare(`
+        INSERT INTO customers (
+          user_id, first_name, last_name, business_name, tax_id, tax_condition, customer_type,
+          industry, city, province, postal_code, address, phone, whatsapp, contact_person, notes,
+          sales_rep_id, requested_by_sales_rep_id, terms_accepted_at, privacy_accepted_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id, approval_status, business_name, contact_person
+      `).get(
+        user.id, firstName, lastName, businessName, taxId, taxCondition, customerType,
+        industry, city, province, postalCode, address, phone, whatsapp, contactPerson, combinedNotes,
+        salesRepId, salesRepId, acceptedAt, acceptedAt
+      );
+      db.prepare("INSERT INTO customer_discounts (customer_id) VALUES (?)").run(customer.id);
+      return {
+        user,
+        customer: {
+          id: customer.id,
+          approvalStatus: customer.approval_status,
+          businessName: customer.business_name,
+          contactPerson: customer.contact_person
+        }
+      };
+    });
+  } catch (error) {
+    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Email or CUIT already registered");
+    throw error;
+  }
+}
 
 export function listSalesReps(db, filters = {}) {
   const search = String(filters.search || "").trim();

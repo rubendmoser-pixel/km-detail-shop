@@ -1619,12 +1619,13 @@ async function loadOrders() {
   renderOrderOpsStats(orders);
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
     <tr><td><div class="order-code-cell">${customerClassBadge(order.commercial_class)}<strong>${escapeAdmin(order.order_number)}</strong></div></td><td>${escapeAdmin(order.business_name)}</td>
+      <td>${orderOriginBadge(order)}</td>
       <td>${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}</td>
       <td>${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
       <td>${stateBadge(fulfillmentStatusText(normalizedFulfillmentStatus(order.fulfillment_status)), fulfillmentStateClasses[normalizedFulfillmentStatus(order.fulfillment_status)])}</td>
       <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
       <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
-  `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
+  `).join("") : `<tr><td colspan="9">No hay pedidos para este filtro.</td></tr>`;
 }
 
 function renderOrderOpsStats(orders) {
@@ -1736,6 +1737,7 @@ function renderOrderSummary(order) {
       items: [
         { label: "", value: customerClassBadge(order.commercialClass), html: true },
         { label: "Comercial", value: stateBadge(orderStatusText(order.status), orderStateClasses[order.status]), html: true },
+        { label: "Origen", value: orderOriginBadge(order), html: true },
         { label: "Pago", value: stateBadge(paymentStatusText(order.paymentStatus), paymentStateClasses[order.paymentStatus]), html: true },
         { label: "Logistica", value: stateBadge(fulfillmentStatusText(fulfillmentStatus), fulfillmentStateClasses[fulfillmentStatus]), html: true },
         { label: "Precio reservado", value: formatDate(order.priceReservedAt) }
@@ -3266,6 +3268,23 @@ function fulfillmentStatusText(status) {
 
 function stateBadge(label, className = "neutral") {
   return `<span class="state-badge ${escapeAdmin(className)}">${escapeAdmin(label)}</span>`;
+}
+
+function orderOriginText(order = {}) {
+  const createdBy = order.createdBy || {};
+  const role = order.createdByRole || order.created_by_role || createdBy.role || "customer";
+  if (role === "sales_rep") {
+    const salesRepName = createdBy.salesRepName || order.sales_rep_name || order.salesRepName || "";
+    return salesRepName ? `Vendedor: ${salesRepName}` : "Vendedor";
+  }
+  if (role === "admin") return "KM";
+  return "Cliente";
+}
+
+function orderOriginBadge(order = {}) {
+  const role = order.createdByRole || order.created_by_role || order.createdBy?.role || "customer";
+  const tone = role === "sales_rep" ? "info" : role === "admin" ? "warning" : "neutral";
+  return stateBadge(orderOriginText(order), tone);
 }
 
 function normalizeDateInput(value) {
