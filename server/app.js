@@ -69,7 +69,7 @@ import {
   requestCommercialCustomer,
   upsertSalesRep
 } from "./services/sales-rep-service.js";
-import { createSalesQuote, getSalesQuote, listSalesQuotesForSalesRep } from "./services/sales-quote-service.js";
+import { createSalesQuote, getSalesQuote, listSalesQuotesForSalesRep, markSalesQuoteConverted } from "./services/sales-quote-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSalesRepSessionCookie, clearSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import { createEmailService } from "./services/email-service.js";
@@ -242,9 +242,44 @@ export function createApp({
         emailService.queueOrderCreated(order.id);
         return sendJson(response, 201, { order, message: "Pedido enviado a KM." });
       }
+      {
+        const match = url.pathname.match(/^\/api\/sales\/orders\/(\d+)$/);
+        if (request.method === "GET" && match) {
+          const salesRep = requireSalesRep(currentSalesRep);
+          const order = getOrder(db, Number(match[1]), null, true);
+          if (Number(order.salesRep?.id || 0) !== Number(salesRep.id)) {
+            throw new ValidationError("Pedido no asignado al vendedor");
+          }
+          return sendJson(response, 200, { order });
+        }
+      }
       if (request.method === "GET" && url.pathname === "/api/sales/quotes") {
         const salesRep = requireSalesRep(currentSalesRep);
         return sendJson(response, 200, { quotes: listSalesQuotesForSalesRep(db, salesRep.id) });
+      }
+      {
+        const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)\/order$/);
+        if (request.method === "POST" && match) {
+          const salesRep = requireSalesRep(currentSalesRep);
+          const quote = getSalesQuote(db, Number(match[1]), salesRep.id);
+          if (quote.status !== "generated") throw new ValidationError("El presupuesto ya no esta vigente");
+          const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, quote.customerId);
+          if (!customer.default_shipping_address_id) {
+            throw new ValidationError("El cliente no tiene lugar de entrega cargado");
+          }
+          const order = createOrder(db, customer.id, {
+            items: quote.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity
+            })),
+            shippingAddressId: customer.default_shipping_address_id,
+            createdByRole: "sales_rep",
+            createdBySalesRepId: salesRep.id
+          });
+          const updatedQuote = markSalesQuoteConverted(db, quote.id, salesRep.id);
+          emailService.queueOrderCreated(order.id);
+          return sendJson(response, 201, { order, quote: updatedQuote, message: "Pedido generado desde presupuesto." });
+        }
       }
       {
         const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)$/);

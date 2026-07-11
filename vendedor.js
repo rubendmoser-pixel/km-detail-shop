@@ -3,6 +3,9 @@ const state = {
   dashboard: null,
   quotes: [],
   quoteDetails: {},
+  orderDetails: {},
+  openQuoteId: null,
+  openOrderId: null,
   mode: "order",
   order: {
     customerId: "",
@@ -114,6 +117,13 @@ async function getQuoteDetail(quoteId) {
   const payload = await sellerApi(`/api/sales/quotes/${encodeURIComponent(quoteId)}`);
   state.quoteDetails[quoteId] = payload.quote;
   return payload.quote;
+}
+
+async function getOrderDetail(orderId) {
+  if (state.orderDetails[orderId]) return state.orderDetails[orderId];
+  const payload = await sellerApi(`/api/sales/orders/${encodeURIComponent(orderId)}`);
+  state.orderDetails[orderId] = payload.order;
+  return payload.order;
 }
 
 const customerStatusLabels = {
@@ -232,6 +242,87 @@ function renderCustomers(customers = []) {
   }).join("");
 }
 
+function renderDetailItems(items = []) {
+  if (!items.length) return `<div class="seller-detail-empty">Sin productos cargados.</div>`;
+  return `
+    <div class="seller-detail-items">
+      ${items.map((item) => {
+        const hasAvailability = item.lineStatus && item.lineStatus !== "pending_confirmation";
+        const quantity = hasAvailability ? item.confirmedQuantity : item.quantity;
+        return `
+          <div class="seller-detail-row">
+            <strong>${escapeHtml(item.kmCode || "")}</strong>
+            <span>${escapeHtml(item.productName || "")}</span>
+            <b>${Number(quantity ?? 0)} u.</b>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderOrderDetail(orderId) {
+  const order = state.orderDetails[orderId];
+  if (!order) return `<div class="seller-detail">Cargando detalle...</div>`;
+  return `
+    <div class="seller-detail">
+      <div class="seller-detail-grid">
+        <div>
+          <span>Cliente</span>
+          <strong>${escapeHtml(order.businessName || "")}</strong>
+        </div>
+        <div>
+          <span>Total</span>
+          <strong>${money(order.totalCents || 0)}</strong>
+        </div>
+        <div>
+          <span>Saldo</span>
+          <strong>${money(order.balanceCents || 0)}</strong>
+        </div>
+        <div>
+          <span>Entrega</span>
+          <strong>${escapeHtml([order.shipping?.city, order.shipping?.province].filter(Boolean).join(", ") || "Sin dato")}</strong>
+        </div>
+      </div>
+      ${renderDetailItems(order.items || [])}
+    </div>
+  `;
+}
+
+function renderQuoteDetail(quoteId) {
+  const quote = state.quoteDetails[quoteId];
+  if (!quote) return `<div class="seller-detail">Cargando detalle...</div>`;
+  const canCreateOrder = quote.status === "generated";
+  return `
+    <div class="seller-detail">
+      <div class="seller-detail-grid">
+        <div>
+          <span>Cliente</span>
+          <strong>${escapeHtml(quote.businessName || "")}</strong>
+        </div>
+        <div>
+          <span>Total</span>
+          <strong>${money(quote.totalCents || 0)}</strong>
+        </div>
+        <div>
+          <span>Validez</span>
+          <strong>${quote.validUntil ? shortDate(quote.validUntil) : "Sin fecha"}</strong>
+        </div>
+        <div>
+          <span>Estado</span>
+          <strong>${escapeHtml(quoteStatusLabels[quote.status] || quote.status || "Generado")}</strong>
+        </div>
+      </div>
+      ${renderDetailItems(quote.items || [])}
+      <div class="quote-actions">
+        <button class="primary-button compact" type="button" data-create-order-from-quote="${quote.id}" ${canCreateOrder ? "" : "disabled"}>
+          Generar pedido
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderOrders(orders = []) {
   if (!orders.length) {
     nodes.orders.innerHTML = `<div class="empty-state">Todavia no hay pedidos asociados a tu cartera.</div>`;
@@ -265,6 +356,12 @@ function renderOrders(orders = []) {
           ${commissionStatus}
         </div>
         <div class="seller-meta">Comision estimada: ${commission}</div>
+        <div class="quote-actions">
+          <button class="ghost-button compact" type="button" data-view-order="${order.id}">
+            ${String(state.openOrderId) === String(order.id) ? "Cerrar detalle" : "Ver"}
+          </button>
+        </div>
+        ${String(state.openOrderId) === String(order.id) ? renderOrderDetail(order.id) : ""}
       </article>
     `;
   }).join("");
@@ -300,6 +397,9 @@ function renderQuotes() {
       </div>
       ${quote.validUntil ? `<div class="seller-meta">Valido hasta ${shortDate(quote.validUntil)}</div>` : ""}
       <div class="quote-actions">
+        <button class="ghost-button compact" type="button" data-view-quote="${quote.id}">
+          ${String(state.openQuoteId) === String(quote.id) ? "Cerrar detalle" : "Ver"}
+        </button>
         <button class="ghost-button compact" type="button" data-share-quote-whatsapp="${quote.id}" ${onlyDigits(quote.customerWhatsapp).length ? "" : "disabled"}>
           WhatsApp cliente
         </button>
@@ -307,6 +407,7 @@ function renderQuotes() {
           Email cliente
         </button>
       </div>
+      ${String(state.openQuoteId) === String(quote.id) ? renderQuoteDetail(quote.id) : ""}
     </article>
   `).join("");
 }
@@ -594,6 +695,26 @@ nodes.productResults?.addEventListener("click", (event) => {
   addOrderItem(button.dataset.addProduct);
 });
 
+nodes.orders?.addEventListener("click", async (event) => {
+  const viewButton = event.target.closest("[data-view-order]");
+  if (!viewButton) return;
+  const orderId = viewButton.dataset.viewOrder;
+  nodes.orderMessage.textContent = "";
+  if (String(state.openOrderId) === String(orderId)) {
+    state.openOrderId = null;
+    renderOrders(state.dashboard?.orders || []);
+    return;
+  }
+  state.openOrderId = orderId;
+  renderOrders(state.dashboard?.orders || []);
+  try {
+    await getOrderDetail(orderId);
+  } catch (error) {
+    nodes.orderMessage.textContent = error.message || "No se pudo cargar el detalle del pedido.";
+  }
+  renderOrders(state.dashboard?.orders || []);
+});
+
 nodes.orderItems?.addEventListener("click", (event) => {
   const dec = event.target.closest("[data-dec-product]");
   const inc = event.target.closest("[data-inc-product]");
@@ -602,9 +723,51 @@ nodes.orderItems?.addEventListener("click", (event) => {
 });
 
 nodes.quotes?.addEventListener("click", async (event) => {
+  const viewButton = event.target.closest("[data-view-quote]");
+  const createOrderButton = event.target.closest("[data-create-order-from-quote]");
   const whatsappButton = event.target.closest("[data-share-quote-whatsapp]");
   const emailButton = event.target.closest("[data-share-quote-email]");
-  if (!whatsappButton && !emailButton) return;
+  if (!viewButton && !createOrderButton && !whatsappButton && !emailButton) return;
+  if (viewButton) {
+    const quoteId = viewButton.dataset.viewQuote;
+    nodes.orderMessage.textContent = "";
+    if (String(state.openQuoteId) === String(quoteId)) {
+      state.openQuoteId = null;
+      renderQuotes();
+      return;
+    }
+    state.openQuoteId = quoteId;
+    renderQuotes();
+    try {
+      await getQuoteDetail(quoteId);
+    } catch (error) {
+      nodes.orderMessage.textContent = error.message || "No se pudo cargar el detalle del presupuesto.";
+    }
+    renderQuotes();
+    return;
+  }
+  if (createOrderButton) {
+    const quoteId = createOrderButton.dataset.createOrderFromQuote;
+    createOrderButton.disabled = true;
+    nodes.orderMessage.textContent = "";
+    try {
+      const payload = await sellerApi(`/api/sales/quotes/${encodeURIComponent(quoteId)}/order`, {
+        method: "POST",
+        body: {}
+      });
+      state.quoteDetails[quoteId] = payload.quote;
+      if (payload.order?.id) state.orderDetails[payload.order.id] = payload.order;
+      nodes.orderMessage.textContent = `Pedido ${payload.order?.orderNumber || ""} generado desde presupuesto.`;
+      await loadDashboard();
+      await loadQuotes();
+    } catch (error) {
+      nodes.orderMessage.textContent = error.message || "No se pudo generar el pedido desde el presupuesto.";
+      renderQuotes();
+    } finally {
+      createOrderButton.disabled = false;
+    }
+    return;
+  }
   const button = whatsappButton || emailButton;
   const quoteId = whatsappButton?.dataset.shareQuoteWhatsapp || emailButton?.dataset.shareQuoteEmail;
   button.disabled = true;

@@ -133,6 +133,14 @@ export function getSalesQuote(db, quoteId, salesRepId = null) {
   return mapQuote(quote, items, items.length);
 }
 
+export function markSalesQuoteConverted(db, quoteId, salesRepId = null) {
+  const quote = getSalesQuote(db, quoteId, salesRepId);
+  if (quote.status === "converted") return quote;
+  if (quote.status !== "generated") throw new ValidationError("Solo se puede generar un pedido desde un presupuesto vigente");
+  db.prepare("UPDATE sales_quotes SET status = 'converted', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(quote.id);
+  return getSalesQuote(db, quote.id, salesRepId);
+}
+
 function optionalDate(value, field) {
   const text = optionalText(value, field, { max: 10 });
   if (!text) return "";
