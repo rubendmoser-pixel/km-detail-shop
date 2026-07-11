@@ -282,6 +282,16 @@ export function createApp({
         }
       }
       {
+        const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)\/email$/);
+        if (request.method === "POST" && match) {
+          const salesRep = requireSalesRep(currentSalesRep);
+          const quote = getSalesQuote(db, Number(match[1]), salesRep.id);
+          if (!quote.customerEmail) throw new ValidationError("El cliente no tiene email cargado");
+          emailService.queueSalesQuoteCustomer(quote);
+          return sendJson(response, 200, { message: `Presupuesto ${quote.quoteNumber || ""} enviado por email.` });
+        }
+      }
+      {
         const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)$/);
         if (request.method === "GET" && match) {
           const salesRep = requireSalesRep(currentSalesRep);

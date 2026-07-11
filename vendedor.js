@@ -1047,15 +1047,18 @@ nodes.quotes?.addEventListener("click", async (event) => {
   button.disabled = true;
   try {
     const quote = await getQuoteDetail(quoteId);
-    const text = quoteShareText(quote);
     if (whatsappButton) {
+      const text = quoteShareText(quote);
       const phone = onlyDigits(quote.customerWhatsapp);
       if (!phone) throw new Error("El cliente no tiene WhatsApp cargado.");
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
     } else {
       if (!quote.customerEmail) throw new Error("El cliente no tiene email cargado.");
-      const subject = `Presupuesto ${quote.quoteNumber || ""} | KM Detail Line`;
-      window.location.href = `mailto:${encodeURIComponent(quote.customerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+      const payload = await sellerApi(`/api/sales/quotes/${encodeURIComponent(quoteId)}/email`, {
+        method: "POST",
+        body: {}
+      });
+      nodes.orderMessage.textContent = payload.message || "Presupuesto enviado por email.";
     }
   } catch (error) {
     nodes.orderMessage.textContent = error.message || "No se pudo compartir el presupuesto.";

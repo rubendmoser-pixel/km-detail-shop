@@ -319,6 +319,49 @@ export function createEmailService({ db, config, pushService = null }) {
     ].filter(Boolean).join("\n"));
   }
 
+  function queueSalesQuoteCustomer(quote) {
+    if (!quote?.customerEmail) return;
+    const items = Array.isArray(quote.items) ? quote.items : [];
+    const itemLines = items.length ? items.flatMap((item, index) => [
+      `${index + 1}. ${item.kmCode} - ${item.productName}`,
+      `   Cantidad: ${item.quantity}`,
+      `   Precio unitario neto: ${money.format((item.finalUnitPriceCents || 0) / 100)}`,
+      `   Subtotal neto: ${money.format((item.subtotalNetCents || 0) / 100)}`
+    ]) : ["Sin productos cargados."];
+    const discountLine = quoteDiscountText(quote);
+    queue("sales_quote_customer", quote.customerEmail, `Presupuesto ${quote.quoteNumber || ""} | KM Detail Line`, [
+      `Hola ${quote.customerContact || quote.businessName || ""},`,
+      "",
+      `Te enviamos el presupuesto ${quote.quoteNumber || ""}.`,
+      "Los valores estan expresados en pesos argentinos.",
+      "",
+      "Resumen del presupuesto",
+      `Productos: ${items.length}`,
+      discountLine ? `Descuento activo: ${discountLine}` : "",
+      `Subtotal neto: ${money.format((quote.subtotalNetCents || 0) / 100)}`,
+      `IVA ${(Number(quote.vatBps || 0) / 100).toFixed(2)}%: ${money.format((quote.vatCents || 0) / 100)}`,
+      `Total: ${money.format((quote.totalCents || 0) / 100)}`,
+      quote.validUntil ? `Valido hasta: ${formatDateForEmail(quote.validUntil)}` : "",
+      "",
+      "Detalle de productos",
+      ...itemLines,
+      quote.notes ? "" : null,
+      quote.notes ? `Nota: ${quote.notes}` : null,
+      "",
+      "Para avanzar con el pedido, podes responder este correo o comunicarte por WhatsApp.",
+      "",
+      config.publicBaseUrl
+    ].filter(Boolean).join("\n"));
+  }
+
+  function quoteDiscountText(quote) {
+    const discounts = [quote.discount1Bps, quote.discount2Bps, quote.discount3Bps]
+      .map((value) => Number(value || 0))
+      .filter((value) => value > 0)
+      .map((value) => `${(value / 100).toFixed(2)}%`);
+    return discounts.join(" + ");
+  }
+
   function paymentAccountsForEmail(order) {
     let snapshot = {};
     try {
@@ -631,8 +674,9 @@ export function createEmailService({ db, config, pushService = null }) {
   }
 
   function queueSalesRep(order, eventType, subject, textBody) {
-    if (!order.sales_rep_email) return;
-    queue(eventType, order.sales_rep_email, subject, textBody);
+    // Los vendedores gestionan clientes, pedidos y comisiones desde el portal.
+    // No se envian copias por email para evitar doble canal de seguimiento.
+    return;
   }
 
   function formatCommission(order) {
@@ -873,7 +917,9 @@ export function createEmailService({ db, config, pushService = null }) {
   function isEmailSectionTitle(line) {
     return [
       "Resumen del pedido",
+      "Resumen del presupuesto",
       "Detalle de articulos confirmados",
+      "Detalle de productos",
       "Articulos confirmados",
       "Articulos no disponibles:",
       "Detalle:",
@@ -972,6 +1018,7 @@ export function createEmailService({ db, config, pushService = null }) {
     queueOrderPaymentTermsUpdated,
     queuePaymentDueReminders,
     queueOrderFulfillmentUpdated,
+    queueSalesQuoteCustomer,
     flush,
     verify,
     sendTest,

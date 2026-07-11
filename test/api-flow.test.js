@@ -333,10 +333,10 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     WHERE event_type IN ('order_internal', 'order_customer', 'order_sales_rep')
     ORDER BY event_type
   `).all();
-  assert.equal(orderEmails.length, 3);
+  assert.equal(orderEmails.length, 2);
   assert.equal(orderEmails.some((email) => email.event_type === "order_internal" && email.recipient === "ventas@km-detail.com"), true);
   assert.equal(orderEmails.some((email) => email.event_type === "order_customer" && email.recipient === "cliente-api@example.com"), true);
-  assert.equal(orderEmails.some((email) => email.event_type === "order_sales_rep" && email.recipient === "vendedor-api@km-detail.com"), true);
+  assert.equal(orderEmails.some((email) => email.event_type === "order_sales_rep"), false);
   assert.equal(orderEmails.every((email) => email.subject.includes(orderPayload.order.orderNumber)), true);
   const adminOrderDetail = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, adminCookie);
   assert.equal(adminOrderDetail.order.items.length, 2);
@@ -396,7 +396,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.match(availabilityEmail.html_body, /KM Detail Line/);
   assert.match(availabilityEmail.html_body, /Total para pago y despacho/);
   const availabilitySalesEmail = db.prepare("SELECT recipient, subject FROM email_outbox WHERE event_type = 'order_availability_sales_rep'").get();
-  assert.equal(availabilitySalesEmail.recipient, "vendedor-api@km-detail.com");
+  assert.equal(availabilitySalesEmail, undefined);
   assert.match(availabilityEmail.text_body, /Total para pago y despacho/);
   const deliveryNotePayload = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/delivery-note`, adminCookie);
   assert.equal(deliveryNotePayload.order.items.length, 2);
