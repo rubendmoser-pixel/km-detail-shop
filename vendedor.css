@@ -224,6 +224,68 @@ textarea:focus {
   font-size: 0.95rem;
 }
 
+.seller-login-form h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.seller-secondary-form {
+  margin-top: 1rem;
+}
+
+.password-input {
+  display: flex;
+  align-items: center;
+  min-height: 3.4rem;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.password-input:focus-within {
+  border-color: var(--gold);
+}
+
+.password-input input {
+  min-width: 0;
+  min-height: 3.2rem;
+  border: 0;
+  background: transparent;
+  flex: 1;
+}
+
+.password-input input:focus {
+  border-color: transparent;
+}
+
+.password-toggle {
+  min-height: 2.35rem;
+  margin-right: 0.45rem;
+  border: 1px solid rgba(183, 184, 255, 0.35);
+  border-radius: 4px;
+  padding: 0 0.75rem;
+  background: rgba(183, 184, 255, 0.08);
+  color: var(--text);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.link-button {
+  width: max-content;
+  border: 0;
+  background: transparent;
+  color: var(--action);
+  padding: 0;
+  font-weight: 900;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .hidden {
   display: none !important;
 }
@@ -256,7 +318,7 @@ textarea:focus {
 
 .seller-tabs {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.65rem;
   margin: 0 0 1rem;
 }
@@ -336,6 +398,17 @@ textarea:focus {
 
 .seller-panel {
   min-width: 0;
+}
+
+.seller-account-panel {
+  padding: 1rem;
+}
+
+.seller-password-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 720px;
+  margin-top: 1rem;
 }
 
 .panel-heading {
@@ -655,6 +728,15 @@ textarea:focus {
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.seller-field .password-input {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .seller-field input,

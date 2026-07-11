@@ -18,6 +18,7 @@ const state = {
   orderStatus: "",
   orderDateFrom: "",
   orderDateTo: "",
+  passwordResetToken: new URLSearchParams(window.location.search).get("reset") || "",
   order: {
     customerId: "",
     products: [],
@@ -31,6 +32,15 @@ const nodes = {
   dashboard: document.getElementById("sellerDashboard"),
   loginForm: document.getElementById("sellerLoginForm"),
   loginMessage: document.getElementById("sellerLoginMessage"),
+  forgotOpen: document.getElementById("sellerForgotOpen"),
+  forgotForm: document.getElementById("sellerForgotForm"),
+  forgotBack: document.getElementById("sellerForgotBack"),
+  forgotMessage: document.getElementById("sellerForgotMessage"),
+  resetForm: document.getElementById("sellerResetForm"),
+  resetBack: document.getElementById("sellerResetBack"),
+  resetMessage: document.getElementById("sellerResetMessage"),
+  changePasswordForm: document.getElementById("sellerChangePasswordForm"),
+  changePasswordMessage: document.getElementById("sellerChangePasswordMessage"),
   session: document.getElementById("sellerSession"),
   title: document.getElementById("sellerTitle"),
   subtitle: document.getElementById("sellerSubtitle"),
@@ -95,6 +105,42 @@ async function sellerApi(path, options = {}) {
     throw new Error(payload.error || "No se pudo completar la operacion");
   }
   return payload;
+}
+
+function showLoginMode(mode = "login", message = "") {
+  nodes.loginForm?.classList.toggle("hidden", mode !== "login");
+  nodes.forgotForm?.classList.toggle("hidden", mode !== "forgot");
+  nodes.resetForm?.classList.toggle("hidden", mode !== "reset");
+  if (nodes.loginMessage) nodes.loginMessage.textContent = mode === "login" ? message : "";
+  if (nodes.forgotMessage) nodes.forgotMessage.textContent = mode === "forgot" ? message : "";
+  if (nodes.resetMessage) nodes.resetMessage.textContent = mode === "reset" ? message : "";
+}
+
+function setupPasswordToggles() {
+  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.querySelector(button.dataset.togglePassword || "");
+      if (!input) return;
+      const isHidden = input.type === "password";
+      input.type = isHidden ? "text" : "password";
+      button.textContent = isHidden ? "Ocultar" : "Ver";
+      button.setAttribute("aria-label", isHidden ? "Ocultar clave" : "Mostrar clave");
+    });
+  });
+}
+
+function validatePasswordPair(form, messageNode) {
+  const password = String(new FormData(form).get("password") || "");
+  const confirm = String(new FormData(form).get("passwordConfirm") || "");
+  if (password.length < 10) {
+    if (messageNode) messageNode.textContent = "La clave debe tener al menos 10 caracteres.";
+    return null;
+  }
+  if (password !== confirm) {
+    if (messageNode) messageNode.textContent = "Las claves no coinciden.";
+    return null;
+  }
+  return password;
 }
 
 function money(cents) {
@@ -820,7 +866,7 @@ function showLogin(message = "") {
   state.salesRep = null;
   state.dashboard = null;
   renderSession();
-  nodes.loginMessage.textContent = message;
+  showLoginMode("login", message);
   nodes.dashboard.classList.add("hidden");
   nodes.login.classList.remove("hidden");
 }
@@ -859,6 +905,88 @@ nodes.loginForm?.addEventListener("submit", async (event) => {
     renderDashboard({ salesRep: payload.salesRep, dashboard: (await sellerApi("/api/sales/dashboard")).dashboard });
   } catch (error) {
     nodes.loginMessage.textContent = error.message || "No se pudo ingresar";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+nodes.forgotOpen?.addEventListener("click", () => {
+  showLoginMode("forgot");
+});
+
+nodes.forgotBack?.addEventListener("click", () => {
+  showLoginMode("login");
+});
+
+nodes.resetBack?.addEventListener("click", () => {
+  state.passwordResetToken = "";
+  window.history.replaceState({}, "", "/vendedor.html");
+  showLoginMode("login");
+});
+
+nodes.forgotForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  nodes.forgotMessage.textContent = "";
+  const button = event.currentTarget.querySelector("button[type='submit']");
+  button.disabled = true;
+  try {
+    const form = new FormData(event.currentTarget);
+    const payload = await sellerApi("/api/sales/forgot-password", {
+      method: "POST",
+      body: { email: form.get("email") }
+    });
+    nodes.forgotMessage.textContent = payload.message || "Si existe una cuenta activa, enviamos un enlace al email.";
+    event.currentTarget.reset();
+  } catch (error) {
+    nodes.forgotMessage.textContent = error.message || "No se pudo enviar el enlace.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+nodes.resetForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  nodes.resetMessage.textContent = "";
+  const password = validatePasswordPair(event.currentTarget, nodes.resetMessage);
+  if (!password) return;
+  const button = event.currentTarget.querySelector("button[type='submit']");
+  button.disabled = true;
+  try {
+    await sellerApi("/api/sales/reset-password", {
+      method: "POST",
+      body: { token: state.passwordResetToken, password }
+    });
+    state.passwordResetToken = "";
+    window.history.replaceState({}, "", "/vendedor.html");
+    event.currentTarget.reset();
+    showLogin("Clave actualizada. Ingresa nuevamente con la nueva clave.");
+  } catch (error) {
+    nodes.resetMessage.textContent = error.message || "No se pudo actualizar la clave.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+nodes.changePasswordForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  nodes.changePasswordMessage.textContent = "";
+  const form = new FormData(event.currentTarget);
+  const password = validatePasswordPair(event.currentTarget, nodes.changePasswordMessage);
+  if (!password) return;
+  const button = event.currentTarget.querySelector("button[type='submit']");
+  button.disabled = true;
+  try {
+    await sellerApi("/api/sales/change-password", {
+      method: "POST",
+      body: {
+        currentPassword: form.get("currentPassword"),
+        password
+      }
+    });
+    event.currentTarget.reset();
+    showLogin("Clave actualizada. Ingresa nuevamente con la nueva clave.");
+  } catch (error) {
+    nodes.changePasswordMessage.textContent = error.message || "No se pudo cambiar la clave.";
   } finally {
     button.disabled = false;
   }
@@ -1152,4 +1280,12 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
   }
 });
 
-loadDashboard();
+setupPasswordToggles();
+if (state.passwordResetToken) {
+  nodes.dashboard?.classList.add("hidden");
+  nodes.login?.classList.remove("hidden");
+  showLoginMode("reset");
+} else {
+  showLoginMode("login");
+  loadDashboard();
+}

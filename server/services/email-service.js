@@ -94,6 +94,23 @@ export function createEmailService({ db, config, pushService = null }) {
     queue("password_reset", user.email, "Recuperar contraseña | KM Detail Line", textBody);
   }
 
+  function queueSalesRepPasswordReset(salesRepId, token) {
+    const rep = db.prepare("SELECT email, name FROM sales_reps WHERE id = ?").get(salesRepId);
+    if (!rep) return;
+    const resetUrl = `${config.publicBaseUrl.replace(/\/$/, "")}/vendedor.html?reset=${encodeURIComponent(token)}`;
+    const textBody = [
+      `Hola ${rep.name || "vendedor"},`,
+      "",
+      "Recibimos una solicitud para cambiar tu clave del portal de vendedores de KM Detail Line.",
+      "",
+      "El enlace vence en una hora y puede utilizarse una sola vez:",
+      resetUrl,
+      "",
+      "Si no solicitaste el cambio, ignora este mensaje."
+    ].join("\n");
+    queue("sales_rep_password_reset", rep.email, "Recuperar clave de vendedor | KM Detail Line", textBody);
+  }
+
   function queueOrderCreated(orderId) {
     const order = db.prepare(`
       SELECT o.*, c.business_name, c.contact_person, c.whatsapp, u.email
@@ -1010,6 +1027,7 @@ export function createEmailService({ db, config, pushService = null }) {
     queueCustomerRegistration,
     queueCustomerStatus,
     queuePasswordReset,
+    queueSalesRepPasswordReset,
     queueOrderCreated,
     queueOrderStatusUpdated,
     queueOrderAvailabilityConfirmed,

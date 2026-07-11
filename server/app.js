@@ -54,7 +54,9 @@ import {
 import {
   assignSalesRepToCustomer,
   authenticateSalesRep,
+  changeSalesRepPassword,
   createSalesCommissionSettlement,
+  createSalesRepPasswordReset,
   getAssignedApprovedCustomerForSalesRep,
   getSalesRepPortalDashboard,
   getSalesRepDashboard,
@@ -66,6 +68,7 @@ import {
   logoutSalesRep,
   listSalesReps,
   requireSalesRep,
+  resetSalesRepPassword,
   requestCommercialCustomer,
   upsertSalesRep
 } from "./services/sales-rep-service.js";
@@ -197,6 +200,22 @@ export function createApp({
             maxAgeSeconds: (config.sessionDays || 30) * 86_400
           })
         });
+      }
+      if (request.method === "POST" && url.pathname === "/api/sales/forgot-password") {
+        const body = await readJson(request);
+        const reset = await createSalesRepPasswordReset(db, body.email);
+        if (reset) emailService.queueSalesRepPasswordReset(reset.salesRepId, reset.token);
+        return sendJson(response, 200, { message: "Si existe una cuenta activa, enviamos un enlace al email." });
+      }
+      if (request.method === "POST" && url.pathname === "/api/sales/reset-password") {
+        const body = await readJson(request);
+        const result = await resetSalesRepPassword(db, body.token, body.password);
+        return sendJson(response, 200, result);
+      }
+      if (request.method === "POST" && url.pathname === "/api/sales/change-password") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const result = await changeSalesRepPassword(db, salesRep.id, await readJson(request));
+        return sendJson(response, 200, result, { "set-cookie": clearSalesRepSessionCookie({ secure: config.secureCookies }) });
       }
       if (request.method === "POST" && url.pathname === "/api/sales/logout") {
         logoutSalesRep(db, cookies.km_sales_session);

@@ -1,4 +1,4 @@
-const CACHE_NAME = "km-detail-shop-v76";
+const CACHE_NAME = "km-detail-shop-v77";
 const ASSETS = [
   "./",
   "./index.html",

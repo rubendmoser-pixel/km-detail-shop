@@ -408,12 +408,78 @@ export async function loginSalesRep(db, input = {}, sessionDays = 30) {
     WHERE email = ?
   `).get(email);
   if (!row || row.status !== "active" || !row.password_hash || !(await verifyPassword(password, row.password_hash))) {
-    throw new AuthError("Invalid email or password", 401);
+    throw new AuthError("Email o clave incorrectos", 401);
   }
   const { token, tokenHash } = createSessionToken();
   const expiresAt = new Date(Date.now() + sessionDays * 86_400_000).toISOString();
   db.prepare("INSERT INTO sales_rep_sessions (sales_rep_id, token_hash, expires_at) VALUES (?, ?, ?)").run(row.id, tokenHash, expiresAt);
   return { salesRep: publicSalesRep(row), token, expiresAt };
+}
+
+export async function createSalesRepPasswordReset(db, rawEmail) {
+  const email = normalizeEmail(rawEmail);
+  const row = db.prepare(`
+    SELECT id, email, status, password_hash
+    FROM sales_reps
+    WHERE email = ?
+  `).get(email);
+  if (!row || row.status !== "active" || !row.password_hash) return null;
+  const { token, tokenHash } = createSessionToken();
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  transaction(db, () => {
+    db.prepare("DELETE FROM sales_rep_password_reset_tokens WHERE sales_rep_id = ? OR expires_at <= ?").run(row.id, now);
+    db.prepare("INSERT INTO sales_rep_password_reset_tokens (sales_rep_id, token_hash, expires_at) VALUES (?, ?, ?)")
+      .run(row.id, tokenHash, expiresAt);
+  });
+  return { salesRepId: row.id, email: row.email, token, expiresAt };
+}
+
+export async function resetSalesRepPassword(db, token, password) {
+  const normalizedToken = requiredText(token, "token", { min: 20, max: 500 });
+  const reset = db.prepare(`
+    SELECT srprt.*, sr.email
+    FROM sales_rep_password_reset_tokens srprt
+    JOIN sales_reps sr ON sr.id = srprt.sales_rep_id
+    WHERE srprt.token_hash = ?
+      AND srprt.used_at IS NULL
+      AND srprt.expires_at > ?
+      AND sr.status = 'active'
+  `).get(hashToken(normalizedToken), new Date().toISOString());
+  if (!reset) throw new ValidationError("El enlace de recuperacion es invalido o vencio");
+  let passwordHash;
+  try {
+    passwordHash = await hashPassword(password);
+  } catch {
+    throw new ValidationError("La clave debe tener entre 10 y 200 caracteres");
+  }
+  transaction(db, () => {
+    db.prepare("UPDATE sales_reps SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(passwordHash, reset.sales_rep_id);
+    db.prepare("UPDATE sales_rep_password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?").run(reset.id);
+    db.prepare("DELETE FROM sales_rep_sessions WHERE sales_rep_id = ?").run(reset.sales_rep_id);
+  });
+  return { ok: true };
+}
+
+export async function changeSalesRepPassword(db, salesRepId, input = {}) {
+  const id = positiveInteger(Number(salesRepId), "salesRepId");
+  const currentPassword = requiredText(input.currentPassword, "currentPassword", { min: 1, max: 200 });
+  const nextPassword = input.password || input.newPassword;
+  const row = db.prepare("SELECT id, status, password_hash FROM sales_reps WHERE id = ?").get(id);
+  if (!row || row.status !== "active" || !row.password_hash || !(await verifyPassword(currentPassword, row.password_hash))) {
+    throw new AuthError("La clave actual no es correcta", 401);
+  }
+  let passwordHash;
+  try {
+    passwordHash = await hashPassword(nextPassword);
+  } catch {
+    throw new ValidationError("La clave debe tener entre 10 y 200 caracteres");
+  }
+  transaction(db, () => {
+    db.prepare("UPDATE sales_reps SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(passwordHash, row.id);
+    db.prepare("DELETE FROM sales_rep_sessions WHERE sales_rep_id = ?").run(row.id);
+  });
+  return { ok: true };
 }
 
 export function authenticateSalesRep(db, token) {

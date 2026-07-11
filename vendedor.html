@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Gestion de ventas | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260711g" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260711h" />
   </head>
   <body>
     <header class="seller-header">
@@ -29,10 +29,46 @@
           </label>
           <label>
             <span>Clave</span>
-            <input name="password" type="password" autocomplete="current-password" required />
+            <span class="password-input">
+              <input id="sellerLoginPassword" name="password" type="password" autocomplete="current-password" required />
+              <button class="password-toggle" type="button" data-toggle-password="#sellerLoginPassword" aria-label="Mostrar clave">Ver</button>
+            </span>
           </label>
           <button class="primary-button" type="submit">Ingresar</button>
+          <button class="link-button" type="button" id="sellerForgotOpen">Olvide mi clave</button>
           <p class="form-message" id="sellerLoginMessage" role="status"></p>
+        </form>
+        <form id="sellerForgotForm" class="seller-login-form seller-secondary-form hidden">
+          <h2>Recuperar clave</h2>
+          <p>Ingresa el email del vendedor y enviaremos un enlace para crear una nueva clave.</p>
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" autocomplete="username" required />
+          </label>
+          <button class="primary-button" type="submit">Enviar enlace</button>
+          <button class="link-button" type="button" id="sellerForgotBack">Volver al ingreso</button>
+          <p class="form-message" id="sellerForgotMessage" role="status"></p>
+        </form>
+        <form id="sellerResetForm" class="seller-login-form seller-secondary-form hidden">
+          <h2>Nueva clave</h2>
+          <p>La clave debe tener al menos 10 caracteres.</p>
+          <label>
+            <span>Nueva clave</span>
+            <span class="password-input">
+              <input id="sellerResetPassword" name="password" type="password" autocomplete="new-password" required />
+              <button class="password-toggle" type="button" data-toggle-password="#sellerResetPassword" aria-label="Mostrar clave">Ver</button>
+            </span>
+          </label>
+          <label>
+            <span>Repetir clave</span>
+            <span class="password-input">
+              <input id="sellerResetPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" required />
+              <button class="password-toggle" type="button" data-toggle-password="#sellerResetPasswordConfirm" aria-label="Mostrar clave">Ver</button>
+            </span>
+          </label>
+          <button class="primary-button" type="submit">Guardar nueva clave</button>
+          <button class="link-button" type="button" id="sellerResetBack">Volver al ingreso</button>
+          <p class="form-message" id="sellerResetMessage" role="status"></p>
         </form>
       </section>
 
@@ -53,6 +89,7 @@
           <button type="button" data-seller-view-button="orders">Pedidos</button>
           <button type="button" data-seller-view-button="customers">Clientes</button>
           <button type="button" data-seller-view-button="request">Alta comercial</button>
+          <button type="button" data-seller-view-button="account">Cuenta</button>
         </nav>
 
         <section class="seller-view active" data-seller-view="summary">
@@ -318,9 +355,47 @@
           </section>
         </section>
 
+        <section class="seller-view" data-seller-view="account">
+          <section class="seller-panel seller-account-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Cuenta</p>
+                <h2>Cambiar clave de acceso</h2>
+              </div>
+            </div>
+            <form id="sellerChangePasswordForm" class="seller-password-form">
+              <label class="seller-field">
+                <span>Clave actual</span>
+                <span class="password-input">
+                  <input id="sellerCurrentPassword" name="currentPassword" type="password" autocomplete="current-password" required />
+                  <button class="password-toggle" type="button" data-toggle-password="#sellerCurrentPassword" aria-label="Mostrar clave">Ver</button>
+                </span>
+              </label>
+              <label class="seller-field">
+                <span>Nueva clave</span>
+                <span class="password-input">
+                  <input id="sellerNewPassword" name="password" type="password" autocomplete="new-password" required />
+                  <button class="password-toggle" type="button" data-toggle-password="#sellerNewPassword" aria-label="Mostrar clave">Ver</button>
+                </span>
+              </label>
+              <label class="seller-field">
+                <span>Repetir nueva clave</span>
+                <span class="password-input">
+                  <input id="sellerNewPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" required />
+                  <button class="password-toggle" type="button" data-toggle-password="#sellerNewPasswordConfirm" aria-label="Mostrar clave">Ver</button>
+                </span>
+              </label>
+              <div class="seller-actions">
+                <button class="primary-button" type="submit">Guardar clave</button>
+              </div>
+              <p class="form-message" id="sellerChangePasswordMessage" role="status"></p>
+            </form>
+          </section>
+        </section>
+
       </section>
     </main>
 
-    <script src="/vendedor.js?v=20260711j" type="module"></script>
+    <script src="/vendedor.js?v=20260711k" type="module"></script>
   </body>
 </html>

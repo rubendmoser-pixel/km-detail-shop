@@ -135,6 +135,15 @@ function migrate(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS sales_rep_password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS sales_commission_settlements (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       settlement_number TEXT NOT NULL UNIQUE,
@@ -543,6 +552,7 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_sales_quote_items_quote ON sales_quote_items(quote_id);
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
     CREATE INDEX IF NOT EXISTS idx_sales_rep_sessions_token ON sales_rep_sessions(token_hash, expires_at);
+    CREATE INDEX IF NOT EXISTS idx_sales_rep_password_reset_token ON sales_rep_password_reset_tokens(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_commission_settlements_rep ON sales_commission_settlements(sales_rep_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_commission_items_settlement ON sales_commission_settlement_items(settlement_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash, expires_at);
