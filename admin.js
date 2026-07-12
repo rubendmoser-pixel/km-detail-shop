@@ -1277,9 +1277,7 @@ function renderCustomerDetail(customer) {
             <span>Aproba, rechaza o suspende la cuenta completa.</span>
           </div>
           <div class="status-actions">
-            <button class="approve" type="button" data-customer-status="approved">Aprobar</button>
-            <button type="button" data-customer-status="rejected">Rechazar</button>
-            <button type="button" data-customer-status="suspended">Suspender</button>
+            ${renderCustomerStatusActions(customer.approval_status)}
           </div>
         </div>
       </section>
@@ -1362,6 +1360,26 @@ function renderCustomerDetail(customer) {
         </div>
       </section>
     </article>`;
+}
+
+function renderCustomerStatusActions(status) {
+  const currentStatus = status || "pending";
+  const currentLabels = {
+    approved: "Aprobado",
+    rejected: "Rechazado",
+    suspended: "Suspendido"
+  };
+  return [
+    { value: "approved", label: "Aprobar", className: "approve" },
+    { value: "rejected", label: "Rechazar", className: "" },
+    { value: "suspended", label: "Suspender", className: "" }
+  ].map((action) => {
+    const isCurrent = action.value === currentStatus;
+    const classes = [action.className, isCurrent ? "is-current" : ""].filter(Boolean).join(" ");
+    const disabled = isCurrent ? ` disabled aria-disabled="true"` : "";
+    const label = isCurrent ? currentLabels[action.value] : action.label;
+    return `<button class="${classes}" type="button" data-customer-status="${action.value}"${disabled}>${label}</button>`;
+  }).join("");
 }
 
 function bindCustomerControls() {
