@@ -134,6 +134,69 @@ export async function createAdminCustomer(db, input = {}, adminUserId) {
   }
 }
 
+export function updateCustomerProfile(db, customerId, input = {}) {
+  const existing = db.prepare("SELECT id, user_id FROM customers WHERE id = ?").get(customerId);
+  if (!existing) throw new NotFoundError("Customer not found");
+  const email = normalizeEmail(input.email);
+  const customer = {
+    firstName: requiredText(input.firstName, "firstName", { max: 120 }),
+    lastName: requiredText(input.lastName, "lastName", { max: 120 }),
+    businessName: requiredText(input.businessName, "businessName", { max: 180 }),
+    taxId: normalizeArgentineTaxId(input.taxId),
+    taxCondition: allowedValue(input.taxCondition, TAX_CONDITIONS, "taxCondition"),
+    customerType: allowedValue(input.customerType, CUSTOMER_TYPES, "customerType"),
+    industry: requiredText(input.industry, "industry", { max: 120 }),
+    city: requiredText(input.city, "city", { min: 2, max: 80 }),
+    province: allowedValue(input.province, ARGENTINA_PROVINCES, "province"),
+    postalCode: normalizePostalCode(input.postalCode),
+    address: requiredText(input.address, "address", { max: 240 }),
+    phone: normalizePhone(input.phone, "phone"),
+    whatsapp: normalizePhone(input.whatsapp, "whatsapp"),
+    contactPerson: requiredText(input.contactPerson, "contactPerson", { max: 160 }),
+    notes: optionalText(input.notes, "notes", { max: 2000 })
+  };
+
+  try {
+    return transaction(db, () => {
+      db.prepare(`
+        UPDATE users
+        SET email = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(email, existing.user_id);
+      db.prepare(`
+        UPDATE customers
+        SET first_name = ?, last_name = ?, business_name = ?, tax_id = ?, tax_condition = ?,
+            customer_type = ?, industry = ?, city = ?, province = ?, postal_code = ?, address = ?,
+            phone = ?, whatsapp = ?, contact_person = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(
+        customer.firstName,
+        customer.lastName,
+        customer.businessName,
+        customer.taxId,
+        customer.taxCondition,
+        customer.customerType,
+        customer.industry,
+        customer.city,
+        customer.province,
+        customer.postalCode,
+        customer.address,
+        customer.phone,
+        customer.whatsapp,
+        customer.contactPerson,
+        customer.notes,
+        customerId
+      );
+      return listCustomers(db).find((row) => row.id === customerId);
+    });
+  } catch (error) {
+    if (String(error.message).includes("UNIQUE constraint failed")) {
+      throw new ValidationError("Email o CUIT ya registrado");
+    }
+    throw error;
+  }
+}
+
 export function setCustomerStatus(db, customerId, status, adminUserId, commercialClass = "") {
   if (!ALLOWED_STATUSES.has(status)) throw new ValidationError("Invalid customer status");
   const previous = db.prepare("SELECT approval_status, commercial_class FROM customers WHERE id = ?").get(customerId);

@@ -10,6 +10,13 @@ const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
 };
+const CUSTOMER_TAX_CONDITIONS = ["Responsable inscripto", "Monotributo", "Exento", "No responsable"];
+const CUSTOMER_TYPES = ["Distribuidor", "Pintureria", "Comercio especializado", "Mayorista"];
+const ARGENTINA_PROVINCES = [
+  "Buenos Aires", "Ciudad Autonoma de Buenos Aires", "Catamarca", "Chaco", "Chubut", "Cordoba", "Corrientes",
+  "Entre Rios", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquen", "Rio Negro",
+  "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucuman"
+];
 const orderStatusLabels = {
   order_created: "Pedido recibido",
   availability_confirmed: "Disponibilidad confirmada",
@@ -1285,6 +1292,31 @@ function renderCustomerDetail(customer) {
         <div class="customer-config-card">
           <div class="customer-config-title">
             <span>1</span>
+            <div><strong>Datos del cliente</strong><small>Datos comerciales, contacto y domicilio principal.</small></div>
+          </div>
+          <form class="customer-data-form">
+            <label class="span-2"><span>Razon social</span><input name="businessName" maxlength="180" value="${escapeAdmin(customer.business_name)}" required /></label>
+            <label class="span-2"><span>Email de acceso</span><input name="email" type="email" value="${escapeAdmin(customer.email)}" required /></label>
+            <label><span>CUIT</span><input name="taxId" value="${escapeAdmin(customer.tax_id)}" required /></label>
+            <label><span>Condicion fiscal</span><select name="taxCondition">${renderOptions(CUSTOMER_TAX_CONDITIONS, customer.tax_condition)}</select></label>
+            <label><span>Tipo</span><select name="customerType">${renderOptions(CUSTOMER_TYPES, customer.customer_type)}</select></label>
+            <label><span>Rubro</span><input name="industry" maxlength="120" value="${escapeAdmin(customer.industry)}" required /></label>
+            <label><span>Nombre</span><input name="firstName" maxlength="120" value="${escapeAdmin(customer.first_name)}" required /></label>
+            <label><span>Apellido</span><input name="lastName" maxlength="120" value="${escapeAdmin(customer.last_name)}" required /></label>
+            <label class="span-2"><span>Contacto comercial</span><input name="contactPerson" maxlength="160" value="${escapeAdmin(customer.contact_person)}" required /></label>
+            <label><span>Provincia</span><select name="province">${renderOptions(ARGENTINA_PROVINCES, customer.province)}</select></label>
+            <label><span>Localidad</span><input name="city" maxlength="80" value="${escapeAdmin(customer.city)}" required /></label>
+            <label><span>Codigo postal</span><input name="postalCode" maxlength="12" value="${escapeAdmin(customer.postal_code || "")}" required /></label>
+            <label class="span-2"><span>Direccion</span><input name="address" maxlength="240" value="${escapeAdmin(customer.address)}" required /></label>
+            <label><span>Telefono</span><input name="phone" value="${escapeAdmin(customer.phone)}" required /></label>
+            <label><span>WhatsApp</span><input name="whatsapp" value="${escapeAdmin(customer.whatsapp)}" required /></label>
+            <label class="wide"><span>Notas internas</span><textarea name="notes" rows="3" maxlength="2000">${escapeAdmin(customer.notes || "")}</textarea></label>
+            <button class="ghost-button wide" type="submit">Guardar datos del cliente</button>
+          </form>
+        </div>
+        <div class="customer-config-card">
+          <div class="customer-config-title">
+            <span>2</span>
             <div><strong>Descuentos globales</strong><small>Descuentos comerciales generales para toda la cuenta.</small></div>
           </div>
           <form class="discount-form">
@@ -1296,7 +1328,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>2</span>
+            <span>3</span>
             <div><strong>Descuentos por productos</strong><small>Condiciones especiales adicionales por codigo KM.</small></div>
           </div>
           <form class="product-discount-form">
@@ -1314,7 +1346,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>3</span>
+            <span>4</span>
             <div><strong>Asignacion vendedor y comisiones</strong><small>Vendedor asociado y porcentaje aplicado a la cuenta.</small></div>
           </div>
           <form class="sales-assignment-form">
@@ -1326,7 +1358,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>4</span>
+            <span>5</span>
             <div><strong>Categorizacion B/N</strong><small>Marca interna visible en pedidos y gestion comercial.</small></div>
           </div>
           <form class="customer-class-form">
@@ -1337,7 +1369,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>5</span>
+            <span>6</span>
             <div><strong>Condicion de pago</strong><small>Condicion sugerida al recibir nuevos pedidos.</small></div>
           </div>
           <form class="customer-payment-form">
@@ -1349,7 +1381,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>6</span>
+            <span>7</span>
             <div><strong>Asignacion cuenta de cobro</strong><small>Cuentas habilitadas para transferencias de este cliente.</small></div>
           </div>
           <form class="customer-payment-accounts-form">
@@ -1385,6 +1417,7 @@ function renderCustomerStatusActions(status) {
 function bindCustomerControls() {
   adminEls.customerList.querySelectorAll("[data-view-customer]").forEach((button) => button.addEventListener("click", viewCustomerDetail));
   adminEls.customerList.querySelectorAll("[data-customer-status]").forEach((button) => button.addEventListener("click", updateCustomerStatus));
+  adminEls.customerList.querySelectorAll(".customer-data-form").forEach((form) => form.addEventListener("submit", saveCustomerProfile));
   adminEls.customerList.querySelectorAll(".discount-form").forEach((form) => form.addEventListener("submit", saveDiscounts));
   adminEls.customerList.querySelectorAll(".sales-assignment-form").forEach((form) => form.addEventListener("submit", saveCustomerSalesRep));
   adminEls.customerList.querySelectorAll(".customer-class-form").forEach((form) => form.addEventListener("submit", saveCustomerClass));
@@ -1533,6 +1566,12 @@ function customerClassBadge(value) {
   return `<span class="customer-class-badge ${letter.toLowerCase()}">${letter}</span>`;
 }
 
+function renderOptions(values, selectedValue) {
+  const selected = String(selectedValue || "");
+  const options = selected && !values.includes(selected) ? [selected, ...values] : values;
+  return options.map((value) => `<option value="${escapeAdmin(value)}" ${value === selected ? "selected" : ""}>${escapeAdmin(value)}</option>`).join("");
+}
+
 function normalizeCustomerPaymentCondition(value) {
   const normalized = String(value || "advance_payment").trim();
   return normalized === "credit_account" ? "credit_account" : "advance_payment";
@@ -1561,6 +1600,43 @@ function syncCustomerPaymentForm(form) {
     input.disabled = !isCredit;
     if (!isCredit) input.value = "";
     if (isCredit && !input.value) input.value = "15";
+  }
+}
+
+async function saveCustomerProfile(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const customerId = Number(form.closest("[data-customer-id]").dataset.customerId);
+  const values = Object.fromEntries(new FormData(form));
+  setBusy(form, true);
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/profile`, {
+      method: "PATCH",
+      body: {
+        businessName: values.businessName,
+        email: values.email,
+        taxId: values.taxId,
+        taxCondition: values.taxCondition,
+        customerType: values.customerType,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        contactPerson: values.contactPerson,
+        industry: values.industry,
+        province: values.province,
+        city: values.city,
+        postalCode: values.postalCode,
+        address: values.address,
+        phone: values.phone,
+        whatsapp: values.whatsapp,
+        notes: values.notes || ""
+      }
+    });
+    showAdminToast("Datos del cliente guardados.");
+    await loadCustomers();
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
   }
 }
 

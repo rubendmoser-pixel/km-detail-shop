@@ -11,6 +11,7 @@ import {
   setCustomerDiscounts,
   setCustomerPaymentTerms,
   setCustomerStatus,
+  updateCustomerProfile,
   upsertCustomerProductDiscount
 } from "./services/customer-service.js";
 import {
@@ -475,6 +476,10 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/customers") {
         return sendJson(response, 201, { customer: await createAdminCustomer(db, await readJson(request), currentUser.id) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/profile$/);
+      if (request.method === "PATCH" && match) {
+        return sendJson(response, 200, { customer: updateCustomerProfile(db, Number(match[1]), await readJson(request)) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/distributors") {
         return sendJson(response, 200, {
