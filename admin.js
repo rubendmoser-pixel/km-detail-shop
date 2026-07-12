@@ -1215,7 +1215,7 @@ function renderCustomerRow(customer) {
     <td>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)}<span>${escapeAdmin(customer.postal_code || "")}</span></td>
     <td>${escapeAdmin(customerDiscountText(customer))}</td>
     <td>${customer.last_order_number ? `<strong>${escapeAdmin(customer.last_order_number)}</strong><span>${formatDate(customer.last_order_at)}</span>` : `<span>Sin pedidos</span>`}</td>
-    <td><button class="ghost-button row-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Ver"}</button></td>
+    <td><button class="ghost-button row-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Editar"}</button></td>
   </tr>`;
 }
 
@@ -1242,24 +1242,27 @@ function renderCustomerCard(customer) {
       </div>
       <div class="customer-card-footer">
         <span>${customer.last_order_number ? `Ultimo pedido ${escapeAdmin(customer.last_order_number)}` : "Sin pedidos"}</span>
-        <button class="ghost-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Ver cliente"}</button>
+        <button class="ghost-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Editar"}</button>
       </div>
     </article>`;
 }
 
 function renderCustomerDetail(customer) {
   return `
-    <article class="customer-row customer-detail-card" data-customer-id="${customer.id}">
-      <div class="customer-main">
-        <div class="customer-heading">
+    <article class="customer-row customer-detail-card customer-editor-card" data-customer-id="${customer.id}">
+      <section class="customer-editor-overview">
+        <div class="customer-heading customer-editor-heading">
           <div>
-            <p class="eyebrow">Detalle comercial</p>
+            <p class="eyebrow">Ficha comercial</p>
             <strong>${escapeAdmin(customer.business_name)}</strong>
             <span>${escapeAdmin(customer.email)}</span>
           </div>
-          <span class="status-badge ${customer.approval_status}">${statusLabels[customer.approval_status]}</span>
+          <div class="customer-editor-badges">
+            ${customerClassBadge(customer.commercial_class)}
+            <span class="status-badge ${customer.approval_status}">${statusLabels[customer.approval_status]}</span>
+          </div>
         </div>
-        <dl class="customer-data">
+        <dl class="customer-data customer-editor-data">
           <div><dt>CUIT</dt><dd>${escapeAdmin(customer.tax_id)}</dd></div><div><dt>Condicion fiscal</dt><dd>${escapeAdmin(customer.tax_condition)}</dd></div>
           <div><dt>Tipo</dt><dd>${escapeAdmin(customer.customer_type)}</dd></div><div><dt>Rubro</dt><dd>${escapeAdmin(customer.industry)}</dd></div>
           <div><dt>Ubicacion</dt><dd>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)} ${escapeAdmin(customer.postal_code || "")}</dd></div><div><dt>Contacto</dt><dd>${escapeAdmin(customer.contact_person)}</dd></div>
@@ -1267,55 +1270,97 @@ function renderCustomerDetail(customer) {
           <div><dt>Vendedor</dt><dd>${escapeAdmin(customer.sales_rep_name || "Sin asignar")}</dd></div><div><dt>Comision</dt><dd>${escapeAdmin(customerCommissionText(customer))}</dd></div>
           <div><dt>Condicion de pago</dt><dd>${escapeAdmin(customerPaymentConditionText(customer))}</dd></div><div><dt>Descuentos</dt><dd>${escapeAdmin(customerDiscountText(customer))}</dd></div>
         </dl>
-      </div>
-      <div class="customer-controls">
-        <div class="status-actions">
-          <button class="approve" type="button" data-customer-status="approved">Aprobar</button>
-          <button type="button" data-customer-status="rejected">Rechazar</button>
-          <button type="button" data-customer-status="suspended">Suspender</button>
+        <div class="customer-status-panel">
+          <div>
+            <p class="eyebrow">Estado global</p>
+            <strong>Alta comercial</strong>
+            <span>Aproba, rechaza o suspende la cuenta completa.</span>
+          </div>
+          <div class="status-actions">
+            <button class="approve" type="button" data-customer-status="approved">Aprobar</button>
+            <button type="button" data-customer-status="rejected">Rechazar</button>
+            <button type="button" data-customer-status="suspended">Suspender</button>
+          </div>
         </div>
-        <form class="discount-form">
-          <label><span>Desc. 1 (%)</span><input name="discount1" type="number" min="0" max="100" step="0.01" value="${customer.discount_1_bps / 100}" /></label>
-          <label><span>Desc. 2 (%)</span><input name="discount2" type="number" min="0" max="100" step="0.01" value="${customer.discount_2_bps / 100}" /></label>
-          <label><span>Desc. 3 (%)</span><input name="discount3" type="number" min="0" max="100" step="0.01" value="${customer.discount_3_bps / 100}" /></label>
-          <button class="ghost-button" type="submit">Guardar descuentos</button>
-        </form>
-        <form class="sales-assignment-form">
-          <div class="sales-summary wide">Asignacion comercial: <strong>${escapeAdmin(customer.sales_rep_name || "sin vendedor")}</strong></div>
-          <label><span>Vendedor</span><select name="salesRepId">${salesRepOptions(customer.sales_rep_id)}</select></label>
-          <label><span>Comision cliente (%)</span><input name="commission" type="number" min="0" max="100" step="0.01" value="${customer.sales_commission_bps === null || customer.sales_commission_bps === undefined ? "" : customer.sales_commission_bps / 100}" placeholder="General" /></label>
-          <button class="ghost-button" type="submit">Guardar vendedor</button>
-        </form>
-        <form class="customer-class-form">
-          <div class="sales-summary wide">Marca interna: ${customerClassBadge(customer.commercial_class)}</div>
-          <label><span>B / N</span><select name="commercialClass">${customerClassOptions(customer.commercial_class)}</select></label>
-          <button class="ghost-button" type="submit">Guardar</button>
-        </form>
-        <form class="customer-payment-form">
-          <div class="sales-summary wide">Condicion de pago: <strong>${escapeAdmin(customerPaymentConditionText(customer))}</strong></div>
-          <label><span>Condicion</span><select name="paymentCondition">${customerPaymentOptions(customer.payment_condition)}</select></label>
-          <label data-payment-terms-field ${normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account" ? "" : "hidden"}><span>Dias cta. cte.</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${customer.payment_terms_days || 15}" ${normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account" ? "" : "disabled"} /></label>
-          <button class="ghost-button" type="submit">Guardar condicion</button>
-        </form>
-        <form class="customer-payment-accounts-form">
-          <div class="sales-summary wide">Cuentas de cobro habilitadas</div>
-          ${renderCustomerPaymentAccounts(customer)}
-          <button class="ghost-button wide" type="submit">Guardar cuentas</button>
-        </form>
-        <form class="product-discount-form">
-          <div class="sales-summary wide">Condiciones especiales por producto</div>
-          <label><span>Codigo KM</span><input name="kmCode" placeholder="Ej: CP171K" required /></label>
-          <label><span>Desc. adicional (%)</span><input name="discountPercent" type="number" min="0.01" max="100" step="0.01" required /></label>
-          <label><span>Desde</span><input name="startsAt" type="date" /></label>
-          <label><span>Hasta</span><input name="endsAt" type="date" /></label>
-          <label class="checkbox-label"><input name="active" type="checkbox" checked /><span>Activo</span></label>
-          <label class="wide"><span>Nota interna</span><input name="note" maxlength="500" placeholder="Ej: acuerdo especial julio" /></label>
-          <button class="ghost-button wide" type="submit">Guardar precio especial</button>
-        </form>
-        <div class="customer-special-discounts">
-          ${renderCustomerProductDiscounts(customer)}
+      </section>
+      <section class="customer-config-sections">
+        <div class="customer-config-card">
+          <div class="customer-config-title">
+            <span>1</span>
+            <div><strong>Descuentos globales</strong><small>Descuentos comerciales generales para toda la cuenta.</small></div>
+          </div>
+          <form class="discount-form">
+            <label><span>Desc. 1 (%)</span><input name="discount1" type="number" min="0" max="100" step="0.01" value="${customer.discount_1_bps / 100}" /></label>
+            <label><span>Desc. 2 (%)</span><input name="discount2" type="number" min="0" max="100" step="0.01" value="${customer.discount_2_bps / 100}" /></label>
+            <label><span>Desc. 3 (%)</span><input name="discount3" type="number" min="0" max="100" step="0.01" value="${customer.discount_3_bps / 100}" /></label>
+            <button class="ghost-button" type="submit">Guardar descuentos</button>
+          </form>
         </div>
-      </div>
+        <div class="customer-config-card">
+          <div class="customer-config-title">
+            <span>2</span>
+            <div><strong>Descuentos por productos</strong><small>Condiciones especiales adicionales por codigo KM.</small></div>
+          </div>
+          <form class="product-discount-form">
+            <label><span>Codigo KM</span><input name="kmCode" placeholder="Ej: CP171K" required /></label>
+            <label><span>Desc. adicional (%)</span><input name="discountPercent" type="number" min="0.01" max="100" step="0.01" required /></label>
+            <label><span>Desde</span><input name="startsAt" type="date" /></label>
+            <label><span>Hasta</span><input name="endsAt" type="date" /></label>
+            <label class="checkbox-label"><input name="active" type="checkbox" checked /><span>Activo</span></label>
+            <label class="wide"><span>Nota interna</span><input name="note" maxlength="500" placeholder="Ej: acuerdo especial julio" /></label>
+            <button class="ghost-button wide" type="submit">Guardar precio especial</button>
+          </form>
+          <div class="customer-special-discounts">
+            ${renderCustomerProductDiscounts(customer)}
+          </div>
+        </div>
+        <div class="customer-config-card">
+          <div class="customer-config-title">
+            <span>3</span>
+            <div><strong>Asignacion vendedor y comisiones</strong><small>Vendedor asociado y porcentaje aplicado a la cuenta.</small></div>
+          </div>
+          <form class="sales-assignment-form">
+            <div class="sales-summary wide">Asignacion comercial: <strong>${escapeAdmin(customer.sales_rep_name || "sin vendedor")}</strong></div>
+            <label><span>Vendedor</span><select name="salesRepId">${salesRepOptions(customer.sales_rep_id)}</select></label>
+            <label><span>Comision cliente (%)</span><input name="commission" type="number" min="0" max="100" step="0.01" value="${customer.sales_commission_bps === null || customer.sales_commission_bps === undefined ? "" : customer.sales_commission_bps / 100}" placeholder="General" /></label>
+            <button class="ghost-button" type="submit">Guardar vendedor</button>
+          </form>
+        </div>
+        <div class="customer-config-card">
+          <div class="customer-config-title">
+            <span>4</span>
+            <div><strong>Categorizacion B/N</strong><small>Marca interna visible en pedidos y gestion comercial.</small></div>
+          </div>
+          <form class="customer-class-form">
+            <div class="sales-summary wide">Marca interna: ${customerClassBadge(customer.commercial_class)}</div>
+            <label><span>B / N</span><select name="commercialClass">${customerClassOptions(customer.commercial_class)}</select></label>
+            <button class="ghost-button" type="submit">Guardar</button>
+          </form>
+        </div>
+        <div class="customer-config-card">
+          <div class="customer-config-title">
+            <span>5</span>
+            <div><strong>Condicion de pago</strong><small>Condicion sugerida al recibir nuevos pedidos.</small></div>
+          </div>
+          <form class="customer-payment-form">
+            <div class="sales-summary wide">Condicion de pago: <strong>${escapeAdmin(customerPaymentConditionText(customer))}</strong></div>
+            <label><span>Condicion</span><select name="paymentCondition">${customerPaymentOptions(customer.payment_condition)}</select></label>
+            <label data-payment-terms-field ${normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account" ? "" : "hidden"}><span>Dias cta. cte.</span><input name="paymentTermsDays" type="number" min="1" max="365" step="1" value="${customer.payment_terms_days || 15}" ${normalizeCustomerPaymentCondition(customer.payment_condition) === "credit_account" ? "" : "disabled"} /></label>
+            <button class="ghost-button" type="submit">Guardar condicion</button>
+          </form>
+        </div>
+        <div class="customer-config-card">
+          <div class="customer-config-title">
+            <span>6</span>
+            <div><strong>Asignacion cuenta de cobro</strong><small>Cuentas habilitadas para transferencias de este cliente.</small></div>
+          </div>
+          <form class="customer-payment-accounts-form">
+            <div class="sales-summary wide">Cuentas de cobro habilitadas</div>
+            ${renderCustomerPaymentAccounts(customer)}
+            <button class="ghost-button wide" type="submit">Guardar cuentas</button>
+          </form>
+        </div>
+      </section>
     </article>`;
 }
 
