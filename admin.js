@@ -1194,6 +1194,9 @@ function renderCustomers() {
         </tbody>
       </table>
     </div>
+    <div class="customer-mobile-list">
+      ${adminState.customers.map((customer) => renderCustomerCard(customer)).join("")}
+    </div>
     <div class="customer-detail-panel">
       ${selectedCustomer ? renderCustomerDetail(selectedCustomer) : `<p class="admin-empty">Selecciona un cliente para editar condiciones comerciales.</p>`}
     </div>`;
@@ -1212,8 +1215,36 @@ function renderCustomerRow(customer) {
     <td>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)}<span>${escapeAdmin(customer.postal_code || "")}</span></td>
     <td>${escapeAdmin(customerDiscountText(customer))}</td>
     <td>${customer.last_order_number ? `<strong>${escapeAdmin(customer.last_order_number)}</strong><span>${formatDate(customer.last_order_at)}</span>` : `<span>Sin pedidos</span>`}</td>
-    <td><button class="ghost-button row-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Abierto" : "Ver"}</button></td>
+    <td><button class="ghost-button row-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Abierto" : "Ver"}</button></td>
   </tr>`;
+}
+
+function renderCustomerCard(customer) {
+  const isSelected = customer.id === adminState.selectedCustomerId;
+  const statusTone = customer.approval_status === "approved" ? "success" : customer.approval_status === "pending" ? "warning" : "neutral";
+  return `
+    <article class="customer-mobile-card ${isSelected ? "selected" : ""}">
+      <div class="customer-card-top">
+        <div class="customer-card-title">
+          <strong>${escapeAdmin(customer.business_name)}</strong>
+          <span>${escapeAdmin(customer.tax_id)} · ${escapeAdmin(customer.email)}</span>
+        </div>
+        <div class="customer-card-badges">
+          ${customerClassBadge(customer.commercial_class)}
+          ${stateBadge(statusLabels[customer.approval_status] || customer.approval_status, statusTone)}
+        </div>
+      </div>
+      <div class="customer-card-meta">
+        <div><span>Pago</span><strong>${escapeAdmin(customerPaymentConditionText(customer))}</strong></div>
+        <div><span>Vendedor</span><strong>${escapeAdmin(customer.sales_rep_name || "Sin vendedor")}</strong></div>
+        <div><span>Ubicacion</span><strong>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)}</strong></div>
+        <div><span>Descuentos</span><strong>${escapeAdmin(customerDiscountText(customer))}</strong></div>
+      </div>
+      <div class="customer-card-footer">
+        <span>${customer.last_order_number ? `Ultimo pedido ${escapeAdmin(customer.last_order_number)}` : "Sin pedidos"}</span>
+        <button class="ghost-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Abierto" : "Ver cliente"}</button>
+      </div>
+    </article>`;
 }
 
 function renderCustomerDetail(customer) {
