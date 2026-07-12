@@ -466,6 +466,16 @@
   justify-content: flex-end;
 }
 
+.customer-editor-badges .customer-class-badge {
+  display: inline-flex;
+  place-items: initial;
+}
+
+.customer-editor-badges .status-badge {
+  display: inline-flex;
+  align-items: center;
+}
+
 .customer-editor-data {
   margin-top: 0;
   padding: 14px;
