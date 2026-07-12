@@ -1215,7 +1215,7 @@ function renderCustomerRow(customer) {
     <td>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)}<span>${escapeAdmin(customer.postal_code || "")}</span></td>
     <td>${escapeAdmin(customerDiscountText(customer))}</td>
     <td>${customer.last_order_number ? `<strong>${escapeAdmin(customer.last_order_number)}</strong><span>${formatDate(customer.last_order_at)}</span>` : `<span>Sin pedidos</span>`}</td>
-    <td><button class="ghost-button row-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Abierto" : "Ver"}</button></td>
+    <td><button class="ghost-button row-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Ver"}</button></td>
   </tr>`;
 }
 
@@ -1242,7 +1242,7 @@ function renderCustomerCard(customer) {
       </div>
       <div class="customer-card-footer">
         <span>${customer.last_order_number ? `Ultimo pedido ${escapeAdmin(customer.last_order_number)}` : "Sin pedidos"}</span>
-        <button class="ghost-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Abierto" : "Ver cliente"}</button>
+        <button class="ghost-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Ver cliente"}</button>
       </div>
     </article>`;
 }
@@ -1336,7 +1336,13 @@ function bindCustomerControls() {
 }
 
 async function viewCustomerDetail(event) {
-  adminState.selectedCustomerId = Number(event.currentTarget.dataset.viewCustomer);
+  const customerId = Number(event.currentTarget.dataset.viewCustomer);
+  if (adminState.selectedCustomerId === customerId) {
+    adminState.selectedCustomerId = null;
+    renderCustomers();
+    return;
+  }
+  adminState.selectedCustomerId = customerId;
   renderCustomers();
   await Promise.all([
     loadCustomerProductDiscounts(adminState.selectedCustomerId, false),
