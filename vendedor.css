@@ -220,8 +220,16 @@ textarea:focus {
 .form-message {
   min-height: 1.4rem;
   margin: 0;
-  color: var(--red);
+  color: var(--muted);
   font-size: 0.95rem;
+}
+
+.form-message.is-error {
+  color: var(--red);
+}
+
+.form-message.is-success {
+  color: var(--green);
 }
 
 .seller-login-form h2 {

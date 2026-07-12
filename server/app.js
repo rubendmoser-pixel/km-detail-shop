@@ -113,7 +113,7 @@ export function createApp({
             metadata: { retryAfter, route: url.pathname }
           });
         }
-        return sendJson(response, 429, { error: "Too many requests. Try again later." }, { "retry-after": String(retryAfter) });
+        return sendJson(response, 429, { error: "Demasiados intentos. Proba nuevamente mas tarde." }, { "retry-after": String(retryAfter) });
       }
       if (request.method === "GET" && url.pathname === "/api/health") {
         return sendJson(response, 200, { status: "ok", service: "km-detail-b2b", time: new Date().toISOString() });
@@ -185,7 +185,7 @@ export function createApp({
         const body = await readJson(request);
         const reset = await createPasswordReset(db, body.email, config);
         if (reset) emailService.queuePasswordReset(reset.userId, reset.token);
-        return sendJson(response, 200, { message: "If the account exists, a recovery email was queued." });
+        return sendJson(response, 200, { message: "Si existe una cuenta activa, enviamos un enlace de recuperacion al email." });
       }
       if (request.method === "POST" && url.pathname === "/api/auth/reset-password") {
         const body = await readJson(request);

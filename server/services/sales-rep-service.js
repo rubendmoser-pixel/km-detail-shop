@@ -202,7 +202,7 @@ export function getSalesRepProfile(db, salesRepId) {
     FROM sales_reps
     WHERE id = ?
   `).get(id);
-  if (!rep) throw new NotFoundError("Sales rep not found");
+  if (!rep) throw new NotFoundError("Vendedor no encontrado");
 
   const customers = db.prepare(`
     SELECT c.id, c.business_name, c.tax_id, c.approval_status, c.commercial_class,
@@ -349,7 +349,7 @@ export async function upsertSalesRep(db, input = {}) {
             status = ?, notes = ?${setPassword}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(...params);
-      if (!updated.changes) throw new NotFoundError("Sales rep not found");
+      if (!updated.changes) throw new NotFoundError("Vendedor no encontrado");
       return getSalesRepRow(db, id);
     }
     const inserted = db.prepare(`
@@ -367,7 +367,7 @@ export async function upsertSalesRep(db, input = {}) {
     );
     return getSalesRepRow(db, inserted.id);
   } catch (error) {
-    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Sales rep email already exists");
+    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("El email del vendedor ya existe");
     throw error;
   }
 }
@@ -381,7 +381,7 @@ function getSalesRepRow(db, id) {
     FROM sales_reps
     WHERE id = ?
   `).get(id);
-  if (!row) throw new NotFoundError("Sales rep not found");
+  if (!row) throw new NotFoundError("Vendedor no encontrado");
   return row;
 }
 
@@ -501,7 +501,7 @@ export function logoutSalesRep(db, token) {
 }
 
 export function requireSalesRep(salesRep) {
-  if (!salesRep) throw new AuthError("Sales rep authentication required", 401);
+  if (!salesRep) throw new AuthError("Se requiere iniciar sesion como vendedor", 401);
   return salesRep;
 }
 
@@ -657,7 +657,7 @@ export function createSalesCommissionSettlement(db, input = {}, userId = null) {
       FROM sales_reps
       WHERE id = ?
     `).get(salesRepId);
-    if (!rep) throw new NotFoundError("Sales rep not found");
+    if (!rep) throw new NotFoundError("Vendedor no encontrado");
 
     const placeholders = orderIds.map(() => "?").join(",");
     const orders = db.prepare(`
@@ -757,7 +757,7 @@ export function getSalesCommissionSettlement(db, settlementId) {
     FROM sales_commission_settlements
     WHERE id = ?
   `).get(id);
-  if (!settlement) throw new NotFoundError("Settlement not found");
+  if (!settlement) throw new NotFoundError("Liquidacion no encontrada");
   const items = db.prepare(`
     SELECT id, order_id, order_number, business_name, order_created_at, order_paid_at,
            subtotal_net_cents, commission_bps, commission_cents
@@ -776,7 +776,7 @@ export function assignSalesRepToCustomer(db, customerId, input = {}) {
   const salesRepId = input.salesRepId ? Number(input.salesRepId) : null;
   if (salesRepId) {
     const rep = db.prepare("SELECT id FROM sales_reps WHERE id = ?").get(salesRepId);
-    if (!rep) throw new NotFoundError("Sales rep not found");
+    if (!rep) throw new NotFoundError("Vendedor no encontrado");
   }
   const commissionBps = input.commissionBps === null || input.commissionBps === undefined || input.commissionBps === ""
     ? null
@@ -787,7 +787,7 @@ export function assignSalesRepToCustomer(db, customerId, input = {}) {
     WHERE id = ?
     RETURNING id, sales_rep_id, sales_commission_bps
   `).get(salesRepId, commissionBps, customerId);
-  if (!updated) throw new NotFoundError("Customer not found");
+  if (!updated) throw new NotFoundError("Cliente no encontrado");
   return updated;
 }
 

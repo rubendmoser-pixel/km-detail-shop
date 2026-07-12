@@ -107,13 +107,20 @@ async function sellerApi(path, options = {}) {
   return payload;
 }
 
-function showLoginMode(mode = "login", message = "") {
+function setFormMessage(node, message = "", type = "") {
+  if (!node) return;
+  node.textContent = message;
+  node.classList.toggle("is-error", type === "error");
+  node.classList.toggle("is-success", type === "success");
+}
+
+function showLoginMode(mode = "login", message = "", type = "") {
   nodes.loginForm?.classList.toggle("hidden", mode !== "login");
   nodes.forgotForm?.classList.toggle("hidden", mode !== "forgot");
   nodes.resetForm?.classList.toggle("hidden", mode !== "reset");
-  if (nodes.loginMessage) nodes.loginMessage.textContent = mode === "login" ? message : "";
-  if (nodes.forgotMessage) nodes.forgotMessage.textContent = mode === "forgot" ? message : "";
-  if (nodes.resetMessage) nodes.resetMessage.textContent = mode === "reset" ? message : "";
+  setFormMessage(nodes.loginMessage, mode === "login" ? message : "", mode === "login" ? type : "");
+  setFormMessage(nodes.forgotMessage, mode === "forgot" ? message : "", mode === "forgot" ? type : "");
+  setFormMessage(nodes.resetMessage, mode === "reset" ? message : "", mode === "reset" ? type : "");
 }
 
 function setupPasswordToggles() {
@@ -133,11 +140,11 @@ function validatePasswordPair(form, messageNode) {
   const password = String(new FormData(form).get("password") || "");
   const confirm = String(new FormData(form).get("passwordConfirm") || "");
   if (password.length < 10) {
-    if (messageNode) messageNode.textContent = "La clave debe tener al menos 10 caracteres.";
+    setFormMessage(messageNode, "La clave debe tener al menos 10 caracteres.", "error");
     return null;
   }
   if (password !== confirm) {
-    if (messageNode) messageNode.textContent = "Las claves no coinciden.";
+    setFormMessage(messageNode, "Las claves no coinciden.", "error");
     return null;
   }
   return password;
@@ -866,7 +873,7 @@ function showLogin(message = "") {
   state.salesRep = null;
   state.dashboard = null;
   renderSession();
-  showLoginMode("login", message);
+  showLoginMode("login", message, message ? "success" : "");
   nodes.dashboard.classList.add("hidden");
   nodes.login.classList.remove("hidden");
 }
@@ -890,7 +897,7 @@ async function logout() {
 
 nodes.loginForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  nodes.loginMessage.textContent = "";
+  setFormMessage(nodes.loginMessage, "");
   const form = new FormData(event.currentTarget);
   const button = event.currentTarget.querySelector("button");
   button.disabled = true;
@@ -904,7 +911,7 @@ nodes.loginForm?.addEventListener("submit", async (event) => {
     });
     renderDashboard({ salesRep: payload.salesRep, dashboard: (await sellerApi("/api/sales/dashboard")).dashboard });
   } catch (error) {
-    nodes.loginMessage.textContent = error.message || "No se pudo ingresar";
+    setFormMessage(nodes.loginMessage, error.message || "No se pudo ingresar", "error");
   } finally {
     button.disabled = false;
   }
@@ -926,7 +933,7 @@ nodes.resetBack?.addEventListener("click", () => {
 
 nodes.forgotForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  nodes.forgotMessage.textContent = "";
+  setFormMessage(nodes.forgotMessage, "");
   const button = event.currentTarget.querySelector("button[type='submit']");
   button.disabled = true;
   try {
@@ -935,10 +942,10 @@ nodes.forgotForm?.addEventListener("submit", async (event) => {
       method: "POST",
       body: { email: form.get("email") }
     });
-    nodes.forgotMessage.textContent = payload.message || "Si existe una cuenta activa, enviamos un enlace al email.";
+    setFormMessage(nodes.forgotMessage, payload.message || "Si existe una cuenta activa, enviamos un enlace al email.", "success");
     event.currentTarget.reset();
   } catch (error) {
-    nodes.forgotMessage.textContent = error.message || "No se pudo enviar el enlace.";
+    setFormMessage(nodes.forgotMessage, error.message || "No se pudo enviar el enlace.", "error");
   } finally {
     button.disabled = false;
   }
@@ -946,7 +953,7 @@ nodes.forgotForm?.addEventListener("submit", async (event) => {
 
 nodes.resetForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  nodes.resetMessage.textContent = "";
+  setFormMessage(nodes.resetMessage, "");
   const password = validatePasswordPair(event.currentTarget, nodes.resetMessage);
   if (!password) return;
   const button = event.currentTarget.querySelector("button[type='submit']");
@@ -961,7 +968,7 @@ nodes.resetForm?.addEventListener("submit", async (event) => {
     event.currentTarget.reset();
     showLogin("Clave actualizada. Ingresa nuevamente con la nueva clave.");
   } catch (error) {
-    nodes.resetMessage.textContent = error.message || "No se pudo actualizar la clave.";
+    setFormMessage(nodes.resetMessage, error.message || "No se pudo actualizar la clave.", "error");
   } finally {
     button.disabled = false;
   }
@@ -969,7 +976,7 @@ nodes.resetForm?.addEventListener("submit", async (event) => {
 
 nodes.changePasswordForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  nodes.changePasswordMessage.textContent = "";
+  setFormMessage(nodes.changePasswordMessage, "");
   const form = new FormData(event.currentTarget);
   const password = validatePasswordPair(event.currentTarget, nodes.changePasswordMessage);
   if (!password) return;
@@ -984,9 +991,9 @@ nodes.changePasswordForm?.addEventListener("submit", async (event) => {
       }
     });
     event.currentTarget.reset();
-    showLogin("Clave actualizada. Ingresa nuevamente con la nueva clave.");
+    setFormMessage(nodes.changePasswordMessage, "Clave actualizada correctamente.", "success");
   } catch (error) {
-    nodes.changePasswordMessage.textContent = error.message || "No se pudo cambiar la clave.";
+    setFormMessage(nodes.changePasswordMessage, error.message || "No se pudo cambiar la clave.", "error");
   } finally {
     button.disabled = false;
   }
