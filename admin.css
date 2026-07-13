@@ -74,26 +74,45 @@
 }
 
 .admin-tabs {
-  display: flex;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
   margin-bottom: 28px;
+  padding-bottom: 14px;
   border-bottom: 1px solid #34363b;
 }
 
 .admin-tabs button {
-  min-height: 44px;
-  padding: 8px 18px;
-  color: #a7a9ae;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 14px;
+  color: #e5e7ec;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(35, 37, 42, 0.96), rgba(18, 19, 22, 0.98));
+  border: 1px solid #3b3d42;
+  border-radius: 7px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
   font-weight: 800;
+  line-height: 1.15;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.admin-tabs button:hover,
+.admin-tabs button:focus-visible {
+  border-color: #d0d5dc;
+  box-shadow: 0 0 0 1px rgba(223, 228, 236, 0.2), 0 10px 26px rgba(0, 0, 0, 0.26);
+  outline: 0;
+  transform: translateY(-1px);
 }
 
 .admin-tabs button.active {
-  color: #fff;
-  border-bottom-color: var(--metal);
+  color: #070809;
+  background: linear-gradient(180deg, #f3f6f9 0%, #c5ccd3 55%, #aeb6bf 100%);
+  border-color: #f5f7f9;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 13px 30px rgba(0, 0, 0, 0.32);
 }
 
 .admin-titlebar {
@@ -2631,6 +2650,10 @@ button.operation-row:hover {
 }
 
 @media (max-width: 680px) {
+  .admin-main {
+    padding-inline: 14px;
+  }
+
   .admin-header .brand-divider,
   .admin-header .brand strong {
     display: none;
@@ -2644,6 +2667,19 @@ button.operation-row:hover {
   .admin-toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .admin-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 22px;
+    padding-bottom: 16px;
+  }
+
+  .admin-tabs button {
+    min-height: 48px;
+    padding: 10px 8px;
+    font-size: 0.86rem;
   }
 
   .admin-toolbar input[type="search"] {
