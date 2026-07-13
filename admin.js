@@ -1,7 +1,7 @@
 const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
-  securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
+  securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -79,7 +79,7 @@ const adminEls = Object.fromEntries([
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
-  "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesRepForm", "salesRepFormTitle",
+  "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesPanelNav", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "salesRepProfile", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
   "distributorSearch", "distributorStatusFilter", "reloadDistributors", "distributorForm", "distributorFormTitle", "distributorMessage", "distributorsTableBody",
@@ -145,6 +145,7 @@ function bindAdminEvents() {
   adminEls.salesRepStatusFilter.addEventListener("change", loadSalesReps);
   adminEls.reloadSalesReps.addEventListener("click", loadSalesReps);
   adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
+  adminEls.salesPanelNav?.addEventListener("click", handleSalesPanelNavClick);
   adminEls.salesRepDashboard?.addEventListener("click", handleSalesRepDashboardClick);
   adminEls.salesRepProfile?.addEventListener("click", handleSalesRepProfileClick);
   document.querySelector("#resetSalesRepForm").addEventListener("click", resetSalesRepForm);
@@ -154,6 +155,7 @@ function bindAdminEvents() {
   adminEls.selectAllCommissions.addEventListener("change", toggleAllCommissions);
   adminEls.commissionsTableBody.addEventListener("change", renderCommissionSummary);
   adminEls.commissionSettlements.addEventListener("click", handleCommissionSettlementClick);
+  setSalesPanel(adminState.salesPanel);
   adminEls.distributorSearch.addEventListener("input", debounce(loadDistributors, 250));
   adminEls.distributorStatusFilter.addEventListener("change", loadDistributors);
   adminEls.reloadDistributors.addEventListener("click", loadDistributors);
@@ -253,6 +255,24 @@ async function loadSalesReps() {
   renderCustomers();
 }
 
+function handleSalesPanelNavClick(event) {
+  const button = event.target.closest("[data-sales-panel-target]");
+  if (!button) return;
+  setSalesPanel(button.dataset.salesPanelTarget);
+}
+
+function setSalesPanel(panel = "overview") {
+  adminState.salesPanel = panel;
+  document.querySelectorAll("[data-sales-panel]").forEach((section) => {
+    section.hidden = section.dataset.salesPanel !== panel;
+  });
+  adminEls.salesPanelNav?.querySelectorAll("[data-sales-panel-target]").forEach((button) => {
+    const isActive = button.dataset.salesPanelTarget === panel;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+}
+
 function renderSalesReps() {
   adminEls.salesRepsTableBody.innerHTML = adminState.salesReps.length ? adminState.salesReps.map((rep) => `
     <tr data-sales-rep-id="${rep.id}">
@@ -348,6 +368,7 @@ async function handleSalesRepDashboardClick(event) {
   adminState.selectedSalesRepId = Number(button.dataset.salesProfile);
   renderSalesRepDashboard();
   await loadSalesRepProfile(adminState.selectedSalesRepId);
+  setSalesPanel("profile");
 }
 
 function handleSalesRepProfileClick(event) {
@@ -510,6 +531,7 @@ function editSalesRep(event) {
 function editSalesRepById(id) {
   const rep = adminState.salesReps.find((item) => item.id === id);
   if (!rep) return;
+  setSalesPanel("manage");
   adminEls.salesRepFormTitle.textContent = `Editar ${rep.name}`;
   adminEls.salesRepForm.elements.id.value = rep.id;
   adminEls.salesRepForm.elements.name.value = rep.name;

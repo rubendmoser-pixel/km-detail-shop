@@ -129,62 +129,76 @@
               <button class="ghost-button" id="reloadSalesReps" type="button">Actualizar</button>
             </div>
           </div>
-          <div class="sales-dashboard" id="salesRepDashboard"></div>
-          <div class="sales-rep-profile" id="salesRepProfile" hidden></div>
-          <div class="sales-admin-layout">
-            <form class="sales-rep-form" id="salesRepForm">
-              <div class="form-heading"><p class="eyebrow">Ficha comercial</p><h2 id="salesRepFormTitle">Nuevo vendedor</h2></div>
-              <input name="id" type="hidden" />
-              <label><span>Nombre</span><input name="name" required maxlength="160" /></label>
-              <label><span>Email</span><input name="email" type="email" required maxlength="254" /></label>
-              <label><span>Telefono</span><input name="phone" /></label>
-              <label><span>WhatsApp</span><input name="whatsapp" /></label>
-              <label><span>Comision general (%)</span><input name="defaultCommission" type="number" min="0" max="100" step="0.01" value="0" /></label>
-              <label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label>
-              <label class="wide"><span>Clave portal vendedor</span><input name="portalPassword" type="password" autocomplete="new-password" minlength="10" maxlength="200" placeholder="Completar solo para crear o cambiar clave" /></label>
-              <fieldset class="wide">
-                <legend>Datos bancarios para liquidacion</legend>
-                <label><span>Banco</span><input name="bankName" maxlength="120" /></label>
-                <label><span>Titular de cuenta</span><input name="bankAccountHolder" maxlength="160" /></label>
-                <label><span>CUIT / documento</span><input name="bankTaxId" maxlength="30" /></label>
-                <label><span>Tipo de cuenta</span><input name="bankAccountType" maxlength="80" /></label>
-                <label><span>CBU / CVU</span><input name="bankCbu" maxlength="40" /></label>
-                <label><span>Alias</span><input name="bankAlias" maxlength="80" /></label>
-              </fieldset>
-              <label class="wide"><span>Observaciones</span><textarea name="notes" rows="3"></textarea></label>
-              <div class="form-actions">
-                <button class="primary-button" type="submit">Guardar vendedor</button>
-                <button class="ghost-button" id="resetSalesRepForm" type="button">Limpiar</button>
+          <div class="sales-view-switch" id="salesPanelNav" role="tablist" aria-label="Secciones de vendedores">
+            <button class="active" type="button" data-sales-panel-target="overview" aria-selected="true">Resumen</button>
+            <button type="button" data-sales-panel-target="profile" aria-selected="false">Ficha vendedor</button>
+            <button type="button" data-sales-panel-target="manage" aria-selected="false">Alta y edicion</button>
+            <button type="button" data-sales-panel-target="settlements" aria-selected="false">Liquidaciones</button>
+          </div>
+          <div class="sales-panel" data-sales-panel="overview">
+            <div class="sales-dashboard" id="salesRepDashboard"></div>
+          </div>
+          <div class="sales-panel" data-sales-panel="profile" hidden>
+            <div class="sales-rep-profile" id="salesRepProfile" hidden></div>
+          </div>
+          <div class="sales-panel" data-sales-panel="manage" hidden>
+            <div class="sales-admin-layout">
+              <form class="sales-rep-form" id="salesRepForm">
+                <div class="form-heading"><p class="eyebrow">Ficha comercial</p><h2 id="salesRepFormTitle">Nuevo vendedor</h2></div>
+                <input name="id" type="hidden" />
+                <label><span>Nombre</span><input name="name" required maxlength="160" /></label>
+                <label><span>Email</span><input name="email" type="email" required maxlength="254" /></label>
+                <label><span>Telefono</span><input name="phone" /></label>
+                <label><span>WhatsApp</span><input name="whatsapp" /></label>
+                <label><span>Comision general (%)</span><input name="defaultCommission" type="number" min="0" max="100" step="0.01" value="0" /></label>
+                <label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label>
+                <label class="wide"><span>Clave portal vendedor</span><input name="portalPassword" type="password" autocomplete="new-password" minlength="10" maxlength="200" placeholder="Completar solo para crear o cambiar clave" /></label>
+                <fieldset class="wide">
+                  <legend>Datos bancarios para liquidacion</legend>
+                  <label><span>Banco</span><input name="bankName" maxlength="120" /></label>
+                  <label><span>Titular de cuenta</span><input name="bankAccountHolder" maxlength="160" /></label>
+                  <label><span>CUIT / documento</span><input name="bankTaxId" maxlength="30" /></label>
+                  <label><span>Tipo de cuenta</span><input name="bankAccountType" maxlength="80" /></label>
+                  <label><span>CBU / CVU</span><input name="bankCbu" maxlength="40" /></label>
+                  <label><span>Alias</span><input name="bankAlias" maxlength="80" /></label>
+                </fieldset>
+                <label class="wide"><span>Observaciones</span><textarea name="notes" rows="3"></textarea></label>
+                <div class="form-actions">
+                  <button class="primary-button" type="submit">Guardar vendedor</button>
+                  <button class="ghost-button" id="resetSalesRepForm" type="button">Limpiar</button>
+                </div>
+                <p class="form-message" id="salesRepMessage" role="status"></p>
+              </form>
+              <div class="orders-table-wrap">
+                <table class="admin-table">
+                  <thead><tr><th>Vendedor</th><th>Contacto</th><th>Banco</th><th>Comision</th><th>Estado</th><th>Portal</th><th>Editar</th></tr></thead>
+                  <tbody id="salesRepsTableBody"></tbody>
+                </table>
               </div>
-              <p class="form-message" id="salesRepMessage" role="status"></p>
-            </form>
-            <div class="orders-table-wrap">
-              <table class="admin-table">
-                <thead><tr><th>Vendedor</th><th>Contacto</th><th>Banco</th><th>Comision</th><th>Estado</th><th>Portal</th><th>Editar</th></tr></thead>
-                <tbody id="salesRepsTableBody"></tbody>
-              </table>
             </div>
           </div>
-          <section class="commission-panel">
-            <div class="panel-heading">
-              <p class="eyebrow">Liquidacion</p>
-              <h3>Comisiones cobradas pendientes de liquidar</h3>
-            </div>
-            <div class="admin-toolbar compact-toolbar">
-              <select id="commissionSalesRepFilter" aria-label="Filtrar comisiones por vendedor"></select>
-              <input id="commissionNotes" placeholder="Nota interna de liquidacion" />
-              <button class="ghost-button" id="reloadCommissions" type="button">Actualizar</button>
-              <button class="primary-button" id="createCommissionSettlement" type="button">Generar liquidacion</button>
-            </div>
-            <div class="commission-summary" id="commissionSummary"></div>
-            <div class="orders-table-wrap">
-              <table class="admin-table commission-table">
-                <thead><tr><th><input id="selectAllCommissions" type="checkbox" aria-label="Seleccionar todas" /></th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Base</th><th>Comision</th></tr></thead>
-                <tbody id="commissionsTableBody"></tbody>
-              </table>
-            </div>
-            <div class="commission-settlements" id="commissionSettlements"></div>
-          </section>
+          <div class="sales-panel" data-sales-panel="settlements" hidden>
+            <section class="commission-panel">
+              <div class="panel-heading">
+                <p class="eyebrow">Liquidacion</p>
+                <h3>Comisiones cobradas pendientes de liquidar</h3>
+              </div>
+              <div class="admin-toolbar compact-toolbar">
+                <select id="commissionSalesRepFilter" aria-label="Filtrar comisiones por vendedor"></select>
+                <input id="commissionNotes" placeholder="Nota interna de liquidacion" />
+                <button class="ghost-button" id="reloadCommissions" type="button">Actualizar</button>
+                <button class="primary-button" id="createCommissionSettlement" type="button">Generar liquidacion</button>
+              </div>
+              <div class="commission-summary" id="commissionSummary"></div>
+              <div class="orders-table-wrap">
+                <table class="admin-table commission-table">
+                  <thead><tr><th><input id="selectAllCommissions" type="checkbox" aria-label="Seleccionar todas" /></th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Base</th><th>Comision</th></tr></thead>
+                  <tbody id="commissionsTableBody"></tbody>
+                </table>
+              </div>
+              <div class="commission-settlements" id="commissionSettlements"></div>
+            </section>
+          </div>
         </section>
 
         <section class="admin-view" id="distributorsView" hidden>
