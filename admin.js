@@ -79,7 +79,7 @@ const adminEls = Object.fromEntries([
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
-  "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesPanelNav", "salesRepAdminSummary", "salesRepForm", "salesRepFormTitle",
+  "salesRepPicker", "salesRepStatusFilter", "reloadSalesReps", "salesPanelNav", "salesRepAdminSummary", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "salesRepProfile", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
   "distributorSearch", "distributorStatusFilter", "reloadDistributors", "distributorForm", "distributorFormTitle", "distributorMessage", "distributorsTableBody",
@@ -141,7 +141,7 @@ function bindAdminEvents() {
   adminEls.analyticsDays?.addEventListener("change", loadAnalyticsDashboard);
   document.querySelector("#reloadAnalyticsDashboard")?.addEventListener("click", loadAnalyticsDashboard);
   adminEls.analyticsDashboard?.addEventListener("click", handleAnalyticsDashboardClick);
-  adminEls.salesRepSearch.addEventListener("input", debounce(loadSalesReps, 250));
+  adminEls.salesRepPicker.addEventListener("change", renderSalesReps);
   adminEls.salesRepStatusFilter.addEventListener("change", loadSalesReps);
   adminEls.reloadSalesReps.addEventListener("click", loadSalesReps);
   adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
@@ -244,10 +244,10 @@ async function loadCustomers() {
 
 async function loadSalesReps() {
   const params = new URLSearchParams();
-  if (adminEls.salesRepSearch.value.trim()) params.set("q", adminEls.salesRepSearch.value.trim());
   if (adminEls.salesRepStatusFilter.value) params.set("status", adminEls.salesRepStatusFilter.value);
   const { salesReps } = await adminApi(`/api/admin/sales-reps${params.toString() ? `?${params}` : ""}`);
   adminState.salesReps = salesReps;
+  renderSalesRepPicker();
   refreshCustomerCreateSalesReps();
   renderSalesRepAdminSummary();
   renderSalesReps();
@@ -276,7 +276,9 @@ function setSalesPanel(panel = "overview") {
 
 function renderSalesReps() {
   if (!adminEls.salesRepsTableBody) return;
-  adminEls.salesRepsTableBody.innerHTML = adminState.salesReps.length ? adminState.salesReps.map((rep) => `
+  const selectedRepId = Number(adminEls.salesRepPicker?.value || 0);
+  const reps = selectedRepId ? adminState.salesReps.filter((rep) => rep.id === selectedRepId) : adminState.salesReps;
+  adminEls.salesRepsTableBody.innerHTML = reps.length ? reps.map((rep) => `
     <article class="sales-rep-admin-card" data-sales-rep-id="${rep.id}">
       <div class="sales-rep-card-main">
         <div>
@@ -299,8 +301,18 @@ function renderSalesReps() {
         <button class="ghost-button toolbar-create-button" type="button" data-edit-sales-rep="${rep.id}">Editar vendedor</button>
       </div>
     </article>
-  `).join("") : `<p class="admin-note">Todavia no hay vendedores cargados.</p>`;
+  `).join("") : `<p class="admin-note">No hay vendedores para el filtro seleccionado.</p>`;
   adminEls.salesRepsTableBody.querySelectorAll("[data-edit-sales-rep]").forEach((button) => button.addEventListener("click", editSalesRep));
+}
+
+function renderSalesRepPicker() {
+  if (!adminEls.salesRepPicker) return;
+  const current = adminEls.salesRepPicker.value;
+  adminEls.salesRepPicker.innerHTML = [
+    `<option value="">Todos los vendedores</option>`,
+    ...adminState.salesReps.map((rep) => `<option value="${rep.id}">${escapeAdmin(rep.name)}${rep.status === "active" ? "" : " - inactivo"}</option>`)
+  ].join("");
+  adminEls.salesRepPicker.value = adminState.salesReps.some((rep) => String(rep.id) === current) ? current : "";
 }
 
 function renderSalesRepAdminSummary() {
@@ -653,15 +665,22 @@ async function loadSalesCommissions() {
 function renderCommissions() {
   adminEls.selectAllCommissions.checked = false;
   adminEls.commissionsTableBody.innerHTML = adminState.pendingCommissions.length ? adminState.pendingCommissions.map((row) => `
-    <tr>
-      <td><input type="checkbox" data-commission-order="${row.id}" /></td>
-      <td><strong>${escapeAdmin(row.order_number)}</strong><br><span>${formatDate(row.updated_at || row.created_at)}</span></td>
-      <td>${escapeAdmin(row.business_name || "-")}</td>
-      <td>${escapeAdmin(row.sales_rep_name || "Sin vendedor")}<br><span>${escapeAdmin(row.sales_rep_email || "")}</span></td>
-      <td>${adminMoney.format((row.sales_commission_base_cents || row.subtotal_net_cents || 0) / 100)}<br><span>${formatBps(row.sales_commission_bps || 0)}</span></td>
-      <td><strong>${adminMoney.format((row.sales_commission_cents || 0) / 100)}</strong></td>
-    </tr>
-  `).join("") : `<tr><td colspan="6">No hay comisiones cobradas pendientes de liquidar.</td></tr>`;
+    <article class="commission-order-card">
+      <label class="commission-order-check">
+        <input type="checkbox" data-commission-order="${row.id}" />
+        <span>
+          <strong>${escapeAdmin(row.order_number)}</strong>
+          <small>${formatDate(row.updated_at || row.created_at)}</small>
+        </span>
+      </label>
+      <div class="commission-order-main">
+        <div><span>Cliente</span><strong>${escapeAdmin(row.business_name || "-")}</strong></div>
+        <div><span>Vendedor</span><strong>${escapeAdmin(row.sales_rep_name || "Sin vendedor")}</strong><small>${escapeAdmin(row.sales_rep_email || "")}</small></div>
+        <div><span>Base</span><strong>${adminMoney.format((row.sales_commission_base_cents || row.subtotal_net_cents || 0) / 100)}</strong><small>${formatBps(row.sales_commission_bps || 0)}</small></div>
+        <div><span>Comision</span><strong>${adminMoney.format((row.sales_commission_cents || 0) / 100)}</strong></div>
+      </div>
+    </article>
+  `).join("") : `<p class="admin-note">No hay comisiones cobradas pendientes de liquidar.</p>`;
   renderCommissionSummary();
   renderCommissionSettlements();
 }

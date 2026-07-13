@@ -160,8 +160,19 @@
   box-shadow: 0 0 0 1px rgba(183, 184, 255, 0.14), 0 12px 24px rgba(127, 133, 255, 0.22);
 }
 
+.toolbar-create-button,
+.sales-rep-card-actions .toolbar-create-button,
+.sales-rep-form .toolbar-create-button,
+.commission-panel .toolbar-create-button {
+  color: #080515;
+  background: linear-gradient(180deg, #dfdcff, #8980ff);
+  border-color: rgba(183, 184, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(183, 184, 255, 0.14), 0 12px 24px rgba(127, 133, 255, 0.22);
+}
+
 .admin-toolbar .toolbar-refresh-button:hover,
-.admin-toolbar .toolbar-create-button:hover {
+.admin-toolbar .toolbar-create-button:hover,
+.toolbar-create-button:hover {
   filter: brightness(1.04);
   transform: translateY(-1px);
 }
@@ -1455,10 +1466,87 @@
   font-size: 1.4rem;
 }
 
-.commission-table input[type="checkbox"] {
+.commission-select-all {
+  padding: 12px 14px;
+  color: #d9dde3;
+  background: #17181b;
+  border: 1px solid #34363b;
+}
+
+.commission-select-all label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-weight: 900;
+}
+
+.commission-select-all input[type="checkbox"],
+.commission-order-check input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: #d8dde3;
+  accent-color: #9189ff;
+}
+
+.commission-order-list {
+  display: grid;
+  gap: 10px;
+}
+
+.commission-order-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(145, 137, 255, 0.08), rgba(23, 24, 27, 0.98));
+  border: 1px solid #34363b;
+  border-left: 4px solid #9189ff;
+}
+
+.commission-order-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.commission-order-check strong,
+.commission-order-check small {
+  display: block;
+}
+
+.commission-order-check small {
+  margin-top: 2px;
+  color: #a7abb2;
+}
+
+.commission-order-main {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.commission-order-main > div {
+  min-width: 0;
+  padding: 12px;
+  background: #111214;
+  border: 1px solid #2d3035;
+}
+
+.commission-order-main span,
+.commission-order-main small {
+  display: block;
+  color: #a7abb2;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.commission-order-main strong {
+  display: block;
+  margin-top: 4px;
+  color: #f5f6f7;
+  overflow-wrap: anywhere;
 }
 
 .commission-settlements {
@@ -2748,6 +2836,10 @@ button.operation-row:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .commission-order-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .sales-rep-card-main {
     display: grid;
   }
@@ -2898,6 +2990,7 @@ button.operation-row:hover {
   .sales-ranking-row,
   .sales-profile-metrics,
   .sales-admin-summary,
+  .commission-order-main,
   .sales-profile-bank {
     grid-template-columns: 1fr;
   }

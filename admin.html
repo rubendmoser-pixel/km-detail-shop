@@ -121,7 +121,9 @@
           <div class="admin-titlebar">
             <div><p class="eyebrow">Administracion interna</p><h1>Vendedores KM</h1></div>
             <div class="admin-toolbar">
-              <input id="salesRepSearch" type="search" placeholder="Buscar vendedor, email o WhatsApp" aria-label="Buscar vendedores" />
+              <select id="salesRepPicker" aria-label="Seleccionar vendedor">
+                <option value="">Todos los vendedores</option>
+              </select>
               <select id="salesRepStatusFilter" aria-label="Filtrar vendedores">
                 <option value="">Todos</option>
                 <option value="active">Activos</option>
@@ -132,6 +134,13 @@
           </div>
           <div class="sales-admin-summary" id="salesRepAdminSummary"></div>
           <div class="sales-admin-layout">
+            <section class="sales-rep-admin-list">
+              <div class="panel-heading">
+                <p class="eyebrow">Listado</p>
+                <h3>Vendedores registrados</h3>
+              </div>
+              <div class="sales-rep-list" id="salesRepsTableBody"></div>
+            </section>
             <form class="sales-rep-form" id="salesRepForm">
               <div class="form-heading"><p class="eyebrow">Ficha administrativa</p><h2 id="salesRepFormTitle">Nuevo vendedor</h2></div>
               <input name="id" type="hidden" />
@@ -158,13 +167,6 @@
               </div>
               <p class="form-message" id="salesRepMessage" role="status"></p>
             </form>
-            <section class="sales-rep-admin-list">
-              <div class="panel-heading">
-                <p class="eyebrow">Listado</p>
-                <h3>Vendedores registrados</h3>
-              </div>
-              <div class="sales-rep-list" id="salesRepsTableBody"></div>
-            </section>
           </div>
         </section>
 
@@ -184,12 +186,10 @@
               <h3>Comisiones cobradas pendientes de liquidar</h3>
             </div>
             <div class="commission-summary" id="commissionSummary"></div>
-            <div class="orders-table-wrap">
-              <table class="admin-table commission-table">
-                <thead><tr><th><input id="selectAllCommissions" type="checkbox" aria-label="Seleccionar todas" /></th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Base</th><th>Comision</th></tr></thead>
-                <tbody id="commissionsTableBody"></tbody>
-              </table>
+            <div class="commission-select-all">
+              <label><input id="selectAllCommissions" type="checkbox" aria-label="Seleccionar todas" /> Seleccionar todos los pedidos visibles</label>
             </div>
+            <div class="commission-order-list" id="commissionsTableBody"></div>
             <div class="commission-settlements" id="commissionSettlements"></div>
           </section>
         </section>
