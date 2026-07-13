@@ -3099,6 +3099,113 @@ button.operation-row:hover {
   box-shadow: 0 0 0 3px rgba(159, 150, 255, 0.18);
 }
 
+#reloadCurrentAccounts {
+  color: #06120a;
+  background: linear-gradient(180deg, #c8f7d0, #78dd91);
+  border-color: rgba(126, 227, 154, 0.92);
+  box-shadow: 0 0 0 1px rgba(126, 227, 154, 0.14), 0 12px 24px rgba(42, 180, 84, 0.2);
+}
+
+#reloadCurrentAccounts:hover,
+#reloadCurrentAccounts:focus-visible {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.current-account-payment-form .toolbar-create-button {
+  min-height: 52px;
+  padding: 0 18px;
+  color: #080515;
+  background: linear-gradient(180deg, #dfdcff, #8980ff);
+  border: 1px solid rgba(183, 184, 255, 0.92);
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 0.98rem;
+  font-weight: 900;
+  line-height: 1.1;
+  box-shadow: 0 0 0 1px rgba(183, 184, 255, 0.14), 0 12px 24px rgba(127, 133, 255, 0.22);
+}
+
+.current-account-payment-form .toolbar-create-button:hover,
+.current-account-payment-form .toolbar-create-button:focus-visible {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.current-account-detail-tools {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.current-account-history-toggle {
+  min-height: 46px;
+  padding: 0 18px;
+  color: #f4f2ff;
+  background: rgba(143, 134, 255, 0.12);
+  border: 1px solid #8f86ff;
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.current-account-history-toggle:hover,
+.current-account-history-toggle:focus-visible {
+  background: rgba(143, 134, 255, 0.2);
+  outline: 0;
+}
+
+.current-account-history {
+  margin-top: 12px;
+  overflow: hidden;
+  background: #121419;
+  border: 1px solid #34363b;
+  border-radius: 8px;
+}
+
+.current-account-history.empty {
+  padding: 14px 16px;
+  color: #b8bec8;
+}
+
+.current-account-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid #2d3036;
+}
+
+.current-account-history-row:first-child {
+  border-top: 0;
+}
+
+.current-account-history-row span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.current-account-history-row strong {
+  color: #f6f7f8;
+  font-weight: 900;
+}
+
+.current-account-history-row small {
+  color: #aeb6c2;
+  line-height: 1.45;
+}
+
+.current-account-history-row em {
+  align-self: center;
+  justify-self: end;
+  color: #f6f7f8;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .admin-empty {
   padding: 24px;
   color: #a7a9ae;
@@ -3434,6 +3541,16 @@ button.operation-row:hover {
 
   .current-account-payment-form .toolbar-create-button {
     width: 100%;
+    min-height: 56px;
+    font-size: 1rem;
+  }
+
+  .current-account-history-row {
+    grid-template-columns: 1fr;
+  }
+
+  .current-account-history-row em {
+    justify-self: start;
   }
 
   .customer-data,

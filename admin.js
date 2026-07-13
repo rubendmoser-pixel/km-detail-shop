@@ -2,7 +2,7 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
+  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const adminViews = new Set(["customers", "sales", "commissions", "distributors", "products", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
@@ -3364,7 +3364,10 @@ function renderCurrentAccountDashboard(dashboard = adminState.operationDashboard
   const query = (adminEls.currentAccountSearch?.value || "").trim().toLowerCase();
   const rows = selectedRows.filter((row) => accountRowMatches(row, query));
   const selectedAccount = findCurrentAccountRow(dashboard, adminState.currentAccountOrderId);
-  if (adminState.currentAccountOrderId && !selectedAccount) adminState.currentAccountOrderId = null;
+  if (adminState.currentAccountOrderId && !selectedAccount) {
+    adminState.currentAccountOrderId = null;
+    adminState.currentAccountPaymentsOpen = false;
+  }
 
   adminEls.currentAccountDashboard.innerHTML = `
     <div class="current-account-actions" role="tablist" aria-label="Filtros de cuenta corriente">
@@ -3414,18 +3417,28 @@ function handleCurrentAccountClick(event) {
   const clearButton = event.target.closest("[data-account-clear]");
   if (clearButton && adminEls.currentAccountDashboard.contains(clearButton)) {
     adminState.currentAccountOrderId = null;
+    adminState.currentAccountPaymentsOpen = false;
     renderCurrentAccountDashboard();
     return;
   }
   const filterButton = event.target.closest("[data-account-filter]");
   if (filterButton && adminEls.currentAccountDashboard.contains(filterButton)) {
     adminState.currentAccountFilter = filterButton.dataset.accountFilter;
+    adminState.currentAccountPaymentsOpen = false;
+    renderCurrentAccountDashboard();
+    return;
+  }
+  const historyButton = event.target.closest("[data-account-history-toggle]");
+  if (historyButton && adminEls.currentAccountDashboard.contains(historyButton)) {
+    adminState.currentAccountPaymentsOpen = !adminState.currentAccountPaymentsOpen;
     renderCurrentAccountDashboard();
     return;
   }
   const rowButton = event.target.closest("[data-account-order]");
   if (!rowButton || !adminEls.currentAccountDashboard.contains(rowButton)) return;
-  adminState.currentAccountOrderId = Number(rowButton.dataset.accountOrder);
+  const nextOrderId = Number(rowButton.dataset.accountOrder);
+  if (adminState.currentAccountOrderId !== nextOrderId) adminState.currentAccountPaymentsOpen = false;
+  adminState.currentAccountOrderId = nextOrderId;
   renderCurrentAccountDashboard();
   setTimeout(() => adminEls.currentAccountDashboard?.querySelector(".current-account-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
 }
@@ -3454,7 +3467,9 @@ async function handleCurrentAccountSubmit(event) {
     if (adminState.selectedOrder?.id === order.id) adminState.selectedOrder = order;
     showAdminToast("Cobro registrado en cuenta corriente.");
     await loadOperationDashboard();
-    adminState.currentAccountOrderId = Number(order.balanceCents || 0) > 0 ? order.id : null;
+    const hasBalance = Number(order.balanceCents || 0) > 0;
+    adminState.currentAccountOrderId = hasBalance ? order.id : null;
+    adminState.currentAccountPaymentsOpen = hasBalance;
     renderCurrentAccountDashboard();
   } catch (error) {
     showAdminToast(error.message);
@@ -3470,6 +3485,11 @@ const currentAccountPaymentMethods = [
   ["e_check", "E-cheq"]
 ];
 
+function currentAccountPaymentMethodLabel(method) {
+  const entry = currentAccountPaymentMethods.find(([value]) => value === method);
+  return entry ? entry[1] : method || "Sin metodo";
+}
+
 function findCurrentAccountRow(dashboard, orderId) {
   if (!dashboard || !orderId) return null;
   const accounts = dashboard.currentAccounts || {};
@@ -3484,6 +3504,7 @@ function findCurrentAccountRow(dashboard, orderId) {
 function renderCurrentAccountDetail(row) {
   const due = accountDueState(row);
   const balanceCents = Number(row.balanceCents || 0);
+  const payments = currentAccountPaymentHistory(row);
   return `
     <section class="current-account-detail ${due.className}">
       <div class="current-account-detail-header">
@@ -3521,8 +3542,52 @@ function renderCurrentAccountDetail(row) {
         </label>
         <button class="toolbar-create-button" type="submit">Registrar cobro</button>
       </form>
+      <div class="current-account-detail-tools">
+        <button class="current-account-history-toggle" type="button" data-account-history-toggle>
+          ${adminState.currentAccountPaymentsOpen ? "Ocultar historial de pagos" : `Ver historial de pagos (${payments.length})`}
+        </button>
+      </div>
+      ${adminState.currentAccountPaymentsOpen ? renderCurrentAccountPaymentHistory(payments) : ""}
     </section>
   `;
+}
+
+function currentAccountPaymentHistory(row) {
+  return (row.accountPayments || []).map((payment) => ({
+    id: payment.id,
+    amountCents: Number(payment.amountCents || 0),
+    method: currentAccountPaymentMethodLabel(payment.method),
+    reference: payment.reference || "",
+    note: payment.note || "",
+    createdAt: payment.createdAt || ""
+  }));
+}
+
+function renderCurrentAccountPaymentHistory(payments) {
+  if (!payments.length) {
+    return `<div class="current-account-history empty">Todavia no hay cobros registrados para este pedido.</div>`;
+  }
+  return `
+    <div class="current-account-history">
+      ${payments.map((payment) => `
+        <div class="current-account-history-row">
+          <span>
+            <strong>${escapeAdmin(payment.method)}</strong>
+            <small>${escapeAdmin(formatAccountPaymentDate(payment.createdAt))}${payment.reference ? ` | Ref: ${escapeAdmin(payment.reference)}` : ""}</small>
+            ${payment.note ? `<small>${escapeAdmin(payment.note)}</small>` : ""}
+          </span>
+          <em>${adminMoney.format(payment.amountCents / 100)}</em>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function formatAccountPaymentDate(value) {
+  if (!value) return "Sin fecha";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return formatAdminDate(value);
+  return date.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
 }
 
 function accountRowMatches(row, query) {

@@ -22,6 +22,15 @@ export function getAdminOperationDashboard(db) {
     WHERE o.status <> 'cancelled'
   `).all();
 
+  const accountPayments = tableExists(db, "account_payments")
+    ? db.prepare(`
+      SELECT id, order_id, amount_cents, method, reference, note, created_at
+      FROM account_payments
+      ORDER BY created_at DESC, id DESC
+    `).all()
+    : [];
+  const accountPaymentsByOrder = groupAccountPayments(accountPayments);
+
   const now = new Date();
   const today = isoDate(now);
   const monthStart = `${today.slice(0, 7)}-01`;
@@ -55,9 +64,9 @@ export function getAdminOperationDashboard(db) {
       bySalesRep: groupBySalesRep(monthOrders)
     },
     currentAccounts: {
-      open: openBalanceOrders.map(mapCurrentAccountOrder),
-      overdue: overdueOrders.map(mapCurrentAccountOrder),
-      dueSoon: dueSoonOrders.map(mapCurrentAccountOrder)
+      open: openBalanceOrders.map((order) => mapCurrentAccountOrder(order, accountPaymentsByOrder)),
+      overdue: overdueOrders.map((order) => mapCurrentAccountOrder(order, accountPaymentsByOrder)),
+      dueSoon: dueSoonOrders.map((order) => mapCurrentAccountOrder(order, accountPaymentsByOrder))
     },
     products: topProducts(items),
     queues: buildQueues(orders),
@@ -145,7 +154,7 @@ function topProducts(items) {
   return [...byProduct.values()].sort((a, b) => b.subtotalCents - a.subtotalCents).slice(0, 15);
 }
 
-function mapCurrentAccountOrder(order) {
+function mapCurrentAccountOrder(order, accountPaymentsByOrder = new Map()) {
   const today = isoDate(new Date());
   return {
     id: order.id,
@@ -159,8 +168,31 @@ function mapCurrentAccountOrder(order) {
     balanceCents: Number(order.balance_cents || 0),
     dueDate: order.payment_due_date || "",
     daysToDue: order.payment_due_date ? daysBetween(today, order.payment_due_date) : null,
-    createdAt: order.created_at
+    createdAt: order.created_at,
+    accountPayments: accountPaymentsByOrder.get(Number(order.id)) || []
   };
+}
+
+function tableExists(db, table) {
+  return Boolean(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(table));
+}
+
+function groupAccountPayments(payments) {
+  const byOrder = new Map();
+  for (const payment of payments) {
+    const orderId = Number(payment.order_id);
+    const entries = byOrder.get(orderId) || [];
+    entries.push({
+      id: payment.id,
+      amountCents: Number(payment.amount_cents || 0),
+      method: payment.method || "",
+      reference: payment.reference || "",
+      note: payment.note || "",
+      createdAt: payment.created_at || ""
+    });
+    byOrder.set(orderId, entries);
+  }
+  return byOrder;
 }
 
 function compareCurrentAccountOrders(a, b) {
