@@ -988,27 +988,55 @@ function calculateCommission(baseCents, commissionBps) {
 }
 
 function normalizeMoneyCents(value, fieldName, maxCents) {
-  let normalized = value;
   if (typeof value === "string") {
-    const raw = value.trim().replace(/\s/g, "").replace(/\$/g, "");
-    const lastComma = raw.lastIndexOf(",");
-    const lastDot = raw.lastIndexOf(".");
-    if (lastComma >= 0 && lastDot >= 0) {
-      normalized = lastComma > lastDot
-        ? raw.replace(/\./g, "").replace(",", ".")
-        : raw.replace(/,/g, "");
-    } else if (lastComma >= 0) {
-      normalized = raw.replace(",", ".");
-    } else {
-      normalized = raw;
-    }
+    const cents = parseMoneyStringToCents(value, fieldName);
+    if (cents > maxCents) throw new ValidationError(`${fieldName} cannot exceed order total`);
+    return cents;
   }
-  const numeric = Number(normalized);
+  const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric < 0) throw new ValidationError(`${fieldName} must be a positive amount`);
   const cents = Number.isInteger(numeric) ? numeric : Math.round(numeric * 100);
   if (cents <= 0) throw new ValidationError(`${fieldName} must be greater than zero`);
   if (cents > maxCents) throw new ValidationError(`${fieldName} cannot exceed order total`);
   return cents;
+}
+
+function parseMoneyStringToCents(value, fieldName) {
+  const raw = String(value || "")
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/\$/g, "")
+    .replace(/[^\d,.-]/g, "");
+  if (!raw || raw.includes("-")) throw new ValidationError(`${fieldName} must be a positive amount`);
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  let normalized = raw;
+  if (lastComma >= 0 && lastDot >= 0) {
+    normalized = lastComma > lastDot
+      ? raw.replace(/\./g, "").replace(",", ".")
+      : raw.replace(/,/g, "");
+  } else if (lastComma >= 0) {
+    const parts = raw.split(",");
+    if (parts.length > 2) {
+      const cents = parts.pop();
+      normalized = cents.length > 0 && cents.length <= 2 ? `${parts.join("")}.${cents}` : [...parts, cents].join("");
+    } else {
+      const [pesos, cents = ""] = parts;
+      normalized = cents.length > 0 && cents.length <= 2 ? `${pesos}.${cents}` : `${pesos}${cents}`;
+    }
+  } else if (lastDot >= 0) {
+    const parts = raw.split(".");
+    if (parts.length > 2) {
+      const cents = parts.pop();
+      normalized = cents.length > 0 && cents.length <= 2 ? `${parts.join("")}.${cents}` : [...parts, cents].join("");
+    } else {
+      const [pesos, cents = ""] = parts;
+      normalized = cents.length > 0 && cents.length <= 2 ? `${pesos}.${cents}` : `${pesos}${cents}`;
+    }
+  }
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount <= 0) throw new ValidationError(`${fieldName} must be greater than zero`);
+  return Math.round(amount * 100);
 }
 
 function normalizeManualAccountPaymentMethod(value) {

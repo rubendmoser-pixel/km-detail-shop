@@ -554,7 +554,7 @@ test("current account manual payments use allowed methods and close class N IVA 
   );
 
   const paid = registerCurrentAccountPayment(db, order.id, {
-    amount: "$ 100.000,00",
+    amount: "$ 1.000,00",
     method: "bank_transfer",
     reference: "Banco prueba",
     note: "Pago neto clase N"

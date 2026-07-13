@@ -3559,7 +3559,12 @@ function formatAdminMoneyInput(cents) {
 }
 
 function parseAdminMoneyCents(value) {
-  const raw = String(value || "").trim().replace(/\s/g, "").replace(/\$/g, "");
+  const raw = String(value || "")
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/\$/g, "")
+    .replace(/[^\d,.-]/g, "");
+  if (!raw || raw.includes("-")) throw new Error("Ingresa un importe valido.");
   const lastComma = raw.lastIndexOf(",");
   const lastDot = raw.lastIndexOf(".");
   let normalized = raw;
@@ -3568,7 +3573,23 @@ function parseAdminMoneyCents(value) {
       ? raw.replace(/\./g, "").replace(",", ".")
       : raw.replace(/,/g, "");
   } else if (lastComma >= 0) {
-    normalized = raw.replace(",", ".");
+    const parts = raw.split(",");
+    if (parts.length > 2) {
+      const cents = parts.pop();
+      normalized = cents.length > 0 && cents.length <= 2 ? `${parts.join("")}.${cents}` : [...parts, cents].join("");
+    } else {
+      const [pesos, cents = ""] = parts;
+      normalized = cents.length > 0 && cents.length <= 2 ? `${pesos}.${cents}` : `${pesos}${cents}`;
+    }
+  } else if (lastDot >= 0) {
+    const parts = raw.split(".");
+    if (parts.length > 2) {
+      const cents = parts.pop();
+      normalized = cents.length > 0 && cents.length <= 2 ? `${parts.join("")}.${cents}` : [...parts, cents].join("");
+    } else {
+      const [pesos, cents = ""] = parts;
+      normalized = cents.length > 0 && cents.length <= 2 ? `${pesos}.${cents}` : `${pesos}${cents}`;
+    }
   }
   const amount = Number(normalized);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Ingresa un importe valido.");
