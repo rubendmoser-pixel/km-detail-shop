@@ -2085,15 +2085,20 @@ function renderOrderActionBar(order) {
   const whatsappAction = customerWhatsapp
     ? `<a class="primary-link" target="_blank" rel="noreferrer" href="https://wa.me/${customerWhatsapp}?text=${encodeURIComponent(orderCustomerWhatsappText(order))}">WhatsApp al cliente</a>`
     : `<p class="admin-note">Este cliente no tiene WhatsApp cargado.</p>`;
+  const accountAction = order.paymentStatus === "credit_account" && (order.balanceCents || 0) > 0
+    ? `<button class="ghost-button account-link-button" type="button" id="openCurrentAccountFromOrder">Ver en Cta. corriente</button>`
+    : "";
   adminEls.orderDetailActions.innerHTML = isInitialReview
     ? documentActions
     : fulfillmentStatus === "shipped"
-    ? `${whatsappAction}${documentActions}`
-    : `${documentActions}${customerWhatsapp && canOperateDocuments ? whatsappAction : ""}${!canOperateDocuments ? whatsappAction : ""}`;
+    ? `${whatsappAction}${documentActions}${accountAction}`
+    : `${documentActions}${accountAction}${customerWhatsapp && canOperateDocuments ? whatsappAction : ""}${!canOperateDocuments ? whatsappAction : ""}`;
   const pickingButton = adminEls.orderDetailActions.querySelector("#openPickingList");
   if (pickingButton) pickingButton.addEventListener("click", openPickingList);
   const deliveryButton = adminEls.orderDetailActions.querySelector("#openDeliveryNote");
   if (deliveryButton) deliveryButton.addEventListener("click", openDeliveryNote);
+  const accountButton = adminEls.orderDetailActions.querySelector("#openCurrentAccountFromOrder");
+  if (accountButton) accountButton.addEventListener("click", openCurrentAccountFromOrder);
   const labelsForm = adminEls.orderDetailActions.querySelector(".shipping-label-form");
   if (labelsForm) labelsForm.addEventListener("submit", openShippingLabels);
 }
@@ -2114,6 +2119,13 @@ function openPickingList() {
 function openDeliveryNote() {
   if (!adminState.selectedOrder) return;
   window.open(`./delivery-note.html?order=${adminState.selectedOrder.id}`, "_blank", "noopener,noreferrer");
+}
+
+function openCurrentAccountFromOrder() {
+  adminState.currentAccountFilter = "open";
+  showAdminView("accounts");
+  renderCurrentAccountDashboard();
+  adminEls.currentAccountDashboard?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderFulfillment(order) {
@@ -2169,11 +2181,12 @@ function renderOrderWorkflow(order) {
   const isClosed = order.status === "delivered" || fulfillmentStatus === "delivered";
   const canConfirmAvailability = order.status === "order_created";
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
-  const canManageOpenBalance = availabilityConfirmed && (order.balanceCents || 0) > 0;
+  const isCreditAccount = order.paymentStatus === "credit_account";
+  const canManageOpenBalance = availabilityConfirmed && (order.balanceCents || 0) > 0 && !isCreditAccount;
   const canManageFulfillment = canPrepareOrDispatchOrder(order);
-  const needsPaymentAction = ["receipt_uploaded", "rejected", "overdue"].includes(order.paymentStatus)
+  const needsPaymentAction = !isCreditAccount && (["receipt_uploaded", "rejected", "overdue"].includes(order.paymentStatus)
     || (availabilityConfirmed && order.paymentStatus === "pending_payment")
-    || canManageOpenBalance;
+    || canManageOpenBalance);
 
   adminEls.availabilityForm.hidden = !canConfirmAvailability;
   adminEls.paymentReviewPanel.hidden = isCancelled || !needsPaymentAction;
@@ -2208,6 +2221,10 @@ function renderOrderWorkflow(order) {
   }
   if (order.paymentStatus === "rejected") {
     renderNextStep("Proxima accion: corregir pago", "El ultimo comprobante fue rechazado. Espera una nueva carga del cliente o coordina la correccion por WhatsApp/email.", "danger");
+    return;
+  }
+  if (isCreditAccount && (order.balanceCents || 0) > 0 && !canManageFulfillment) {
+    renderNextStep("Cobro en Cta. corriente", "El saldo pendiente se administra desde Cta. corriente. En Pedidos quedan solo las acciones operativas de preparacion y despacho.", "info");
     return;
   }
   if (fulfillmentStatus === "shipped") {
@@ -2349,8 +2366,8 @@ function renderPaymentReceipts(order) {
   const pendingReceipts = receipts.filter((receipt) => receipt.status === "received");
   const reviewedReceipts = receipts.filter((receipt) => receipt.status !== "received");
   const needsAmountRegularization = reviewedReceipts.some((receipt) => receipt.status === "accepted" && !receipt.amountCents);
-  const canAuthorizeBalance = balanceCents > 0 && !pendingReceipts.length && !needsAmountRegularization;
-  const canApplyCommercialAdjustment = balanceCents > 0 && order.paymentStatus !== "settled_adjustment";
+  const canAuthorizeBalance = balanceCents > 0 && order.paymentStatus !== "credit_account" && !pendingReceipts.length && !needsAmountRegularization;
+  const canApplyCommercialAdjustment = balanceCents > 0 && order.paymentStatus !== "settled_adjustment" && order.paymentStatus !== "credit_account";
   const defaultTermsDays = order.paymentTermsDays || 15;
   const defaultTermsDueDate = calculateDueDateFromDays(defaultTermsDays);
   adminEls.paymentReviewPanel.innerHTML = `
