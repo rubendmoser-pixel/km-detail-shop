@@ -995,6 +995,119 @@
   align-items: start;
 }
 
+.sales-admin-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.sales-admin-summary div {
+  display: grid;
+  gap: 5px;
+  min-height: 92px;
+  padding: 14px;
+  background: #15161a;
+  border: 1px solid #34363b;
+  border-top: 4px solid #aeb5bf;
+}
+
+.sales-admin-summary span,
+.sales-admin-summary small {
+  color: #a7abb2;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sales-admin-summary strong {
+  color: #f5f6f7;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.sales-rep-admin-list {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  background: #111214;
+  border: 1px solid #34363b;
+}
+
+.sales-rep-list {
+  display: grid;
+  gap: 12px;
+}
+
+.sales-rep-admin-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: #15161a;
+  border: 1px solid #34363b;
+  border-left: 4px solid #8f7cff;
+}
+
+.sales-rep-card-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.sales-rep-card-main h4 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.sales-rep-card-main p {
+  margin: 3px 0 0;
+  color: #c8ccd2;
+  overflow-wrap: anywhere;
+}
+
+.sales-rep-card-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sales-rep-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sales-rep-card-grid div {
+  padding: 11px;
+  background: #101113;
+  border: 1px solid #2d3035;
+}
+
+.sales-rep-card-grid span,
+.sales-rep-card-grid small {
+  display: block;
+  color: #a7abb2;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sales-rep-card-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: #f5f6f7;
+  overflow-wrap: anywhere;
+}
+
+.sales-rep-card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .sales-view-switch {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2631,6 +2744,26 @@ button.operation-row:hover {
     grid-template-columns: 1fr;
   }
 
+  .sales-admin-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sales-rep-card-main {
+    display: grid;
+  }
+
+  .sales-rep-card-badges {
+    justify-content: flex-start;
+  }
+
+  .sales-rep-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-rep-card-actions .ghost-button {
+    width: 100%;
+  }
+
   .sales-view-switch {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2764,6 +2897,7 @@ button.operation-row:hover {
   .sales-dashboard-cards,
   .sales-ranking-row,
   .sales-profile-metrics,
+  .sales-admin-summary,
   .sales-profile-bank {
     grid-template-columns: 1fr;
   }

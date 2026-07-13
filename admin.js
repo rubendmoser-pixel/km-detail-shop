@@ -5,7 +5,7 @@ const adminState = {
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const adminViews = new Set(["customers", "sales", "distributors", "products", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
+const adminViews = new Set(["customers", "sales", "commissions", "distributors", "products", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -79,7 +79,7 @@ const adminEls = Object.fromEntries([
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
-  "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesPanelNav", "salesRepForm", "salesRepFormTitle",
+  "salesRepSearch", "salesRepStatusFilter", "reloadSalesReps", "salesPanelNav", "salesRepAdminSummary", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "salesRepProfile", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
   "distributorSearch", "distributorStatusFilter", "reloadDistributors", "distributorForm", "distributorFormTitle", "distributorMessage", "distributorsTableBody",
@@ -226,6 +226,7 @@ function showAdminView(view, updateHash = true) {
   if (updateHash && window.location.hash !== `#${targetView}`) window.location.hash = targetView;
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === targetView));
   document.querySelectorAll(".admin-view").forEach((section) => { section.hidden = section.id !== `${targetView}View`; });
+  if (targetView === "commissions") loadSalesCommissions().catch((error) => showAdminToast(error.message));
 }
 
 async function loadCustomers() {
@@ -248,10 +249,10 @@ async function loadSalesReps() {
   const { salesReps } = await adminApi(`/api/admin/sales-reps${params.toString() ? `?${params}` : ""}`);
   adminState.salesReps = salesReps;
   refreshCustomerCreateSalesReps();
+  renderSalesRepAdminSummary();
   renderSalesReps();
   renderCommissionSalesRepFilter();
-  await loadSalesCommissions();
-  await loadSalesRepDashboard();
+  if (currentAdminView() === "commissions") await loadSalesCommissions();
   renderCustomers();
 }
 
@@ -274,18 +275,48 @@ function setSalesPanel(panel = "overview") {
 }
 
 function renderSalesReps() {
+  if (!adminEls.salesRepsTableBody) return;
   adminEls.salesRepsTableBody.innerHTML = adminState.salesReps.length ? adminState.salesReps.map((rep) => `
-    <tr data-sales-rep-id="${rep.id}">
-      <td><strong>${escapeAdmin(rep.name)}</strong><br><span>${escapeAdmin(rep.email)}</span></td>
-      <td>${escapeAdmin(rep.phone || "-")}<br><span>WhatsApp ${escapeAdmin(rep.whatsapp || "-")}</span></td>
-      <td>${escapeAdmin(rep.bank_name || "Sin banco")}<br><span>${escapeAdmin(rep.bank_alias || rep.bank_cbu || "-")}</span></td>
-      <td>${formatBps(rep.default_commission_bps)}</td>
-      <td><span class="status-badge ${rep.status === "active" ? "approved" : "suspended"}">${rep.status === "active" ? "Activo" : "Inactivo"}</span></td>
-      <td><span class="status-badge ${Number(rep.has_portal_access || 0) ? "approved" : "pending"}">${Number(rep.has_portal_access || 0) ? "Activo" : "Sin clave"}</span></td>
-      <td><button class="ghost-button row-button" type="button" data-edit-sales-rep="${rep.id}">Editar</button></td>
-    </tr>
-  `).join("") : `<tr><td colspan="7">Todavia no hay vendedores cargados.</td></tr>`;
+    <article class="sales-rep-admin-card" data-sales-rep-id="${rep.id}">
+      <div class="sales-rep-card-main">
+        <div>
+          <p class="eyebrow">Vendedor</p>
+          <h4>${escapeAdmin(rep.name)}</h4>
+          <p>${escapeAdmin(rep.email)}</p>
+        </div>
+        <div class="sales-rep-card-badges">
+          <span class="status-badge ${rep.status === "active" ? "approved" : "suspended"}">${rep.status === "active" ? "Activo" : "Inactivo"}</span>
+          <span class="status-badge ${Number(rep.has_portal_access || 0) ? "approved" : "pending"}">${Number(rep.has_portal_access || 0) ? "Portal activo" : "Sin clave"}</span>
+        </div>
+      </div>
+      <div class="sales-rep-card-grid">
+        <div><span>Telefono</span><strong>${escapeAdmin(rep.phone || "-")}</strong></div>
+        <div><span>WhatsApp</span><strong>${escapeAdmin(rep.whatsapp || "-")}</strong></div>
+        <div><span>Comision general</span><strong>${formatBps(rep.default_commission_bps)}</strong></div>
+        <div><span>Banco</span><strong>${escapeAdmin(rep.bank_name || "Sin banco")}</strong><small>${escapeAdmin(rep.bank_alias || rep.bank_cbu || "-")}</small></div>
+      </div>
+      <div class="sales-rep-card-actions">
+        <button class="ghost-button toolbar-create-button" type="button" data-edit-sales-rep="${rep.id}">Editar vendedor</button>
+      </div>
+    </article>
+  `).join("") : `<p class="admin-note">Todavia no hay vendedores cargados.</p>`;
   adminEls.salesRepsTableBody.querySelectorAll("[data-edit-sales-rep]").forEach((button) => button.addEventListener("click", editSalesRep));
+}
+
+function renderSalesRepAdminSummary() {
+  if (!adminEls.salesRepAdminSummary) return;
+  const total = adminState.salesReps.length;
+  const active = adminState.salesReps.filter((rep) => rep.status === "active").length;
+  const inactive = adminState.salesReps.filter((rep) => rep.status !== "active").length;
+  const portal = adminState.salesReps.filter((rep) => Number(rep.has_portal_access || 0)).length;
+  const missingBank = adminState.salesReps.filter((rep) => !rep.bank_name && !rep.bank_cbu && !rep.bank_alias).length;
+  adminEls.salesRepAdminSummary.innerHTML = `
+    <div><span>Total</span><strong>${total}</strong><small>Vendedores registrados</small></div>
+    <div><span>Activos</span><strong>${active}</strong><small>Disponibles para asignar clientes</small></div>
+    <div><span>Inactivos</span><strong>${inactive}</strong><small>Fuera de operacion</small></div>
+    <div><span>Portal</span><strong>${portal}</strong><small>Con clave de acceso</small></div>
+    <div><span>Banco</span><strong>${missingBank}</strong><small>Sin datos de liquidacion</small></div>
+  `;
 }
 
 async function loadSalesRepDashboard() {
@@ -531,7 +562,6 @@ function editSalesRep(event) {
 function editSalesRepById(id) {
   const rep = adminState.salesReps.find((item) => item.id === id);
   if (!rep) return;
-  setSalesPanel("manage");
   adminEls.salesRepFormTitle.textContent = `Editar ${rep.name}`;
   adminEls.salesRepForm.elements.id.value = rep.id;
   adminEls.salesRepForm.elements.name.value = rep.name;
@@ -549,6 +579,8 @@ function editSalesRepById(id) {
   adminEls.salesRepForm.elements.portalPassword.value = "";
   adminEls.salesRepForm.elements.notes.value = rep.notes || "";
   adminEls.salesRepMessage.textContent = "";
+  adminEls.salesRepForm?.scrollIntoView({ behavior: "smooth", block: "start" });
+  adminEls.salesRepForm?.elements.name?.focus({ preventScroll: true });
 }
 
 function resetSalesRepForm() {
