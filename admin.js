@@ -101,77 +101,80 @@ async function initAdmin() {
 }
 
 function bindAdminEvents() {
-  adminEls.adminLoginForm.addEventListener("submit", loginAdmin);
-  document.querySelector("#adminLogout").addEventListener("click", logoutAdmin);
+  const on = (element, eventName, handler) => element?.addEventListener?.(eventName, handler);
+  const byId = (selector) => document.querySelector(selector);
+
+  on(adminEls.adminLoginForm, "submit", loginAdmin);
+  on(byId("#adminLogout"), "click", logoutAdmin);
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => showAdminView(button.dataset.adminView)));
-  window.addEventListener("hashchange", () => showAdminView(currentAdminView(), false));
-  adminEls.customerSearch.addEventListener("input", debounce(loadCustomers, 250));
-  adminEls.customerStatusFilter.addEventListener("change", loadCustomers);
-  document.querySelector("#reloadCustomers").addEventListener("click", loadCustomers);
-  adminEls.toggleCustomerCreate?.addEventListener("click", toggleCustomerCreatePanel);
-  adminEls.cancelCustomerCreate?.addEventListener("click", () => toggleCustomerCreatePanel(false));
-  adminEls.customerCreateForm?.addEventListener("submit", createCustomerFromAdmin);
-  adminEls.customerCreateForm?.elements.paymentCondition?.addEventListener("change", syncCustomerCreatePaymentForm);
-  adminEls.productSearch.addEventListener("input", debounce(loadProducts, 250));
-  adminEls.productFamilyFilter.addEventListener("change", loadProducts);
-  adminEls.productStatusFilter.addEventListener("change", loadProducts);
-  document.querySelector("#reloadProducts").addEventListener("click", loadProducts);
-  document.querySelector("#newProduct").addEventListener("click", resetProductForm);
-  document.querySelector("#resetProductForm").addEventListener("click", resetProductForm);
-  adminEls.productForm.addEventListener("submit", saveProduct);
-  productField("familyName")?.addEventListener("change", syncSelectedFamilyDescription);
-  productField("familyName")?.addEventListener("blur", syncSelectedFamilyDescription);
-  adminEls.productImageInput.addEventListener("change", uploadProductImages);
-  adminEls.orderSearch.addEventListener("input", debounce(loadOrders, 250));
-  adminEls.orderStatusFilter.addEventListener("change", loadOrders);
-  adminEls.orderPaymentFilter.addEventListener("change", loadOrders);
-  adminEls.orderFulfillmentFilter.addEventListener("change", loadOrders);
-  document.querySelector("#reloadOrders").addEventListener("click", loadOrders);
-  adminEls.ordersTableBody.addEventListener("click", handleOrdersTableClick);
-  document.querySelector("#closeOrderDetail").addEventListener("click", closeOrderDetail);
-  adminEls.availabilityForm.addEventListener("submit", saveAvailability);
-  adminEls.availabilityPaymentCondition?.addEventListener("change", syncAvailabilityPaymentFields);
-  adminEls.fulfillmentForm.addEventListener("submit", saveFulfillment);
-  adminEls.orderStatusForm.addEventListener("submit", saveOrderStatus);
-  adminEls.emailSearch.addEventListener("input", debounce(loadEmails, 250));
-  document.querySelector("#reloadEmails").addEventListener("click", loadEmails);
-  document.querySelector("#flushEmails").addEventListener("click", flushEmails);
-  adminEls.securitySearch.addEventListener("input", debounce(loadSecurityEvents, 250));
-  document.querySelector("#reloadSecurity").addEventListener("click", loadSecurityEvents);
-  adminEls.analyticsDays?.addEventListener("change", loadAnalyticsDashboard);
-  document.querySelector("#reloadAnalyticsDashboard")?.addEventListener("click", loadAnalyticsDashboard);
-  adminEls.analyticsDashboard?.addEventListener("click", handleAnalyticsDashboardClick);
-  adminEls.salesRepPicker.addEventListener("change", renderSalesReps);
-  adminEls.salesRepStatusFilter.addEventListener("change", loadSalesReps);
-  adminEls.reloadSalesReps.addEventListener("click", loadSalesReps);
-  adminEls.salesRepForm.addEventListener("submit", saveSalesRep);
-  adminEls.salesPanelNav?.addEventListener("click", handleSalesPanelNavClick);
-  adminEls.salesRepDashboard?.addEventListener("click", handleSalesRepDashboardClick);
-  adminEls.salesRepProfile?.addEventListener("click", handleSalesRepProfileClick);
-  document.querySelector("#resetSalesRepForm").addEventListener("click", resetSalesRepForm);
-  adminEls.commissionSalesRepFilter.addEventListener("change", loadSalesCommissions);
-  adminEls.reloadCommissions.addEventListener("click", loadSalesCommissions);
-  adminEls.createCommissionSettlement.addEventListener("click", createCommissionSettlement);
-  adminEls.selectAllCommissions.addEventListener("change", toggleAllCommissions);
-  adminEls.commissionsTableBody.addEventListener("change", renderCommissionSummary);
-  adminEls.commissionSettlements.addEventListener("click", handleCommissionSettlementClick);
+  on(window, "hashchange", () => showAdminView(currentAdminView(), false));
+  on(adminEls.customerSearch, "input", debounce(loadCustomers, 250));
+  on(adminEls.customerStatusFilter, "change", loadCustomers);
+  on(byId("#reloadCustomers"), "click", loadCustomers);
+  on(adminEls.toggleCustomerCreate, "click", toggleCustomerCreatePanel);
+  on(adminEls.cancelCustomerCreate, "click", () => toggleCustomerCreatePanel(false));
+  on(adminEls.customerCreateForm, "submit", createCustomerFromAdmin);
+  on(adminEls.customerCreateForm?.elements.paymentCondition, "change", syncCustomerCreatePaymentForm);
+  on(adminEls.productSearch, "input", debounce(loadProducts, 250));
+  on(adminEls.productFamilyFilter, "change", loadProducts);
+  on(adminEls.productStatusFilter, "change", loadProducts);
+  on(byId("#reloadProducts"), "click", loadProducts);
+  on(byId("#newProduct"), "click", resetProductForm);
+  on(byId("#resetProductForm"), "click", resetProductForm);
+  on(adminEls.productForm, "submit", saveProduct);
+  on(productField("familyName"), "change", syncSelectedFamilyDescription);
+  on(productField("familyName"), "blur", syncSelectedFamilyDescription);
+  on(adminEls.productImageInput, "change", uploadProductImages);
+  on(adminEls.orderSearch, "input", debounce(loadOrders, 250));
+  on(adminEls.orderStatusFilter, "change", loadOrders);
+  on(adminEls.orderPaymentFilter, "change", loadOrders);
+  on(adminEls.orderFulfillmentFilter, "change", loadOrders);
+  on(byId("#reloadOrders"), "click", loadOrders);
+  on(adminEls.ordersTableBody, "click", handleOrdersTableClick);
+  on(byId("#closeOrderDetail"), "click", closeOrderDetail);
+  on(adminEls.availabilityForm, "submit", saveAvailability);
+  on(adminEls.availabilityPaymentCondition, "change", syncAvailabilityPaymentFields);
+  on(adminEls.fulfillmentForm, "submit", saveFulfillment);
+  on(adminEls.orderStatusForm, "submit", saveOrderStatus);
+  on(adminEls.emailSearch, "input", debounce(loadEmails, 250));
+  on(byId("#reloadEmails"), "click", loadEmails);
+  on(byId("#flushEmails"), "click", flushEmails);
+  on(adminEls.securitySearch, "input", debounce(loadSecurityEvents, 250));
+  on(byId("#reloadSecurity"), "click", loadSecurityEvents);
+  on(adminEls.analyticsDays, "change", loadAnalyticsDashboard);
+  on(byId("#reloadAnalyticsDashboard"), "click", loadAnalyticsDashboard);
+  on(adminEls.analyticsDashboard, "click", handleAnalyticsDashboardClick);
+  on(adminEls.salesRepPicker, "change", renderSalesReps);
+  on(adminEls.salesRepStatusFilter, "change", loadSalesReps);
+  on(adminEls.reloadSalesReps, "click", loadSalesReps);
+  on(adminEls.salesRepForm, "submit", saveSalesRep);
+  on(adminEls.salesPanelNav, "click", handleSalesPanelNavClick);
+  on(adminEls.salesRepDashboard, "click", handleSalesRepDashboardClick);
+  on(adminEls.salesRepProfile, "click", handleSalesRepProfileClick);
+  on(byId("#resetSalesRepForm"), "click", resetSalesRepForm);
+  on(adminEls.commissionSalesRepFilter, "change", loadSalesCommissions);
+  on(adminEls.reloadCommissions, "click", loadSalesCommissions);
+  on(adminEls.createCommissionSettlement, "click", createCommissionSettlement);
+  on(adminEls.selectAllCommissions, "change", toggleAllCommissions);
+  on(adminEls.commissionsTableBody, "change", renderCommissionSummary);
+  on(adminEls.commissionSettlements, "click", handleCommissionSettlementClick);
   setSalesPanel(adminState.salesPanel);
-  adminEls.distributorSearch.addEventListener("input", debounce(loadDistributors, 250));
-  adminEls.distributorStatusFilter.addEventListener("change", loadDistributors);
-  adminEls.reloadDistributors.addEventListener("click", loadDistributors);
-  adminEls.distributorForm.addEventListener("submit", saveDistributor);
-  adminEls.distributorsTableBody.addEventListener("click", handleDistributorsTableClick);
-  document.querySelector("#resetDistributorForm").addEventListener("click", resetDistributorForm);
-  adminEls.settingsForm.addEventListener("submit", saveSettings);
-  adminEls.paymentAccountForm.addEventListener("submit", savePaymentAccount);
-  document.querySelector("#resetPaymentAccountForm").addEventListener("click", resetPaymentAccountForm);
-  adminEls.paymentAccountList.addEventListener("click", handlePaymentAccountListClick);
-  adminEls.currentAccountSearch.addEventListener("input", debounce(() => renderCurrentAccountDashboard(), 200));
-  document.querySelector("#reloadCurrentAccounts").addEventListener("click", loadOperationDashboard);
-  adminEls.currentAccountDashboard.addEventListener("click", handleCurrentAccountClick);
-  document.querySelector("#reloadOperationDashboard").addEventListener("click", loadOperationDashboard);
-  adminEls.operationDashboard.addEventListener("click", handleOperationDashboardClick);
-  adminEls.deleteTestOrdersForm.addEventListener("submit", deleteTestOrders);
+  on(adminEls.distributorSearch, "input", debounce(loadDistributors, 250));
+  on(adminEls.distributorStatusFilter, "change", loadDistributors);
+  on(adminEls.reloadDistributors, "click", loadDistributors);
+  on(adminEls.distributorForm, "submit", saveDistributor);
+  on(adminEls.distributorsTableBody, "click", handleDistributorsTableClick);
+  on(byId("#resetDistributorForm"), "click", resetDistributorForm);
+  on(adminEls.settingsForm, "submit", saveSettings);
+  on(adminEls.paymentAccountForm, "submit", savePaymentAccount);
+  on(byId("#resetPaymentAccountForm"), "click", resetPaymentAccountForm);
+  on(adminEls.paymentAccountList, "click", handlePaymentAccountListClick);
+  on(adminEls.currentAccountSearch, "input", debounce(() => renderCurrentAccountDashboard(), 200));
+  on(byId("#reloadCurrentAccounts"), "click", loadOperationDashboard);
+  on(adminEls.currentAccountDashboard, "click", handleCurrentAccountClick);
+  on(byId("#reloadOperationDashboard"), "click", loadOperationDashboard);
+  on(adminEls.operationDashboard, "click", handleOperationDashboardClick);
+  on(adminEls.deleteTestOrdersForm, "submit", deleteTestOrders);
 }
 
 async function loginAdmin(event) {
@@ -199,12 +202,31 @@ async function enterWorkspace() {
   adminEls.adminWorkspace.hidden = false;
   adminEls.adminSession.hidden = false;
   adminEls.adminEmail.textContent = adminState.user.email;
-  await loadSalesReps();
-  await Promise.all([loadCustomers(), loadDistributors(), loadProducts(), loadOrders(), loadSettings(), loadEmails(), loadSecurityEvents(), loadAnalyticsDashboard(), loadOperationDashboard()]);
+  await loadAdminSection("vendedores", loadSalesReps);
+  await Promise.all([
+    ["clientes", loadCustomers],
+    ["distribuidores", loadDistributors],
+    ["productos", loadProducts],
+    ["pedidos", loadOrders],
+    ["configuracion", loadSettings],
+    ["emails", loadEmails],
+    ["seguridad", loadSecurityEvents],
+    ["actividad", loadAnalyticsDashboard],
+    ["operacion", loadOperationDashboard]
+  ].map(([label, loader]) => loadAdminSection(label, loader)));
   showAdminView(currentAdminView(), false);
   resetProductForm();
   resetSalesRepForm();
   resetDistributorForm();
+}
+
+async function loadAdminSection(label, loader) {
+  try {
+    await loader();
+  } catch (error) {
+    console.warn(`No se pudo cargar ${label}:`, error);
+    showAdminToast(`No se pudo cargar ${label}. Actualiza esa seccion.`);
+  }
 }
 
 async function logoutAdmin() {
@@ -244,7 +266,7 @@ async function loadCustomers() {
 
 async function loadSalesReps() {
   const params = new URLSearchParams();
-  if (adminEls.salesRepStatusFilter.value) params.set("status", adminEls.salesRepStatusFilter.value);
+  if (adminEls.salesRepStatusFilter?.value) params.set("status", adminEls.salesRepStatusFilter.value);
   const { salesReps } = await adminApi(`/api/admin/sales-reps${params.toString() ? `?${params}` : ""}`);
   adminState.salesReps = salesReps;
   renderSalesRepPicker();
@@ -596,13 +618,14 @@ function editSalesRepById(id) {
 }
 
 function resetSalesRepForm() {
+  if (!adminEls.salesRepForm) return;
   adminEls.salesRepForm.reset();
   adminEls.salesRepForm.elements.id.value = "";
   adminEls.salesRepForm.elements.defaultCommission.value = "0";
   adminEls.salesRepForm.elements.status.value = "active";
   adminEls.salesRepForm.elements.portalPassword.value = "";
-  adminEls.salesRepFormTitle.textContent = "Nuevo vendedor";
-  adminEls.salesRepMessage.textContent = "";
+  if (adminEls.salesRepFormTitle) adminEls.salesRepFormTitle.textContent = "Nuevo vendedor";
+  if (adminEls.salesRepMessage) adminEls.salesRepMessage.textContent = "";
 }
 
 async function saveSalesRep(event) {
@@ -655,7 +678,7 @@ function renderCommissionSalesRepFilter() {
 async function loadSalesCommissions() {
   if (!adminEls.commissionsTableBody) return;
   const params = new URLSearchParams();
-  if (adminEls.commissionSalesRepFilter.value) params.set("salesRepId", adminEls.commissionSalesRepFilter.value);
+  if (adminEls.commissionSalesRepFilter?.value) params.set("salesRepId", adminEls.commissionSalesRepFilter.value);
   const { pending, settlements } = await adminApi(`/api/admin/sales-commissions${params.toString() ? `?${params}` : ""}`);
   adminState.pendingCommissions = pending || [];
   adminState.commissionSettlements = settlements || [];
@@ -663,6 +686,7 @@ async function loadSalesCommissions() {
 }
 
 function renderCommissions() {
+  if (!adminEls.commissionsTableBody || !adminEls.selectAllCommissions || !adminEls.commissionSettlements) return;
   adminEls.selectAllCommissions.checked = false;
   adminEls.commissionsTableBody.innerHTML = adminState.pendingCommissions.length ? adminState.pendingCommissions.map((row) => `
     <article class="commission-order-card">
@@ -973,9 +997,10 @@ function editProduct(event) {
 }
 
 function resetProductForm() {
+  if (!adminEls.productForm) return;
   adminState.selectedProductId = null;
   adminEls.productForm.reset();
-  adminEls.productFormTitle.textContent = "Nuevo producto";
+  if (adminEls.productFormTitle) adminEls.productFormTitle.textContent = "Nuevo producto";
   productField("active").checked = true;
   productField("familySortOrder").value = 0;
   productField("familyDescription").value = "";
@@ -987,7 +1012,7 @@ function resetProductForm() {
   productField("promotionStartsAt").value = "";
   productField("promotionEndsAt").value = "";
   productField("promotionActive").checked = false;
-  adminEls.productMessage.textContent = "";
+  if (adminEls.productMessage) adminEls.productMessage.textContent = "";
   adminState.productImages = [];
   renderProductImages();
 }
