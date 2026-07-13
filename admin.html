@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=61" />
-    <link rel="stylesheet" href="./admin.css?v=46" />
+    <link rel="stylesheet" href="./admin.css?v=47" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -347,7 +347,7 @@
             </div>
           </div>
           <div class="order-ops-grid" id="orderOpsStats"></div>
-          <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Origen</th><th>Comercial</th><th>Pago</th><th>Logistica</th><th>Total</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
+          <div class="orders-table-wrap"><table class="admin-table orders-list-table mobile-card-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Origen</th><th>Comercial</th><th>Pago</th><th>Logistica</th><th>Total</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
           <section class="order-detail-panel" id="orderDetailPanel" hidden>
             <div class="order-detail-header">
               <div><p class="eyebrow">Detalle de pedido</p><h2 id="orderDetailTitle"></h2></div>
@@ -359,7 +359,7 @@
             <section class="order-history-panel" id="orderHistoryPanel"></section>
             <form class="availability-form" id="availabilityForm">
               <div class="panel-heading"><p class="eyebrow">Disponibilidad</p><h3>Confirmar articulos disponibles</h3></div>
-              <div class="orders-table-wrap"><table class="admin-table"><thead><tr><th>KM</th><th>Producto</th><th>Pedido</th><th>Disponible</th><th>Precio final</th><th>Subtotal confirmado</th><th>Nota</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
+              <div class="orders-table-wrap"><table class="admin-table availability-table mobile-card-table"><thead><tr><th>KM</th><th>Producto</th><th>Pedido</th><th>Disponible</th><th>Precio final</th><th>Subtotal confirmado</th><th>Nota</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
               <div class="availability-payment-row">
                 <label><span>Forma de pago</span><select name="paymentCondition" id="availabilityPaymentCondition">
                   <option value="advance_payment">Pago anticipado</option>
@@ -546,6 +546,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=67" defer></script>
+    <script src="./admin.js?v=68" defer></script>
   </body>
 </html>

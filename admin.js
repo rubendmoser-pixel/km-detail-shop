@@ -1892,13 +1892,13 @@ async function loadOrders() {
   adminState.orders = orders;
   renderOrderOpsStats(orders);
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
-    <tr><td><div class="order-code-cell">${customerClassBadge(order.commercial_class)}<strong>${escapeAdmin(order.order_number)}</strong></div></td><td>${escapeAdmin(order.business_name)}</td>
-      <td>${orderOriginBadge(order)}</td>
-      <td>${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}</td>
-      <td>${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
-      <td>${stateBadge(fulfillmentStatusText(normalizedFulfillmentStatus(order.fulfillment_status)), fulfillmentStateClasses[normalizedFulfillmentStatus(order.fulfillment_status)])}</td>
-      <td>${adminMoney.format(order.total_cents / 100)}</td><td>${formatDate(order.created_at)}</td>
-      <td><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
+    <tr><td data-label="Pedido"><div class="order-code-cell">${customerClassBadge(order.commercial_class)}<strong>${escapeAdmin(order.order_number)}</strong></div></td><td data-label="Cliente">${escapeAdmin(order.business_name)}</td>
+      <td data-label="Origen">${orderOriginBadge(order)}</td>
+      <td data-label="Comercial">${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}</td>
+      <td data-label="Pago">${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
+      <td data-label="Logistica">${stateBadge(fulfillmentStatusText(normalizedFulfillmentStatus(order.fulfillment_status)), fulfillmentStateClasses[normalizedFulfillmentStatus(order.fulfillment_status)])}</td>
+      <td data-label="Total">${adminMoney.format(order.total_cents / 100)}</td><td data-label="Fecha">${formatDate(order.created_at)}</td>
+      <td data-label="Detalle"><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
   `).join("") : `<tr><td colspan="9">No hay pedidos para este filtro.</td></tr>`;
 }
 
@@ -1981,13 +1981,13 @@ function renderOrderDetail() {
   renderOrderActionBar(order);
   adminEls.orderItemsBody.innerHTML = order.items.map((item) => `
     <tr data-order-item-id="${item.id}" data-unit-cents="${item.finalUnitPriceCents}">
-      <td><strong>${escapeAdmin(item.kmCode)}</strong><br><span>EAN ${escapeAdmin(item.ean13)}</span></td>
-      <td>${escapeAdmin(item.productName)}${item.warehouseLocation ? `<br><span>Ubicacion: ${escapeAdmin(item.warehouseLocation)}</span>` : ""}${item.availabilityNote ? `<br><span>${escapeAdmin(item.availabilityNote)}</span>` : ""}</td>
-      <td>${item.quantity}</td>
-      <td><input class="confirmed-qty-input" name="confirmedQuantity-${item.id}" type="number" min="0" max="${item.quantity}" step="1" value="${item.confirmedQuantity || 0}" /></td>
-      <td>${adminMoney.format(item.finalUnitPriceCents / 100)}</td>
-      <td data-confirmed-subtotal>${adminMoney.format((item.confirmedSubtotalNetCents || 0) / 100)}</td>
-      <td><input name="availabilityNote-${item.id}" value="${escapeAdmin(item.availabilityNote || "")}" placeholder="${item.confirmedQuantity ? "" : "Motivo si no disponible"}" /></td>
+      <td data-label="KM"><strong>${escapeAdmin(item.kmCode)}</strong><br><span>EAN ${escapeAdmin(item.ean13)}</span></td>
+      <td data-label="Producto">${escapeAdmin(item.productName)}${item.warehouseLocation ? `<br><span>Ubicacion: ${escapeAdmin(item.warehouseLocation)}</span>` : ""}${item.availabilityNote ? `<br><span>${escapeAdmin(item.availabilityNote)}</span>` : ""}</td>
+      <td data-label="Pedido">${item.quantity}</td>
+      <td data-label="Disponible"><input class="confirmed-qty-input" name="confirmedQuantity-${item.id}" type="number" min="0" max="${item.quantity}" step="1" value="${item.confirmedQuantity || 0}" /></td>
+      <td data-label="Precio final">${adminMoney.format(item.finalUnitPriceCents / 100)}</td>
+      <td data-label="Subtotal" data-confirmed-subtotal>${adminMoney.format((item.confirmedSubtotalNetCents || 0) / 100)}</td>
+      <td data-label="Nota"><input name="availabilityNote-${item.id}" value="${escapeAdmin(item.availabilityNote || "")}" placeholder="${item.confirmedQuantity ? "" : "Motivo si no disponible"}" /></td>
     </tr>
   `).join("");
   adminEls.orderItemsBody.querySelectorAll(".confirmed-qty-input").forEach((input) => input.addEventListener("input", updateConfirmedSubtotalPreview));

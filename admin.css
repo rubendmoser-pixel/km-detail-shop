@@ -82,6 +82,175 @@
   border-bottom: 1px solid #34363b;
 }
 
+@media (max-width: 760px) {
+  #ordersView .orders-table-wrap {
+    overflow: visible;
+    border: 0;
+  }
+
+  #ordersView .mobile-card-table,
+  #ordersView .mobile-card-table tbody,
+  #ordersView .mobile-card-table tr,
+  #ordersView .mobile-card-table td {
+    display: block;
+    width: 100%;
+  }
+
+  #ordersView .mobile-card-table thead {
+    display: none;
+  }
+
+  #ordersView .mobile-card-table tr {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: #15171b;
+    border: 1px solid #34363b;
+    border-radius: 10px;
+    box-shadow: inset 4px 0 0 rgba(139, 115, 255, 0.72);
+  }
+
+  #ordersView .mobile-card-table td {
+    display: grid;
+    grid-template-columns: minmax(92px, 34%) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 0;
+    border: 0;
+    white-space: normal;
+  }
+
+  #ordersView .mobile-card-table td::before {
+    content: attr(data-label);
+    color: #9ba0aa;
+    font-size: 0.68rem;
+    font-weight: 950;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  #ordersView .mobile-card-table td[colspan]::before {
+    display: none;
+  }
+
+  #ordersView .mobile-card-table td > * {
+    min-width: 0;
+  }
+
+  #ordersView .mobile-card-table .row-button,
+  #ordersView .mobile-card-table td[data-label="Detalle"] .row-button {
+    width: 100%;
+    min-height: 42px;
+    color: #06070a;
+    background: linear-gradient(135deg, #8f87ff, #c4c0ff);
+    border: 0;
+  }
+
+  #ordersView .orders-list-table .order-code-cell {
+    justify-content: flex-start;
+  }
+
+  #ordersView .availability-table tr {
+    box-shadow: inset 4px 0 0 rgba(120, 183, 255, 0.78);
+  }
+
+  #ordersView .availability-table td {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  #ordersView .availability-table td::before {
+    margin-bottom: 4px;
+  }
+
+  #ordersView .availability-table input,
+  #ordersView .availability-table textarea,
+  #ordersView .availability-table select {
+    width: 100%;
+  }
+
+  #ordersView .order-detail-panel {
+    margin-inline: -4px;
+    padding: 14px;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  #ordersView .order-detail-header {
+    gap: 10px;
+  }
+
+  #ordersView .order-detail-header h2 {
+    font-size: 1.05rem;
+    line-height: 1.25;
+  }
+
+  #ordersView .order-detail-grid,
+  #ordersView .availability-form,
+  #ordersView .availability-payment-row,
+  #ordersView .fulfillment-form,
+  #ordersView .order-status-form,
+  #ordersView .payment-balance-grid,
+  #ordersView .commercial-adjustment-form {
+    grid-template-columns: 1fr;
+  }
+
+  #ordersView .order-detail-grid .summary-wide {
+    grid-column: 1;
+  }
+
+  #ordersView .order-detail-grid div {
+    padding: 10px;
+  }
+
+  #ordersView .order-detail-actions,
+  #ordersView .shipping-label-form,
+  #ordersView .fulfillment-quick-actions,
+  #ordersView .receipt-reviewed-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  #ordersView .order-detail-actions > *,
+  #ordersView .order-detail-actions .primary-link,
+  #ordersView .order-detail-actions .ghost-button,
+  #ordersView .shipping-label-form > *,
+  #ordersView .shipping-label-form button,
+  #ordersView .fulfillment-quick-actions button,
+  #ordersView .receipt-reviewed-actions button,
+  #ordersView .availability-form .primary-button,
+  #ordersView .fulfillment-form .primary-button,
+  #ordersView .order-status-form .primary-button {
+    width: 100%;
+  }
+
+  #ordersView .payment-receipt-row,
+  #ordersView .payment-review-actions,
+  #ordersView .account-balance-form {
+    grid-template-columns: 1fr;
+  }
+
+  #ordersView .payment-balance-grid div {
+    border-right: 0;
+    border-bottom: 1px solid #34363b;
+  }
+
+  #ordersView .payment-balance-grid div:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  #ordersView .order-ops-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #ordersView .mobile-card-table td {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}
+
 .admin-tabs button {
   display: inline-flex;
   align-items: center;
