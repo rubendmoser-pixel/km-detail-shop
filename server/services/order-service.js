@@ -62,6 +62,13 @@ const PAYMENT_STATUSES = new Set([
 const FULFILLMENT_STATUSES = new Set(["pending", "ready", "shipped", "delivered"]);
 const AVAILABILITY_CONFIRMED_STATUSES = new Set(["availability_confirmed", "confirmed", "in_preparation", "ready"]);
 const PAYMENT_STATUSES_ALLOWING_FULFILLMENT = new Set(["paid", "credit_account", "settled_adjustment"]);
+const MANUAL_ACCOUNT_PAYMENT_METHODS = new Set(["bank_transfer", "cash", "physical_check", "e_check"]);
+const MANUAL_ACCOUNT_PAYMENT_LABELS = {
+  bank_transfer: "Transferencia",
+  cash: "Efectivo",
+  physical_check: "Cheque fisico",
+  e_check: "E-cheq"
+};
 
 export function createOrder(db, customerId, input = {}) {
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("Order requires at least one item");
@@ -169,7 +176,8 @@ export function getOrder(db, orderId, customerId = null, isAdmin = false) {
     LIMIT 40
   `).all(orderId) : [];
   const mercadoPagoPayments = listMercadoPagoPayments(db, order.id);
-  return mapOrder(order, items, receipts, events, mercadoPagoPayments);
+  const accountPayments = listAccountPayments(db, order.id);
+  return mapOrder(order, items, receipts, events, mercadoPagoPayments, accountPayments);
 }
 
 export function createShippingLabels(db, orderId, packageCount) {
@@ -292,7 +300,8 @@ export function listCustomerOrders(db, customerId) {
     const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(order.id);
     const receipts = db.prepare("SELECT * FROM payment_receipts WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(order.id);
     const mercadoPagoPayments = listMercadoPagoPayments(db, order.id);
-    return mapOrder(order, items, receipts, [], mercadoPagoPayments);
+    const accountPayments = listAccountPayments(db, order.id);
+    return mapOrder(order, items, receipts, [], mercadoPagoPayments, accountPayments);
   });
 }
 
@@ -464,8 +473,12 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
   const status = requiredText(input.status, "status", { max: 30 });
   if (!["accepted", "rejected"].includes(status)) throw new ValidationError("status must be accepted or rejected");
   const reason = optionalText(input.reason, "reason", { max: 1000 });
-  const adjustmentCents = order.commercial_adjustment_cents || 0;
-  const pendingBeforeReview = Math.max(0, order.total_cents - sumAcceptedPayments(db, receipt.order_id) - adjustmentCents);
+  const adjustmentCents = resolvedCommercialAdjustmentCents(order);
+  const pendingBeforeReview = clientPayableBalanceCents({
+    ...order,
+    paid_cents: sumAcceptedPayments(db, receipt.order_id),
+    commercial_adjustment_cents: adjustmentCents
+  });
   const requestedAmount = input.amountCents ?? input.amount ?? pendingBeforeReview;
   const amountCents = status === "accepted"
     ? normalizeMoneyCents(requestedAmount, "amountCents", order.total_cents)
@@ -487,7 +500,11 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
       WHERE id = ?
     `).run(status, amountCents, reason, new Date().toISOString(), adminUserId, receiptId);
     const paidCents = sumAcceptedPayments(db, receipt.order_id);
-    const balanceCents = Math.max(0, order.total_cents - paidCents - adjustmentCents);
+    const balanceCents = clientPayableBalanceCents({
+      ...order,
+      paid_cents: paidCents,
+      commercial_adjustment_cents: adjustmentCents
+    });
     const paymentStatus = status === "rejected"
       ? "rejected"
       : balanceCents === 0 ? paymentStatusForClosedBalance(adjustmentCents) : "credit_account";
@@ -498,6 +515,8 @@ export function reviewPaymentReceipt(db, receiptId, input, adminUserId) {
       termsDays,
       dueDate: balanceCents > 0 ? calculatedDueDate : "",
       creditAuthorized: false,
+      commercialAdjustmentCents: adjustmentCents,
+      adjustmentReason: adjustmentCents > 0 ? "Ajuste comercial interno por condicion N" : "",
       adminUserId
     });
     addOrderEvent(db, receipt.order_id, adminUserId, "payment_receipt_reviewed", reason, receipt, {
@@ -536,19 +555,6 @@ export function recordMercadoPagoPayment(db, input = {}) {
       const commercialAdjustmentCents = resolvedCommercialAdjustmentCents(order);
       const balanceCents = clientPayableBalanceCents({ ...order, paid_cents: paidCents, commercial_adjustment_cents: commercialAdjustmentCents });
       const paymentStatus = balanceCents === 0 ? paymentStatusForClosedBalance(commercialAdjustmentCents) : "credit_account";
-      if (commercialAdjustmentCents !== (order.commercial_adjustment_cents || 0)) {
-        db.prepare(`
-          UPDATE orders
-          SET commercial_adjustment_cents = ?, commercial_adjustment_reason = ?,
-            commercial_adjusted_at = ?, commercial_adjusted_by = NULL
-          WHERE id = ?
-        `).run(
-          commercialAdjustmentCents,
-          "Ajuste comercial interno por condicion N",
-          new Date().toISOString(),
-          order.id
-        );
-      }
       updateOrderCommercialBalance(db, order.id, {
         paymentStatus,
         paidCents,
@@ -556,6 +562,8 @@ export function recordMercadoPagoPayment(db, input = {}) {
         termsDays: order.payment_terms_days || 0,
         dueDate: balanceCents > 0 ? order.payment_due_date || "" : "",
         creditAuthorized: false,
+        commercialAdjustmentCents,
+        adjustmentReason: commercialAdjustmentCents > 0 ? "Ajuste comercial interno por condicion N" : "",
         adminUserId: null
       });
       db.prepare("UPDATE orders SET payment_method = 'mercadopago', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(order.id);
@@ -586,12 +594,16 @@ export function ensureCurrentAccountPaymentStorage(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
       amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+      method TEXT NOT NULL DEFAULT 'bank_transfer',
+      reference TEXT NOT NULL DEFAULT '',
       note TEXT NOT NULL DEFAULT '',
       created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_account_payments_order ON account_payments(order_id, created_at DESC);
   `);
+  ensureTableColumn(db, "account_payments", "method", "TEXT NOT NULL DEFAULT 'bank_transfer'");
+  ensureTableColumn(db, "account_payments", "reference", "TEXT NOT NULL DEFAULT ''");
 }
 
 export function ensureMercadoPagoPaymentStorage(db) {
@@ -627,13 +639,16 @@ export function registerCurrentAccountPayment(db, orderId, input = {}, adminUser
   if (balanceBeforeCents <= 0) throw new ValidationError("Order has no pending balance");
 
   const amountCents = normalizeMoneyCents(input.amountCents ?? input.amount ?? balanceBeforeCents, "amountCents", balanceBeforeCents);
+  const method = normalizeManualAccountPaymentMethod(input.method);
+  const methodLabel = MANUAL_ACCOUNT_PAYMENT_LABELS[method];
+  const reference = optionalText(input.reference, "reference", { max: 120 }) || "";
   const note = optionalText(input.note, "note", { max: 1000 }) || "Cobro registrado en cuenta corriente";
 
   return transaction(db, () => {
     db.prepare(`
-      INSERT INTO account_payments (order_id, amount_cents, note, created_by)
-      VALUES (?, ?, ?, ?)
-    `).run(orderId, amountCents, note, adminUserId);
+      INSERT INTO account_payments (order_id, amount_cents, method, reference, note, created_by)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(orderId, amountCents, method, reference, note, adminUserId);
 
     const paidCents = sumAcceptedPayments(db, orderId);
     const balanceCents = clientPayableBalanceCents({
@@ -655,10 +670,12 @@ export function registerCurrentAccountPayment(db, orderId, input = {}, adminUser
       termsDays: balanceCents > 0 ? order.payment_terms_days || 0 : 0,
       dueDate: balanceCents > 0 ? order.payment_due_date || "" : "",
       creditAuthorized: false,
+      commercialAdjustmentCents,
+      adjustmentReason: commercialAdjustmentCents > 0 ? "Ajuste comercial interno por condicion N" : "",
       adminUserId
     });
-    addOrderEvent(db, orderId, adminUserId, "current_account_payment_registered", note, order, {
-      amountCents, paidCents, balanceCents, paymentStatus
+    addOrderEvent(db, orderId, adminUserId, "current_account_payment_registered", `${methodLabel}: ${note}`, order, {
+      amountCents, method, reference, paidCents, balanceCents, paymentStatus, commercialAdjustmentCents
     });
     return getOrder(db, orderId, null, true);
   });
@@ -672,7 +689,12 @@ export function authorizeOrderCredit(db, orderId, input, adminUserId) {
     throw new ValidationError("Availability must be confirmed before authorizing credit account");
   }
   const paidCents = sumAcceptedPayments(db, orderId);
-  const balanceCents = Math.max(0, order.total_cents - paidCents - (order.commercial_adjustment_cents || 0));
+  const commercialAdjustmentCents = resolvedCommercialAdjustmentCents(order);
+  const balanceCents = clientPayableBalanceCents({
+    ...order,
+    paid_cents: paidCents,
+    commercial_adjustment_cents: commercialAdjustmentCents
+  });
   if (balanceCents <= 0) throw new ValidationError("Order has no pending balance");
   const termsDays = normalizeTermsDays(input.paymentTermsDays);
   const dueDate = normalizeDueDate(input.paymentDueDate);
@@ -687,6 +709,8 @@ export function authorizeOrderCredit(db, orderId, input, adminUserId) {
     termsDays,
     dueDate: finalDueDate,
     creditAuthorized: true,
+    commercialAdjustmentCents,
+    adjustmentReason: commercialAdjustmentCents > 0 ? "Ajuste comercial interno por condicion N" : "",
     adminUserId
   });
   addOrderEvent(db, orderId, adminUserId, "credit_authorized", reason, order, {
@@ -702,7 +726,12 @@ export function applyCommercialAdjustment(db, orderId, input, adminUserId) {
     throw new ValidationError("Closed orders cannot receive commercial adjustments");
   }
   const paidCents = sumAcceptedPayments(db, orderId);
-  const currentBalanceCents = Math.max(0, order.total_cents - paidCents - (order.commercial_adjustment_cents || 0));
+  const commercialAdjustmentCents = resolvedCommercialAdjustmentCents(order);
+  const currentBalanceCents = clientPayableBalanceCents({
+    ...order,
+    paid_cents: paidCents,
+    commercial_adjustment_cents: commercialAdjustmentCents
+  });
   if (currentBalanceCents <= 0) throw new ValidationError("Order has no pending balance");
   const amountCents = normalizeMoneyCents(input.amountCents ?? input.amount ?? currentBalanceCents, "amountCents", currentBalanceCents);
   if (amountCents !== currentBalanceCents) {
@@ -959,12 +988,38 @@ function calculateCommission(baseCents, commissionBps) {
 }
 
 function normalizeMoneyCents(value, fieldName, maxCents) {
-  const numeric = Number(value);
+  let normalized = value;
+  if (typeof value === "string") {
+    const raw = value.trim().replace(/\s/g, "").replace(/\$/g, "");
+    const lastComma = raw.lastIndexOf(",");
+    const lastDot = raw.lastIndexOf(".");
+    if (lastComma >= 0 && lastDot >= 0) {
+      normalized = lastComma > lastDot
+        ? raw.replace(/\./g, "").replace(",", ".")
+        : raw.replace(/,/g, "");
+    } else if (lastComma >= 0) {
+      normalized = raw.replace(",", ".");
+    } else {
+      normalized = raw;
+    }
+  }
+  const numeric = Number(normalized);
   if (!Number.isFinite(numeric) || numeric < 0) throw new ValidationError(`${fieldName} must be a positive amount`);
   const cents = Number.isInteger(numeric) ? numeric : Math.round(numeric * 100);
   if (cents <= 0) throw new ValidationError(`${fieldName} must be greater than zero`);
   if (cents > maxCents) throw new ValidationError(`${fieldName} cannot exceed order total`);
   return cents;
+}
+
+function normalizeManualAccountPaymentMethod(value) {
+  const method = String(value || "bank_transfer").trim();
+  if (method === "mercadopago" || method === "mercado_pago") {
+    throw new ValidationError("Mercado Pago se acredita automaticamente desde la integracion");
+  }
+  if (!MANUAL_ACCOUNT_PAYMENT_METHODS.has(method)) {
+    throw new ValidationError("Forma de cobro no valida");
+  }
+  return method;
 }
 
 function normalizeTermsDays(value) {
@@ -1047,10 +1102,26 @@ function normalizeCustomerDefaultTermsDays(value) {
   return days || 15;
 }
 
-function updateOrderCommercialBalance(db, orderId, { paymentStatus, paidCents, balanceCents, termsDays, dueDate, creditAuthorized, adminUserId }) {
+function updateOrderCommercialBalance(db, orderId, {
+  paymentStatus,
+  paidCents,
+  balanceCents,
+  termsDays,
+  dueDate,
+  creditAuthorized,
+  commercialAdjustmentCents = null,
+  adjustmentReason = "",
+  adminUserId
+}) {
+  const hasAdjustment = Number.isInteger(commercialAdjustmentCents) && commercialAdjustmentCents >= 0;
+  const adjustedAt = hasAdjustment ? new Date().toISOString() : "";
   db.prepare(`
     UPDATE orders
     SET payment_status = ?, paid_cents = ?, balance_cents = ?,
+      commercial_adjustment_cents = CASE WHEN ? THEN ? ELSE commercial_adjustment_cents END,
+      commercial_adjustment_reason = CASE WHEN ? THEN ? ELSE commercial_adjustment_reason END,
+      commercial_adjusted_at = CASE WHEN ? THEN ? ELSE commercial_adjusted_at END,
+      commercial_adjusted_by = CASE WHEN ? THEN ? ELSE commercial_adjusted_by END,
       payment_terms_days = CASE WHEN ? > 0 THEN ? ELSE payment_terms_days END,
       payment_due_date = CASE WHEN ? <> '' THEN ? ELSE payment_due_date END,
       credit_authorized_at = CASE WHEN ? THEN ? ELSE credit_authorized_at END,
@@ -1063,6 +1134,10 @@ function updateOrderCommercialBalance(db, orderId, { paymentStatus, paidCents, b
     WHERE id = ?
   `).run(
     paymentStatus, paidCents, balanceCents,
+    hasAdjustment ? 1 : 0, commercialAdjustmentCents || 0,
+    hasAdjustment ? 1 : 0, adjustmentReason || "",
+    hasAdjustment ? 1 : 0, adjustedAt,
+    hasAdjustment ? 1 : 0, adminUserId || null,
     termsDays, termsDays,
     dueDate, dueDate,
     creditAuthorized ? 1 : 0, new Date().toISOString(),
@@ -1117,11 +1192,29 @@ function listMercadoPagoPayments(db, orderId) {
   return db.prepare("SELECT * FROM mercadopago_payments WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(orderId);
 }
 
+function listAccountPayments(db, orderId) {
+  if (!tableExists(db, "account_payments")) return [];
+  return db.prepare("SELECT * FROM account_payments WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(orderId);
+}
+
 function tableExists(db, table) {
   return Boolean(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(table));
 }
 
-function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments = []) {
+function ensureTableColumn(db, table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!columns.some((entry) => entry.name === column)) {
+    db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
+  }
+}
+
+function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments = [], accountPayments = []) {
+  const commercialAdjustmentCents = resolvedCommercialAdjustmentCents(order);
+  const calculatedBalanceCents = clientPayableBalanceCents({
+    ...order,
+    paid_cents: order.paid_cents || 0,
+    commercial_adjustment_cents: commercialAdjustmentCents
+  });
   return {
     id: order.id,
     orderNumber: order.order_number,
@@ -1144,8 +1237,8 @@ function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments 
     requestedPaymentCondition: normalizePaymentCondition(order.requested_payment_condition || "advance_payment"),
     paymentMethod: order.payment_method || "bank_transfer",
     paidCents: order.paid_cents || 0,
-    balanceCents: order.balance_cents || Math.max(0, order.total_cents - (order.paid_cents || 0) - (order.commercial_adjustment_cents || 0)),
-    commercialAdjustmentCents: order.commercial_adjustment_cents || 0,
+    balanceCents: Number.isFinite(Number(order.balance_cents)) ? Math.max(0, Number(order.balance_cents || 0)) : calculatedBalanceCents,
+    commercialAdjustmentCents,
     commercialAdjustmentReason: order.commercial_adjustment_reason || "",
     commercialAdjustedAt: order.commercial_adjusted_at || "",
     paymentTermsDays: order.payment_terms_days || 0,
@@ -1200,6 +1293,15 @@ function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments 
       amountCents: payment.amount_cents || 0,
       createdAt: payment.created_at,
       updatedAt: payment.updated_at
+    })),
+    accountPayments: accountPayments.map((payment) => ({
+      id: payment.id,
+      amountCents: payment.amount_cents || 0,
+      method: payment.method || "bank_transfer",
+      methodLabel: MANUAL_ACCOUNT_PAYMENT_LABELS[payment.method] || "Cobro manual",
+      reference: payment.reference || "",
+      note: payment.note || "",
+      createdAt: payment.created_at
     })),
     events: events.map((event) => ({
       id: event.id,

@@ -3440,7 +3440,12 @@ async function handleCurrentAccountSubmit(event) {
     const amountCents = parseAdminMoneyCents(values.amount);
     const { order } = await adminApi(`/api/admin/orders/${form.dataset.accountPaymentForm}/account-payments`, {
       method: "POST",
-      body: { amountCents, note: values.note || "" }
+      body: {
+        amountCents,
+        method: values.method || "bank_transfer",
+        reference: values.reference || "",
+        note: values.note || ""
+      }
     });
     if (adminState.selectedOrder?.id === order.id) adminState.selectedOrder = order;
     showAdminToast("Cobro registrado en cuenta corriente.");
@@ -3453,6 +3458,13 @@ async function handleCurrentAccountSubmit(event) {
     setBusy(form, false);
   }
 }
+
+const currentAccountPaymentMethods = [
+  ["bank_transfer", "Transferencia"],
+  ["cash", "Efectivo"],
+  ["physical_check", "Cheque fisico"],
+  ["e_check", "E-cheq"]
+];
 
 function findCurrentAccountRow(dashboard, orderId) {
   if (!dashboard || !orderId) return null;
@@ -3488,6 +3500,16 @@ function renderCurrentAccountDetail(row) {
         <label>
           <span>Importe cobrado</span>
           <input name="amount" inputmode="decimal" autocomplete="off" value="${escapeAdmin(formatAdminMoneyInput(balanceCents))}" />
+        </label>
+        <label>
+          <span>Forma de cobro</span>
+          <select name="method">
+            ${currentAccountPaymentMethods.map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          <span>Referencia</span>
+          <input name="reference" maxlength="120" placeholder="Banco, cheque o referencia" />
         </label>
         <label>
           <span>Nota interna</span>
@@ -3537,7 +3559,17 @@ function formatAdminMoneyInput(cents) {
 }
 
 function parseAdminMoneyCents(value) {
-  const normalized = String(value || "").replace(/\s/g, "").replace(/\$/g, "").replace(/\./g, "").replace(",", ".");
+  const raw = String(value || "").trim().replace(/\s/g, "").replace(/\$/g, "");
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  let normalized = raw;
+  if (lastComma >= 0 && lastDot >= 0) {
+    normalized = lastComma > lastDot
+      ? raw.replace(/\./g, "").replace(",", ".")
+      : raw.replace(/,/g, "");
+  } else if (lastComma >= 0) {
+    normalized = raw.replace(",", ".");
+  }
   const amount = Number(normalized);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Ingresa un importe valido.");
   return Math.round(amount * 100);

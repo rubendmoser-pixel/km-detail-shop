@@ -3060,7 +3060,7 @@ button.operation-row:hover {
 
 .current-account-payment-form {
   display: grid;
-  grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(150px, 190px) minmax(180px, 220px) minmax(200px, 1fr) minmax(220px, 1fr) auto;
   gap: 12px;
   align-items: end;
 }
@@ -3072,7 +3072,8 @@ button.operation-row:hover {
   font-weight: 900;
 }
 
-.current-account-payment-form input {
+.current-account-payment-form input,
+.current-account-payment-form select {
   min-height: 48px;
   padding: 0 14px;
   color: #f6f7f8;
@@ -3083,7 +3084,16 @@ button.operation-row:hover {
   font-weight: 900;
 }
 
-.current-account-payment-form input:focus {
+.current-account-payment-form select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #aeb3ba 50%), linear-gradient(135deg, #aeb3ba 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.current-account-payment-form input:focus,
+.current-account-payment-form select:focus {
   border-color: #9f96ff;
   outline: 0;
   box-shadow: 0 0 0 3px rgba(159, 150, 255, 0.18);
