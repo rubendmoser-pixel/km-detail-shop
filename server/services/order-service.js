@@ -990,14 +990,14 @@ function calculateCommission(baseCents, commissionBps) {
 function normalizeMoneyCents(value, fieldName, maxCents) {
   if (typeof value === "string") {
     const cents = parseMoneyStringToCents(value, fieldName);
-    if (cents > maxCents) throw new ValidationError(`${fieldName} cannot exceed order total`);
+    if (cents > maxCents) throw new ValidationError("El importe no puede superar el saldo pendiente");
     return cents;
   }
   const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric < 0) throw new ValidationError(`${fieldName} must be a positive amount`);
+  if (!Number.isFinite(numeric) || numeric < 0) throw new ValidationError("Ingresa un importe valido");
   const cents = Number.isInteger(numeric) ? numeric : Math.round(numeric * 100);
-  if (cents <= 0) throw new ValidationError(`${fieldName} must be greater than zero`);
-  if (cents > maxCents) throw new ValidationError(`${fieldName} cannot exceed order total`);
+  if (cents <= 0) throw new ValidationError("El importe debe ser mayor a cero");
+  if (cents > maxCents) throw new ValidationError("El importe no puede superar el saldo pendiente");
   return cents;
 }
 
@@ -1007,7 +1007,7 @@ function parseMoneyStringToCents(value, fieldName) {
     .replace(/\s/g, "")
     .replace(/\$/g, "")
     .replace(/[^\d,.-]/g, "");
-  if (!raw || raw.includes("-")) throw new ValidationError(`${fieldName} must be a positive amount`);
+  if (!raw || raw.includes("-")) throw new ValidationError("Ingresa un importe valido");
   const lastComma = raw.lastIndexOf(",");
   const lastDot = raw.lastIndexOf(".");
   let normalized = raw;
@@ -1035,7 +1035,7 @@ function parseMoneyStringToCents(value, fieldName) {
     }
   }
   const amount = Number(normalized);
-  if (!Number.isFinite(amount) || amount <= 0) throw new ValidationError(`${fieldName} must be greater than zero`);
+  if (!Number.isFinite(amount) || amount <= 0) throw new ValidationError("El importe debe ser mayor a cero");
   return Math.round(amount * 100);
 }
 

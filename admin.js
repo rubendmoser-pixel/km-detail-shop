@@ -3437,11 +3437,12 @@ async function handleCurrentAccountSubmit(event) {
   setBusy(form, true);
   try {
     const values = Object.fromEntries(new FormData(form));
-    const amountCents = parseAdminMoneyCents(values.amount);
+    const amount = String(values.amount || "").trim();
+    if (!amount) throw new Error("Ingresa un importe valido.");
     const { order } = await adminApi(`/api/admin/orders/${form.dataset.accountPaymentForm}/account-payments`, {
       method: "POST",
       body: {
-        amountCents,
+        amount,
         method: values.method || "bank_transfer",
         reference: values.reference || "",
         note: values.note || ""
@@ -3556,44 +3557,6 @@ function sumClientRows(rows, key) {
 
 function formatAdminMoneyInput(cents) {
   return (Number(cents || 0) / 100).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function parseAdminMoneyCents(value) {
-  const raw = String(value || "")
-    .trim()
-    .replace(/\s/g, "")
-    .replace(/\$/g, "")
-    .replace(/[^\d,.-]/g, "");
-  if (!raw || raw.includes("-")) throw new Error("Ingresa un importe valido.");
-  const lastComma = raw.lastIndexOf(",");
-  const lastDot = raw.lastIndexOf(".");
-  let normalized = raw;
-  if (lastComma >= 0 && lastDot >= 0) {
-    normalized = lastComma > lastDot
-      ? raw.replace(/\./g, "").replace(",", ".")
-      : raw.replace(/,/g, "");
-  } else if (lastComma >= 0) {
-    const parts = raw.split(",");
-    if (parts.length > 2) {
-      const cents = parts.pop();
-      normalized = cents.length > 0 && cents.length <= 2 ? `${parts.join("")}.${cents}` : [...parts, cents].join("");
-    } else {
-      const [pesos, cents = ""] = parts;
-      normalized = cents.length > 0 && cents.length <= 2 ? `${pesos}.${cents}` : `${pesos}${cents}`;
-    }
-  } else if (lastDot >= 0) {
-    const parts = raw.split(".");
-    if (parts.length > 2) {
-      const cents = parts.pop();
-      normalized = cents.length > 0 && cents.length <= 2 ? `${parts.join("")}.${cents}` : [...parts, cents].join("");
-    } else {
-      const [pesos, cents = ""] = parts;
-      normalized = cents.length > 0 && cents.length <= 2 ? `${pesos}.${cents}` : `${pesos}${cents}`;
-    }
-  }
-  const amount = Number(normalized);
-  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Ingresa un importe valido.");
-  return Math.round(amount * 100);
 }
 
 async function adminApi(url, { method = "GET", body } = {}) {
