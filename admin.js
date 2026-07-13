@@ -3434,11 +3434,14 @@ async function handleCurrentAccountSubmit(event) {
   const form = event.target.closest("[data-account-payment-form]");
   if (!form || !adminEls.currentAccountDashboard.contains(form)) return;
   event.preventDefault();
+  const values = Object.fromEntries(new FormData(form));
+  const amount = String(values.amount || "").trim();
+  if (!amount) {
+    showAdminToast("Ingresa un importe valido.");
+    return;
+  }
   setBusy(form, true);
   try {
-    const values = Object.fromEntries(new FormData(form));
-    const amount = String(values.amount || "").trim();
-    if (!amount) throw new Error("Ingresa un importe valido.");
     const { order } = await adminApi(`/api/admin/orders/${form.dataset.accountPaymentForm}/account-payments`, {
       method: "POST",
       body: {
