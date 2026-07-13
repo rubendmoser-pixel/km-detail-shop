@@ -2,7 +2,7 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
+  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const adminViews = new Set(["customers", "sales", "commissions", "distributors", "products", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
@@ -172,6 +172,7 @@ function bindAdminEvents() {
   on(adminEls.currentAccountSearch, "input", debounce(() => renderCurrentAccountDashboard(), 200));
   on(byId("#reloadCurrentAccounts"), "click", loadOperationDashboard);
   on(adminEls.currentAccountDashboard, "click", handleCurrentAccountClick);
+  on(adminEls.currentAccountDashboard, "submit", handleCurrentAccountSubmit);
   on(byId("#reloadOperationDashboard"), "click", loadOperationDashboard);
   on(adminEls.operationDashboard, "click", handleOperationDashboardClick);
   on(adminEls.deleteTestOrdersForm, "submit", deleteTestOrders);
@@ -2121,11 +2122,24 @@ function openDeliveryNote() {
   window.open(`./delivery-note.html?order=${adminState.selectedOrder.id}`, "_blank", "noopener,noreferrer");
 }
 
-function openCurrentAccountFromOrder() {
+async function openCurrentAccountFromOrder() {
+  adminState.currentAccountOrderId = adminState.selectedOrder?.id || null;
   adminState.currentAccountFilter = "open";
   showAdminView("accounts");
-  renderCurrentAccountDashboard();
-  adminEls.currentAccountDashboard?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!adminState.operationDashboard) {
+    try {
+      await loadOperationDashboard();
+    } catch (error) {
+      showAdminToast(error.message);
+      return;
+    }
+  } else {
+    renderCurrentAccountDashboard();
+  }
+  setTimeout(() => {
+    const target = adminEls.currentAccountDashboard?.querySelector(".current-account-detail") || adminEls.currentAccountDashboard;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 80);
 }
 
 function renderFulfillment(order) {
@@ -2276,6 +2290,7 @@ function orderEventText(type) {
     payment_receipt_reviewed: "Comprobante revisado",
     mercadopago_payment_approved: "Pago Mercado Pago acreditado",
     mercadopago_payment_updated: "Pago Mercado Pago actualizado",
+    current_account_payment_registered: "Cobro registrado en cuenta corriente",
     credit_authorized: "Cuenta corriente autorizada",
     commercial_adjustment_applied: "Ajuste comercial aplicado",
     commission_settled: "Comision liquidada",
@@ -3348,6 +3363,8 @@ function renderCurrentAccountDashboard(dashboard = adminState.operationDashboard
   }[adminState.currentAccountFilter] || openRows;
   const query = (adminEls.currentAccountSearch?.value || "").trim().toLowerCase();
   const rows = selectedRows.filter((row) => accountRowMatches(row, query));
+  const selectedAccount = findCurrentAccountRow(dashboard, adminState.currentAccountOrderId);
+  if (adminState.currentAccountOrderId && !selectedAccount) adminState.currentAccountOrderId = null;
 
   adminEls.currentAccountDashboard.innerHTML = `
     <div class="current-account-actions" role="tablist" aria-label="Filtros de cuenta corriente">
@@ -3359,6 +3376,7 @@ function renderCurrentAccountDashboard(dashboard = adminState.operationDashboard
         </button>
       `).join("")}
     </div>
+    ${selectedAccount ? renderCurrentAccountDetail(selectedAccount) : ""}
     <section class="current-account-panel">
       <div class="panel-heading">
         <p class="eyebrow">Seguimiento</p>
@@ -3378,20 +3396,27 @@ function renderCurrentAccountDashboard(dashboard = adminState.operationDashboard
 
 function renderCurrentAccountRow(row) {
   const due = accountDueState(row);
+  const selected = Number(row.id) === Number(adminState.currentAccountOrderId) ? " selected" : "";
   return `
-    <button class="current-account-row ${due.className}" type="button" data-account-order="${row.id}">
+    <button class="current-account-row ${due.className}${selected}" type="button" data-account-order="${row.id}">
       <span><strong>${escapeAdmin(row.orderNumber)}</strong><small>${escapeAdmin(row.businessName || "-")}</small></span>
       <span><strong>${escapeAdmin(row.salesRepName || "Sin vendedor")}</strong><small>${escapeAdmin(row.salesRepEmail || "General")}</small></span>
       <span><strong>${adminMoney.format((row.totalCents || 0) / 100)}</strong><small>Total pedido</small></span>
       <span><strong>${adminMoney.format((row.paidCents || 0) / 100)}</strong><small>Acreditado</small></span>
       <span><strong>${adminMoney.format((row.balanceCents || 0) / 100)}</strong><small>Saldo</small></span>
       <span><strong>${escapeAdmin(due.label)}</strong><small>${escapeAdmin(due.hint)}</small></span>
-      <span><em>Ver</em></span>
+      <span><em>Abrir</em></span>
     </button>
   `;
 }
 
 function handleCurrentAccountClick(event) {
+  const clearButton = event.target.closest("[data-account-clear]");
+  if (clearButton && adminEls.currentAccountDashboard.contains(clearButton)) {
+    adminState.currentAccountOrderId = null;
+    renderCurrentAccountDashboard();
+    return;
+  }
   const filterButton = event.target.closest("[data-account-filter]");
   if (filterButton && adminEls.currentAccountDashboard.contains(filterButton)) {
     adminState.currentAccountFilter = filterButton.dataset.accountFilter;
@@ -3400,8 +3425,78 @@ function handleCurrentAccountClick(event) {
   }
   const rowButton = event.target.closest("[data-account-order]");
   if (!rowButton || !adminEls.currentAccountDashboard.contains(rowButton)) return;
-  showAdminView("orders");
-  openOrderDetail(Number(rowButton.dataset.accountOrder), rowButton);
+  adminState.currentAccountOrderId = Number(rowButton.dataset.accountOrder);
+  renderCurrentAccountDashboard();
+  setTimeout(() => adminEls.currentAccountDashboard?.querySelector(".current-account-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+}
+
+async function handleCurrentAccountSubmit(event) {
+  const form = event.target.closest("[data-account-payment-form]");
+  if (!form || !adminEls.currentAccountDashboard.contains(form)) return;
+  event.preventDefault();
+  setBusy(form, true);
+  try {
+    const values = Object.fromEntries(new FormData(form));
+    const amountCents = parseAdminMoneyCents(values.amount);
+    const { order } = await adminApi(`/api/admin/orders/${form.dataset.accountPaymentForm}/account-payments`, {
+      method: "POST",
+      body: { amountCents, note: values.note || "" }
+    });
+    if (adminState.selectedOrder?.id === order.id) adminState.selectedOrder = order;
+    showAdminToast("Cobro registrado en cuenta corriente.");
+    await loadOperationDashboard();
+    adminState.currentAccountOrderId = Number(order.balanceCents || 0) > 0 ? order.id : null;
+    renderCurrentAccountDashboard();
+  } catch (error) {
+    showAdminToast(error.message);
+  } finally {
+    setBusy(form, false);
+  }
+}
+
+function findCurrentAccountRow(dashboard, orderId) {
+  if (!dashboard || !orderId) return null;
+  const accounts = dashboard.currentAccounts || {};
+  const rows = [
+    ...(accounts.open || []),
+    ...(accounts.overdue || []),
+    ...(accounts.dueSoon || [])
+  ];
+  return rows.find((row) => Number(row.id) === Number(orderId)) || null;
+}
+
+function renderCurrentAccountDetail(row) {
+  const due = accountDueState(row);
+  const balanceCents = Number(row.balanceCents || 0);
+  return `
+    <section class="current-account-detail ${due.className}">
+      <div class="current-account-detail-header">
+        <div>
+          <p class="eyebrow">Cobro de cuenta corriente</p>
+          <h3>${escapeAdmin(row.orderNumber)} - ${escapeAdmin(row.businessName || "-")}</h3>
+          <p>Registra aca el cobro interno del pedido. No se envia email automatico al cliente.</p>
+        </div>
+        <button class="ghost-button" type="button" data-account-clear>Cerrar</button>
+      </div>
+      <div class="current-account-detail-grid">
+        <span><small>Total</small><strong>${adminMoney.format((row.totalCents || 0) / 100)}</strong></span>
+        <span><small>Pagado</small><strong>${adminMoney.format((row.paidCents || 0) / 100)}</strong></span>
+        <span><small>Saldo</small><strong>${adminMoney.format(balanceCents / 100)}</strong></span>
+        <span><small>Vencimiento</small><strong>${escapeAdmin(due.label)}</strong><em>${escapeAdmin(due.hint)}</em></span>
+      </div>
+      <form class="current-account-payment-form" data-account-payment-form="${row.id}">
+        <label>
+          <span>Importe cobrado</span>
+          <input name="amount" inputmode="decimal" autocomplete="off" value="${escapeAdmin(formatAdminMoneyInput(balanceCents))}" />
+        </label>
+        <label>
+          <span>Nota interna</span>
+          <input name="note" maxlength="300" value="Cobro registrado en cuenta corriente" />
+        </label>
+        <button class="toolbar-create-button" type="submit">Registrar cobro</button>
+      </form>
+    </section>
+  `;
 }
 
 function accountRowMatches(row, query) {
@@ -3435,6 +3530,17 @@ function accountFilterTitle(filter) {
 
 function sumClientRows(rows, key) {
   return rows.reduce((total, row) => total + Number(row[key] || 0), 0);
+}
+
+function formatAdminMoneyInput(cents) {
+  return (Number(cents || 0) / 100).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseAdminMoneyCents(value) {
+  const normalized = String(value || "").replace(/\s/g, "").replace(/\$/g, "").replace(/\./g, "").replace(",", ".");
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Ingresa un importe valido.");
+  return Math.round(amount * 100);
 }
 
 async function adminApi(url, { method = "GET", body } = {}) {

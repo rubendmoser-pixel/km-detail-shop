@@ -2925,6 +2925,11 @@ button.operation-row:hover {
   transform: translateY(-1px);
 }
 
+.current-account-row.selected {
+  border-color: #9f96ff;
+  box-shadow: 0 0 0 1px rgba(159, 150, 255, 0.28), 0 14px 32px rgba(0, 0, 0, 0.28);
+}
+
 .current-account-row.overdue {
   border-left-color: #d85d5d;
 }
@@ -2971,6 +2976,117 @@ button.operation-row:hover {
   border-radius: 3px;
   font-style: normal;
   font-weight: 900;
+}
+
+.current-account-detail {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  background: linear-gradient(135deg, #191b22, #111217);
+  border: 1px solid #4b5260;
+  border-left: 6px solid #8fbff0;
+  border-radius: 10px;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+.current-account-detail.overdue {
+  border-left-color: #d85d5d;
+}
+
+.current-account-detail.due-today,
+.current-account-detail.due-soon {
+  border-left-color: #f4df8d;
+}
+
+.current-account-detail.open {
+  border-left-color: #8bd69a;
+}
+
+.current-account-detail-header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.current-account-detail-header h3 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2vw, 1.7rem);
+}
+
+.current-account-detail-header p {
+  margin: 8px 0 0;
+  color: #c6cad0;
+}
+
+.current-account-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #34363b;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.current-account-detail-grid span {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.018);
+  border-right: 1px solid #34363b;
+}
+
+.current-account-detail-grid span:last-child {
+  border-right: 0;
+}
+
+.current-account-detail-grid small {
+  color: #9ea3aa;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.current-account-detail-grid strong {
+  color: #f6f7f8;
+  font-size: 1.05rem;
+}
+
+.current-account-detail-grid em {
+  color: #aeb3ba;
+  font-style: normal;
+}
+
+.current-account-payment-form {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.current-account-payment-form label {
+  display: grid;
+  gap: 6px;
+  color: #aeb3ba;
+  font-weight: 900;
+}
+
+.current-account-payment-form input {
+  min-height: 48px;
+  padding: 0 14px;
+  color: #f6f7f8;
+  background: #17191d;
+  border: 1px solid #3b3f47;
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.current-account-payment-form input:focus {
+  border-color: #9f96ff;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(159, 150, 255, 0.18);
 }
 
 .admin-empty {
@@ -3114,6 +3230,14 @@ button.operation-row:hover {
   .current-account-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
+  }
+
+  .current-account-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .current-account-payment-form {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3275,6 +3399,31 @@ button.operation-row:hover {
   .current-account-row em {
     width: 100%;
     min-height: 44px;
+  }
+
+  .current-account-detail {
+    padding: 14px;
+  }
+
+  .current-account-detail-header {
+    display: grid;
+  }
+
+  .current-account-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .current-account-detail-grid span {
+    border-right: 0;
+    border-bottom: 1px solid #34363b;
+  }
+
+  .current-account-detail-grid span:last-child {
+    border-bottom: 0;
+  }
+
+  .current-account-payment-form .toolbar-create-button {
+    width: 100%;
   }
 
   .customer-data,

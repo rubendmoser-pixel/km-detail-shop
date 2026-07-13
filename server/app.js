@@ -30,6 +30,7 @@ import {
   getPaymentReceiptFile,
   listAdminOrders,
   listCustomerOrders,
+  registerCurrentAccountPayment,
   reviewPaymentReceipt,
   updateOrderFulfillment,
   updateOrderStatus
@@ -650,6 +651,11 @@ export function createApp({
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/delivery-note$/);
       if (request.method === "GET" && match) {
         return sendJson(response, 200, createDeliveryNote(db, Number(match[1])));
+      }
+      match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/account-payments$/);
+      if (request.method === "POST" && match) {
+        const order = registerCurrentAccountPayment(db, Number(match[1]), await readJson(request), currentUser.id);
+        return sendJson(response, 200, { order });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)$/);
       if (request.method === "GET" && match) {

@@ -580,6 +580,20 @@ export function clientPayableBalanceCents(order = {}) {
   return Math.max(0, payableBaseCents - paidCents);
 }
 
+export function ensureCurrentAccountPaymentStorage(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS account_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+      note TEXT NOT NULL DEFAULT '',
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_account_payments_order ON account_payments(order_id, created_at DESC);
+  `);
+}
+
 export function ensureMercadoPagoPaymentStorage(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS mercadopago_payments (
@@ -596,6 +610,58 @@ export function ensureMercadoPagoPaymentStorage(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_mp_payments_order ON mercadopago_payments(order_id, created_at DESC);
   `);
+}
+
+export function registerCurrentAccountPayment(db, orderId, input = {}, adminUserId) {
+  ensureCurrentAccountPaymentStorage(db);
+  const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
+  if (!order) throw new NotFoundError("Order not found");
+
+  const commercialAdjustmentCents = resolvedCommercialAdjustmentCents(order);
+  const paidBeforeCents = sumAcceptedPayments(db, orderId);
+  const balanceBeforeCents = clientPayableBalanceCents({
+    ...order,
+    paid_cents: paidBeforeCents,
+    commercial_adjustment_cents: commercialAdjustmentCents
+  });
+  if (balanceBeforeCents <= 0) throw new ValidationError("Order has no pending balance");
+
+  const amountCents = normalizeMoneyCents(input.amountCents ?? input.amount ?? balanceBeforeCents, "amountCents", balanceBeforeCents);
+  const note = optionalText(input.note, "note", { max: 1000 }) || "Cobro registrado en cuenta corriente";
+
+  return transaction(db, () => {
+    db.prepare(`
+      INSERT INTO account_payments (order_id, amount_cents, note, created_by)
+      VALUES (?, ?, ?, ?)
+    `).run(orderId, amountCents, note, adminUserId);
+
+    const paidCents = sumAcceptedPayments(db, orderId);
+    const balanceCents = clientPayableBalanceCents({
+      ...order,
+      paid_cents: paidCents,
+      commercial_adjustment_cents: commercialAdjustmentCents
+    });
+    const today = new Date().toISOString().slice(0, 10);
+    const paymentStatus = balanceCents === 0
+      ? paymentStatusForClosedBalance(commercialAdjustmentCents)
+      : order.payment_due_date && order.payment_due_date < today
+        ? "overdue"
+        : "credit_account";
+
+    updateOrderCommercialBalance(db, orderId, {
+      paymentStatus,
+      paidCents,
+      balanceCents,
+      termsDays: balanceCents > 0 ? order.payment_terms_days || 0 : 0,
+      dueDate: balanceCents > 0 ? order.payment_due_date || "" : "",
+      creditAuthorized: false,
+      adminUserId
+    });
+    addOrderEvent(db, orderId, adminUserId, "current_account_payment_registered", note, order, {
+      amountCents, paidCents, balanceCents, paymentStatus
+    });
+    return getOrder(db, orderId, null, true);
+  });
 }
 
 export function authorizeOrderCredit(db, orderId, input, adminUserId) {
@@ -923,13 +989,21 @@ function sumAcceptedPayments(db, orderId) {
     FROM payment_receipts
     WHERE order_id = ? AND status = 'accepted'
   `).get(orderId).paid_cents || 0;
-  if (!tableExists(db, "mercadopago_payments")) return manualPaid;
-  const mercadoPagoPaid = db.prepare(`
-    SELECT COALESCE(SUM(amount_cents), 0) AS paid_cents
-    FROM mercadopago_payments
-    WHERE order_id = ? AND status = 'approved'
-  `).get(orderId).paid_cents || 0;
-  return manualPaid + mercadoPagoPaid;
+  const mercadoPagoPaid = tableExists(db, "mercadopago_payments")
+    ? db.prepare(`
+      SELECT COALESCE(SUM(amount_cents), 0) AS paid_cents
+      FROM mercadopago_payments
+      WHERE order_id = ? AND status = 'approved'
+    `).get(orderId).paid_cents || 0
+    : 0;
+  const currentAccountPaid = tableExists(db, "account_payments")
+    ? db.prepare(`
+      SELECT COALESCE(SUM(amount_cents), 0) AS paid_cents
+      FROM account_payments
+      WHERE order_id = ?
+    `).get(orderId).paid_cents || 0
+    : 0;
+  return manualPaid + mercadoPagoPaid + currentAccountPaid;
 }
 
 function paymentStatusForClosedBalance(adjustmentCents) {
