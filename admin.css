@@ -801,6 +801,7 @@
 .status-badge.approved { color: #9fe19b; border-color: #477746; }
 .status-badge.sent { color: #9fe19b; border-color: #477746; }
 .status-badge.pending { color: #f2d900; border-color: #766d22; }
+.status-badge.danger { color: #ee9797; border-color: #794242; }
 .status-badge.rejected,
 .status-badge.suspended { color: #ee9797; border-color: #794242; }
 
@@ -2558,15 +2559,94 @@
   border-color: #794242;
 }
 
-.email-table td {
-  vertical-align: top;
+.email-card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.email-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #2d3036;
+  border-left: 5px solid #9f8fff;
+  border-radius: 8px;
+  background: #15171b;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+}
+
+.email-card.has-error {
+  border-left-color: #ee7979;
+}
+
+.email-card-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.email-card-main strong {
+  display: block;
+  margin-top: 5px;
+  color: #f5f5f5;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.email-card-main p {
+  margin: 6px 0 0;
+  color: #c5c9d1;
+  overflow-wrap: anywhere;
+}
+
+.email-date {
+  color: #9ea3ad;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.email-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid #2d3036;
+}
+
+.email-card-meta span {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px 0 0;
+}
+
+.email-card-meta small {
+  color: #9ea3ad;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.email-card-meta strong {
+  color: #f5f5f5;
+  overflow-wrap: anywhere;
 }
 
 .email-error {
-  max-width: 420px;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #794242;
+  border-radius: 6px;
   color: #ee9797;
+  background: rgba(238, 121, 121, 0.08);
+  overflow-wrap: anywhere;
+}
+
+.email-card-list .empty-state {
+  padding: 18px;
+  border: 1px solid #2d3036;
+  border-radius: 8px;
+  color: #b6bac2;
+  background: #15171b;
 }
 
 .admin-note {
@@ -3439,6 +3519,32 @@ button.operation-row:hover {
 
   .admin-toolbar input[type="search"] {
     min-width: 0;
+  }
+
+  #emailsView .admin-toolbar button {
+    width: 100%;
+    min-height: 56px;
+  }
+
+  .email-card {
+    padding: 14px;
+  }
+
+  .email-card-main {
+    display: grid;
+    gap: 10px;
+  }
+
+  .email-card-main .status-badge {
+    justify-self: start;
+  }
+
+  .email-card-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .email-card-meta span {
+    padding-right: 0;
   }
 
   .admin-stats,

@@ -3022,17 +3022,28 @@ function renderEmails() {
   adminEls.emailConfigStatus.textContent = adminState.emailEnabled
     ? `Proveedor configurado: ${adminState.emailProvider}. Los envios pendientes se procesan automaticamente y tambien se pueden reintentar desde este panel.`
     : "SMTP no esta configurado en el servidor. Los emails quedaran en cola hasta cargar las variables de correo.";
-  adminEls.emailsTableBody.innerHTML = adminState.emails.length ? adminState.emails.map((email) => `
-    <tr>
-      <td>${formatDate(email.created_at)}</td>
-      <td>${escapeAdmin(email.event_type)}</td>
-      <td>${escapeAdmin(email.recipient)}</td>
-      <td>${escapeAdmin(email.subject)}</td>
-      <td><span class="status-badge ${email.status}">${email.status === "sent" ? "Enviado" : "Pendiente"}</span></td>
-      <td>${email.attempts}</td>
-      <td class="email-error">${escapeAdmin(email.last_error || "")}</td>
-    </tr>
-  `).join("") : `<tr><td colspan="7">Todavia no hay emails registrados.</td></tr>`;
+  adminEls.emailsTableBody.innerHTML = adminState.emails.length ? adminState.emails.map((email) => {
+    const hasError = Boolean(email.last_error);
+    const statusClass = hasError ? "danger" : email.status;
+    const statusLabel = hasError ? "Con error" : email.status === "sent" ? "Enviado" : "Pendiente";
+    return `
+      <article class="email-card ${hasError ? "has-error" : ""}">
+        <div class="email-card-main">
+          <div>
+            <span class="email-date">${formatDate(email.created_at)}</span>
+            <strong>${escapeAdmin(email.subject || "Sin asunto")}</strong>
+            <p>${escapeAdmin(email.recipient || "Sin destinatario")}</p>
+          </div>
+          <span class="status-badge ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="email-card-meta">
+          <span><small>Tipo</small><strong>${escapeAdmin(email.event_type || "-")}</strong></span>
+          <span><small>Intentos</small><strong>${Number(email.attempts || 0)}</strong></span>
+        </div>
+        ${hasError ? `<p class="email-error">${escapeAdmin(email.last_error)}</p>` : ""}
+      </article>
+    `;
+  }).join("") : `<div class="empty-state">Todavia no hay emails registrados.</div>`;
 }
 
 async function loadSecurityEvents() {
