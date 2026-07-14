@@ -2,10 +2,11 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}
+  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {},
+  priceProducts: [], priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all"
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const adminViews = new Set(["customers", "sales", "commissions", "distributors", "products", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
+const adminViews = new Set(["customers", "sales", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -79,6 +80,9 @@ const adminEls = Object.fromEntries([
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
   "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
+  "reloadPrices", "priceModeButtons", "individualPricePanel", "linearPricePanel", "priceEffectiveDate", "fillUnchangedPrices",
+  "clearPriceDraft", "saveIndividualPrices", "priceUpdateStats", "priceUpdateFilters", "priceUpdateList", "priceUpdateMessage",
+  "linearPriceEffectiveDate", "linearPricePercent", "linearPricePreview", "linearPriceMessage", "saveLinearPrices", "priceUpdateHistory",
   "salesRepPicker", "salesRepStatusFilter", "reloadSalesReps", "salesPanelNav", "salesRepAdminSummary", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "salesRepProfile", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
   "createCommissionSettlement", "commissionSummary", "commissionsTableBody", "selectAllCommissions", "commissionSettlements",
@@ -125,6 +129,16 @@ function bindAdminEvents() {
   on(productField("familyName"), "change", syncSelectedFamilyDescription);
   on(productField("familyName"), "blur", syncSelectedFamilyDescription);
   on(adminEls.productImageInput, "change", uploadProductImages);
+  on(adminEls.reloadPrices, "click", loadPriceUpdates);
+  on(adminEls.priceModeButtons, "click", handlePriceModeClick);
+  on(adminEls.priceUpdateFilters, "click", handlePriceFilterClick);
+  on(adminEls.priceUpdateList, "input", handlePriceUpdateChange);
+  on(adminEls.fillUnchangedPrices, "click", fillUnchangedPriceDraft);
+  on(adminEls.clearPriceDraft, "click", clearPriceDraft);
+  on(adminEls.saveIndividualPrices, "click", saveIndividualPriceUpdate);
+  on(adminEls.linearPricePercent, "input", renderLinearPricePreview);
+  on(adminEls.linearPriceEffectiveDate, "change", renderLinearPricePreview);
+  on(adminEls.saveLinearPrices, "click", saveLinearPriceUpdate);
   on(adminEls.orderSearch, "input", debounce(loadOrders, 250));
   on(adminEls.orderStatusFilter, "change", loadOrders);
   on(adminEls.orderPaymentFilter, "change", loadOrders);
@@ -208,6 +222,7 @@ async function enterWorkspace() {
     ["clientes", loadCustomers],
     ["distribuidores", loadDistributors],
     ["productos", loadProducts],
+    ["precios", loadPriceUpdates],
     ["pedidos", loadOrders],
     ["configuracion", loadSettings],
     ["emails", loadEmails],
@@ -250,6 +265,7 @@ function showAdminView(view, updateHash = true) {
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === targetView));
   document.querySelectorAll(".admin-view").forEach((section) => { section.hidden = section.id !== `${targetView}View`; });
   if (targetView === "commissions") loadSalesCommissions().catch((error) => showAdminToast(error.message));
+  if (targetView === "prices" && !adminState.priceProducts.length) loadPriceUpdates().catch((error) => showAdminToast(error.message));
 }
 
 async function loadCustomers() {
@@ -907,6 +923,304 @@ async function handleDistributorsTableClick(event) {
   await adminApi(`/api/admin/distributors/${id}`, { method: "DELETE" });
   if (Number(distributorField("id")?.value || 0) === id) resetDistributorForm();
   await loadDistributors();
+}
+
+function adminTodayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function parseAdminMoneyToCents(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  let normalized = raw.replace(/\s/g, "").replace(/\$/g, "");
+  const hasComma = normalized.includes(",");
+  const hasDot = normalized.includes(".");
+  if (hasComma && hasDot) normalized = normalized.replace(/\./g, "").replace(",", ".");
+  else if (hasComma) normalized = normalized.replace(",", ".");
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return Math.round(amount * 100);
+}
+
+function parseAdminPercentBps(value) {
+  const raw = String(value ?? "").trim().replace("%", "").replace(",", ".");
+  if (!raw) return null;
+  const percent = Number(raw);
+  if (!Number.isFinite(percent) || percent === 0 || percent <= -90 || percent > 1000) return null;
+  return Math.round(percent * 100);
+}
+
+function formatAdminPercentBps(bps) {
+  return `${(Number(bps || 0) / 100).toLocaleString("es-AR", { maximumFractionDigits: 2 })}%`;
+}
+
+function getProductBasePriceCents(product) {
+  return Number(product.basePriceCents ?? product.base_price_cents ?? 0);
+}
+
+function getProductKmCode(product) {
+  return product.kmCode || product.km_code || "";
+}
+
+function getProductName(product) {
+  return product.name || product.article || "";
+}
+
+async function loadPriceUpdates() {
+  const [productsData, batchesData] = await Promise.all([
+    adminApi("/api/admin/products?status=active"),
+    adminApi("/api/admin/price-updates")
+  ]);
+  adminState.priceProducts = productsData.products || [];
+  adminState.priceBatches = batchesData.batches || [];
+  if (adminEls.priceEffectiveDate && !adminEls.priceEffectiveDate.value) adminEls.priceEffectiveDate.value = adminTodayIso();
+  if (adminEls.linearPriceEffectiveDate && !adminEls.linearPriceEffectiveDate.value) adminEls.linearPriceEffectiveDate.value = adminTodayIso();
+  renderPriceUpdatePage();
+}
+
+function handlePriceModeClick(event) {
+  const button = event.target.closest("[data-price-mode]");
+  if (!button) return;
+  adminState.priceMode = button.dataset.priceMode;
+  renderPriceUpdatePage();
+}
+
+function handlePriceFilterClick(event) {
+  const button = event.target.closest("[data-price-filter]");
+  if (!button) return;
+  adminState.priceFilter = button.dataset.priceFilter;
+  renderPriceUpdateTool();
+}
+
+function priceDraftState(product) {
+  const raw = adminState.priceDraft[String(product.id)] ?? "";
+  const cents = parseAdminMoneyToCents(raw);
+  const oldPriceCents = getProductBasePriceCents(product);
+  const reviewed = raw.trim() !== "" && cents !== null;
+  const changed = reviewed && cents !== oldPriceCents;
+  return {
+    raw,
+    cents,
+    reviewed,
+    changed,
+    up: changed && cents > oldPriceCents,
+    down: changed && cents < oldPriceCents
+  };
+}
+
+function priceCardClass(product) {
+  const state = priceDraftState(product);
+  if (!state.reviewed) return "price-card pending";
+  if (state.up) return "price-card changed up";
+  if (state.down) return "price-card changed down";
+  return state.changed ? "price-card changed" : "price-card reviewed";
+}
+
+function renderPriceUpdatePage() {
+  document.querySelectorAll("[data-price-mode]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.priceMode === adminState.priceMode);
+  });
+  if (adminEls.individualPricePanel) adminEls.individualPricePanel.hidden = adminState.priceMode !== "individual";
+  if (adminEls.linearPricePanel) adminEls.linearPricePanel.hidden = adminState.priceMode !== "linear";
+  renderPriceUpdateStats();
+  renderPriceUpdateTool();
+  renderLinearPricePreview();
+  renderPriceUpdateHistory();
+}
+
+function renderPriceUpdateStats() {
+  if (!adminEls.priceUpdateStats) return;
+  const products = adminState.priceProducts || [];
+  const states = products.map(priceDraftState);
+  const reviewed = states.filter((state) => state.reviewed).length;
+  const changed = states.filter((state) => state.changed).length;
+  const up = states.filter((state) => state.up).length;
+  const down = states.filter((state) => state.down).length;
+  const changedBps = products.map((product, index) => {
+    const state = states[index];
+    if (!state.changed) return null;
+    const oldPrice = getProductBasePriceCents(product);
+    return oldPrice ? Math.round(((state.cents - oldPrice) / oldPrice) * 10000) : 0;
+  }).filter((value) => value !== null);
+  const averageBps = changedBps.length
+    ? Math.round(changedBps.reduce((sum, value) => sum + value, 0) / changedBps.length)
+    : 0;
+  adminEls.priceUpdateStats.innerHTML = [
+    ["Activos", products.length],
+    ["Revisados", reviewed],
+    ["Modificados", changed],
+    ["Pendientes", Math.max(0, products.length - reviewed)],
+    ["Suben", up],
+    ["Bajan", down],
+    ["Promedio", formatAdminPercentBps(averageBps)]
+  ].map(([label, value]) => `<div><strong>${value}</strong><span>${label}</span></div>`).join("");
+}
+
+function renderPriceUpdateTool() {
+  if (!adminEls.priceUpdateList) return;
+  document.querySelectorAll("[data-price-filter]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.priceFilter === adminState.priceFilter);
+  });
+  const products = adminState.priceProducts || [];
+  const filtered = products.filter((product) => {
+    const state = priceDraftState(product);
+    if (adminState.priceFilter === "pending") return !state.reviewed;
+    if (adminState.priceFilter === "changed") return state.changed;
+    if (adminState.priceFilter === "up") return state.up;
+    if (adminState.priceFilter === "down") return state.down;
+    return true;
+  });
+  adminEls.priceUpdateList.innerHTML = filtered.map((product) => {
+    const oldPriceCents = getProductBasePriceCents(product);
+    const raw = adminState.priceDraft[String(product.id)] ?? "";
+    return `
+      <article class="${priceCardClass(product)}" data-product-id="${product.id}">
+        <div class="price-card-main">
+          <span class="price-code">${escapeAdmin(getProductKmCode(product))}</span>
+          <strong>${escapeAdmin(getProductName(product))}</strong>
+        </div>
+        <div class="price-card-values">
+          <span><small>Actual</small>${adminMoney.format(oldPriceCents / 100)}</span>
+          <label>
+            <small>Nuevo precio</small>
+            <input class="price-card-input" data-price-product-id="${product.id}" inputmode="decimal" value="${escapeAdmin(raw)}" placeholder="${formatAdminMoneyInput(oldPriceCents)}" />
+          </label>
+        </div>
+      </article>
+    `;
+  }).join("") || `<p class="empty-state">No hay productos para este filtro.</p>`;
+}
+
+function handlePriceUpdateChange(event) {
+  const input = event.target.closest("[data-price-product-id]");
+  if (!input) return;
+  const productId = String(input.dataset.priceProductId);
+  adminState.priceDraft[productId] = input.value;
+  const product = (adminState.priceProducts || []).find((item) => String(item.id) === productId);
+  if (product) {
+    const card = input.closest(".price-card");
+    if (card) card.className = priceCardClass(product);
+  }
+  renderPriceUpdateStats();
+}
+
+function fillUnchangedPriceDraft() {
+  for (const product of adminState.priceProducts || []) {
+    const key = String(product.id);
+    if (!String(adminState.priceDraft[key] || "").trim()) {
+      adminState.priceDraft[key] = formatAdminMoneyInput(getProductBasePriceCents(product));
+    }
+  }
+  renderPriceUpdatePage();
+}
+
+function clearPriceDraft() {
+  adminState.priceDraft = {};
+  if (adminEls.priceUpdateMessage) adminEls.priceUpdateMessage.textContent = "";
+  renderPriceUpdatePage();
+}
+
+async function saveIndividualPriceUpdate() {
+  if (!adminEls.saveIndividualPrices) return;
+  const products = adminState.priceProducts || [];
+  const items = [];
+  for (const product of products) {
+    const state = priceDraftState(product);
+    if (!state.reviewed) {
+      adminEls.priceUpdateMessage.textContent = "Revisa todos los productos antes de programar.";
+      return;
+    }
+    items.push({ productId: product.id, newPriceCents: state.cents });
+  }
+  adminEls.saveIndividualPrices.disabled = true;
+  try {
+    const result = await adminApi("/api/admin/price-updates/individual", {
+      method: "POST",
+      body: { effectiveDate: adminEls.priceEffectiveDate.value, items }
+    });
+    adminState.priceBatches = result.batches || [];
+    adminState.priceDraft = {};
+    if (adminEls.priceUpdateMessage) adminEls.priceUpdateMessage.textContent = "Actualizacion programada correctamente.";
+    await loadProducts();
+    await loadPriceUpdates();
+    showAdminToast("Precios programados");
+  } catch (error) {
+    if (adminEls.priceUpdateMessage) adminEls.priceUpdateMessage.textContent = error.message;
+  } finally {
+    adminEls.saveIndividualPrices.disabled = false;
+  }
+}
+
+function renderLinearPricePreview() {
+  if (!adminEls.linearPricePreview) return;
+  const percentBps = parseAdminPercentBps(adminEls.linearPricePercent?.value);
+  const products = adminState.priceProducts || [];
+  if (!percentBps) {
+    adminEls.linearPricePreview.innerHTML = `<p class="empty-state">Carga un porcentaje para ver la vista previa.</p>`;
+    return;
+  }
+  const preview = products.slice(0, 8).map((product) => {
+    const oldPrice = getProductBasePriceCents(product);
+    const nextPrice = Math.max(0, Math.round((oldPrice * (10000 + percentBps)) / 10000));
+    return `<div><strong>${escapeAdmin(getProductKmCode(product))}</strong><span>${adminMoney.format(oldPrice / 100)} &rarr; ${adminMoney.format(nextPrice / 100)}</span></div>`;
+  }).join("");
+  adminEls.linearPricePreview.innerHTML = `
+    <div class="linear-summary"><strong>${formatAdminPercentBps(percentBps)}</strong><span>${products.length} productos activos</span></div>
+    ${preview}
+  `;
+}
+
+async function saveLinearPriceUpdate() {
+  if (!adminEls.saveLinearPrices) return;
+  const percentBps = parseAdminPercentBps(adminEls.linearPricePercent.value);
+  if (!percentBps) {
+    adminEls.linearPriceMessage.textContent = "Ingresa un porcentaje valido.";
+    return;
+  }
+  adminEls.saveLinearPrices.disabled = true;
+  try {
+    const result = await adminApi("/api/admin/price-updates/linear", {
+      method: "POST",
+      body: { effectiveDate: adminEls.linearPriceEffectiveDate.value, percentBps }
+    });
+    adminState.priceBatches = result.batches || [];
+    adminEls.linearPricePercent.value = "";
+    if (adminEls.linearPriceMessage) adminEls.linearPriceMessage.textContent = "Aumento lineal programado correctamente.";
+    await loadProducts();
+    await loadPriceUpdates();
+    showAdminToast("Aumento programado");
+  } catch (error) {
+    if (adminEls.linearPriceMessage) adminEls.linearPriceMessage.textContent = error.message;
+  } finally {
+    adminEls.saveLinearPrices.disabled = false;
+  }
+}
+
+function renderPriceUpdateHistory() {
+  if (!adminEls.priceUpdateHistory) return;
+  const batches = adminState.priceBatches || [];
+  if (!batches.length) {
+    adminEls.priceUpdateHistory.innerHTML = `<p class="empty-state">Todavia no hay actualizaciones programadas.</p>`;
+    return;
+  }
+  adminEls.priceUpdateHistory.innerHTML = batches.map((batch) => {
+    const status = batch.status === "applied" ? "Aplicada" : batch.status === "cancelled" ? "Cancelada" : "Programada";
+    const type = batch.type === "linear" ? `Lineal ${formatAdminPercentBps(batch.percentBps)}` : "Uno a uno";
+    const dateLabel = formatAdminDate(batch.effectiveDate) || batch.effectiveDate;
+    const sample = (batch.items || []).map((item) => (
+      `${escapeAdmin(item.kmCode)} ${adminMoney.format((item.oldPriceCents || 0) / 100)} -> ${adminMoney.format((item.newPriceCents || 0) / 100)}`
+    )).join(" | ");
+    return `
+      <article class="price-history-card">
+        <div>
+          <span class="status-pill ${batch.status === "applied" ? "ok" : "warning"}">${status}</span>
+          <strong>${type}</strong>
+          <p>${batch.changedCount || 0} modificados de ${batch.productCount || 0} productos - Implementa ${escapeAdmin(dateLabel)}</p>
+          ${sample ? `<small>${sample}</small>` : ""}
+        </div>
+      </article>
+    `;
+  }).join("");
 }
 
 async function loadProducts() {

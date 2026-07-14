@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 18;
+const SCHEMA_VERSION = 19;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -228,6 +228,31 @@ function migrate(db) {
       is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS price_update_batches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL CHECK(type IN ('individual', 'linear')),
+      status TEXT NOT NULL DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'applied', 'cancelled')),
+      effective_date TEXT NOT NULL,
+      percent_bps INTEGER,
+      product_count INTEGER NOT NULL DEFAULT 0,
+      changed_count INTEGER NOT NULL DEFAULT 0,
+      created_by INTEGER REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      applied_at TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE TABLE IF NOT EXISTS price_update_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_id INTEGER NOT NULL REFERENCES price_update_batches(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      km_code TEXT NOT NULL,
+      old_price_cents INTEGER NOT NULL,
+      new_price_cents INTEGER NOT NULL,
+      variation_bps INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(batch_id, product_id)
     );
 
     CREATE TABLE IF NOT EXISTS official_distributors (
@@ -545,6 +570,7 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_products_family_active ON products(family_id, active);
     CREATE INDEX IF NOT EXISTS idx_customer_product_discounts_customer ON customer_product_discounts(customer_id, active);
     CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id, sort_order, id);
+    CREATE INDEX IF NOT EXISTS idx_price_update_batches_status_date ON price_update_batches(status, effective_date);
     CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, payment_status);
     CREATE INDEX IF NOT EXISTS idx_sales_quotes_rep_created ON sales_quotes(sales_rep_id, created_at DESC);

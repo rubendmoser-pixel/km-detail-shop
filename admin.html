@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=61" />
-    <link rel="stylesheet" href="./admin.css?v=51" />
+    <link rel="stylesheet" href="./admin.css?v=52" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -41,6 +41,7 @@
           <button type="button" data-admin-view="commissions">Comisiones</button>
           <button type="button" data-admin-view="distributors">Distribuidores</button>
           <button type="button" data-admin-view="products">Productos</button>
+          <button type="button" data-admin-view="prices">Precios</button>
           <button type="button" data-admin-view="orders">Pedidos</button>
           <button type="button" data-admin-view="accounts">Cta. corriente</button>
           <button type="button" data-admin-view="settings">Configuracion</button>
@@ -314,6 +315,86 @@
           </div>
         </section>
 
+        <section class="admin-view" id="pricesView" hidden>
+          <div class="admin-titlebar">
+            <div>
+              <p class="eyebrow">Precios</p>
+              <h1>Programacion de precios</h1>
+              <p class="admin-note">Actualiza precios por articulo o programa un aumento lineal con fecha de implementacion.</p>
+            </div>
+            <div class="admin-toolbar">
+              <button class="ghost-button toolbar-refresh-button" id="reloadPrices" type="button">Actualizar</button>
+            </div>
+          </div>
+
+          <div class="price-mode-tabs" id="priceModeButtons">
+            <button class="active" type="button" data-price-mode="individual">Uno a uno</button>
+            <button type="button" data-price-mode="linear">Aumento lineal</button>
+          </div>
+
+          <section class="price-panel" id="individualPricePanel">
+            <div class="price-panel-head">
+              <div>
+                <p class="eyebrow">Metodo manual asistido</p>
+                <h2>Actualizar articulo por articulo</h2>
+                <p>Revisa cada codigo KM. La tarjeta cambia de estado cuando cargas un precio nuevo o confirmas el actual.</p>
+              </div>
+              <label>
+                Fecha de implementacion
+                <input id="priceEffectiveDate" type="date" />
+              </label>
+            </div>
+            <div class="price-update-stats" id="priceUpdateStats"></div>
+            <div class="price-filter-tabs" id="priceUpdateFilters">
+              <button class="active" type="button" data-price-filter="all">Todos</button>
+              <button type="button" data-price-filter="pending">Pendientes</button>
+              <button type="button" data-price-filter="changed">Modificados</button>
+              <button type="button" data-price-filter="up">Suben</button>
+              <button type="button" data-price-filter="down">Bajan</button>
+            </div>
+            <div class="price-actions">
+              <button class="ghost-button" id="fillUnchangedPrices" type="button">Completar sin cambios</button>
+              <button class="ghost-button danger-soft" id="clearPriceDraft" type="button">Limpiar carga</button>
+              <button class="primary-action-button" id="saveIndividualPrices" type="button">Programar precios</button>
+            </div>
+            <p class="admin-message" id="priceUpdateMessage"></p>
+            <div class="price-update-list" id="priceUpdateList"></div>
+          </section>
+
+          <section class="price-panel" id="linearPricePanel" hidden>
+            <div class="price-panel-head">
+              <div>
+                <p class="eyebrow">Metodo lineal</p>
+                <h2>Aumentar o bajar toda la lista</h2>
+                <p>Aplica un porcentaje unico a todos los productos activos en la fecha indicada.</p>
+              </div>
+            </div>
+            <div class="price-linear-grid">
+              <label>
+                Fecha de implementacion
+                <input id="linearPriceEffectiveDate" type="date" />
+              </label>
+              <label>
+                Porcentaje
+                <input id="linearPricePercent" type="text" inputmode="decimal" placeholder="Ej: 12,5 o -5" />
+              </label>
+              <button class="primary-action-button" id="saveLinearPrices" type="button">Programar aumento lineal</button>
+            </div>
+            <p class="admin-message" id="linearPriceMessage"></p>
+            <div class="price-linear-preview" id="linearPricePreview"></div>
+          </section>
+
+          <section class="price-panel">
+            <div class="price-panel-head">
+              <div>
+                <p class="eyebrow">Historial</p>
+                <h2>Actualizaciones programadas</h2>
+              </div>
+            </div>
+            <div class="price-update-history" id="priceUpdateHistory"></div>
+          </section>
+        </section>
+
         <section class="admin-view" id="ordersView" hidden>
           <div class="admin-titlebar">
             <div><p class="eyebrow">Operacion</p><h1>Pedidos</h1></div>
@@ -546,6 +627,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=75" defer></script>
+    <script src="./admin.js?v=76" defer></script>
   </body>
 </html>

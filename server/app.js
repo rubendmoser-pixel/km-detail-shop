@@ -85,6 +85,12 @@ import { renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
+import {
+  applyDuePriceUpdates,
+  listPriceUpdateBatches,
+  scheduleIndividualPriceUpdate,
+  scheduleLinearPriceUpdate
+} from "./services/price-update-service.js";
 import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
 import { pruneBackups } from "./services/storage-status-service.js";
 import { deleteOfficialDistributor, listOfficialDistributors, upsertOfficialDistributor } from "./services/distributor-service.js";
@@ -135,6 +141,7 @@ export function createApp({
         return sendJson(response, 200, { ok: true, ignored: Boolean(result?.ignored) });
       }
       if (request.method === "GET" && url.pathname === "/sitemap.xml") {
+        applyDuePriceUpdates(db);
         const body = renderSitemap(listPublicProductsForSeo(db));
         response.writeHead(200, {
           "content-type": "application/xml; charset=utf-8",
@@ -239,6 +246,7 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/sales/products") {
         const salesRep = requireSalesRep(currentSalesRep);
         const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, url.searchParams.get("customerId"));
+        applyDuePriceUpdates(db);
         return sendJson(response, 200, {
           products: listProducts(db, {
             role: "customer",
@@ -361,9 +369,11 @@ export function createApp({
         return sendJson(response, 200, pushService.removeSubscription(user, body.endpoint));
       }
       if (request.method === "GET" && url.pathname === "/api/products") {
+        applyDuePriceUpdates(db);
         return sendJson(response, 200, { products: listProducts(db, currentUser) });
       }
       if (request.method === "GET" && url.pathname === "/api/products/price-list.xlsx") {
+        applyDuePriceUpdates(db);
         const user = requireApprovedCustomer(currentUser);
         const priceList = createCustomerPriceList(db, user, { publicBaseUrl: config.publicBaseUrl || "https://www.km-detail.com" });
         response.writeHead(200, {
@@ -579,6 +589,7 @@ export function createApp({
         return sendJson(response, 201, { product: upsertProduct(db, await readJson(request)) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/products") {
+        applyDuePriceUpdates(db);
         return sendJson(response, 200, {
           products: listAdminProducts(db, {
             status: url.searchParams.get("status") || "",
@@ -586,6 +597,20 @@ export function createApp({
             search: url.searchParams.get("q") || ""
           })
         });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/price-updates") {
+        applyDuePriceUpdates(db);
+        return sendJson(response, 200, { batches: listPriceUpdateBatches(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/price-updates/individual") {
+        const batch = scheduleIndividualPriceUpdate(db, await readJson(request), currentUser.id);
+        applyDuePriceUpdates(db);
+        return sendJson(response, 201, { batch, batches: listPriceUpdateBatches(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/price-updates/linear") {
+        const batch = scheduleLinearPriceUpdate(db, await readJson(request), currentUser.id);
+        applyDuePriceUpdates(db);
+        return sendJson(response, 201, { batch, batches: listPriceUpdateBatches(db) });
       }
       match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/images$/);
       if (request.method === "GET" && match) {
@@ -750,6 +775,7 @@ export function createApp({
       if (url.pathname.startsWith("/api/")) return sendJson(response, 404, { error: "API route not found" });
       match = url.pathname.match(/^\/producto\/([a-z0-9-]+)$/);
       if (request.method === "GET" && match) {
+        applyDuePriceUpdates(db);
         const productPage = renderProductPage(getPublicProductBySlug(db, match[1]));
         if (productPage) {
           response.writeHead(200, {
