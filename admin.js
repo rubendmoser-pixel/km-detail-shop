@@ -812,31 +812,31 @@ function renderDistributors() {
   if (!adminEls.distributorsTableBody) return;
   adminEls.distributorsTableBody.innerHTML = adminState.distributors.length ? adminState.distributors.map((distributor) => `
     <tr>
-      <td>
+      <td data-label="Distribuidor">
         <strong>${escapeAdmin(distributor.name)}</strong>
         <br><span>${escapeAdmin(distributor.coverage || "Sin cobertura cargada")}</span>
       </td>
-      <td>
+      <td data-label="Zona">
         ${escapeAdmin([distributor.city, distributor.province].filter(Boolean).join(", ") || "Sin zona")}
         <br><span>${escapeAdmin(distributor.address || "")}</span>
       </td>
-      <td>
+      <td data-label="Contacto">
         ${escapeAdmin(distributor.contactPerson || "Sin contacto")}
         <br><span>${escapeAdmin([
           distributor.whatsapp ? `WhatsApp ${distributor.whatsapp}` : "",
           distributor.email
         ].filter(Boolean).join(" | ") || "Sin datos")}</span>
       </td>
-      <td>
+      <td data-label="Estado">
         <span class="state-badge ${distributor.isPublished ? "success" : "neutral"}">${distributor.isPublished ? "Publicado" : "No publicado"}</span>
         <br><span>Orden ${Number(distributor.sortOrder || 0)}</span>
       </td>
-      <td>
-        <button class="ghost-button small-button" type="button" data-edit-distributor="${distributor.id}">Editar</button>
-        <button class="ghost-button danger small-button" type="button" data-delete-distributor="${distributor.id}">Eliminar</button>
+      <td class="distributor-actions-cell" data-label="Acciones">
+        <button class="ghost-button small-button toolbar-create-button" type="button" data-edit-distributor="${distributor.id}">Editar</button>
+        <button class="ghost-button danger small-button distributor-danger-button" type="button" data-delete-distributor="${distributor.id}">Eliminar</button>
       </td>
     </tr>
-  `).join("") : `<tr><td colspan="5">Todavia no hay distribuidores cargados.</td></tr>`;
+  `).join("") : `<tr><td class="admin-empty-cell" colspan="5">Todavia no hay distribuidores cargados.</td></tr>`;
 }
 
 function distributorField(name) {
