@@ -321,21 +321,22 @@
   border-color: #55585e;
 }
 
-.admin-toolbar .toolbar-refresh-button {
+.admin-toolbar .toolbar-refresh-button,
+.toolbar-refresh-button {
   color: #06120a;
   background: linear-gradient(180deg, #c8f7d0, #78dd91);
   border-color: rgba(126, 227, 154, 0.92);
   box-shadow: 0 0 0 1px rgba(126, 227, 154, 0.14), 0 12px 24px rgba(42, 180, 84, 0.2);
 }
 
-.admin-toolbar .toolbar-create-button {
+.admin-toolbar .toolbar-create-button,
+.toolbar-create-button {
   color: #080515;
   background: linear-gradient(180deg, #dfdcff, #8980ff);
   border-color: rgba(183, 184, 255, 0.92);
   box-shadow: 0 0 0 1px rgba(183, 184, 255, 0.14), 0 12px 24px rgba(127, 133, 255, 0.22);
 }
 
-.toolbar-create-button,
 .sales-rep-card-actions .toolbar-create-button,
 .sales-rep-form .toolbar-create-button,
 .commission-panel .toolbar-create-button {
@@ -347,6 +348,7 @@
 
 .admin-toolbar .toolbar-refresh-button:hover,
 .admin-toolbar .toolbar-create-button:hover,
+.toolbar-refresh-button:hover,
 .toolbar-create-button:hover {
   filter: brightness(1.04);
   transform: translateY(-1px);
