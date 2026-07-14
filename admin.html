@@ -519,7 +519,12 @@
         </section>
 
         <section class="admin-view" id="settingsView" hidden>
-          <div class="admin-titlebar"><div><p class="eyebrow">Condiciones globales</p><h1>Configuracion comercial</h1></div></div>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Condiciones globales</p><h1>Configuracion comercial</h1></div>
+            <div class="admin-toolbar">
+              <button class="ghost-button toolbar-refresh-button" id="reloadSettings" type="button">Actualizar</button>
+            </div>
+          </div>
           <form class="settings-form" id="settingsForm">
             <fieldset><legend>Venta</legend>
               <label><span>IVA (%)</span><input name="vatPercent" type="number" min="0" max="100" step="0.01" required /></label>

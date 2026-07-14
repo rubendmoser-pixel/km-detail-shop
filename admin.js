@@ -179,6 +179,7 @@ function bindAdminEvents() {
   on(adminEls.distributorForm, "submit", saveDistributor);
   on(adminEls.distributorsTableBody, "click", handleDistributorsTableClick);
   on(byId("#resetDistributorForm"), "click", resetDistributorForm);
+  on(byId("#reloadSettings"), "click", loadSettings);
   on(adminEls.settingsForm, "submit", saveSettings);
   on(adminEls.paymentAccountForm, "submit", savePaymentAccount);
   on(byId("#resetPaymentAccountForm"), "click", resetPaymentAccountForm);
