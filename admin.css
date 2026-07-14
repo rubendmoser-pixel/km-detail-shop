@@ -337,6 +337,14 @@
   box-shadow: 0 0 0 1px rgba(183, 184, 255, 0.14), 0 12px 24px rgba(127, 133, 255, 0.22);
 }
 
+.admin-toolbar .toolbar-neutral-button,
+.toolbar-neutral-button {
+  color: #07080a;
+  background: linear-gradient(180deg, #f1f3f5, #aeb5bd);
+  border-color: rgba(206, 213, 220, 0.92);
+  box-shadow: 0 0 0 1px rgba(206, 213, 220, 0.14), 0 12px 24px rgba(160, 170, 180, 0.16);
+}
+
 .sales-rep-card-actions .toolbar-create-button,
 .sales-rep-form .toolbar-create-button,
 .commission-panel .toolbar-create-button {
@@ -348,8 +356,10 @@
 
 .admin-toolbar .toolbar-refresh-button:hover,
 .admin-toolbar .toolbar-create-button:hover,
+.admin-toolbar .toolbar-neutral-button:hover,
 .toolbar-refresh-button:hover,
-.toolbar-create-button:hover {
+.toolbar-create-button:hover,
+.toolbar-neutral-button:hover {
   filter: brightness(1.04);
   transform: translateY(-1px);
 }
