@@ -3686,6 +3686,8 @@ button.operation-row:hover {
   #productsView .product-table td {
     display: block;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   #productsView .product-table thead {
@@ -3705,15 +3707,19 @@ button.operation-row:hover {
     border-left: 5px solid #a590ff;
     border-radius: 8px;
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
   }
 
   #productsView .product-table td {
     display: grid;
-    grid-template-columns: minmax(92px, 34%) minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: minmax(76px, 28%) minmax(0, 1fr);
+    gap: 10px;
     align-items: start;
     padding: 8px 0;
     border: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    min-width: 0;
   }
 
   #productsView .product-table td + td {
@@ -3747,11 +3753,17 @@ button.operation-row:hover {
   #productsView .admin-toolbar button,
   #productsView .product-form .form-actions button {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   #productsView .product-table .promo-badge.small {
     margin-top: 8px;
     margin-left: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .order-detail-header {
