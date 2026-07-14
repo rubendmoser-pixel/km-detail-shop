@@ -2315,6 +2315,34 @@
   align-items: start;
 }
 
+.product-table td {
+  vertical-align: top;
+}
+
+.product-table td strong {
+  font-size: 1.02rem;
+}
+
+.product-table td span {
+  color: #aeb3bc;
+}
+
+.product-table .promo-badge.small {
+  display: inline-flex;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.product-table .row-button {
+  min-width: 94px;
+}
+
+.admin-empty-cell {
+  color: #cfd3da;
+  padding: 22px;
+  text-align: center;
+}
+
 .product-form {
   display: grid;
   width: 100%;
@@ -2354,6 +2382,13 @@
 .product-form .wide,
 .product-form .form-actions {
   grid-column: 1 / -1;
+}
+
+.product-form .form-actions .toolbar-create-button {
+  color: #080515;
+  background: linear-gradient(180deg, #dfdcff, #8980ff);
+  border-color: rgba(183, 184, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(183, 184, 255, 0.14), 0 12px 24px rgba(127, 133, 255, 0.22);
 }
 
 .checkbox-label {
@@ -3638,6 +3673,85 @@ button.operation-row:hover {
 
   .product-form fieldset {
     grid-template-columns: 1fr;
+  }
+
+  #productsView .orders-table-wrap {
+    overflow: visible;
+    border: 0;
+  }
+
+  #productsView .product-table,
+  #productsView .product-table tbody,
+  #productsView .product-table tr,
+  #productsView .product-table td {
+    display: block;
+    width: 100%;
+  }
+
+  #productsView .product-table thead {
+    display: none;
+  }
+
+  #productsView .product-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  #productsView .product-table tr {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(22, 24, 29, 0.98), rgba(14, 15, 18, 0.98));
+    border: 1px solid #34363b;
+    border-left: 5px solid #a590ff;
+    border-radius: 8px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+  }
+
+  #productsView .product-table td {
+    display: grid;
+    grid-template-columns: minmax(92px, 34%) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 8px 0;
+    border: 0;
+  }
+
+  #productsView .product-table td + td {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  #productsView .product-table td::before {
+    content: attr(data-label);
+    color: #a7a9ae;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  #productsView .product-table td[data-label="Producto"],
+  #productsView .product-table td[data-label="Editar"],
+  #productsView .product-table td[colspan] {
+    grid-template-columns: 1fr;
+  }
+
+  #productsView .product-table td[data-label="Producto"]::before,
+  #productsView .product-table td[data-label="Editar"]::before,
+  #productsView .product-table td[colspan]::before {
+    display: none;
+  }
+
+  #productsView .product-table .row-button,
+  #productsView .admin-toolbar input,
+  #productsView .admin-toolbar select,
+  #productsView .admin-toolbar button,
+  #productsView .product-form .form-actions button {
+    width: 100%;
+  }
+
+  #productsView .product-table .promo-badge.small {
+    margin-top: 8px;
+    margin-left: 0;
   }
 
   .order-detail-header {

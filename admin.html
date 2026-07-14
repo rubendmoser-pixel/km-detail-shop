@@ -249,8 +249,8 @@
               <select id="productStatusFilter" aria-label="Filtrar por estado">
                 <option value="">Todos</option><option value="active">Activos</option><option value="inactive">Inactivos</option>
               </select>
-              <button class="ghost-button" id="newProduct" type="button">Nuevo</button>
-              <button class="ghost-button" id="reloadProducts" type="button">Actualizar</button>
+              <button class="ghost-button toolbar-create-button" id="newProduct" type="button">Nuevo</button>
+              <button class="ghost-button toolbar-refresh-button" id="reloadProducts" type="button">Actualizar</button>
             </div>
           </div>
           <div class="product-admin-layout">
@@ -307,7 +307,7 @@
               </fieldset>
               <datalist id="familyNameOptions"></datalist>
               <div class="form-actions">
-                <button class="primary-button" type="submit">Guardar producto</button>
+                <button class="primary-button toolbar-create-button" type="submit">Guardar producto</button>
                 <button class="ghost-button" id="resetProductForm" type="button">Limpiar</button>
               </div>
               <p class="form-message" id="productMessage" role="status"></p>
