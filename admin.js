@@ -3067,17 +3067,24 @@ function renderSecurityEvents() {
     ["Bloqueados 24h", summary.rate_limited || 0],
     ["Eventos listados", adminState.securityEvents.length || 0]
   ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
-  adminEls.securityTableBody.innerHTML = adminState.securityEvents.length ? adminState.securityEvents.map((event) => `
-    <tr>
-      <td>${formatDate(event.created_at)}</td>
-      <td><span class="status-badge ${securityEventClass(event.event_type)}">${securityEventLabel(event.event_type)}</span></td>
-      <td>${escapeAdmin(event.email || "")}</td>
-      <td>${escapeAdmin(event.role || "")}</td>
-      <td>${escapeAdmin(event.ip_address || "")}</td>
-      <td>${escapeAdmin(`${event.method || ""} ${event.path || ""}`.trim())}</td>
-      <td class="security-agent">${escapeAdmin(shortUserAgent(event.user_agent || ""))}</td>
-    </tr>
-  `).join("") : `<tr><td colspan="7">Todavia no hay eventos de seguridad registrados.</td></tr>`;
+  adminEls.securityTableBody.innerHTML = adminState.securityEvents.length ? adminState.securityEvents.map((event) => {
+    const route = `${event.method || ""} ${event.path || ""}`.trim() || "-";
+    return `
+      <div class="security-card ${securityEventClass(event.event_type)}">
+        <div class="security-card-main">
+          <span class="status-badge ${securityEventClass(event.event_type)}">${securityEventLabel(event.event_type)}</span>
+          <strong>${escapeAdmin(event.email || "Sin email")}</strong>
+          <p>${formatDate(event.created_at)}</p>
+        </div>
+        <div class="security-card-grid">
+          <span><small>Rol</small><strong>${escapeAdmin(event.role || "-")}</strong></span>
+          <span><small>IP</small><strong>${escapeAdmin(event.ip_address || "-")}</strong></span>
+          <span><small>Ruta</small><strong>${escapeAdmin(route)}</strong></span>
+          <span><small>Navegador</small><strong>${escapeAdmin(shortUserAgent(event.user_agent || "") || "-")}</strong></span>
+        </div>
+      </div>
+    `;
+  }).join("") : `<div class="empty-state">Todavia no hay eventos de seguridad registrados.</div>`;
 }
 
 function securityEventLabel(type) {

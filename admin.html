@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=61" />
-    <link rel="stylesheet" href="./admin.css?v=53" />
+    <link rel="stylesheet" href="./admin.css?v=54" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -574,17 +574,12 @@
             <div><p class="eyebrow">Auditoria</p><h1>Seguridad y accesos</h1></div>
             <div class="admin-toolbar">
               <input id="securitySearch" type="search" placeholder="Buscar email, IP, evento o navegador" aria-label="Buscar eventos de seguridad" />
-              <button class="ghost-button" id="reloadSecurity" type="button">Actualizar</button>
+              <button class="ghost-button toolbar-refresh-button" id="reloadSecurity" type="button">Actualizar</button>
             </div>
           </div>
           <div class="admin-stats" id="securityStats"></div>
           <p class="admin-note">Los eventos empiezan a registrarse desde esta version. No se guardan contrasenas, solo resultado, email, IP y navegador.</p>
-          <div class="orders-table-wrap">
-            <table class="admin-table security-table">
-              <thead><tr><th>Fecha</th><th>Evento</th><th>Email</th><th>Rol</th><th>IP</th><th>Ruta</th><th>Navegador</th></tr></thead>
-              <tbody id="securityTableBody"></tbody>
-            </table>
-          </div>
+          <div class="security-card-list" id="securityTableBody"></div>
         </section>
 
         <section class="admin-view" id="analyticsView" hidden>
@@ -632,6 +627,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=77" defer></script>
+    <script src="./admin.js?v=78" defer></script>
   </body>
 </html>

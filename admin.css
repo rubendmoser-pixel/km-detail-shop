@@ -2658,6 +2658,102 @@
   background: #15171b;
 }
 
+.security-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.security-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid #2d3036;
+  border-left: 5px solid #9f8fff;
+  border-radius: 8px;
+  background: #15171b;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.security-card.approved {
+  border-left-color: #82df98;
+}
+
+.security-card.rejected {
+  border-left-color: #f0c84a;
+}
+
+.security-card.suspended {
+  border-left-color: #ee7979;
+}
+
+.security-card-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.security-card-main .status-badge {
+  justify-self: start;
+}
+
+.security-card-main strong {
+  color: #f5f5f5;
+  font-size: 1rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.security-card-main p {
+  margin: 0;
+  color: #b7bbc3;
+  font-size: 0.88rem;
+}
+
+.security-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  min-width: 0;
+  border: 1px solid #2d3036;
+  background: #2d3036;
+}
+
+.security-card-grid span {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  background: #17191d;
+}
+
+.security-card-grid small {
+  color: #9ea3ad;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.security-card-grid strong {
+  color: #f5f5f5;
+  font-size: 0.88rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.security-card-list .empty-state {
+  padding: 18px;
+  border: 1px solid #2d3036;
+  border-radius: 8px;
+  color: #b6bac2;
+  background: #15171b;
+}
+
 .admin-note {
   margin: -10px 0 18px;
   color: #a7a9ae;
@@ -3539,6 +3635,20 @@ button.operation-row:hover {
     grid-template-columns: 1fr;
     gap: 12px;
     padding: 14px;
+  }
+
+  .security-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .security-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .security-card-grid span {
+    padding: 10px 12px;
   }
 
   .email-card-status {
