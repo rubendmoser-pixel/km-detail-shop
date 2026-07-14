@@ -2949,6 +2949,71 @@ button.operation-row:hover {
   background: #17181b;
 }
 
+.analytics-dashboard {
+  gap: 20px;
+}
+
+.analytics-dashboard .operation-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.analytics-dashboard .operation-metric {
+  min-height: 108px;
+  border-top-color: #9f8fff;
+  background:
+    linear-gradient(145deg, rgba(159, 143, 255, 0.1), transparent 44%),
+    linear-gradient(135deg, #17191d, #101114);
+}
+
+.analytics-dashboard .operation-layout {
+  gap: 16px;
+}
+
+.analytics-dashboard .operation-panel {
+  overflow: hidden;
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 48%),
+    #111214;
+}
+
+.analytics-dashboard .operation-panel .panel-heading {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #2d3036;
+}
+
+.analytics-dashboard .operation-panel h3 {
+  font-size: 1.2rem;
+  line-height: 1.15;
+}
+
+.analytics-dashboard .operation-row {
+  min-height: 68px;
+  border-radius: 8px;
+  background: #17191d;
+}
+
+.analytics-dashboard button.operation-row {
+  border-color: rgba(159, 143, 255, 0.45);
+}
+
+.analytics-dashboard button.operation-row:hover {
+  border-color: #a99dff;
+  box-shadow: 0 0 0 1px rgba(159, 143, 255, 0.16), 0 14px 26px rgba(0, 0, 0, 0.28);
+}
+
+.analytics-dashboard .analytics-visitors .operation-row {
+  grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.75fr);
+}
+
+.analytics-dashboard .operation-row small {
+  overflow-wrap: anywhere;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .operation-alerts strong {
   color: #f7f7f5;
   font-size: 1.15rem;
@@ -3558,8 +3623,16 @@ button.operation-row:hover {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .analytics-dashboard .operation-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .operation-layout,
   .product-rank {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-dashboard .analytics-visitors .operation-row {
     grid-template-columns: 1fr;
   }
 
@@ -3631,6 +3704,12 @@ button.operation-row:hover {
     min-height: 56px;
   }
 
+  #analyticsView .admin-toolbar button,
+  #analyticsView .admin-toolbar select {
+    width: 100%;
+    min-height: 56px;
+  }
+
   #emailsTableBody .email-card {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -3684,8 +3763,21 @@ button.operation-row:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .analytics-dashboard .operation-metrics {
+    grid-template-columns: 1fr;
+  }
+
   .operation-row {
     grid-template-columns: 1fr;
+  }
+
+  .analytics-dashboard .operation-panel {
+    padding: 14px;
+  }
+
+  .analytics-dashboard .operation-row {
+    min-height: auto;
+    padding: 13px;
   }
 
   .sales-dashboard-cards,
