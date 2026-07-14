@@ -3027,21 +3027,24 @@ function renderEmails() {
     const statusClass = hasError ? "danger" : email.status;
     const statusLabel = hasError ? "Con error" : email.status === "sent" ? "Enviado" : "Pendiente";
     return `
-      <article class="email-card ${hasError ? "has-error" : ""}">
-        <div class="email-card-main">
-          <div>
-            <span class="email-date">${formatDate(email.created_at)}</span>
-            <strong>${escapeAdmin(email.subject || "Sin asunto")}</strong>
-            <p>${escapeAdmin(email.recipient || "Sin destinatario")}</p>
-          </div>
-          <span class="status-badge ${statusClass}">${statusLabel}</span>
+      <div class="email-card ${hasError ? "has-error" : ""}">
+        <div class="email-card-date">
+          <span>Fecha</span>
+          <strong>${formatDate(email.created_at)}</strong>
+        </div>
+        <div class="email-card-content">
+          <strong>${escapeAdmin(email.subject || "Sin asunto")}</strong>
+          <p>${escapeAdmin(email.recipient || "Sin destinatario")}</p>
         </div>
         <div class="email-card-meta">
-          <span><small>Tipo</small><strong>${escapeAdmin(email.event_type || "-")}</strong></span>
-          <span><small>Intentos</small><strong>${Number(email.attempts || 0)}</strong></span>
+          <span>Tipo</span>
+          <strong>${escapeAdmin(email.event_type || "-")}</strong>
+          <span>Intentos</span>
+          <strong>${Number(email.attempts || 0)}</strong>
         </div>
+        <span class="email-card-status status-badge ${statusClass}">${statusLabel}</span>
         ${hasError ? `<p class="email-error">${escapeAdmin(email.last_error)}</p>` : ""}
-      </article>
+      </div>
     `;
   }).join("") : `<div class="empty-state">Todavia no hay emails registrados.</div>`;
 }
