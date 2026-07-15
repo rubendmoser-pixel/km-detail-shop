@@ -3663,6 +3663,16 @@ button.operation-row:hover {
 }
 
 @media (max-width: 680px) {
+  .admin-header {
+    gap: 10px;
+    padding-inline: 14px;
+  }
+
+  .admin-header .brand,
+  .admin-session {
+    min-width: 0;
+  }
+
   .admin-main {
     padding-inline: 14px;
   }
@@ -3673,7 +3683,8 @@ button.operation-row:hover {
   }
 
   .admin-session span {
-    max-width: 130px;
+    max-width: 112px;
+    white-space: nowrap;
   }
 
   .admin-titlebar,
@@ -3683,16 +3694,33 @@ button.operation-row:hover {
   }
 
   .admin-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 48px);
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(132px, 44vw);
     gap: 9px;
-    margin-bottom: 22px;
-    padding-bottom: 16px;
+    margin-bottom: 18px;
+    padding: 2px 2px 14px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline proximity;
+    scrollbar-width: thin;
   }
 
   .admin-tabs button {
     min-height: 48px;
     padding: 10px 8px;
     font-size: 0.86rem;
+    scroll-snap-align: start;
+  }
+
+  .admin-titlebar h1 {
+    line-height: 1.12;
+  }
+
+  .admin-note {
+    margin: 8px 0 18px;
+    line-height: 1.45;
   }
 
   .admin-toolbar input[type="search"] {
@@ -3708,6 +3736,105 @@ button.operation-row:hover {
   #analyticsView .admin-toolbar select {
     width: 100%;
     min-height: 56px;
+  }
+
+  #operationView .admin-toolbar button {
+    width: 100%;
+    min-height: 56px;
+  }
+
+  #operationView .operation-dashboard {
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  #operationView .operation-metrics {
+    gap: 8px;
+  }
+
+  #operationView .operation-metric {
+    gap: 6px;
+    min-height: 108px;
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  #operationView .operation-metric strong {
+    font-size: clamp(1.05rem, 5vw, 1.3rem);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+
+  #operationView .operation-layout {
+    gap: 12px;
+  }
+
+  #operationView .operation-panel {
+    gap: 10px;
+    padding: 13px;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  #operationView .operation-panel .panel-heading {
+    padding-bottom: 9px;
+    border-bottom: 1px solid #2d3036;
+  }
+
+  #operationView .operation-panel h3 {
+    font-size: 1.12rem;
+    line-height: 1.2;
+  }
+
+  #operationView .operation-row {
+    gap: 8px;
+    min-height: 76px;
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  #operationView .operation-row > span:last-child {
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  #operationView .operation-row strong {
+    font-variant-numeric: tabular-nums;
+  }
+
+  #operationView .operation-alerts {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  #operationView .operation-alerts div {
+    min-width: 0;
+    padding: 11px;
+  }
+
+  #operationView .operation-alerts strong {
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  #operationView .storage-status {
+    gap: 12px;
+    padding: 13px;
+    border-radius: 8px;
+  }
+
+  #operationView .storage-actions,
+  #operationView .storage-actions button {
+    width: 100%;
+  }
+
+  #operationView #deleteTestOrdersForm fieldset {
+    padding: 14px;
+  }
+
+  #operationView #deleteTestOrdersForm .form-actions,
+  #operationView #deleteTestOrdersForm .danger-button {
+    width: 100%;
   }
 
   #emailsTableBody .email-card {
