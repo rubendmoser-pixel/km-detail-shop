@@ -6,6 +6,12 @@ const adminState = {
   priceProducts: [], priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all"
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+const PRODUCT_UPLOAD_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const PRODUCT_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+const PRODUCT_UPLOAD_TARGET_BYTES = 900 * 1024;
+const PRODUCT_UPLOAD_MAX_DIMENSION = 1600;
+const PRODUCT_UPLOAD_WEBP_QUALITY = 0.82;
+const PRODUCT_UPLOAD_JPEG_QUALITY = 0.86;
 const adminViews = new Set(["customers", "sales", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
@@ -1436,12 +1442,12 @@ async function uploadProductImages(event) {
   adminEls.productImageInput.disabled = true;
   try {
     for (const file of files) {
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error(`${file.name}: formato no permitido.`);
-      if (file.size > 5 * 1024 * 1024) throw new Error(`${file.name}: maximo 5 MB.`);
-      const dataBase64 = await fileToBase64(file);
+      if (!PRODUCT_UPLOAD_ALLOWED_TYPES.has(file.type)) throw new Error(`${file.name}: formato no permitido.`);
+      if (file.size > PRODUCT_UPLOAD_MAX_BYTES) throw new Error(`${file.name}: maximo 5 MB.`);
+      const prepared = await prepareProductImageForUpload(file);
       const { images } = await adminApi(`/api/admin/products/${adminState.selectedProductId}/images`, {
         method: "POST",
-        body: { originalFilename: file.name, mimeType: file.type, dataBase64 }
+        body: { originalFilename: prepared.filename, mimeType: prepared.mimeType, dataBase64: prepared.dataBase64 }
       });
       adminState.productImages = images;
     }
@@ -1488,6 +1494,83 @@ function fileToBase64(file) {
     reader.addEventListener("error", () => reject(new Error(`No se pudo leer ${file.name}.`)));
     reader.readAsDataURL(file);
   });
+}
+
+async function prepareProductImageForUpload(file) {
+  if (file.type === "image/webp" && file.size <= PRODUCT_UPLOAD_TARGET_BYTES) {
+    return { filename: file.name, mimeType: file.type, dataBase64: await fileToBase64(file) };
+  }
+  try {
+    const image = await loadUploadImage(file);
+    const sourceWidth = image.width || image.naturalWidth;
+    const sourceHeight = image.height || image.naturalHeight;
+    if (!sourceWidth || !sourceHeight) throw new Error("Imagen sin dimensiones validas.");
+    const scale = Math.min(1, PRODUCT_UPLOAD_MAX_DIMENSION / Math.max(sourceWidth, sourceHeight));
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new Error("No se pudo preparar la imagen.");
+    context.fillStyle = "#000000";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    if (typeof image.close === "function") image.close();
+    const preferredBlob = await canvasToBlob(canvas, "image/webp", PRODUCT_UPLOAD_WEBP_QUALITY);
+    const fallbackBlob = preferredBlob || await canvasToBlob(canvas, "image/jpeg", PRODUCT_UPLOAD_JPEG_QUALITY);
+    if (!fallbackBlob) throw new Error("No se pudo comprimir la imagen.");
+    const useOriginal = file.size <= PRODUCT_UPLOAD_TARGET_BYTES && fallbackBlob.size >= file.size;
+    if (useOriginal) {
+      return { filename: file.name, mimeType: file.type, dataBase64: await fileToBase64(file) };
+    }
+    const dataUrl = await blobToDataUrl(fallbackBlob);
+    const mimeType = fallbackBlob.type || "image/jpeg";
+    return {
+      filename: productUploadFilename(file.name, mimeType),
+      mimeType,
+      dataBase64: String(dataUrl).split(",")[1] || ""
+    };
+  } catch (error) {
+    return { filename: file.name, mimeType: file.type, dataBase64: await fileToBase64(file) };
+  }
+}
+
+function loadUploadImage(file) {
+  if ("createImageBitmap" in window) return createImageBitmap(file);
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error(`No se pudo procesar ${file.name}.`));
+    };
+    image.src = objectUrl;
+  });
+}
+
+function canvasToBlob(canvas, mimeType, quality) {
+  if (!canvas.toBlob) return Promise.resolve(null);
+  return new Promise((resolve) => canvas.toBlob(resolve, mimeType, quality));
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(new Error("No se pudo leer la imagen optimizada.")));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function productUploadFilename(filename, mimeType) {
+  const extension = mimeType === "image/webp" ? "webp" : "jpg";
+  const cleanName = String(filename || "producto").replace(/\.[^.]+$/, "");
+  return `${cleanName}.${extension}`;
 }
 
 function productField(name) {
