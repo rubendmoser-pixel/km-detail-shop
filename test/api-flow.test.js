@@ -11,12 +11,15 @@ import { createEmailService } from "../server/services/email-service.js";
 test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-api-${Date.now()}.sqlite`);
   const uploadsPath = path.join(os.tmpdir(), `km-detail-api-uploads-${Date.now()}`);
+  const backupPath = path.join(os.tmpdir(), `km-detail-api-backups-${Date.now()}`);
   const config = {
     sessionDays: 30,
     secureCookies: false,
     notificationEmail: "ventas@km-detail.com",
     publicBaseUrl: baseUrlPlaceholder(),
-    uploadsPath
+    databasePath,
+    uploadsPath,
+    backupPath
   };
   const db = await openDatabase({ databasePath, adminEmail: "admin@km-detail.com", adminPassword: "secure-admin-password" });
   const server = http.createServer(createApp({ db, config }));
@@ -28,6 +31,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     db.close();
     for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
     fs.rmSync(uploadsPath, { recursive: true, force: true });
+    fs.rmSync(backupPath, { recursive: true, force: true });
   });
 
   const healthResponse = await fetch(`${baseUrl}/api/health`);
@@ -92,6 +96,18 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(reusedResetResponse.status, 400);
 
   const adminCookie = await loginCookie(baseUrl, "admin@km-detail.com", "admin-password-from-env");
+  const unauthorizedBackupResponse = await fetch(`${baseUrl}/api/admin/operation/backups/download`, { method: "POST" });
+  assert.equal(unauthorizedBackupResponse.status, 401);
+  const backupResponse = await fetch(`${baseUrl}/api/admin/operation/backups/download`, {
+    method: "POST",
+    headers: { cookie: adminCookie }
+  });
+  assert.equal(backupResponse.status, 200);
+  assert.equal(backupResponse.headers.get("content-type"), "application/zip");
+  assert.match(backupResponse.headers.get("content-disposition"), /km-detail-backup-.*\.zip/);
+  const backupBytes = Buffer.from(await backupResponse.arrayBuffer());
+  assert.equal(backupBytes.subarray(0, 2).toString("utf8"), "PK");
+  assert.ok(backupBytes.length > 100);
   const searchedCustomers = await getJson(`${baseUrl}/api/admin/customers?q=30-71234567-1`, adminCookie);
   assert.equal(searchedCustomers.customers.length, 1);
   assert.equal(searchedCustomers.customers[0].business_name, "Comercio API");

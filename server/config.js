@@ -7,6 +7,7 @@ export const config = {
   host: process.env.HOST || "127.0.0.1",
   databasePath: process.env.DATABASE_PATH || path.join(projectRoot, "data", "km-detail.sqlite"),
   uploadsPath: process.env.UPLOADS_PATH || path.join(projectRoot, "uploads"),
+  backupPath: process.env.BACKUP_PATH || "",
   sessionDays: Number(process.env.SESSION_DAYS || 30),
   secureCookies: process.env.NODE_ENV === "production",
   adminEmail: process.env.ADMIN_EMAIL || "",

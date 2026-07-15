@@ -3709,11 +3709,10 @@ function renderStorageStatus(storage = {}) {
         <span><strong>Uploads</strong><small>${escapeAdmin(storage.uploads?.exists ? "Disponible" : "No encontrado")}</small></span>
         <span><strong>Persistencia</strong><small>${storage.persistent?.databaseInData && storage.persistent?.uploadsInData ? "Volumen /data" : "Verificar Railway"}</small></span>
       </div>
-      ${backupCount > 1 ? `
-        <div class="storage-actions">
-          <button type="button" class="ghost-button" data-prune-backups>Limpiar backups antiguos</button>
-        </div>
-      ` : ""}
+      <div class="storage-actions">
+        <button type="button" class="toolbar-create-button" data-download-backup>Descargar backup completo (.zip)</button>
+        ${backupCount > 1 ? `<button type="button" class="ghost-button" data-prune-backups>Limpiar backups antiguos</button>` : ""}
+      </div>
       ${warnings.length ? `<div class="storage-warnings">${warnings.map((warning) => `<small>${escapeAdmin(warning)}</small>`).join("")}</div>` : ""}
     </div>
   `;
@@ -3727,6 +3726,11 @@ function formatFileSize(bytes) {
 }
 
 function handleOperationDashboardClick(event) {
+  const downloadButton = event.target.closest("[data-download-backup]");
+  if (downloadButton && adminEls.operationDashboard.contains(downloadButton)) {
+    downloadExternalBackup(downloadButton);
+    return;
+  }
   const pruneButton = event.target.closest("[data-prune-backups]");
   if (pruneButton && adminEls.operationDashboard.contains(pruneButton)) {
     pruneBackups(pruneButton);
@@ -3736,6 +3740,41 @@ function handleOperationDashboardClick(event) {
   if (!button || !adminEls.operationDashboard.contains(button)) return;
   showAdminView("orders");
   openOrderDetail(Number(button.dataset.dashboardOrder), button);
+}
+
+async function downloadExternalBackup(button) {
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Preparando copia...";
+  try {
+    const response = await fetch("/api/admin/operation/backups/download", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || "No se pudo generar el backup.");
+    }
+    const blob = await response.blob();
+    if (!blob.size) throw new Error("El backup generado esta vacio.");
+    const disposition = response.headers.get("content-disposition") || "";
+    const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `km-detail-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
+    showAdminToast(`Backup listo: ${filename}`);
+    await loadOperationDashboard();
+  } catch (error) {
+    showAdminToast(error.message || "No se pudo descargar el backup.");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
 }
 
 async function pruneBackups(button) {
@@ -3748,9 +3787,9 @@ async function pruneBackups(button) {
       storage: result.storage
     };
     renderOperationDashboard(adminState.operationDashboard);
-    showToast(`Backups eliminados: ${result.deleted?.length || 0}. Espacio liberado: ${formatFileSize(result.deletedBytes || 0)}.`);
+    showAdminToast(`Backups eliminados: ${result.deleted?.length || 0}. Espacio liberado: ${formatFileSize(result.deletedBytes || 0)}.`);
   } catch (error) {
-    showToast(error.message, "error");
+    showAdminToast(error.message);
   } finally {
     setBusy(button, false);
   }

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { ZipArchive } from "archiver";
 import { ValidationError } from "./domain/validation.js";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import {
@@ -92,6 +93,7 @@ import {
   scheduleLinearPriceUpdate
 } from "./services/price-update-service.js";
 import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
+import { createBackup } from "./services/backup-service.js";
 import { pruneBackups } from "./services/storage-status-service.js";
 import { deleteOfficialDistributor, listOfficialDistributors, upsertOfficialDistributor } from "./services/distributor-service.js";
 
@@ -763,6 +765,14 @@ export function createApp({
       if (request.method === "POST" && url.pathname === "/api/admin/operation/prune-backups") {
         return sendJson(response, 200, { result: pruneBackups(await readJson(request)) });
       }
+      if (request.method === "POST" && url.pathname === "/api/admin/operation/backups/download") {
+        const backup = createBackup({
+          databasePath: config.databasePath,
+          uploadsPath,
+          backupPath: config.backupPath
+        });
+        return sendBackupArchive(response, backup);
+      }
       if (request.method === "POST" && url.pathname === "/api/admin/emails/flush") {
         const result = await emailService.flush();
         return sendJson(response, 200, {
@@ -793,10 +803,28 @@ export function createApp({
     } catch (error) {
       const statusCode = error.statusCode || 500;
       if (statusCode >= 500) console.error(error);
+      if (response.headersSent) {
+        response.destroy(error);
+        return;
+      }
       return sendJson(response, statusCode, {
         error: error.message || "Internal server error",
         details: error.details || undefined
       });
     }
   };
+}
+
+function sendBackupArchive(response, backup) {
+  const archive = new ZipArchive({ zlib: { level: 6 } });
+  const filename = `${backup.name}.zip`;
+  response.writeHead(200, {
+    "content-type": "application/zip",
+    "content-disposition": `attachment; filename="${filename}"`,
+    "cache-control": "no-store",
+    ...SECURITY_HEADERS
+  });
+  archive.pipe(response);
+  archive.directory(backup.targetDir, backup.name);
+  return archive.finalize();
 }

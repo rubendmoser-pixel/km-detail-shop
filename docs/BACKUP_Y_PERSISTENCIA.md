@@ -57,6 +57,22 @@ Incluye:
 - `uploads/`: copia de imagenes y comprobantes;
 - `manifest.json`: resumen del backup, rutas, cantidad de archivos y tamano.
 
+## Descargar una copia fuera de Railway
+
+Un backup guardado en `/data/backups` sigue estando dentro del mismo volumen de
+Railway. Para tener una copia externa:
+
+1. ingresar al panel administrativo;
+2. abrir `Operacion` y bajar hasta `Sistema - Respaldo y datos`;
+3. pulsar `Descargar backup completo (.zip)`;
+4. guardar el archivo en una carpeta estable del PC, disco externo o servicio en
+   la nube.
+
+La descarga genera una copia nueva y consistente, protegida por la sesion de
+administrador. Incluye `km-detail.sqlite`, `uploads/` y `manifest.json`. En
+telefono se guarda normalmente en `Descargas` o `Archivos`, aunque el PC es el
+destino recomendado para copias grandes.
+
 ## Backup con ruta personalizada
 
 En produccion conviene guardar backups dentro del volumen:
@@ -105,4 +121,3 @@ En una etapa posterior conviene automatizar la descarga externa de backups hacia
 - AWS S3;
 - Google Drive empresarial;
 - repositorio privado de backups cifrados.
-
