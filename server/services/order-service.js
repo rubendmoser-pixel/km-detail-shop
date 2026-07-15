@@ -395,18 +395,31 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
     const vatCents = Math.round(confirmedSubtotalNetCents * order.vat_bps / 10_000);
     const totalCents = confirmedSubtotalNetCents + vatCents;
     const commissionCents = calculateCommission(confirmedSubtotalNetCents, order.sales_commission_bps || 0);
+    const adjustmentOrder = {
+      ...order,
+      subtotal_net_cents: confirmedSubtotalNetCents,
+      vat_cents: vatCents,
+      total_cents: totalCents,
+      commercial_adjustment_cents: 0
+    };
+    const commercialAdjustmentCents = expectedCommercialAdjustmentCents(adjustmentOrder);
     const newStatus = confirmedSubtotalNetCents > 0 ? "availability_confirmed" : "cancelled";
     const dueDate = confirmedSubtotalNetCents > 0 && paymentCondition === "credit_account"
       ? addDaysIsoDate(new Date(), termsDays)
       : "";
-    const paidCents = order.payment_status === "paid" ? totalCents : 0;
-    const balanceCents = Math.max(0, totalCents - paidCents);
+    const paidCents = order.payment_status === "paid" ? Math.max(0, totalCents - commercialAdjustmentCents) : 0;
+    const balanceCents = clientPayableBalanceCents({
+      ...adjustmentOrder,
+      paid_cents: paidCents,
+      commercial_adjustment_cents: commercialAdjustmentCents
+    });
     const paymentStatus = confirmedSubtotalNetCents <= 0
       ? order.payment_status
       : paymentCondition === "credit_account" ? "credit_account" : "pending_payment";
     db.prepare(`
       UPDATE orders SET status = ?, subtotal_net_cents = ?, vat_cents = ?, total_cents = ?,
         sales_commission_base_cents = ?, sales_commission_cents = ?,
+        commercial_adjustment_cents = ?, commercial_adjustment_reason = ?,
         payment_status = ?, paid_cents = ?, balance_cents = ?,
         payment_terms_days = ?, payment_due_date = ?,
         credit_authorized_at = CASE WHEN ? THEN ? ELSE credit_authorized_at END,
@@ -418,6 +431,8 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
     `).run(
       newStatus, confirmedSubtotalNetCents, vatCents, totalCents,
       confirmedSubtotalNetCents, commissionCents,
+      commercialAdjustmentCents,
+      commercialAdjustmentCents > 0 ? "Ajuste comercial interno por condicion N" : "",
       paymentStatus, paidCents, balanceCents,
       termsDays, dueDate,
       paymentCondition === "credit_account" ? 1 : 0, new Date().toISOString(),
@@ -430,6 +445,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
       vatCents,
       totalCents,
       paymentCondition,
+      commercialAdjustmentCents,
       requiresCustomerAcceptance,
       paymentDueDate: dueDate,
       paymentTermsDays: termsDays
@@ -1095,11 +1111,12 @@ function paymentStatusForClosedBalance(adjustmentCents) {
 
 function resolvedCommercialAdjustmentCents(order = {}) {
   const currentAdjustment = Math.max(0, Number(order.commercial_adjustment_cents || order.commercialAdjustmentCents || 0));
-  if (!isCommercialClassN(order)) return currentAdjustment;
-  const totalCents = Math.max(0, Number(order.total_cents || order.totalCents || 0));
-  const subtotalNetCents = Math.max(0, Number(order.subtotal_net_cents || order.subtotalNetCents || 0));
-  const taxAdjustmentCents = Math.max(0, totalCents - subtotalNetCents);
-  return Math.max(currentAdjustment, taxAdjustmentCents);
+  return Math.max(currentAdjustment, expectedCommercialAdjustmentCents(order));
+}
+
+function expectedCommercialAdjustmentCents(order = {}) {
+  if (!isCommercialClassN(order)) return 0;
+  return Math.max(0, Number(order.vat_cents || order.vatCents || 0));
 }
 
 function isCommercialClassN(order = {}) {

@@ -1173,7 +1173,9 @@ function renderCustomerOrder(order) {
     && !["paid", "settled_adjustment"].includes(order.paymentStatus)
     && !needsAcceptance
     && (order.balanceCents || order.totalCents) > 0;
-  const canPayMercadoPago = canUpload && Boolean(state.settings?.mercadopago?.enabled);
+  const creditAccountOrder = isCreditAccountOrder(order);
+  const showPaymentOptions = canUpload && !creditAccountOrder;
+  const canPayMercadoPago = showPaymentOptions && Boolean(state.settings?.mercadopago?.enabled);
   const bank = order.bank || {};
   const visibleItems = items.filter((item) => order.status === "order_created" || item.confirmedQuantity > 0).slice(0, 5);
   const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
@@ -1223,7 +1225,7 @@ function renderCustomerOrder(order) {
           <div class="purchase-actions">
             ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Aceptar disponibilidad</button>` : ""}
             ${canConfirmReceived ? `<button class="primary-button" type="button" data-confirm-received="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Confirmar pedido recibido</button>` : ""}
-            ${canUpload ? `
+            ${showPaymentOptions ? `
               <div class="payment-options" aria-label="Opciones de pago">
                 <strong>Elegir forma de pago</strong>
                 <div>
@@ -1235,15 +1237,20 @@ function renderCustomerOrder(order) {
                   </label>
                 </div>
               </div>
-            ` : paymentHelperText(order)}
+            ` : creditAccountOrder && !needsAcceptance ? renderCreditAccountPaymentInfo(order) : paymentHelperText(order)}
             ${latestReceipt ? `<p>Comprobante: ${escapeHtml(latestReceipt.originalFilename)} (${escapeHtml(receiptStatusText(latestReceipt.status))})</p>` : ""}
           </div>
-          ${canUpload ? renderBankSummary(bank) : ""}
+          ${showPaymentOptions ? renderBankSummary(bank) : ""}
           ${fulfillment.status && fulfillment.status !== "pending" ? `<p class="purchase-note">Despacho: ${escapeHtml(customerFulfillmentText(fulfillment))}</p>` : ""}
         </div>
       </details>
     </article>
   `;
+}
+
+function isCreditAccountOrder(order = {}) {
+  const status = String(order.paymentStatus || order.payment_status || "").toLowerCase();
+  return ["credit_account", "overdue", "partial_payment"].includes(status);
 }
 
 function renderPurchaseLine(item) {
@@ -1265,6 +1272,24 @@ function renderBankSummary(bank = {}) {
           ${account.instructions ? `<small>${escapeHtml(account.instructions)}</small>` : ""}
         </div>
       `).join("") : `<span>KM informara los datos de pago.</span>`}
+    </div>
+  `;
+}
+
+function renderCreditAccountPaymentInfo(order = {}) {
+  const balanceCents = Math.max(0, Number(order.balanceCents || order.balance_cents || 0));
+  const dueDate = order.paymentDueDate || order.payment_due_date || "";
+  const status = String(order.paymentStatus || order.payment_status || "").toLowerCase();
+  const dueText = dueDate ? ` - Vence ${formatShortDate(dueDate)}` : "";
+  const balanceText = balanceCents > 0
+    ? `Saldo pendiente: ${money.format(balanceCents / 100)}${dueText}`
+    : "Saldo cancelado.";
+  return `
+    <div class="purchase-bank credit-account-info">
+      <strong>Cuenta corriente</strong>
+      <span>Este pedido opera con la condicion comercial acordada con KM.</span>
+      <span>${escapeHtml(balanceText)}</span>
+      ${status === "overdue" ? `<small>El saldo se encuentra vencido.</small>` : ""}
     </div>
   `;
 }
