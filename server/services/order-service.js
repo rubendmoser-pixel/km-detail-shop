@@ -308,17 +308,9 @@ export function listCustomerOrders(db, customerId) {
 export function listAdminOrders(db, filters = {}) {
   const where = [];
   const params = [];
-  if (filters.status) {
-    where.push("o.status = ?");
-    params.push(filters.status);
-  }
   if (filters.paymentStatus) {
     where.push("o.payment_status = ?");
     params.push(filters.paymentStatus);
-  }
-  if (filters.fulfillmentStatus) {
-    where.push("o.fulfillment_status = ?");
-    params.push(filters.fulfillmentStatus);
   }
   if (filters.search) {
     where.push("(o.order_number LIKE ? OR c.business_name LIKE ? OR c.tax_id LIKE ?)");
@@ -330,11 +322,25 @@ export function listAdminOrders(db, filters = {}) {
     SELECT o.id, o.order_number, o.status, o.payment_status, o.total_cents, o.paid_cents, o.balance_cents,
            o.payment_due_date, o.currency, o.commercial_class,
            o.created_by_role, o.created_by_sales_rep_id, o.sales_rep_name, o.sales_rep_email,
-           o.fulfillment_status, o.created_at, c.business_name, c.tax_id
+           o.fulfillment_status, o.modified_acceptance_required, o.created_at, c.business_name, c.tax_id
     FROM orders o JOIN customers c ON c.id = o.customer_id
     ${whereSql} ORDER BY o.created_at DESC
     LIMIT 500
-  `).all(...params);
+  `).all(...params)
+    .map((order) => ({ ...order, stage: orderOperationalStage(order) }))
+    .filter((order) => !filters.stage || order.stage === filters.stage);
+}
+
+export function orderOperationalStage(order) {
+  const fulfillmentStatus = order.fulfillment_status || "pending";
+  if (order.status === "cancelled") return "cancelled";
+  if (order.status === "delivered" || fulfillmentStatus === "delivered") return "delivered";
+  if (fulfillmentStatus === "shipped") return "shipped";
+  if (fulfillmentStatus === "ready") return "prepared";
+  if (order.status === "order_created") return "review_availability";
+  if (Boolean(order.modified_acceptance_required)) return "awaiting_acceptance";
+  if (!PAYMENT_STATUSES_ALLOWING_FULFILLMENT.has(normalizePaymentStatus(order.payment_status))) return "awaiting_payment";
+  return "ready_to_prepare";
 }
 
 export function updateOrderStatus(db, orderId, input, adminUserId) {
@@ -845,12 +851,12 @@ export function updateOrderFulfillment(db, orderId, input, adminUserId) {
   db.prepare(`
     UPDATE orders SET fulfillment_status = ?, fulfillment_method = ?, fulfillment_carrier = ?,
       fulfillment_tracking = ?, fulfillment_estimated_date = ?, fulfillment_notes = ?,
-      status = CASE WHEN ? = 'shipped' THEN 'ready' WHEN ? = 'delivered' THEN 'delivered' ELSE status END,
+      status = CASE WHEN ? = 'delivered' THEN 'delivered' ELSE status END,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
     fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking,
-    fulfillmentEstimatedDate, fulfillmentNotes, fulfillmentStatus, fulfillmentStatus, orderId
+    fulfillmentEstimatedDate, fulfillmentNotes, fulfillmentStatus, orderId
   );
   addOrderEvent(db, orderId, adminUserId, "fulfillment_updated", reason, order, {
     fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking, fulfillmentEstimatedDate, fulfillmentNotes
@@ -936,6 +942,9 @@ function assertManualOrderState(order, status, paymentStatus) {
 
 function assertFulfillmentTransition(order, fulfillmentStatus, details) {
   assertOrderOpen(order, "Fulfillment cannot be updated");
+  if (order.modified_acceptance_required) {
+    throw new ValidationError("El cliente debe aceptar los cambios de disponibilidad antes de preparar el pedido.");
+  }
   if (fulfillmentStatus === "delivered") {
     throw new ValidationError("Customer reception must close delivered orders");
   }

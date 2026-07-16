@@ -636,9 +636,8 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/admin/orders") {
         return sendJson(response, 200, {
           orders: listAdminOrders(db, {
-            status: url.searchParams.get("status") || "",
+            stage: url.searchParams.get("stage") || "",
             paymentStatus: url.searchParams.get("payment") || "",
-            fulfillmentStatus: url.searchParams.get("fulfillment") || "",
             search: url.searchParams.get("q") || ""
           })
         });

@@ -447,6 +447,17 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(availabilityOrder.totalCents, 225_641);
   assert.equal(availabilityOrder.salesRep.commissionCents, 6527);
   assert.equal(availabilityOrder.modifiedAcceptanceRequired, true);
+  const awaitingAcceptanceOrders = await getJson(`${baseUrl}/api/admin/orders?stage=awaiting_acceptance`, adminCookie);
+  assert.equal(awaitingAcceptanceOrders.orders.some((order) => order.id === orderPayload.order.id), true);
+  db.prepare("UPDATE orders SET payment_status = 'credit_account' WHERE id = ?").run(orderPayload.order.id);
+  const blockedPreparationResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/fulfillment`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({ fulfillmentStatus: "ready", fulfillmentNotes: "No debe avanzar sin aceptacion" })
+  });
+  assert.equal(blockedPreparationResponse.status, 400);
+  assert.match((await blockedPreparationResponse.json()).error, /aceptar los cambios/i);
+  db.prepare("UPDATE orders SET payment_status = 'pending_payment' WHERE id = ?").run(orderPayload.order.id);
   const availabilityEmail = db.prepare("SELECT recipient, subject, text_body, html_body FROM email_outbox WHERE event_type = 'order_availability_customer'").get();
   assert.equal(availabilityEmail.recipient, "cliente-api@example.com");
   assert.equal(availabilityEmail.subject.includes(orderPayload.order.orderNumber), true);
@@ -473,6 +484,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(acceptanceResponse.status, 200);
   const acceptedOrder = (await acceptanceResponse.json()).order;
   assert.equal(acceptedOrder.modifiedAcceptanceRequired, false);
+  const awaitingPaymentOrders = await getJson(`${baseUrl}/api/admin/orders?stage=awaiting_payment`, adminCookie);
+  assert.equal(awaitingPaymentOrders.orders.some((order) => order.id === orderPayload.order.id), true);
   const customerOrders = await getJson(`${baseUrl}/api/orders`, customerCookie);
   assert.equal(customerOrders.orders[0].id, orderPayload.order.id);
   assert.equal(customerOrders.orders[0].paymentMethod, "bank_transfer");
@@ -550,6 +563,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(reviewReceiptResponse.status, 200);
   const paidOrder = (await reviewReceiptResponse.json()).order;
   assert.equal(paidOrder.paymentStatus, "paid");
+  const readyToPrepareOrders = await getJson(`${baseUrl}/api/admin/orders?stage=ready_to_prepare`, adminCookie);
+  assert.equal(readyToPrepareOrders.orders.some((order) => order.id === orderPayload.order.id), true);
   assert.equal(paidOrder.paymentReceipts[0].status, "accepted");
   const receiptCustomerEmail = db.prepare("SELECT recipient FROM email_outbox WHERE event_type = 'payment_receipt_customer'").get();
   assert.equal(receiptCustomerEmail.recipient, "cliente-api@example.com");
@@ -564,6 +579,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(readyResponse.status, 200);
   const readyOrder = (await readyResponse.json()).order;
   assert.equal(readyOrder.fulfillment.status, "ready");
+  const preparedOrders = await getJson(`${baseUrl}/api/admin/orders?stage=prepared`, adminCookie);
+  assert.equal(preparedOrders.orders.some((order) => order.id === orderPayload.order.id), true);
   const internalReadyEmail = db.prepare("SELECT COUNT(*) AS total FROM email_outbox WHERE event_type = 'order_fulfillment_customer'").get();
   assert.equal(internalReadyEmail.total, 0);
   const fulfillmentResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/fulfillment`, {
@@ -585,9 +602,10 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const fulfillmentEmail = db.prepare("SELECT recipient, text_body FROM email_outbox WHERE event_type = 'order_fulfillment_customer'").get();
   assert.equal(fulfillmentEmail.recipient, "cliente-api@example.com");
   assert.match(fulfillmentEmail.text_body, /REM-123/);
-  const filteredOrders = await getJson(`${baseUrl}/api/admin/orders?payment=paid&fulfillment=shipped&q=Comercio`, adminCookie);
+  const filteredOrders = await getJson(`${baseUrl}/api/admin/orders?payment=paid&stage=shipped&q=Comercio`, adminCookie);
   assert.equal(filteredOrders.orders.length, 1);
   assert.equal(filteredOrders.orders[0].fulfillment_status, "shipped");
+  assert.equal(filteredOrders.orders[0].stage, "shipped");
   const receivedResponse = await fetch(`${baseUrl}/api/orders/${orderPayload.order.id}/received`, {
     method: "POST",
     headers: jsonHeaders(customerCookie)
@@ -596,6 +614,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const receivedOrder = (await receivedResponse.json()).order;
   assert.equal(receivedOrder.status, "delivered");
   assert.equal(receivedOrder.fulfillment.status, "delivered");
+  const deliveredOrders = await getJson(`${baseUrl}/api/admin/orders?stage=delivered`, adminCookie);
+  assert.equal(deliveredOrders.orders.some((order) => order.id === orderPayload.order.id), true);
   const updatedOrderResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

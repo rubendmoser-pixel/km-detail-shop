@@ -431,35 +431,32 @@
             <div><p class="eyebrow">Operacion</p><h1>Pedidos</h1></div>
             <div class="admin-toolbar">
               <input id="orderSearch" type="search" placeholder="Buscar pedido, cliente o CUIT" aria-label="Buscar pedidos" />
-              <select id="orderStatusFilter" aria-label="Filtrar estado de pedido">
-                <option value="">Todos los estados</option>
-                <option value="order_created">Recibido</option>
-                <option value="availability_confirmed">Disponibilidad confirmada</option>
-                <option value="confirmed">Confirmado</option>
-                <option value="ready">Preparado para despacho</option>
+              <select id="orderStageFilter" aria-label="Filtrar etapa del pedido">
+                <option value="">Todas las etapas</option>
+                <option value="review_availability">Revisar disponibilidad</option>
+                <option value="awaiting_acceptance">Esperando aceptación del cliente</option>
+                <option value="awaiting_payment">Esperando pago</option>
+                <option value="ready_to_prepare">Listo para preparar</option>
+                <option value="prepared">Preparado para despacho</option>
+                <option value="shipped">Despachado</option>
+                <option value="delivered">Entregado</option>
                 <option value="cancelled">Cancelado</option>
               </select>
               <select id="orderPaymentFilter" aria-label="Filtrar estado de pago">
                 <option value="">Todos los pagos</option>
-                <option value="pending_payment">Pendiente</option>
-                <option value="receipt_uploaded">Comprobante cargado</option>
+                <option value="pending_payment">Pendiente de pago</option>
+                <option value="receipt_uploaded">Comprobante para revisar</option>
                 <option value="credit_account">Cuenta corriente</option>
                 <option value="settled_adjustment">Cerrado con ajuste</option>
                 <option value="overdue">Vencido</option>
                 <option value="paid">Pagado</option>
                 <option value="rejected">Rechazado</option>
               </select>
-              <select id="orderFulfillmentFilter" aria-label="Filtrar despacho">
-                <option value="">Todos los despachos</option>
-                <option value="pending">Pendiente de preparacion</option>
-                <option value="ready">Preparado para despacho</option>
-                <option value="shipped">Despachado</option>
-              </select>
-              <button class="ghost-button" id="reloadOrders" type="button">Actualizar</button>
+              <button class="ghost-button toolbar-refresh-button" id="reloadOrders" type="button">Actualizar</button>
             </div>
           </div>
           <div class="order-ops-grid" id="orderOpsStats"></div>
-          <div class="orders-table-wrap"><table class="admin-table orders-list-table mobile-card-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Origen</th><th>Comercial</th><th>Pago</th><th>Logistica</th><th>Total</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
+          <div class="orders-table-wrap"><table class="admin-table orders-list-table mobile-card-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Origen</th><th>Etapa</th><th>Pago</th><th>Total</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
           <section class="order-detail-panel" id="orderDetailPanel" hidden>
             <div class="order-detail-header">
               <div><p class="eyebrow">Detalle de pedido</p><h2 id="orderDetailTitle"></h2></div>
@@ -659,6 +656,6 @@
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
-    <script src="./admin.js?v=81" defer></script>
+    <script src="./admin.js?v=82" defer></script>
   </body>
 </html>

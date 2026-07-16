@@ -74,11 +74,33 @@ const fulfillmentStateClasses = {
   delivered: "done"
 };
 
+const orderStageLabels = {
+  review_availability: "Revisar disponibilidad",
+  awaiting_acceptance: "Esperando aceptación",
+  awaiting_payment: "Esperando pago",
+  ready_to_prepare: "Listo para preparar",
+  prepared: "Preparado para despacho",
+  shipped: "Despachado",
+  delivered: "Entregado",
+  cancelled: "Cancelado"
+};
+
+const orderStageClasses = {
+  review_availability: "info",
+  awaiting_acceptance: "warning",
+  awaiting_payment: "warning",
+  ready_to_prepare: "success",
+  prepared: "success",
+  shipped: "progress",
+  delivered: "done",
+  cancelled: "danger"
+};
+
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "toggleCustomerCreate",
   "customerCreatePanel", "customerCreateForm", "customerCreateMessage", "cancelCustomerCreate", "ordersTableBody",
-  "orderSearch", "orderStatusFilter", "orderPaymentFilter", "orderFulfillmentFilter", "orderOpsStats",
+  "orderSearch", "orderStageFilter", "orderPaymentFilter", "orderOpsStats",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
   "orderHistoryPanel",
   "availabilityForm", "availabilityPaymentCondition", "availabilityTermsField", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
@@ -147,9 +169,8 @@ function bindAdminEvents() {
   on(adminEls.linearPriceEffectiveDate, "change", renderLinearPricePreview);
   on(adminEls.saveLinearPrices, "click", saveLinearPriceUpdate);
   on(adminEls.orderSearch, "input", debounce(loadOrders, 250));
-  on(adminEls.orderStatusFilter, "change", loadOrders);
+  on(adminEls.orderStageFilter, "change", loadOrders);
   on(adminEls.orderPaymentFilter, "change", loadOrders);
-  on(adminEls.orderFulfillmentFilter, "change", loadOrders);
   on(byId("#reloadOrders"), "click", loadOrders);
   on(adminEls.ordersTableBody, "click", handleOrdersTableClick);
   on(byId("#closeOrderDetail"), "click", closeOrderDetail);
@@ -2370,21 +2391,23 @@ async function saveCustomerSalesRep(event) {
 async function loadOrders() {
   const params = new URLSearchParams();
   if (adminEls.orderSearch.value.trim()) params.set("q", adminEls.orderSearch.value.trim());
-  if (adminEls.orderStatusFilter.value) params.set("status", adminEls.orderStatusFilter.value);
+  if (adminEls.orderStageFilter.value) params.set("stage", adminEls.orderStageFilter.value);
   if (adminEls.orderPaymentFilter.value) params.set("payment", adminEls.orderPaymentFilter.value);
-  if (adminEls.orderFulfillmentFilter.value) params.set("fulfillment", adminEls.orderFulfillmentFilter.value);
   const { orders } = await adminApi(`/api/admin/orders${params.toString() ? `?${params}` : ""}`);
   adminState.orders = orders;
   renderOrderOpsStats(orders);
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
     <tr><td data-label="Pedido"><div class="order-code-cell">${customerClassBadge(order.commercial_class)}<strong>${escapeAdmin(order.order_number)}</strong></div></td><td data-label="Cliente">${escapeAdmin(order.business_name)}</td>
       <td data-label="Origen">${orderOriginBadge(order)}</td>
-      <td data-label="Comercial">${stateBadge(orderStatusText(order.status), orderStateClasses[order.status])}</td>
+      <td data-label="Etapa">${stateBadge(orderStageText(order.stage), orderStageClasses[order.stage])}</td>
       <td data-label="Pago">${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
-      <td data-label="Logistica">${stateBadge(fulfillmentStatusText(normalizedFulfillmentStatus(order.fulfillment_status)), fulfillmentStateClasses[normalizedFulfillmentStatus(order.fulfillment_status)])}</td>
       <td data-label="Total">${adminMoney.format(order.total_cents / 100)}</td><td data-label="Fecha">${formatDate(order.created_at)}</td>
       <td data-label="Detalle"><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
-  `).join("") : `<tr><td colspan="9">No hay pedidos para este filtro.</td></tr>`;
+  `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
+}
+
+function orderStageText(stage) {
+  return orderStageLabels[stage] || "En seguimiento";
 }
 
 function renderOrderOpsStats(orders) {
@@ -2804,7 +2827,7 @@ function canFulfillOrder(order) {
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready"].includes(order.status);
   const isReceivedByCustomer = order.status === "delivered" || order.fulfillment?.status === "delivered";
   const paymentAllowsFulfillment = ["paid", "credit_account", "settled_adjustment"].includes(order.paymentStatus);
-  return paymentAllowsFulfillment && availabilityConfirmed && !isReceivedByCustomer && order.status !== "cancelled";
+  return paymentAllowsFulfillment && availabilityConfirmed && !order.modifiedAcceptanceRequired && !isReceivedByCustomer && order.status !== "cancelled";
 }
 
 function canPrepareOrDispatchOrder(order) {
@@ -2849,7 +2872,9 @@ async function saveFulfillment(event) {
     await loadOrders();
     await loadOperationDashboard();
     renderOrderDetail();
-    adminEls.fulfillmentMessage.textContent = "Despacho guardado y email enviado.";
+    adminEls.fulfillmentMessage.textContent = values.fulfillmentStatus === "shipped"
+      ? "Pedido despachado y cliente notificado."
+      : "Pedido preparado. El cliente será notificado cuando se registre el despacho.";
   } catch (error) {
     adminEls.fulfillmentMessage.textContent = error.message;
   } finally {
