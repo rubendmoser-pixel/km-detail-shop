@@ -30,6 +30,7 @@ import {
   getOrder,
   getPaymentReceiptFile,
   listAdminOrders,
+  countAdminOrderScopes,
   listCustomerOrders,
   registerCurrentAccountPayment,
   reviewPaymentReceipt,
@@ -636,10 +637,12 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/admin/orders") {
         return sendJson(response, 200, {
           orders: listAdminOrders(db, {
+            scope: url.searchParams.get("scope") === "history" ? "history" : "active",
             stage: url.searchParams.get("stage") || "",
             paymentStatus: url.searchParams.get("payment") || "",
             search: url.searchParams.get("q") || ""
-          })
+          }),
+          scopes: countAdminOrderScopes(db)
         });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/availability$/);

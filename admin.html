@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=61" />
+    <link rel="stylesheet" href="./admin.css?v=62" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -429,18 +429,22 @@
         <section class="admin-view" id="ordersView" hidden>
           <div class="admin-titlebar">
             <div><p class="eyebrow">Operacion</p><h1>Pedidos</h1></div>
+            <div class="order-scope-tabs" id="orderScopeTabs" role="tablist" aria-label="Tipo de pedidos">
+              <button class="active" type="button" role="tab" aria-selected="true" data-order-scope="active">Pedidos activos <span id="activeOrdersCount">0</span></button>
+              <button type="button" role="tab" aria-selected="false" data-order-scope="history">Histórico <span id="historyOrdersCount">0</span></button>
+            </div>
             <div class="admin-toolbar">
-              <input id="orderSearch" type="search" placeholder="Buscar pedido, cliente o CUIT" aria-label="Buscar pedidos" />
+              <input id="orderSearch" type="search" placeholder="Buscar en pedidos activos" aria-label="Buscar en pedidos activos por número, cliente o CUIT" />
               <select id="orderStageFilter" aria-label="Filtrar etapa del pedido">
                 <option value="">Todas las etapas</option>
-                <option value="review_availability">Revisar disponibilidad</option>
-                <option value="awaiting_acceptance">Esperando aceptación del cliente</option>
-                <option value="awaiting_payment">Esperando pago</option>
-                <option value="ready_to_prepare">Listo para preparar</option>
-                <option value="prepared">Preparado para despacho</option>
-                <option value="shipped">Despachado</option>
-                <option value="delivered">Entregado</option>
-                <option value="cancelled">Cancelado</option>
+                <option value="review_availability" data-order-scope="active">Revisar disponibilidad</option>
+                <option value="awaiting_acceptance" data-order-scope="active">Esperando aceptación del cliente</option>
+                <option value="awaiting_payment" data-order-scope="active">Esperando pago</option>
+                <option value="ready_to_prepare" data-order-scope="active">Listo para preparar</option>
+                <option value="prepared" data-order-scope="active">Preparado para despacho</option>
+                <option value="shipped" data-order-scope="active">Despachado</option>
+                <option value="delivered" data-order-scope="history">Entregado</option>
+                <option value="cancelled" data-order-scope="history">Cancelado</option>
               </select>
               <select id="orderPaymentFilter" aria-label="Filtrar estado de pago">
                 <option value="">Todos los pagos</option>
@@ -656,6 +660,6 @@
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
-    <script src="./admin.js?v=83" defer></script>
+    <script src="./admin.js?v=84" defer></script>
   </body>
 </html>

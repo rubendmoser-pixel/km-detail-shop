@@ -308,6 +308,11 @@ export function listCustomerOrders(db, customerId) {
 export function listAdminOrders(db, filters = {}) {
   const where = [];
   const params = [];
+  if (filters.scope === "history") {
+    where.push("(o.status IN ('delivered', 'cancelled') OR o.fulfillment_status = 'delivered')");
+  } else {
+    where.push("(o.status NOT IN ('delivered', 'cancelled') AND COALESCE(o.fulfillment_status, 'pending') <> 'delivered')");
+  }
   if (filters.paymentStatus) {
     where.push("o.payment_status = ?");
     params.push(filters.paymentStatus);
@@ -329,6 +334,19 @@ export function listAdminOrders(db, filters = {}) {
   `).all(...params)
     .map((order) => ({ ...order, stage: orderOperationalStage(order) }))
     .filter((order) => !filters.stage || order.stage === filters.stage);
+}
+
+export function countAdminOrderScopes(db) {
+  const counts = db.prepare(`
+    SELECT
+      SUM(CASE WHEN status NOT IN ('delivered', 'cancelled') AND COALESCE(fulfillment_status, 'pending') <> 'delivered' THEN 1 ELSE 0 END) AS active,
+      SUM(CASE WHEN status IN ('delivered', 'cancelled') OR fulfillment_status = 'delivered' THEN 1 ELSE 0 END) AS history
+    FROM orders
+  `).get();
+  return {
+    active: Number(counts.active || 0),
+    history: Number(counts.history || 0)
+  };
 }
 
 export function orderOperationalStage(order) {

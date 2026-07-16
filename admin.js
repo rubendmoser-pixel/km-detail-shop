@@ -3,7 +3,8 @@ const adminState = {
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {},
-  priceProducts: [], priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all"
+  priceProducts: [], priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
+  orderScope: "active", orderSearches: { active: "", history: "" }
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const PRODUCT_UPLOAD_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -100,7 +101,7 @@ const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
   "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "toggleCustomerCreate",
   "customerCreatePanel", "customerCreateForm", "customerCreateMessage", "cancelCustomerCreate", "ordersTableBody",
-  "orderSearch", "orderStageFilter", "orderPaymentFilter", "orderOpsStats",
+  "orderSearch", "orderStageFilter", "orderPaymentFilter", "orderOpsStats", "orderScopeTabs", "activeOrdersCount", "historyOrdersCount",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
   "orderHistoryPanel",
   "availabilityForm", "availabilityPaymentCondition", "availabilityTermsField", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
@@ -122,6 +123,7 @@ const adminEls = Object.fromEntries([
 
 async function initAdmin() {
   bindAdminEvents();
+  syncOrderScopeControls();
   try {
     const { user } = await adminApi("/api/me");
     if (user.role !== "admin") throw new Error("Esta cuenta no tiene permisos administrativos.");
@@ -169,6 +171,7 @@ function bindAdminEvents() {
   on(adminEls.linearPriceEffectiveDate, "change", renderLinearPricePreview);
   on(adminEls.saveLinearPrices, "click", saveLinearPriceUpdate);
   on(adminEls.orderSearch, "input", debounce(loadOrders, 250));
+  on(adminEls.orderScopeTabs, "click", handleOrderScopeClick);
   on(adminEls.orderStageFilter, "change", loadOrders);
   on(adminEls.orderPaymentFilter, "change", loadOrders);
   on(byId("#reloadOrders"), "click", loadOrders);
@@ -2388,14 +2391,57 @@ async function saveCustomerSalesRep(event) {
   }
 }
 
+function handleOrderScopeClick(event) {
+  const button = event.target.closest("[data-order-scope]");
+  if (!button || !adminEls.orderScopeTabs.contains(button)) return;
+  const nextScope = button.dataset.orderScope === "history" ? "history" : "active";
+  if (nextScope === adminState.orderScope) return;
+  adminState.orderSearches[adminState.orderScope] = adminEls.orderSearch.value.trim();
+  adminState.orderScope = nextScope;
+  adminEls.orderSearch.value = adminState.orderSearches[nextScope] || "";
+  adminEls.orderStageFilter.value = "";
+  adminEls.orderPaymentFilter.value = "";
+  closeOrderDetail();
+  syncOrderScopeControls();
+  loadOrders();
+}
+
+function syncOrderScopeControls() {
+  const isHistory = adminState.orderScope === "history";
+  adminEls.orderScopeTabs?.querySelectorAll("[data-order-scope]").forEach((button) => {
+    const selected = button.dataset.orderScope === adminState.orderScope;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-selected", String(selected));
+  });
+  if (adminEls.orderSearch) {
+    adminEls.orderSearch.placeholder = isHistory ? "Buscar en el histórico" : "Buscar en pedidos activos";
+    adminEls.orderSearch.setAttribute("aria-label", `${isHistory ? "Buscar en el histórico" : "Buscar en pedidos activos"} por número, cliente o CUIT`);
+  }
+  if (adminEls.orderStageFilter) {
+    adminEls.orderStageFilter.options[0].textContent = isHistory ? "Todos los históricos" : "Todas las etapas";
+    [...adminEls.orderStageFilter.options].slice(1).forEach((option) => {
+      const visible = option.dataset.orderScope === adminState.orderScope;
+      option.hidden = !visible;
+      option.disabled = !visible;
+    });
+  }
+  if (adminEls.orderOpsStats) adminEls.orderOpsStats.hidden = isHistory;
+}
+
 async function loadOrders() {
+  const requestedScope = adminState.orderScope;
   const params = new URLSearchParams();
+  params.set("scope", requestedScope);
   if (adminEls.orderSearch.value.trim()) params.set("q", adminEls.orderSearch.value.trim());
   if (adminEls.orderStageFilter.value) params.set("stage", adminEls.orderStageFilter.value);
   if (adminEls.orderPaymentFilter.value) params.set("payment", adminEls.orderPaymentFilter.value);
-  const { orders } = await adminApi(`/api/admin/orders${params.toString() ? `?${params}` : ""}`);
+  const { orders, scopes = {} } = await adminApi(`/api/admin/orders?${params}`);
+  if (requestedScope !== adminState.orderScope) return;
+  adminState.orderSearches[adminState.orderScope] = adminEls.orderSearch.value.trim();
+  adminEls.activeOrdersCount.textContent = Number(scopes.active || 0);
+  adminEls.historyOrdersCount.textContent = Number(scopes.history || 0);
   adminState.orders = orders;
-  renderOrderOpsStats(orders);
+  if (adminState.orderScope === "active") renderOrderOpsStats(orders);
   adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => {
     const nextAction = orderNextAction(order.stage, order.payment_status, order.balance_cents);
     return `
@@ -2406,7 +2452,7 @@ async function loadOrders() {
       <td data-label="Pago">${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
       <td data-label="Total">${adminMoney.format(order.total_cents / 100)}</td><td data-label="Fecha">${formatDate(order.created_at)}</td>
       <td data-label="Detalle"><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>`;
-  }).join("") : `<tr><td colspan="9">No hay pedidos para este filtro.</td></tr>`;
+  }).join("") : `<tr><td colspan="9">${adminState.orderScope === "history" ? "No hay pedidos históricos para esta búsqueda." : "No hay pedidos activos para este filtro."}</td></tr>`;
 }
 
 function orderStageText(stage) {

@@ -614,8 +614,13 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const receivedOrder = (await receivedResponse.json()).order;
   assert.equal(receivedOrder.status, "delivered");
   assert.equal(receivedOrder.fulfillment.status, "delivered");
-  const deliveredOrders = await getJson(`${baseUrl}/api/admin/orders?stage=delivered`, adminCookie);
+  const activeOrdersAfterDelivery = await getJson(`${baseUrl}/api/admin/orders`, adminCookie);
+  assert.equal(activeOrdersAfterDelivery.orders.some((order) => order.id === orderPayload.order.id), false);
+  assert.equal(activeOrdersAfterDelivery.scopes.active > 0, true);
+  assert.equal(activeOrdersAfterDelivery.scopes.history > 0, true);
+  const deliveredOrders = await getJson(`${baseUrl}/api/admin/orders?scope=history&stage=delivered&q=Comercio`, adminCookie);
   assert.equal(deliveredOrders.orders.some((order) => order.id === orderPayload.order.id), true);
+  assert.equal(deliveredOrders.orders.every((order) => ["delivered", "cancelled"].includes(order.stage)), true);
   const updatedOrderResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

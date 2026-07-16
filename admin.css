@@ -335,6 +335,59 @@
   margin-bottom: 24px;
 }
 
+#ordersView .admin-titlebar {
+  flex-wrap: wrap;
+}
+
+#ordersView .admin-toolbar {
+  flex: 1 1 100%;
+  justify-content: flex-end;
+}
+
+.order-scope-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 5px;
+  background: #101114;
+  border: 1px solid #34363b;
+  border-radius: 10px;
+}
+
+.order-scope-tabs button {
+  min-height: 42px;
+  padding: 8px 14px;
+  color: #c9ccd2;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.order-scope-tabs button.active {
+  color: #090a0d;
+  background: linear-gradient(135deg, #d9d6ff, #9188ff);
+  border-color: #c4c0ff;
+}
+
+.order-scope-tabs span {
+  display: inline-grid;
+  min-width: 24px;
+  height: 24px;
+  margin-left: 5px;
+  padding-inline: 6px;
+  place-items: center;
+  color: #f5f6f7;
+  background: #292b31;
+  border-radius: 999px;
+  font-size: 0.76rem;
+}
+
+.order-scope-tabs button.active span {
+  color: #f5f6f7;
+  background: #343052;
+}
+
 .admin-toolbar {
   display: flex;
   align-items: center;
@@ -3787,6 +3840,21 @@ button.operation-row:hover {
   .admin-toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .order-scope-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .order-scope-tabs button {
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  #ordersView .admin-toolbar {
+    width: 100%;
   }
 
   .admin-tabs {
