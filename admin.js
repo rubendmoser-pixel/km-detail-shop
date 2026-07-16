@@ -2396,18 +2396,108 @@ async function loadOrders() {
   const { orders } = await adminApi(`/api/admin/orders${params.toString() ? `?${params}` : ""}`);
   adminState.orders = orders;
   renderOrderOpsStats(orders);
-  adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => `
-    <tr><td data-label="Pedido"><div class="order-code-cell">${customerClassBadge(order.commercial_class)}<strong>${escapeAdmin(order.order_number)}</strong></div></td><td data-label="Cliente">${escapeAdmin(order.business_name)}</td>
+  adminEls.ordersTableBody.innerHTML = orders.length ? orders.map((order) => {
+    const nextAction = orderNextAction(order.stage, order.payment_status, order.balance_cents);
+    return `
+    <tr class="order-list-card ${escapeAdmin(nextAction.tone)}"><td data-label="Pedido"><div class="order-code-cell">${customerClassBadge(order.commercial_class)}<strong>${escapeAdmin(order.order_number)}</strong></div></td><td class="order-customer-cell" data-label="Cliente"><strong>${escapeAdmin(order.business_name)}</strong></td>
       <td data-label="Origen">${orderOriginBadge(order)}</td>
       <td data-label="Etapa">${stateBadge(orderStageText(order.stage), orderStageClasses[order.stage])}</td>
+      <td class="order-list-next-action ${escapeAdmin(nextAction.tone)}" data-label="Próxima acción"><strong>${escapeAdmin(nextAction.short)}</strong></td>
       <td data-label="Pago">${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
       <td data-label="Total">${adminMoney.format(order.total_cents / 100)}</td><td data-label="Fecha">${formatDate(order.created_at)}</td>
-      <td data-label="Detalle"><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>
-  `).join("") : `<tr><td colspan="8">No hay pedidos para este filtro.</td></tr>`;
+      <td data-label="Detalle"><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>`;
+  }).join("") : `<tr><td colspan="9">No hay pedidos para este filtro.</td></tr>`;
 }
 
 function orderStageText(stage) {
   return orderStageLabels[stage] || "En seguimiento";
+}
+
+function orderNextAction(stage, paymentStatus = "", balanceCents = 0) {
+  if (stage === "cancelled") return {
+    title: "Pedido cancelado",
+    short: "Sin acciones pendientes",
+    body: "No hay acciones operativas pendientes. Los ajustes manuales quedan bloqueados para preservar el historial.",
+    tone: "danger"
+  };
+  if (stage === "delivered") return {
+    title: "Pedido recibido por el cliente",
+    short: "Operación finalizada",
+    body: "El cliente confirmó la recepción. La operación queda cerrada como historial y no hay acciones de despacho pendientes.",
+    tone: "done"
+  };
+  if (stage === "shipped") return {
+    title: "Esperando recepción del cliente",
+    short: "Esperar confirmación de recepción",
+    body: "El pedido ya fue despachado. No hay acciones operativas pendientes hasta que el cliente confirme la recepción desde Mis compras.",
+    tone: "done"
+  };
+  if (stage === "review_availability") return {
+    title: "Próxima acción: preparar y confirmar disponibilidad",
+    short: "Confirmar disponibilidad",
+    body: "Imprimí la preparación, controlá los artículos disponibles, ajustá parciales si corresponde y confirmá la disponibilidad al cliente.",
+    tone: "info"
+  };
+  if (stage === "awaiting_acceptance") return {
+    title: "Próxima acción: esperar aceptación del cliente",
+    short: "Esperar aceptación del cliente",
+    body: "El pedido tuvo cambios de cantidades o artículos. El cliente debe aceptar la propuesta antes de avanzar con el pago o la preparación.",
+    tone: "warning"
+  };
+  if (paymentStatus === "overdue") return {
+    title: "Saldo vencido",
+    short: "Revisar saldo vencido",
+    body: `El pedido tiene saldo vencido por ${adminMoney.format((balanceCents || 0) / 100)}. Revisá la condición comercial antes de avanzar.`,
+    tone: "danger"
+  };
+  if (paymentStatus === "receipt_uploaded") return {
+    title: "Próxima acción: revisar comprobante",
+    short: "Revisar comprobante de pago",
+    body: "Hay un comprobante cargado. Aceptalo si el pago está acreditado o rechazalo indicando el motivo.",
+    tone: "progress"
+  };
+  if (paymentStatus === "rejected") return {
+    title: "Próxima acción: corregir pago",
+    short: "Coordinar corrección del pago",
+    body: "El último comprobante fue rechazado. Esperá una nueva carga del cliente o coordiná la corrección por WhatsApp o email.",
+    tone: "danger"
+  };
+  if (stage === "awaiting_payment") return {
+    title: "Próxima acción: esperar comprobante de pago",
+    short: "Esperar comprobante de pago",
+    body: "La disponibilidad ya fue confirmada. El cliente debe cargar o enviar el comprobante para avanzar con la preparación y el despacho.",
+    tone: "warning"
+  };
+  if (stage === "ready_to_prepare") return {
+    title: "Próxima acción: preparar pedido",
+    short: "Preparar pedido",
+    body: "Imprimí la preparación, controlá artículos y bultos, y marcá el pedido como preparado para despacho.",
+    tone: "success"
+  };
+  if (stage === "prepared") return {
+    title: "Próxima acción: despachar pedido",
+    short: "Completar datos y despachar",
+    body: "Cargá modalidad, transporte, guía o remito y fecha de salida. Luego marcá el pedido como despachado.",
+    tone: "progress"
+  };
+  return {
+    title: "Pedido en seguimiento",
+    short: "Revisar estado del pedido",
+    body: "No hay una acción automática sugerida para esta combinación de estados. Usá ajustes avanzados solo si necesitás corregir el flujo.",
+    tone: "neutral"
+  };
+}
+
+function detailedOrderStage(order) {
+  const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
+  if (order.status === "cancelled") return "cancelled";
+  if (order.status === "delivered" || fulfillmentStatus === "delivered") return "delivered";
+  if (fulfillmentStatus === "shipped") return "shipped";
+  if (fulfillmentStatus === "ready") return "prepared";
+  if (order.status === "order_created") return "review_availability";
+  if (order.modifiedAcceptanceRequired) return "awaiting_acceptance";
+  if (!["paid", "credit_account", "settled_adjustment"].includes(order.paymentStatus)) return "awaiting_payment";
+  return "ready_to_prepare";
 }
 
 function renderOrderOpsStats(orders) {
@@ -2714,57 +2804,9 @@ function renderOrderWorkflow(order) {
   adminEls.fulfillmentForm.hidden = !canManageFulfillment;
   adminEls.orderAdvancedPanel.hidden = isCancelled || isClosed;
   adminEls.orderAdvancedPanel.open = false;
-
-  if (isCancelled) {
-    renderNextStep("Pedido cancelado", "No hay acciones operativas pendientes. Los ajustes manuales quedan bloqueados para preservar el historial.", "danger");
-    return;
-  }
-  if (isClosed) {
-    renderNextStep("Pedido recibido por el cliente", "El cliente confirmo la recepcion. La operacion queda cerrada como historial y no hay acciones de despacho pendientes.", "done");
-    return;
-  }
-  if (canConfirmAvailability) {
-    resetAvailabilityPaymentFields(order);
-    renderNextStep("Proxima accion: preparar y confirmar disponibilidad", "Imprimi la preparacion, controla articulos disponibles, ajusta parciales si corresponde y confirma disponibilidad al cliente.", "info");
-    return;
-  }
-  if (availabilityConfirmed && order.paymentStatus === "pending_payment") {
-    renderNextStep("Proxima accion: esperar comprobante de pago", "La disponibilidad ya fue confirmada. El cliente debe cargar o enviar el comprobante para avanzar con preparacion y despacho.", "warning");
-    return;
-  }
-  if (order.paymentStatus === "overdue") {
-    renderNextStep("Saldo vencido", `El pedido tiene saldo vencido por ${adminMoney.format((order.balanceCents || 0) / 100)}. Revisar condicion comercial antes de avanzar.`, "danger");
-    return;
-  }
-  if (order.paymentStatus === "receipt_uploaded") {
-    renderNextStep("Proxima accion: revisar comprobante", "Hay un comprobante cargado. Aceptalo si el pago esta acreditado o rechazalo indicando el motivo.", "progress");
-    return;
-  }
-  if (order.paymentStatus === "rejected") {
-    renderNextStep("Proxima accion: corregir pago", "El ultimo comprobante fue rechazado. Espera una nueva carga del cliente o coordina la correccion por WhatsApp/email.", "danger");
-    return;
-  }
-  if (isCreditAccount && (order.balanceCents || 0) > 0 && !canManageFulfillment) {
-    renderNextStep("Cobro en Cta. corriente", "El saldo pendiente se administra desde Cta. corriente. En Pedidos quedan solo las acciones operativas de preparacion y despacho.", "info");
-    return;
-  }
-  if (fulfillmentStatus === "shipped") {
-    renderNextStep("Esperando recepcion del cliente", "El pedido ya fue despachado. No hay acciones operativas pendientes hasta que el cliente confirme la recepcion desde Mis compras.", "done");
-    return;
-  }
-  if (canManageFulfillment) {
-    if (fulfillmentStatus === "pending") {
-      renderNextStep("Proxima accion: preparar pedido", "Imprimi preparacion, controla articulos y bultos, y marca el pedido como preparado para despacho.", "success");
-      return;
-    }
-    if (fulfillmentStatus === "ready") {
-      renderNextStep("Proxima accion: despachar pedido", "Carga modalidad, transporte, guia/remito y fecha de salida. Luego marca el pedido como despachado.", "progress");
-      return;
-    }
-    renderNextStep("Proxima accion: preparar despacho", "El pedido esta habilitado para logistica.", "success");
-    return;
-  }
-  renderNextStep("Pedido en seguimiento", "No hay una accion automatica sugerida para esta combinacion de estados. Usa ajustes avanzados solo si necesitas corregir el flujo.", "neutral");
+  if (canConfirmAvailability) resetAvailabilityPaymentFields(order);
+  const nextAction = orderNextAction(detailedOrderStage(order), order.paymentStatus, order.balanceCents);
+  renderNextStep(nextAction.title, nextAction.body, nextAction.tone);
 }
 
 function renderOrderHistory(order) {

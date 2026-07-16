@@ -150,6 +150,43 @@
     justify-content: flex-start;
   }
 
+  #ordersView .orders-list-table tr.order-list-card.info { box-shadow: inset 5px 0 0 #70b7ff; }
+  #ordersView .orders-list-table tr.order-list-card.warning { box-shadow: inset 5px 0 0 #f1c94a; }
+  #ordersView .orders-list-table tr.order-list-card.progress { box-shadow: inset 5px 0 0 #a98df2; }
+  #ordersView .orders-list-table tr.order-list-card.success { box-shadow: inset 5px 0 0 #86d69a; }
+  #ordersView .orders-list-table tr.order-list-card.danger { box-shadow: inset 5px 0 0 #ff7676; }
+  #ordersView .orders-list-table tr.order-list-card.done { box-shadow: inset 5px 0 0 #79c7b0; }
+
+  #ordersView .orders-list-table .order-customer-cell {
+    margin: 3px 0;
+    padding: 11px 10px;
+    background: #0f1115;
+    border-radius: 7px;
+  }
+
+  #ordersView .orders-list-table .order-customer-cell strong {
+    color: #fff;
+    font-size: 1.05rem;
+    line-height: 1.25;
+  }
+
+  #ordersView .orders-list-table .order-list-next-action {
+    margin: 4px 0;
+    padding: 12px 10px;
+    border-radius: 7px;
+  }
+
+  #ordersView .orders-list-table .order-list-next-action::before {
+    color: currentColor;
+    opacity: 0.76;
+  }
+
+  #ordersView .orders-list-table .order-list-next-action strong {
+    color: #fff;
+    font-size: 0.94rem;
+    line-height: 1.35;
+  }
+
   #ordersView .availability-table tr {
     box-shadow: inset 4px 0 0 rgba(120, 183, 255, 0.78);
   }
@@ -1981,6 +2018,24 @@
   min-height: 42px;
 }
 
+.orders-list-table .order-customer-cell strong {
+  color: #f7f7f5;
+  font-size: 0.96rem;
+}
+
+.orders-list-table .order-list-next-action {
+  min-width: 190px;
+  border-left: 4px solid #8a8f98;
+  background: rgba(138, 143, 152, 0.1);
+}
+
+.orders-list-table .order-list-next-action.info { color: #b9dcff; border-left-color: #70b7ff; background: rgba(63, 137, 211, 0.14); }
+.orders-list-table .order-list-next-action.warning { color: #ffe798; border-left-color: #f1c94a; background: rgba(176, 135, 17, 0.16); }
+.orders-list-table .order-list-next-action.progress { color: #d7c9ff; border-left-color: #a98df2; background: rgba(119, 83, 204, 0.16); }
+.orders-list-table .order-list-next-action.success { color: #bdf2c9; border-left-color: #86d69a; background: rgba(63, 151, 85, 0.16); }
+.orders-list-table .order-list-next-action.danger { color: #ffc1c1; border-left-color: #ff7676; background: rgba(190, 61, 61, 0.16); }
+.orders-list-table .order-list-next-action.done { color: #bde9dc; border-left-color: #79c7b0; background: rgba(59, 135, 113, 0.16); }
+
 .order-next-step {
   display: grid;
   gap: 6px;
@@ -2007,23 +2062,28 @@
 
 .order-next-step.warning {
   border-left-color: #f1c94a;
+  background: linear-gradient(135deg, rgba(132, 98, 8, 0.48), rgba(38, 31, 15, 0.96));
 }
 
 .order-next-step.info {
   border-left-color: #70b7ff;
+  background: linear-gradient(135deg, rgba(32, 91, 150, 0.5), rgba(18, 30, 43, 0.96));
 }
 
 .order-next-step.progress {
   border-left-color: #a98df2;
+  background: linear-gradient(135deg, rgba(84, 57, 148, 0.52), rgba(29, 23, 44, 0.96));
 }
 
 .order-next-step.success,
 .order-next-step.done {
   border-left-color: #86d69a;
+  background: linear-gradient(135deg, rgba(39, 111, 57, 0.5), rgba(19, 37, 24, 0.96));
 }
 
 .order-next-step.danger {
   border-left-color: #ff7676;
+  background: linear-gradient(135deg, rgba(139, 43, 43, 0.52), rgba(43, 20, 20, 0.96));
 }
 
 .order-history-panel {
