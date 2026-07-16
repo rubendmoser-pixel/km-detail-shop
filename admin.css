@@ -3730,24 +3730,16 @@ button.operation-row:hover {
   }
 
   .admin-tabs {
-    grid-template-rows: repeat(2, 48px);
-    grid-template-columns: none;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(132px, 44vw);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
-    margin-bottom: 18px;
-    padding: 2px 2px 14px;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scroll-snap-type: inline proximity;
-    scrollbar-width: thin;
+    margin-bottom: 22px;
+    padding-bottom: 16px;
   }
 
   .admin-tabs button {
     min-height: 48px;
     padding: 10px 8px;
     font-size: 0.86rem;
-    scroll-snap-align: start;
   }
 
   .admin-titlebar h1 {
