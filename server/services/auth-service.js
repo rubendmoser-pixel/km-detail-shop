@@ -32,7 +32,7 @@ export async function registerCustomer(db, input) {
   const email = normalizeEmail(input.email);
   const passwordHash = await hashPassword(input.password);
   if (input.acceptTerms !== true || input.acceptPrivacy !== true) {
-    throw new ValidationError("Terms and privacy policy must be accepted");
+    throw new ValidationError("Tenés que aceptar los términos comerciales y la política de privacidad.", { field: "acceptTerms", code: "required" });
   }
 
   const customer = Object.fromEntries(CUSTOMER_FIELDS.map((field) => [field, requiredText(input[field], field)]));
@@ -71,14 +71,14 @@ export async function registerCustomer(db, input) {
     });
   } catch (error) {
     if (String(error.message).includes("UNIQUE constraint failed")) {
-      throw new ValidationError("Email or tax ID is already registered");
+      throw new ValidationError("Ya existe una cuenta registrada con ese email o CUIT.", { field: "email", code: "duplicate" });
     }
     throw error;
   }
 }
 
 export function allowedValue(value, allowed, field) {
-  if (!allowed.has(value)) throw new ValidationError(`${field} is invalid`);
+  if (!allowed.has(value)) throw new ValidationError(`Revisá el valor seleccionado en ${field}.`, { field, code: "invalid" });
   return value;
 }
 
@@ -104,7 +104,7 @@ export function normalizePhone(value, field) {
 
 export function normalizePostalCode(value) {
   const normalized = String(value || "").trim().toUpperCase();
-  if (!/^([A-Z]\d{4}[A-Z]{3}|\d{4})$/.test(normalized)) throw new ValidationError("postalCode is invalid");
+  if (!/^([A-Z]\d{4}[A-Z]{3}|\d{4})$/.test(normalized)) throw new ValidationError("Ingresá un código postal argentino válido.", { field: "postalCode", code: "invalid" });
   return normalized;
 }
 
@@ -118,9 +118,9 @@ export async function login(db, { email: rawEmail, password }, sessionDays, conf
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     user = await repairAdminLogin(db, email, password, config);
-    if (!user) throw new AuthError("Invalid email or password");
+    if (!user) throw new AuthError("El email o la contraseña no son correctos.");
   }
-  if (user.status !== "active") throw new AuthError("User is not active", 403);
+  if (user.status !== "active") throw new AuthError("La cuenta está inactiva. Contactá a KM Detail Line.", 403);
 
   const { token, tokenHash } = createSessionToken();
   const expiresAt = new Date(Date.now() + sessionDays * 86_400_000).toISOString();
@@ -203,7 +203,7 @@ export async function resetPassword(db, token, password, config = {}) {
     JOIN users u ON u.id = prt.user_id
     WHERE prt.token_hash = ? AND prt.used_at IS NULL AND prt.expires_at > ?
   `).get(hashToken(normalizedToken), new Date().toISOString());
-  if (!reset) throw new ValidationError("Password reset link is invalid or expired");
+  if (!reset) throw new ValidationError("El enlace de recuperación es inválido o venció. Solicitá uno nuevo.", { field: "token", code: "expired" });
   const passwordHash = await hashPassword(password);
   transaction(db, () => {
     if (isConfiguredAdminEmail(reset.email, config)) {
@@ -229,14 +229,14 @@ export function requireUser(user) {
 
 export function requireAdmin(user) {
   requireUser(user);
-  if (user.role !== "admin") throw new AuthError("Administrator permission required", 403);
+  if (user.role !== "admin") throw new AuthError("Necesitás permisos de administrador para realizar esta acción.", 403);
   return user;
 }
 
 export function requireApprovedCustomer(user) {
   requireUser(user);
   if (user.role !== "customer" || user.approvalStatus !== "approved") {
-    throw new AuthError("Approved customer account required", 403);
+    throw new AuthError("La cuenta de cliente debe estar aprobada para continuar.", 403);
   }
   return user;
 }

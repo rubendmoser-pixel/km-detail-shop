@@ -61,7 +61,7 @@ export function listCustomers(db, filters = "") {
 
 export async function createAdminCustomer(db, input = {}, adminUserId) {
   const email = normalizeEmail(input.email);
-  const password = requiredText(String(input.password || ""), "password", { min: 8, max: 100 });
+  const password = requiredText(String(input.password || ""), "password", { min: 10, max: 200 });
   const passwordHash = await hashPassword(password);
   const customer = {
     firstName: requiredText(input.firstName, "firstName", { max: 120 }),
@@ -128,7 +128,7 @@ export async function createAdminCustomer(db, input = {}, adminUserId) {
     });
   } catch (error) {
     if (String(error.message).includes("UNIQUE constraint failed")) {
-      throw new ValidationError("Email o CUIT ya registrado");
+      throw new ValidationError("Ya existe una cuenta registrada con ese email o CUIT.", { field: "email", code: "duplicate" });
     }
     throw error;
   }
@@ -191,14 +191,14 @@ export function updateCustomerProfile(db, customerId, input = {}) {
     });
   } catch (error) {
     if (String(error.message).includes("UNIQUE constraint failed")) {
-      throw new ValidationError("Email o CUIT ya registrado");
+      throw new ValidationError("Ya existe una cuenta registrada con ese email o CUIT.", { field: "email", code: "duplicate" });
     }
     throw error;
   }
 }
 
 export function setCustomerStatus(db, customerId, status, adminUserId, commercialClass = "") {
-  if (!ALLOWED_STATUSES.has(status)) throw new ValidationError("Invalid customer status");
+  if (!ALLOWED_STATUSES.has(status)) throw new ValidationError("El estado del cliente no es válido.", { field: "status", code: "invalid" });
   const previous = db.prepare("SELECT approval_status, commercial_class FROM customers WHERE id = ?").get(customerId);
   if (!previous) throw new NotFoundError("Customer not found");
   const normalizedClass = commercialClass ? normalizeCommercialClass(commercialClass) : previous.commercial_class || "B";
@@ -270,10 +270,10 @@ export function upsertCustomerProductDiscount(db, customerId, input = {}, adminU
   ensureCustomer(db, customerId);
   const product = resolveProductForSpecialDiscount(db, input);
   const discountBps = basisPoints(Number(input.discountBps || 0), "discountBps");
-  if (discountBps <= 0) throw new ValidationError("discountBps must be greater than zero");
+  if (discountBps <= 0) throw new ValidationError("El descuento debe ser mayor que cero.", { field: "discountBps", code: "range" });
   const startsAt = optionalDate(input.startsAt, "startsAt");
   const endsAt = optionalDate(input.endsAt, "endsAt");
-  if (startsAt && endsAt && startsAt > endsAt) throw new ValidationError("startsAt cannot be after endsAt");
+  if (startsAt && endsAt && startsAt > endsAt) throw new ValidationError("La fecha de inicio no puede ser posterior a la fecha de finalización.", { field: "endsAt", code: "date_order" });
   const active = input.active === false ? 0 : 1;
   const note = optionalText(input.note, "note", { max: 500 });
   const row = db.prepare(`
@@ -332,7 +332,7 @@ export function getCustomerPricingContext(db, customerId) {
 
 function ensureCustomer(db, customerId) {
   const id = Number(customerId);
-  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("customerId is invalid");
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("El cliente seleccionado no es válido.", { field: "customerId", code: "invalid" });
   const customer = db.prepare("SELECT id FROM customers WHERE id = ?").get(id);
   if (!customer) throw new NotFoundError("Customer not found");
   return customer;
@@ -354,7 +354,7 @@ function resolveProductForSpecialDiscount(db, input = {}) {
 function optionalDate(value, field) {
   const text = optionalText(value, field, { max: 10 });
   if (!text) return "";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new ValidationError(`${field} must be YYYY-MM-DD`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new ValidationError("Ingresá una fecha válida.", { field, code: "invalid_date" });
   return text;
 }
 
@@ -379,7 +379,7 @@ function customerProductDiscount(row) {
 function normalizeOptionalSalesRep(db, value) {
   const id = Number(value || 0);
   if (!id) return null;
-  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("salesRepId is invalid");
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("El vendedor seleccionado no es válido.", { field: "salesRepId", code: "invalid" });
   const rep = db.prepare("SELECT id FROM sales_reps WHERE id = ?").get(id);
   if (!rep) throw new NotFoundError("Sales rep not found");
   return id;
@@ -392,7 +392,7 @@ function normalizeOptionalCommission(value) {
 
 function normalizeCommercialClass(value) {
   const normalized = String(value || "").trim().toUpperCase();
-  if (!ALLOWED_COMMERCIAL_CLASSES.has(normalized)) throw new ValidationError("Invalid customer class");
+  if (!ALLOWED_COMMERCIAL_CLASSES.has(normalized)) throw new ValidationError("La categoría comercial del cliente no es válida.", { field: "commercialClass", code: "invalid" });
   return normalized;
 }
 
@@ -400,7 +400,7 @@ function normalizeCustomerPaymentCondition(value) {
   const normalized = String(value || "advance_payment").trim();
   const condition = normalized === "prepaid" ? "advance_payment" : normalized;
   if (!ALLOWED_PAYMENT_CONDITIONS.has(condition)) {
-    throw new ValidationError("Invalid customer payment condition");
+    throw new ValidationError("La condición de pago del cliente no es válida.", { field: "paymentCondition", code: "invalid" });
   }
   return condition;
 }
@@ -408,7 +408,7 @@ function normalizeCustomerPaymentCondition(value) {
 function normalizeCustomerPaymentTermsDays(value) {
   const days = Number(value || 0);
   if (!Number.isInteger(days) || days < 1 || days > 365) {
-    throw new ValidationError("paymentTermsDays must be between 1 and 365");
+    throw new ValidationError("Los días de cuenta corriente deben estar entre 1 y 365.", { field: "paymentTermsDays", code: "range", min: 1, max: 365 });
   }
   return days;
 }

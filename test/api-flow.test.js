@@ -228,6 +228,32 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   });
   assert.equal(salesRepResponse.status, 201);
   const salesRep = (await salesRepResponse.json()).salesRep;
+  assert.equal(Boolean(salesRep.has_portal_access), true);
+
+  const sellerWithoutAccessResponse = await fetch(`${baseUrl}/api/admin/sales-reps`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      name: "Vendedor sin portal",
+      email: "vendedor-sin-portal@km-detail.com",
+      portalAccessEnabled: false,
+      defaultCommissionBps: 0,
+      status: "active"
+    })
+  });
+  assert.equal(sellerWithoutAccessResponse.status, 201);
+  const sellerWithoutAccess = (await sellerWithoutAccessResponse.json()).salesRep;
+  assert.equal(Boolean(sellerWithoutAccess.has_portal_access), false);
+
+  const missingSellerPasswordResponse = await fetch(`${baseUrl}/api/admin/sales-reps`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({ ...sellerWithoutAccess, portalAccessEnabled: true })
+  });
+  assert.equal(missingSellerPasswordResponse.status, 400);
+  const missingSellerPassword = await missingSellerPasswordResponse.json();
+  assert.equal(missingSellerPassword.details.field, "portalPassword");
+  assert.match(missingSellerPassword.error, /clave/i);
   assert.equal((await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/sales-rep`, {
     method: "PATCH",
     headers: jsonHeaders(adminCookie),

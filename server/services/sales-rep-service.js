@@ -65,7 +65,7 @@ export async function requestCommercialCustomer(db, salesRep, input = {}) {
       };
     });
   } catch (error) {
-    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Email or CUIT already registered");
+    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Ya existe una cuenta registrada con ese email o CUIT.", { field: "email", code: "duplicate" });
     throw error;
   }
 }
@@ -76,7 +76,7 @@ export function listSalesReps(db, filters = {}) {
   const where = [];
   const params = [];
   if (status) {
-    if (!SALES_REP_STATUSES.has(status)) throw new ValidationError("Invalid sales rep status");
+    if (!SALES_REP_STATUSES.has(status)) throw new ValidationError("El estado del vendedor no es válido.", { field: "status", code: "invalid" });
     where.push("status = ?");
     params.push(status);
   }
@@ -307,6 +307,8 @@ export function getSalesRepProfile(db, salesRepId) {
 
 export async function upsertSalesRep(db, input = {}) {
   const id = Number(input.id || 0);
+  const existing = id ? db.prepare("SELECT id, password_hash FROM sales_reps WHERE id = ?").get(id) : null;
+  if (id && !existing) throw new NotFoundError("Vendedor no encontrado");
   const name = requiredText(input.name, "name", { min: 2, max: 160 });
   const email = normalizeEmail(input.email);
   const phone = optionalText(input.phone, "phone", { max: 60 });
@@ -319,34 +321,38 @@ export async function upsertSalesRep(db, input = {}) {
   const bankAlias = optionalText(input.bankAlias, "bankAlias", { max: 80 });
   const defaultCommissionBps = basisPoints(Math.round(Number(input.defaultCommissionBps || 0)), "defaultCommissionBps");
   const status = optionalText(input.status, "status", { max: 20 }) || "active";
-  if (!SALES_REP_STATUSES.has(status)) throw new ValidationError("Invalid sales rep status");
+  if (!SALES_REP_STATUSES.has(status)) throw new ValidationError("El estado del vendedor no es válido.", { field: "status", code: "invalid" });
   const notes = optionalText(input.notes, "notes", { max: 1000 });
   const portalPassword = optionalText(input.portalPassword, "portalPassword", { max: 200 });
-  let passwordHash = "";
-  if (portalPassword) {
+  const portalAccessEnabled = input.portalAccessEnabled === undefined
+    ? Boolean(portalPassword || existing?.password_hash)
+    : input.portalAccessEnabled === true;
+  if (portalAccessEnabled && !portalPassword && !existing?.password_hash) {
+    throw new ValidationError("Ingresá una clave de al menos 10 caracteres para habilitar el acceso.", { field: "portalPassword", code: "required" });
+  }
+  let passwordHash = portalAccessEnabled ? (existing?.password_hash || "") : "";
+  if (portalAccessEnabled && portalPassword) {
     try {
       passwordHash = await hashPassword(portalPassword);
     } catch {
-      throw new ValidationError("La clave del vendedor debe tener entre 10 y 200 caracteres");
+      throw new ValidationError("La clave del vendedor debe tener entre 10 y 200 caracteres.", { field: "portalPassword", code: "length", min: 10, max: 200 });
     }
   }
 
   try {
     if (id) {
-      const setPassword = passwordHash ? ", password_hash = ?" : "";
       const params = [
         name, email, phone, whatsapp,
         bankName, bankAccountHolder, bankTaxId, bankAccountType, bankCbu, bankAlias,
-        defaultCommissionBps, status, notes
+        defaultCommissionBps, status, notes, passwordHash
       ];
-      if (passwordHash) params.push(passwordHash);
       params.push(id);
       const updated = db.prepare(`
         UPDATE sales_reps
         SET name = ?, email = ?, phone = ?, whatsapp = ?,
             bank_name = ?, bank_account_holder = ?, bank_tax_id = ?, bank_account_type = ?, bank_cbu = ?, bank_alias = ?,
             default_commission_bps = ?,
-            status = ?, notes = ?${setPassword}, updated_at = CURRENT_TIMESTAMP
+            status = ?, notes = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(...params);
       if (!updated.changes) throw new NotFoundError("Vendedor no encontrado");
@@ -367,7 +373,7 @@ export async function upsertSalesRep(db, input = {}) {
     );
     return getSalesRepRow(db, inserted.id);
   } catch (error) {
-    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("El email del vendedor ya existe");
+    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Ya existe un vendedor con ese email.", { field: "email", code: "duplicate" });
     throw error;
   }
 }

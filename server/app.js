@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ZipArchive } from "archiver";
-import { ValidationError } from "./domain/validation.js";
+import { ValidationError, publicErrorMessage } from "./domain/validation.js";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import {
   createAdminCustomer,
@@ -782,7 +782,7 @@ export function createApp({
         });
       }
 
-      if (url.pathname.startsWith("/api/")) return sendJson(response, 404, { error: "API route not found" });
+      if (url.pathname.startsWith("/api/")) return sendJson(response, 404, { error: "La función solicitada no está disponible." });
       match = url.pathname.match(/^\/producto\/([a-z0-9-]+)$/);
       if (request.method === "GET" && match) {
         applyDuePriceUpdates(db);
@@ -799,7 +799,7 @@ export function createApp({
         }
       }
       if (request.method === "GET" && serveStatic(response, projectRoot, url.pathname)) return;
-      return sendJson(response, 404, { error: "Not found" });
+      return sendJson(response, 404, { error: "No encontramos el recurso solicitado." });
     } catch (error) {
       const statusCode = error.statusCode || 500;
       if (statusCode >= 500) console.error(error);
@@ -808,7 +808,7 @@ export function createApp({
         return;
       }
       return sendJson(response, statusCode, {
-        error: error.message || "Internal server error",
+        error: publicErrorMessage(error, statusCode),
         details: error.details || undefined
       });
     }

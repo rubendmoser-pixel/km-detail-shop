@@ -102,7 +102,10 @@ async function sellerApi(path, options = {}) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.error || "No se pudo completar la operacion");
+    const error = new Error(payload.error || "No se pudo completar la operación");
+    error.status = response.status;
+    error.details = payload.details || {};
+    throw error;
   }
   return payload;
 }
@@ -911,7 +914,7 @@ nodes.loginForm?.addEventListener("submit", async (event) => {
     });
     renderDashboard({ salesRep: payload.salesRep, dashboard: (await sellerApi("/api/sales/dashboard")).dashboard });
   } catch (error) {
-    setFormMessage(nodes.loginMessage, error.message || "No se pudo ingresar", "error");
+    window.KMForms?.showApiError(event.currentTarget, error, nodes.loginMessage);
   } finally {
     button.disabled = false;
   }
@@ -945,7 +948,7 @@ nodes.forgotForm?.addEventListener("submit", async (event) => {
     setFormMessage(nodes.forgotMessage, payload.message || "Si existe una cuenta activa, enviamos un enlace al email.", "success");
     event.currentTarget.reset();
   } catch (error) {
-    setFormMessage(nodes.forgotMessage, error.message || "No se pudo enviar el enlace.", "error");
+    window.KMForms?.showApiError(event.currentTarget, error, nodes.forgotMessage);
   } finally {
     button.disabled = false;
   }
@@ -968,7 +971,7 @@ nodes.resetForm?.addEventListener("submit", async (event) => {
     event.currentTarget.reset();
     showLogin("Clave actualizada. Ingresa nuevamente con la nueva clave.");
   } catch (error) {
-    setFormMessage(nodes.resetMessage, error.message || "No se pudo actualizar la clave.", "error");
+    window.KMForms?.showApiError(event.currentTarget, error, nodes.resetMessage);
   } finally {
     button.disabled = false;
   }
@@ -993,7 +996,7 @@ nodes.changePasswordForm?.addEventListener("submit", async (event) => {
     event.currentTarget.reset();
     setFormMessage(nodes.changePasswordMessage, "Clave actualizada correctamente.", "success");
   } catch (error) {
-    setFormMessage(nodes.changePasswordMessage, error.message || "No se pudo cambiar la clave.", "error");
+    window.KMForms?.showApiError(event.currentTarget, error, nodes.changePasswordMessage);
   } finally {
     button.disabled = false;
   }

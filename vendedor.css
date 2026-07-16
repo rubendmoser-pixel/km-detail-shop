@@ -952,3 +952,20 @@ button:disabled {
     flex-direction: column;
   }
 }
+.field-error {
+  display: block;
+  width: 100%;
+  margin-top: 3px;
+  color: #ff8f8f;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"],
+.password-input.has-error {
+  border-color: #ff7676 !important;
+  box-shadow: 0 0 0 3px rgba(255, 118, 118, 0.18) !important;
+}

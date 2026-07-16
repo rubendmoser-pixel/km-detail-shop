@@ -169,6 +169,10 @@ function bindAdminEvents() {
   on(adminEls.salesRepStatusFilter, "change", loadSalesReps);
   on(adminEls.reloadSalesReps, "click", loadSalesReps);
   on(adminEls.salesRepForm, "submit", saveSalesRep);
+  on(adminEls.salesRepForm?.elements.portalAccessEnabled, "change", syncSalesRepPortalAccess);
+  on(adminEls.salesRepForm?.elements.portalPassword, "input", syncSalesRepPortalAccess);
+  on(adminEls.salesRepForm?.elements.portalPasswordConfirmation, "input", syncSalesRepPortalAccess);
+  on(byId("#copySalesRepPassword"), "click", copySalesRepPassword);
   on(adminEls.salesPanelNav, "click", handleSalesPanelNavClick);
   on(adminEls.salesRepDashboard, "click", handleSalesRepDashboardClick);
   on(adminEls.salesRepProfile, "click", handleSalesRepProfileClick);
@@ -229,7 +233,7 @@ async function loginAdmin(event) {
     adminEls.adminLoginMessage.textContent = "";
     await enterWorkspace();
   } catch (error) {
-    adminEls.adminLoginMessage.textContent = error.message;
+    window.KMForms?.showApiError(adminEls.adminLoginForm, error, adminEls.adminLoginMessage);
   } finally {
     setBusy(adminEls.adminLoginForm, false);
   }
@@ -650,26 +654,89 @@ function editSalesRepById(id) {
   adminEls.salesRepForm.elements.bankAlias.value = rep.bank_alias || "";
   adminEls.salesRepForm.elements.defaultCommission.value = rep.default_commission_bps / 100;
   adminEls.salesRepForm.elements.status.value = rep.status;
+  adminEls.salesRepForm.elements.portalAccessEnabled.checked = Boolean(rep.has_portal_access);
+  adminEls.salesRepForm.dataset.hasPortalAccess = String(Boolean(rep.has_portal_access));
   adminEls.salesRepForm.elements.portalPassword.value = "";
+  adminEls.salesRepForm.elements.portalPasswordConfirmation.value = "";
   adminEls.salesRepForm.elements.notes.value = rep.notes || "";
   adminEls.salesRepMessage.textContent = "";
+  syncSalesRepPortalAccess();
   adminEls.salesRepForm?.scrollIntoView({ behavior: "smooth", block: "start" });
   adminEls.salesRepForm?.elements.name?.focus({ preventScroll: true });
 }
 
-function resetSalesRepForm() {
+function resetSalesRepForm({ preserveMessage = false } = {}) {
   if (!adminEls.salesRepForm) return;
   adminEls.salesRepForm.reset();
+  delete adminEls.salesRepForm.dataset.hasPortalAccess;
   adminEls.salesRepForm.elements.id.value = "";
   adminEls.salesRepForm.elements.defaultCommission.value = "0";
   adminEls.salesRepForm.elements.status.value = "active";
+  adminEls.salesRepForm.elements.portalAccessEnabled.checked = true;
   adminEls.salesRepForm.elements.portalPassword.value = "";
+  adminEls.salesRepForm.elements.portalPasswordConfirmation.value = "";
   if (adminEls.salesRepFormTitle) adminEls.salesRepFormTitle.textContent = "Nuevo vendedor";
-  if (adminEls.salesRepMessage) adminEls.salesRepMessage.textContent = "";
+  if (adminEls.salesRepMessage && !preserveMessage) adminEls.salesRepMessage.textContent = "";
+  adminEls.salesRepForm.querySelectorAll("[aria-invalid='true']").forEach((input) => window.KMForms?.clearFieldError(input));
+  syncSalesRepPortalAccess();
+}
+
+function syncSalesRepPortalAccess() {
+  const form = adminEls.salesRepForm;
+  if (!form) return;
+  const enabled = form.elements.portalAccessEnabled.checked;
+  const password = form.elements.portalPassword;
+  const confirmation = form.elements.portalPasswordConfirmation;
+  const isNew = !form.elements.id.value;
+  const alreadyEnabled = form.dataset.hasPortalAccess === "true";
+  const passwordRequired = enabled && (isNew || !alreadyEnabled);
+  document.querySelectorAll("[data-portal-password-field]").forEach((node) => { node.hidden = !enabled; });
+  password.disabled = !enabled;
+  confirmation.disabled = !enabled;
+  password.required = passwordRequired;
+  confirmation.required = passwordRequired || Boolean(password.value);
+  if (!enabled) {
+    password.value = "";
+    confirmation.value = "";
+    password.setCustomValidity("");
+    confirmation.setCustomValidity("");
+  } else if (confirmation.value && password.value === confirmation.value) {
+    confirmation.setCustomValidity("");
+  }
+  const status = document.querySelector("#salesRepPortalStatus");
+  if (!status) return;
+  if (!enabled) status.textContent = "El vendedor se guardará sin acceso al portal.";
+  else if (!isNew && alreadyEnabled) status.textContent = "Acceso configurado. Dejá la clave vacía para conservar la actual.";
+  else status.textContent = "Ingresá y confirmá una clave de al menos 10 caracteres para habilitar el acceso.";
+}
+
+async function copySalesRepPassword() {
+  const password = String(adminEls.salesRepForm?.elements.portalPassword?.value || "");
+  if (!password) {
+    window.KMForms?.showFieldError(adminEls.salesRepForm?.elements.portalPassword, "Ingresá una clave antes de copiarla.");
+    adminEls.salesRepForm?.elements.portalPassword?.focus();
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(password);
+    showAdminToast("Clave copiada. Guardala en un lugar seguro.");
+  } catch {
+    adminEls.salesRepForm.elements.portalPassword.type = "text";
+    adminEls.salesRepForm.elements.portalPassword.select();
+    showAdminToast("Seleccionamos la clave para que puedas copiarla.");
+  }
 }
 
 async function saveSalesRep(event) {
   event.preventDefault();
+  const password = adminEls.salesRepForm.elements.portalPassword;
+  const confirmation = adminEls.salesRepForm.elements.portalPasswordConfirmation;
+  confirmation.setCustomValidity("");
+  if (adminEls.salesRepForm.elements.portalAccessEnabled.checked && password.value !== confirmation.value) {
+    confirmation.setCustomValidity("Las claves no coinciden.");
+    adminEls.salesRepForm.reportValidity();
+    return;
+  }
   const values = Object.fromEntries(new FormData(adminEls.salesRepForm));
   setBusy(adminEls.salesRepForm, true);
   try {
@@ -689,15 +756,18 @@ async function saveSalesRep(event) {
         bankAlias: values.bankAlias,
         defaultCommissionBps: Math.round(Number(values.defaultCommission || 0) * 100),
         status: values.status,
+        portalAccessEnabled: adminEls.salesRepForm.elements.portalAccessEnabled.checked,
         portalPassword: values.portalPassword,
         notes: values.notes
       }
     });
-    adminEls.salesRepMessage.textContent = "Vendedor guardado.";
-    resetSalesRepForm();
+    adminEls.salesRepMessage.textContent = "Vendedor guardado correctamente.";
+    adminEls.salesRepMessage.classList.add("is-success");
+    adminEls.salesRepMessage.classList.remove("is-error");
+    resetSalesRepForm({ preserveMessage: true });
     await loadSalesReps();
   } catch (error) {
-    adminEls.salesRepMessage.textContent = error.message;
+    window.KMForms?.showApiError(adminEls.salesRepForm, error, adminEls.salesRepMessage);
   } finally {
     setBusy(adminEls.salesRepForm, false);
   }
@@ -1667,7 +1737,7 @@ async function createCustomerFromAdmin(event) {
     await loadCustomers();
     showAdminToast("Cliente creado y aprobado.");
   } catch (error) {
-    adminEls.customerCreateMessage.textContent = error.message;
+    window.KMForms?.showApiError(adminEls.customerCreateForm, error, adminEls.customerCreateMessage);
     showAdminToast(error.message);
   } finally {
     setBusy(form, false);
@@ -4107,6 +4177,7 @@ async function adminApi(url, { method = "GET", body } = {}) {
   if (!response.ok) {
     const error = new Error(payload.error || "No se pudo completar la operacion.");
     error.status = response.status;
+    error.details = payload.details || {};
     throw error;
   }
   return payload;

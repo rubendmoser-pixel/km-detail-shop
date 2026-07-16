@@ -2779,6 +2779,36 @@ body.customer-app .customer-order-summary {
   outline: 0;
 }
 
+.field-error {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+  color: #ff8f8f;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none !important;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"],
+.password-control.has-error {
+  border-color: #ff7676 !important;
+  box-shadow: 0 0 0 3px rgba(255, 118, 118, 0.18) !important;
+}
+
+.form-message.is-error,
+.admin-note.is-error {
+  color: #ff8f8f;
+}
+
+.form-message.is-success,
+.admin-note.is-success {
+  color: #86d69a;
+}
+
 .check-field {
   grid-template-columns: 20px 1fr;
   align-items: center;

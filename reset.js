@@ -3,6 +3,18 @@ const requestForm = document.querySelector("#requestResetForm");
 const completeForm = document.querySelector("#completeResetForm");
 const resetMessage = document.querySelector("#resetMessage");
 
+document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const input = document.querySelector(button.dataset.togglePassword || "");
+    if (!input) return;
+    const willShow = input.type === "password";
+    input.type = willShow ? "text" : "password";
+    button.textContent = willShow ? "Ocultar" : "Ver";
+    button.setAttribute("aria-label", willShow ? "Ocultar contraseña" : "Mostrar contraseña");
+    button.setAttribute("aria-pressed", String(willShow));
+  });
+});
+
 if (resetToken) {
   requestForm.hidden = true;
   completeForm.hidden = false;
@@ -18,7 +30,7 @@ requestForm.addEventListener("submit", async (event) => {
     requestForm.reset();
     resetMessage.textContent = "Si la cuenta existe, enviamos un enlace de recuperacion.";
   } catch (error) {
-    resetMessage.textContent = error.message;
+    window.KMForms?.showApiError(requestForm, error, resetMessage);
   } finally {
     setResetBusy(requestForm, false);
   }
@@ -27,8 +39,10 @@ requestForm.addEventListener("submit", async (event) => {
 completeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const values = Object.fromEntries(new FormData(completeForm));
+  completeForm.elements.passwordConfirmation.setCustomValidity("");
   if (values.password !== values.passwordConfirmation) {
-    resetMessage.textContent = "Las contrasenas no coinciden.";
+    completeForm.elements.passwordConfirmation.setCustomValidity("Las contraseñas no coinciden.");
+    completeForm.reportValidity();
     return;
   }
   setResetBusy(completeForm, true);
@@ -37,7 +51,7 @@ completeForm.addEventListener("submit", async (event) => {
     completeForm.hidden = true;
     resetMessage.innerHTML = `Contrasena actualizada. <a href="/">Ya podes ingresar</a>.`;
   } catch (error) {
-    resetMessage.textContent = error.message;
+    window.KMForms?.showApiError(completeForm, error, resetMessage);
   } finally {
     setResetBusy(completeForm, false);
   }
@@ -46,7 +60,12 @@ completeForm.addEventListener("submit", async (event) => {
 async function resetApi(url, body) {
   const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || "No se pudo completar la operacion.");
+  if (!response.ok) {
+    const error = new Error(payload.error || "No se pudo completar la operación.");
+    error.status = response.status;
+    error.details = payload.details || {};
+    throw error;
+  }
   return payload;
 }
 

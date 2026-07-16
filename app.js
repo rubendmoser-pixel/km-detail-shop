@@ -816,7 +816,7 @@ async function submitLogin(event) {
     }
     showToast(`Bienvenido, ${state.user.businessName || state.user.email}.`);
   } catch (error) {
-    els.accountMessage.textContent = error.message;
+    window.KMForms?.showApiError(els.loginForm, error, els.accountMessage);
   } finally {
     setFormBusy(els.loginForm, false);
   }
@@ -826,6 +826,14 @@ async function submitRegistration(event) {
   event.preventDefault();
   const formData = new FormData(els.registerForm);
   const values = Object.fromEntries(formData);
+  const confirmation = els.registerForm.elements.passwordConfirmation;
+  confirmation.setCustomValidity("");
+  if (values.password !== values.passwordConfirmation) {
+    confirmation.setCustomValidity("Las contraseñas no coinciden.");
+    els.registerForm.reportValidity();
+    return;
+  }
+  delete values.passwordConfirmation;
   values.acceptTerms = formData.has("acceptTerms");
   values.acceptPrivacy = formData.has("acceptPrivacy");
   setFormBusy(els.registerForm, true);
@@ -844,7 +852,7 @@ async function submitRegistration(event) {
     renderAll();
     showToast("Solicitud recibida. La cuenta quedo pendiente de aprobacion.");
   } catch (error) {
-    els.accountMessage.textContent = error.message;
+    window.KMForms?.showApiError(els.registerForm, error, els.accountMessage);
   } finally {
     setFormBusy(els.registerForm, false);
   }
@@ -1837,6 +1845,7 @@ async function api(url, { method = "GET", body } = {}) {
   if (!response.ok) {
     const error = new Error(payload.error || "No se pudo completar la operacion.");
     error.status = response.status;
+    error.details = payload.details || {};
     throw error;
   }
   return payload;

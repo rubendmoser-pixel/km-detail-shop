@@ -32,6 +32,9 @@ export function hashToken(token) {
 
 export function validatePassword(password) {
   if (typeof password !== "string" || password.length < 10 || password.length > 200) {
-    throw new TypeError("Password must contain between 10 and 200 characters");
+    const error = new TypeError("La contraseña debe tener entre 10 y 200 caracteres.");
+    error.statusCode = 400;
+    error.details = { field: "password", code: "length", min: 10, max: 200 };
+    throw error;
   }
 }

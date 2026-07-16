@@ -23,7 +23,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=68" />
+    <link rel="stylesheet" href="./styles.css?v=69" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -479,7 +479,20 @@
         <label><span>WhatsApp</span><input name="whatsapp" required inputmode="tel" placeholder="5493412531269" /></label>
         <label><span>Persona de contacto</span><input name="contactPerson" required /></label>
         <label><span>Email</span><input name="email" type="email" required autocomplete="email" /></label>
-        <label class="wide"><span>Contrasena</span><input name="password" type="password" minlength="12" required autocomplete="new-password" /></label>
+        <label class="wide">
+          <span>Contraseña</span>
+          <span class="password-control">
+            <input id="customerRegisterPassword" name="password" type="password" minlength="10" maxlength="200" required autocomplete="new-password" />
+            <button class="password-toggle" type="button" data-toggle-password="#customerRegisterPassword" aria-controls="customerRegisterPassword" aria-pressed="false" aria-label="Mostrar contraseña">Ver</button>
+          </span>
+        </label>
+        <label class="wide">
+          <span>Repetir contraseña</span>
+          <span class="password-control">
+            <input id="customerRegisterPasswordConfirmation" name="passwordConfirmation" type="password" minlength="10" maxlength="200" required autocomplete="new-password" />
+            <button class="password-toggle" type="button" data-toggle-password="#customerRegisterPasswordConfirmation" aria-controls="customerRegisterPasswordConfirmation" aria-pressed="false" aria-label="Mostrar confirmación de contraseña">Ver</button>
+          </span>
+        </label>
         <label class="wide"><span>Observaciones</span><textarea name="notes" rows="3"></textarea></label>
         <label class="check-field wide"><input name="acceptTerms" type="checkbox" required /><span>Acepto los terminos comerciales.</span></label>
         <label class="check-field wide"><input name="acceptPrivacy" type="checkbox" required /><span>Acepto la politica de privacidad.</span></label>
@@ -500,6 +513,7 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=91" defer></script>
+    <script src="./form-validation.js?v=1" defer></script>
+    <script src="./app.js?v=92" defer></script>
   </body>
 </html>
