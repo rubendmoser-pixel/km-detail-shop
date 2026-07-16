@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 19;
+const SCHEMA_VERSION = 20;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -130,6 +130,26 @@ function migrate(db) {
     CREATE TABLE IF NOT EXISTS sales_rep_sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS logistics_operators (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      phone TEXT NOT NULL DEFAULT '',
+      password_hash TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS logistics_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      operator_id INTEGER NOT NULL REFERENCES logistics_operators(id) ON DELETE CASCADE,
       token_hash TEXT NOT NULL UNIQUE,
       expires_at TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -619,6 +639,14 @@ function migrate(db) {
   ensureColumn(db, "orders", "fulfillment_tracking", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "fulfillment_estimated_date", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "fulfillment_notes", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "logistics_status", "TEXT NOT NULL DEFAULT 'pending'");
+  ensureColumn(db, "orders", "logistics_operator_id", "INTEGER REFERENCES logistics_operators(id) ON DELETE SET NULL");
+  ensureColumn(db, "orders", "logistics_started_at", "TEXT");
+  ensureColumn(db, "orders", "logistics_prepared_at", "TEXT");
+  ensureColumn(db, "orders", "logistics_packed_at", "TEXT");
+  ensureColumn(db, "orders", "logistics_labeled_at", "TEXT");
+  ensureColumn(db, "orders", "logistics_ready_at", "TEXT");
+  ensureColumn(db, "orders", "logistics_packages", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "orders", "sales_rep_id", "INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL");
   ensureColumn(db, "orders", "sales_rep_name", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "sales_rep_email", "TEXT NOT NULL DEFAULT ''");
@@ -691,6 +719,9 @@ function migrate(db) {
     WHERE total_cents > 0;
   `);
   db.exec("CREATE INDEX IF NOT EXISTS idx_customers_sales_rep ON customers(sales_rep_id);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_logistics_operators_status ON logistics_operators(status, name);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_logistics_sessions_token ON logistics_sessions(token_hash, expires_at);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_orders_logistics_queue ON orders(fulfillment_status, logistics_status, logistics_operator_id);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_payment_accounts_active ON payment_accounts(active, sort_order, name);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_customer_payment_accounts_customer ON customer_payment_accounts(customer_id);");
   if (!migration) db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(SCHEMA_VERSION);

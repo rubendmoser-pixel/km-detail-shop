@@ -229,6 +229,17 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(salesRepResponse.status, 201);
   const salesRep = (await salesRepResponse.json()).salesRep;
   assert.equal(Boolean(salesRep.has_portal_access), true);
+  const logisticsOperatorResponse = await fetch(`${baseUrl}/api/admin/logistics-operators`, {
+    method: "POST", headers: jsonHeaders(adminCookie), body: JSON.stringify({
+      name: "Operario API", email: "logistica-api@km-detail.com", phone: "3411111111",
+      portalPassword: "logistics-password-456", portalAccessEnabled: true, status: "active"
+    })
+  });
+  assert.equal(logisticsOperatorResponse.status, 201);
+  const logisticsOperator = (await logisticsOperatorResponse.json()).operator;
+  assert.equal(Boolean(logisticsOperator.has_portal_access), true);
+  const logisticsCookie = await logisticsLoginCookie(baseUrl, "logistica-api@km-detail.com", "logistics-password-456");
+  assert.equal((await fetch(`${baseUrl}/api/admin/customers`, { headers: { cookie: logisticsCookie } })).status, 401);
 
   const sellerWithoutAccessResponse = await fetch(`${baseUrl}/api/admin/sales-reps`, {
     method: "POST",
@@ -418,9 +429,12 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(pickingPayload.order.items.length, 2);
   assert.equal(pickingPayload.order.items[0].warehouseLocation, "A-03-02");
   assert.equal(pickingPayload.order.items[0].pickQuantity, 2);
-  const availabilityResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/availability`, {
+  const logisticsQueue = await getJson(`${baseUrl}/api/logistics/orders`, logisticsCookie);
+  assert.equal(logisticsQueue.orders.find((order) => order.id === orderPayload.order.id).stage, "review_availability");
+  assert.equal("totalCents" in logisticsQueue.orders[0], false);
+  const availabilityResponse = await fetch(`${baseUrl}/api/logistics/orders/${orderPayload.order.id}/availability`, {
     method: "PATCH",
-    headers: jsonHeaders(adminCookie),
+    headers: jsonHeaders(logisticsCookie),
     body: JSON.stringify({
       reason: "Confirmacion parcial por disponibilidad",
       paymentCondition: "advance_payment",
@@ -436,7 +450,9 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     })
   });
   assert.equal(availabilityResponse.status, 200);
-  const availabilityOrder = (await availabilityResponse.json()).order;
+  const logisticsAvailabilityOrder = (await availabilityResponse.json()).order;
+  assert.equal("totalCents" in logisticsAvailabilityOrder, false);
+  const availabilityOrder = (await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}`, adminCookie)).order;
   assert.equal(availabilityOrder.status, "availability_confirmed");
   assert.equal(availabilityOrder.items[0].confirmedQuantity, 1);
   assert.equal(availabilityOrder.items[0].lineStatus, "partial");
@@ -568,13 +584,11 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(paidOrder.paymentReceipts[0].status, "accepted");
   const receiptCustomerEmail = db.prepare("SELECT recipient FROM email_outbox WHERE event_type = 'payment_receipt_customer'").get();
   assert.equal(receiptCustomerEmail.recipient, "cliente-api@example.com");
-  const readyResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/fulfillment`, {
-    method: "PATCH",
-    headers: jsonHeaders(adminCookie),
-    body: JSON.stringify({
-      fulfillmentStatus: "ready",
-      fulfillmentNotes: "Pedido preparado para despacho"
-    })
+  const claimResponse = await fetch(`${baseUrl}/api/logistics/orders/${orderPayload.order.id}/claim`, { method: "POST", headers: jsonHeaders(logisticsCookie), body: "{}" });
+  assert.equal(claimResponse.status, 200);
+  const readyResponse = await fetch(`${baseUrl}/api/logistics/orders/${orderPayload.order.id}/checklist`, {
+    method: "PATCH", headers: jsonHeaders(logisticsCookie),
+    body: JSON.stringify({ prepared: true, packed: true, labeled: true, packages: 3 })
   });
   assert.equal(readyResponse.status, 200);
   const readyOrder = (await readyResponse.json()).order;
@@ -583,11 +597,10 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(preparedOrders.orders.some((order) => order.id === orderPayload.order.id), true);
   const internalReadyEmail = db.prepare("SELECT COUNT(*) AS total FROM email_outbox WHERE event_type = 'order_fulfillment_customer'").get();
   assert.equal(internalReadyEmail.total, 0);
-  const fulfillmentResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/fulfillment`, {
+  const fulfillmentResponse = await fetch(`${baseUrl}/api/logistics/orders/${orderPayload.order.id}/dispatch`, {
     method: "PATCH",
-    headers: jsonHeaders(adminCookie),
+    headers: jsonHeaders(logisticsCookie),
     body: JSON.stringify({
-      fulfillmentStatus: "shipped",
       fulfillmentMethod: "Transporte",
       fulfillmentCarrier: "Expreso API",
       fulfillmentTracking: "REM-123",
@@ -865,6 +878,14 @@ async function salesLoginCookie(baseUrl, email, password) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ email, password })
+  });
+  assert.equal(response.status, 200);
+  return response.headers.get("set-cookie").split(";")[0];
+}
+
+async function logisticsLoginCookie(baseUrl, email, password) {
+  const response = await fetch(`${baseUrl}/api/logistics/login`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password })
   });
   assert.equal(response.status, 200);
   return response.headers.get("set-cookie").split(";")[0];

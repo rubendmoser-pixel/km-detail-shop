@@ -327,7 +327,7 @@ export function listAdminOrders(db, filters = {}) {
     SELECT o.id, o.order_number, o.status, o.payment_status, o.total_cents, o.paid_cents, o.balance_cents,
            o.payment_due_date, o.currency, o.commercial_class,
            o.created_by_role, o.created_by_sales_rep_id, o.sales_rep_name, o.sales_rep_email,
-           o.fulfillment_status, o.modified_acceptance_required, o.created_at, c.business_name, c.tax_id
+           o.fulfillment_status, o.logistics_status, o.modified_acceptance_required, o.created_at, c.business_name, c.tax_id
     FROM orders o JOIN customers c ON c.id = o.customer_id
     ${whereSql} ORDER BY o.created_at DESC
     LIMIT 500
@@ -358,6 +358,7 @@ export function orderOperationalStage(order) {
   if (order.status === "order_created") return "review_availability";
   if (Boolean(order.modified_acceptance_required)) return "awaiting_acceptance";
   if (!PAYMENT_STATUSES_ALLOWING_FULFILLMENT.has(normalizePaymentStatus(order.payment_status))) return "awaiting_payment";
+  if (order.logistics_status === "preparing") return "preparing";
   return "ready_to_prepare";
 }
 
@@ -990,8 +991,11 @@ function assertFulfillmentTransition(order, fulfillmentStatus, details) {
     if (order.fulfillment_status !== "ready") {
       throw new ValidationError("Order must be prepared before dispatch");
     }
-    if (!details.fulfillmentMethod || !details.fulfillmentCarrier || !details.fulfillmentTracking || !details.fulfillmentEstimatedDate) {
-      throw new ValidationError("Dispatch requires modality, carrier, tracking and dispatch date");
+    const isCustomerPickup = details.fulfillmentMethod === "Retira en local";
+    if (!details.fulfillmentMethod || !details.fulfillmentCarrier || (!isCustomerPickup && !details.fulfillmentTracking) || !details.fulfillmentEstimatedDate) {
+      throw new ValidationError(isCustomerPickup
+        ? "El retiro requiere modalidad, persona responsable y fecha."
+        : "El despacho requiere modalidad, transporte, guía o remito y fecha.");
     }
   }
 }
@@ -1324,6 +1328,7 @@ function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments 
       estimatedDate: order.fulfillment_estimated_date || "",
       notes: order.fulfillment_notes || ""
     },
+    logisticsStatus: order.logistics_status || "pending",
     currency: order.currency,
     discountsBps: [order.discount_1_bps, order.discount_2_bps, order.discount_3_bps],
     salesRep: {

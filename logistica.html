@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><meta name="robots" content="noindex,nofollow" />
+  <title>Logística | KM Detail Line</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/logistica.css?v=1" />
+</head>
+<body>
+  <header><a class="brand" href="/logistica.html"><img src="/assets/km-metal-logo-small.png" alt="KM Detail Line" /><span>LOGÍSTICA</span></a><div id="logisticsSession"></div></header>
+  <main>
+    <section class="login" id="logisticsLogin"><form id="logisticsLoginForm">
+      <p class="eyebrow">Acceso restringido</p><h1>Portal de logística</h1>
+      <label><span>Email</span><input name="email" type="email" autocomplete="username" required /></label>
+      <label><span>Clave</span><span class="password"><input id="logisticsPassword" name="password" type="password" autocomplete="current-password" required /><button type="button" id="toggleLogisticsPassword">Ver</button></span></label>
+      <button class="primary" type="submit">Ingresar</button><p class="message" id="logisticsLoginMessage"></p>
+    </form></section>
+    <section class="workspace hidden" id="logisticsWorkspace">
+      <div class="title"><div><p class="eyebrow">Operación de depósito</p><h1>Próximas acciones</h1></div><button id="reloadLogistics" type="button">Actualizar</button></div>
+      <div class="toolbar"><input id="logisticsSearch" type="search" placeholder="Buscar pedido, cliente o CUIT" /><select id="logisticsStage"><option value="">Todas las etapas</option><option value="review_availability">Revisar disponibilidad</option><option value="waiting">En espera</option><option value="ready_to_prepare">Listos para preparar</option><option value="preparing">En preparación</option><option value="awaiting_dispatch">Esperando despacho</option><option value="in_transit">En tránsito</option></select></div>
+      <div class="stats" id="logisticsStats"></div><div class="orders" id="logisticsOrders"></div>
+      <section class="detail hidden" id="logisticsDetail"></section>
+    </section>
+  </main>
+  <div class="toast" id="logisticsToast"></div><script src="/logistica.js?v=1" defer></script>
+</body></html>

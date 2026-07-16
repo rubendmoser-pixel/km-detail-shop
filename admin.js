@@ -4,7 +4,7 @@ const adminState = {
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {},
   priceProducts: [], priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
-  orderScope: "active", orderSearches: { active: "", history: "" }
+  orderScope: "active", orderSearches: { active: "", history: "" }, logisticsOperators: []
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const PRODUCT_UPLOAD_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -13,7 +13,7 @@ const PRODUCT_UPLOAD_TARGET_BYTES = 900 * 1024;
 const PRODUCT_UPLOAD_MAX_DIMENSION = 1600;
 const PRODUCT_UPLOAD_WEBP_QUALITY = 0.82;
 const PRODUCT_UPLOAD_JPEG_QUALITY = 0.86;
-const adminViews = new Set(["customers", "sales", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
+const adminViews = new Set(["customers", "sales", "logistics", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -80,6 +80,7 @@ const orderStageLabels = {
   awaiting_acceptance: "Esperando aceptación",
   awaiting_payment: "Esperando pago",
   ready_to_prepare: "Listo para preparar",
+  preparing: "En preparación logística",
   prepared: "Preparado para despacho",
   shipped: "Despachado",
   delivered: "Entregado",
@@ -91,6 +92,7 @@ const orderStageClasses = {
   awaiting_acceptance: "warning",
   awaiting_payment: "warning",
   ready_to_prepare: "success",
+  preparing: "success",
   prepared: "success",
   shipped: "progress",
   delivered: "done",
@@ -118,6 +120,7 @@ const adminEls = Object.fromEntries([
   "distributorSearch", "distributorStatusFilter", "reloadDistributors", "distributorForm", "distributorFormTitle", "distributorMessage", "distributorsTableBody",
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
+  "logisticsOperatorsList", "logisticsOperatorForm", "logisticsOperatorFormTitle", "logisticsOperatorMessage",
   "analyticsDays", "analyticsDashboard", "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
@@ -171,6 +174,11 @@ function bindAdminEvents() {
   on(adminEls.linearPriceEffectiveDate, "change", renderLinearPricePreview);
   on(adminEls.saveLinearPrices, "click", saveLinearPriceUpdate);
   on(adminEls.orderSearch, "input", debounce(loadOrders, 250));
+  on(adminEls.logisticsOperatorForm, "submit", saveLogisticsOperator);
+  on(byId("#reloadLogisticsOperators"), "click", loadLogisticsOperators);
+  on(byId("#resetLogisticsOperatorForm"), "click", resetLogisticsOperatorForm);
+  on(byId("#copyLogisticsPassword"), "click", copyLogisticsPassword);
+  on(adminEls.logisticsOperatorsList, "click", editLogisticsOperator);
   on(adminEls.orderScopeTabs, "click", handleOrderScopeClick);
   on(adminEls.orderStageFilter, "change", loadOrders);
   on(adminEls.orderPaymentFilter, "change", loadOrders);
@@ -275,6 +283,7 @@ async function enterWorkspace() {
     ["productos", loadProducts],
     ["precios", loadPriceUpdates],
     ["pedidos", loadOrders],
+    ["operarios", loadLogisticsOperators],
     ["configuracion", loadSettings],
     ["emails", loadEmails],
     ["seguridad", loadSecurityEvents],
@@ -284,6 +293,7 @@ async function enterWorkspace() {
   showAdminView(currentAdminView(), false);
   resetProductForm();
   resetSalesRepForm();
+  resetLogisticsOperatorForm();
   resetDistributorForm();
 }
 
@@ -344,6 +354,79 @@ async function loadSalesReps() {
   renderCommissionSalesRepFilter();
   if (currentAdminView() === "commissions") await loadSalesCommissions();
   renderCustomers();
+}
+
+async function loadLogisticsOperators() {
+  if (!adminEls.logisticsOperatorsList) return;
+  const { operators } = await adminApi("/api/admin/logistics-operators");
+  adminState.logisticsOperators = operators || [];
+  adminEls.logisticsOperatorsList.innerHTML = adminState.logisticsOperators.length ? adminState.logisticsOperators.map((operator) => `
+    <article class="sales-rep-card">
+      <div><strong>${escapeAdmin(operator.name)}</strong><span>${escapeAdmin(operator.email)}</span><small>${operator.status === "active" ? "Activo" : "Inactivo"} · ${operator.has_portal_access ? "Acceso habilitado" : "Sin acceso"}</small></div>
+      <button class="ghost-button" type="button" data-edit-logistics="${operator.id}">Editar</button>
+    </article>`).join("") : `<p class="admin-note">Todavía no hay operarios registrados.</p>`;
+}
+
+function editLogisticsOperator(event) {
+  const button = event.target.closest("[data-edit-logistics]");
+  if (!button) return;
+  const operator = adminState.logisticsOperators.find((row) => row.id === Number(button.dataset.editLogistics));
+  if (!operator) return;
+  const form = adminEls.logisticsOperatorForm;
+  form.elements.id.value = operator.id;
+  form.elements.name.value = operator.name;
+  form.elements.email.value = operator.email;
+  form.elements.phone.value = operator.phone || "";
+  form.elements.status.value = operator.status;
+  form.elements.portalAccessEnabled.checked = Boolean(operator.has_portal_access);
+  form.elements.portalPassword.value = "";
+  form.elements.portalPasswordConfirmation.value = "";
+  form.elements.notes.value = operator.notes || "";
+  adminEls.logisticsOperatorFormTitle.textContent = `Editar ${operator.name}`;
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function resetLogisticsOperatorForm() {
+  const form = adminEls.logisticsOperatorForm;
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = "";
+  form.elements.status.value = "active";
+  form.elements.portalAccessEnabled.checked = true;
+  adminEls.logisticsOperatorFormTitle.textContent = "Nuevo operario";
+  adminEls.logisticsOperatorMessage.textContent = "";
+}
+
+async function copyLogisticsPassword() {
+  const password = adminEls.logisticsOperatorForm?.elements.portalPassword?.value || "";
+  if (!password) return showAdminToast("Ingresá una clave antes de copiarla.");
+  try { await navigator.clipboard.writeText(password); showAdminToast("Clave copiada."); }
+  catch { adminEls.logisticsOperatorForm.elements.portalPassword.type = "text"; adminEls.logisticsOperatorForm.elements.portalPassword.select(); }
+}
+
+async function saveLogisticsOperator(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const values = Object.fromEntries(new FormData(form));
+  if (values.portalPassword !== values.portalPasswordConfirmation) {
+    form.elements.portalPasswordConfirmation.setCustomValidity("Las claves no coinciden.");
+    form.reportValidity();
+    form.elements.portalPasswordConfirmation.setCustomValidity("");
+    return;
+  }
+  setBusy(form, true);
+  try {
+    await adminApi("/api/admin/logistics-operators", { method: "POST", body: {
+      id: values.id ? Number(values.id) : undefined, name: values.name, email: values.email, phone: values.phone,
+      status: values.status, notes: values.notes, portalPassword: values.portalPassword,
+      portalAccessEnabled: form.elements.portalAccessEnabled.checked
+    }});
+    resetLogisticsOperatorForm();
+    adminEls.logisticsOperatorMessage.textContent = "Operario guardado correctamente.";
+    adminEls.logisticsOperatorMessage.classList.add("is-success");
+    await loadLogisticsOperators();
+  } catch (error) { window.KMForms?.showApiError(form, error, adminEls.logisticsOperatorMessage); }
+  finally { setBusy(form, false); }
 }
 
 function handleSalesPanelNavClick(event) {
@@ -2520,6 +2603,12 @@ function orderNextAction(stage, paymentStatus = "", balanceCents = 0) {
     body: "Imprimí la preparación, controlá artículos y bultos, y marcá el pedido como preparado para despacho.",
     tone: "success"
   };
+  if (stage === "preparing") return {
+    title: "Logística está preparando el pedido",
+    short: "Preparación, embalaje y rotulado",
+    body: "El pedido está asignado a un operario y se encuentra en preparación.",
+    tone: "success"
+  };
   if (stage === "prepared") return {
     title: "Próxima acción: despachar pedido",
     short: "Completar datos y despachar",
@@ -2543,6 +2632,7 @@ function detailedOrderStage(order) {
   if (order.status === "order_created") return "review_availability";
   if (order.modifiedAcceptanceRequired) return "awaiting_acceptance";
   if (!["paid", "credit_account", "settled_adjustment"].includes(order.paymentStatus)) return "awaiting_payment";
+  if (order.logisticsStatus === "preparing") return "preparing";
   return "ready_to_prepare";
 }
 

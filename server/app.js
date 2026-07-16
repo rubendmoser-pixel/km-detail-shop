@@ -78,7 +78,13 @@ import {
 } from "./services/sales-rep-service.js";
 import { createSalesQuote, getSalesQuote, listSalesQuotesForSalesRep, markSalesQuoteConverted, markSalesQuoteShared } from "./services/sales-quote-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
-import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearSalesRepSessionCookie, clearSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
+import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearLogisticsSessionCookie, clearSalesRepSessionCookie, clearSessionCookie, logisticsSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
+import {
+  authenticateLogisticsOperator, claimLogisticsOrder, confirmLogisticsAvailability, dispatchLogisticsOrder,
+  getLogisticsOrder, listLogisticsOperators, listLogisticsOrders, loginLogisticsOperator, logoutLogisticsOperator,
+  logisticsLabels, logisticsPickingList, requireLogisticsOperator,
+  updateLogisticsChecklist, upsertLogisticsOperator
+} from "./services/logistics-service.js";
 import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
 import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
@@ -113,6 +119,7 @@ export function createApp({
     const cookies = parseCookies(request);
     const currentUser = authenticate(db, cookies.km_session);
     const currentSalesRep = authenticateSalesRep(db, cookies.km_sales_session);
+    const currentLogisticsOperator = authenticateLogisticsOperator(db, cookies.km_logistics_session);
 
     try {
       const retryAfter = checkRateLimit(request, url.pathname);
@@ -212,6 +219,62 @@ export function createApp({
             maxAgeSeconds: (config.sessionDays || 30) * 86_400
           })
         });
+      }
+      if (request.method === "POST" && url.pathname === "/api/logistics/login") {
+        const result = await loginLogisticsOperator(db, await readJson(request), config.sessionDays || 30);
+        logout(db, cookies.km_session);
+        logoutSalesRep(db, cookies.km_sales_session);
+        return sendJson(response, 200, { operator: result.operator, expiresAt: result.expiresAt }, {
+          "set-cookie": [
+            logisticsSessionCookie(result.token, { secure: config.secureCookies, maxAgeSeconds: (config.sessionDays || 30) * 86_400 }),
+            clearSessionCookie({ secure: config.secureCookies }),
+            clearSalesRepSessionCookie({ secure: config.secureCookies })
+          ]
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/logistics/logout") {
+        logoutLogisticsOperator(db, cookies.km_logistics_session);
+        return sendJson(response, 200, { ok: true }, { "set-cookie": clearLogisticsSessionCookie({ secure: config.secureCookies }) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/logistics/me") {
+        return sendJson(response, 200, { operator: requireLogisticsOperator(currentLogisticsOperator) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/logistics/orders") {
+        const operator = requireLogisticsOperator(currentLogisticsOperator);
+        return sendJson(response, 200, { operator, orders: listLogisticsOrders(db, { search: url.searchParams.get("q") || "" }) });
+      }
+      let logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)$/);
+      if (request.method === "GET" && logisticsMatch) {
+        requireLogisticsOperator(currentLogisticsOperator);
+        return sendJson(response, 200, { order: getLogisticsOrder(db, Number(logisticsMatch[1])) });
+      }
+      logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)\/claim$/);
+      if (request.method === "POST" && logisticsMatch) {
+        return sendJson(response, 200, { order: claimLogisticsOrder(db, Number(logisticsMatch[1]), requireLogisticsOperator(currentLogisticsOperator)) });
+      }
+      logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)\/availability$/);
+      if (request.method === "PATCH" && logisticsMatch) {
+        const order = confirmLogisticsAvailability(db, Number(logisticsMatch[1]), await readJson(request), requireLogisticsOperator(currentLogisticsOperator));
+        emailService.queueOrderAvailabilityConfirmed(order.id);
+        return sendJson(response, 200, { order });
+      }
+      logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)\/checklist$/);
+      if (request.method === "PATCH" && logisticsMatch) {
+        return sendJson(response, 200, { order: updateLogisticsChecklist(db, Number(logisticsMatch[1]), await readJson(request), requireLogisticsOperator(currentLogisticsOperator)) });
+      }
+      logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)\/dispatch$/);
+      if (request.method === "PATCH" && logisticsMatch) {
+        const order = dispatchLogisticsOrder(db, Number(logisticsMatch[1]), await readJson(request), requireLogisticsOperator(currentLogisticsOperator));
+        emailService.queueOrderFulfillmentUpdated(order.id);
+        return sendJson(response, 200, { order });
+      }
+      logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)\/(picking-list|shipping-labels)$/);
+      if (request.method === "GET" && logisticsMatch) {
+        requireLogisticsOperator(currentLogisticsOperator);
+        const id = Number(logisticsMatch[1]);
+        const document = logisticsMatch[2] === "picking-list" ? logisticsPickingList(db, id)
+          : logisticsLabels(db, id, Number(url.searchParams.get("packages") || 1));
+        return sendJson(response, 200, document);
       }
       if (request.method === "POST" && url.pathname === "/api/sales/forgot-password") {
         const body = await readJson(request);
@@ -568,6 +631,12 @@ export function createApp({
       match = url.pathname.match(/^\/api\/admin\/sales-reps\/(\d+)\/profile$/);
       if (request.method === "GET" && match) {
         return sendJson(response, 200, { profile: getSalesRepProfile(db, Number(match[1])) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/logistics-operators") {
+        return sendJson(response, 200, { operators: listLogisticsOperators(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/logistics-operators") {
+        return sendJson(response, 201, { operator: await upsertLogisticsOperator(db, await readJson(request)) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/sales-reps") {
         return sendJson(response, 201, { salesRep: await upsertSalesRep(db, await readJson(request)) });

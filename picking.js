@@ -1,13 +1,14 @@
 const root = document.querySelector("#pickingRoot");
 const params = new URLSearchParams(window.location.search);
 const orderId = Number(params.get("order") || 0);
+const logisticsSource = params.get("source") === "logistics";
 
 initPicking();
 
 async function initPicking() {
   if (!orderId) return renderError("Faltan datos para generar la hoja de preparacion.");
   try {
-    const payload = await api(`/api/admin/orders/${orderId}/picking-list`);
+    const payload = await api(`${logisticsSource ? "/api/logistics" : "/api/admin"}/orders/${orderId}/picking-list`);
     renderPicking(payload);
   } catch (error) {
     renderError(error.message);
@@ -25,7 +26,7 @@ function renderPicking(payload) {
   const { order, generatedAt } = payload;
   root.innerHTML = `
     <div class="screen-actions">
-      <a href="./admin.html#orders">Volver al panel</a>
+      <a href="${logisticsSource ? "./logistica.html" : "./admin.html#orders"}">Volver al panel</a>
       <div><strong>${escapeHtml(order.orderNumber)}</strong> - ${order.items.length} linea${order.items.length === 1 ? "" : "s"}</div>
       <button type="button" id="printPicking">Imprimir preparacion</button>
     </div>

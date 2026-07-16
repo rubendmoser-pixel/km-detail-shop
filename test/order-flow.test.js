@@ -231,7 +231,7 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
     fulfillmentStatus: "shipped",
     fulfillmentMethod: "Expreso",
     reason: "Faltan datos"
-  }, admin.id), /Dispatch requires/);
+  }, admin.id), /despacho requiere/i);
   const shipped = updateOrderFulfillment(db, order.id, {
     fulfillmentStatus: "shipped",
     fulfillmentMethod: "Expreso",

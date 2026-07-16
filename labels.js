@@ -2,6 +2,7 @@ const root = document.querySelector("#labelsRoot");
 const params = new URLSearchParams(window.location.search);
 const orderId = Number(params.get("order") || 0);
 const packageCount = Number(params.get("packages") || 1);
+const logisticsSource = params.get("source") === "logistics";
 
 const CODE39 = {
   "0": "101001101101", "1": "110100101011", "2": "101100101011", "3": "110110010101",
@@ -24,7 +25,7 @@ async function initLabels() {
     return renderError("Faltan datos para generar etiquetas.");
   }
   try {
-    const payload = await api(`/api/admin/orders/${orderId}/shipping-labels?packages=${packageCount}`);
+    const payload = await api(`${logisticsSource ? "/api/logistics" : "/api/admin"}/orders/${orderId}/shipping-labels?packages=${packageCount}`);
     renderLabels(payload);
   } catch (error) {
     renderError(error.message);
@@ -42,7 +43,7 @@ function renderLabels(payload) {
   const { order, packages } = payload;
   root.innerHTML = `
     <div class="screen-actions">
-      <a href="./admin.html#orders">Volver al panel</a>
+      <a href="${logisticsSource ? "./logistica.html" : "./admin.html#orders"}">Volver al panel</a>
       <div><strong>${escapeHtml(order.orderNumber)}</strong> - ${packages.length} bulto${packages.length === 1 ? "" : "s"}</div>
       <button type="button" id="printLabels">Imprimir etiquetas</button>
     </div>
