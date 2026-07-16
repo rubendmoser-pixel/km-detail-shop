@@ -137,6 +137,7 @@ function normalizeInitialRoute() {
 }
 
 function bindEvents() {
+  setupPasswordToggles();
   document.querySelectorAll("[data-category-link]").forEach((link) => {
     link.addEventListener("click", (event) => {
       event.preventDefault();
@@ -252,6 +253,21 @@ async function loadProducts() {
     state.products = [];
     showToast(error.message);
   }
+}
+
+function setupPasswordToggles() {
+  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.querySelector(button.dataset.togglePassword || "");
+      if (!input) return;
+      const willShow = input.type === "password";
+      input.type = willShow ? "text" : "password";
+      button.textContent = willShow ? "Ocultar" : "Ver";
+      button.setAttribute("aria-label", willShow ? "Ocultar contrasena" : "Mostrar contrasena");
+      button.setAttribute("aria-pressed", String(willShow));
+      button.title = willShow ? "Ocultar contrasena" : "Mostrar contrasena";
+    });
+  });
 }
 
 async function loadOfficialDistributors() {

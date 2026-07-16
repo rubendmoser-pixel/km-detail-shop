@@ -2726,6 +2726,59 @@ body.customer-app .customer-order-summary {
   grid-column: 1 / -1;
 }
 
+.password-control {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  overflow: hidden;
+  color: #f5f5f2;
+  background: #191a1d;
+  border: 1px solid #3f4146;
+  border-radius: 7px;
+}
+
+.password-control:focus-within {
+  border-color: #c9cdd2;
+  box-shadow: 0 0 0 3px rgba(242, 207, 69, 0.35);
+}
+
+.password-control input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.password-control input:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.password-control .password-toggle {
+  flex: 0 0 auto;
+  min-width: 76px;
+  margin: 5px;
+  padding: 0 12px;
+  color: #f5f5f2;
+  background: rgba(183, 184, 255, 0.1);
+  border: 1px solid rgba(183, 184, 255, 0.42);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.password-control .password-toggle:hover,
+.password-control .password-toggle:focus-visible {
+  color: #09090a;
+  background: #dedcff;
+  outline: 0;
+}
+
 .check-field {
   grid-template-columns: 20px 1fr;
   align-items: center;

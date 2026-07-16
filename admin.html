@@ -10,7 +10,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="./styles.css?v=61" />
+    <link rel="stylesheet" href="./styles.css?v=68" />
     <link rel="stylesheet" href="./admin.css?v=58" />
   </head>
   <body class="admin-body">
@@ -28,7 +28,13 @@
           <p class="eyebrow">Acceso restringido</p>
           <h1>Panel administrativo</h1>
           <label><span>Email</span><input name="email" type="email" required autocomplete="username" /></label>
-          <label><span>Contrasena</span><input name="password" type="password" required autocomplete="current-password" /></label>
+          <label>
+            <span>Contrasena</span>
+            <span class="password-control">
+              <input id="adminLoginPassword" name="password" type="password" required autocomplete="current-password" />
+              <button class="password-toggle" type="button" data-toggle-password="#adminLoginPassword" aria-controls="adminLoginPassword" aria-pressed="false" aria-label="Mostrar contrasena">Ver</button>
+            </span>
+          </label>
           <button class="primary-button" type="submit">Ingresar</button>
           <p class="form-message" id="adminLoginMessage" role="status"></p>
         </form>
@@ -627,6 +633,6 @@
       </div>
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
-    <script src="./admin.js?v=79" defer></script>
+    <script src="./admin.js?v=80" defer></script>
   </body>
 </html>

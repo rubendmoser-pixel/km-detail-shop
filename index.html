@@ -23,7 +23,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=67" />
+    <link rel="stylesheet" href="./styles.css?v=68" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -451,7 +451,13 @@
       </div>
       <form class="account-form" id="loginForm">
         <label><span>Email</span><input name="email" type="email" required autocomplete="email" /></label>
-        <label><span>Contrasena</span><input name="password" type="password" required autocomplete="current-password" /></label>
+        <label>
+          <span>Contrasena</span>
+          <span class="password-control">
+            <input id="customerLoginPassword" name="password" type="password" required autocomplete="current-password" />
+            <button class="password-toggle" type="button" data-toggle-password="#customerLoginPassword" aria-controls="customerLoginPassword" aria-pressed="false" aria-label="Mostrar contrasena">Ver</button>
+          </span>
+        </label>
         <button class="primary-button" type="submit">Ingresar</button>
         <a class="recovery-link" href="/reset.html">Olvide mi contrasena</a>
       </form>
@@ -494,6 +500,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=90" defer></script>
+    <script src="./app.js?v=91" defer></script>
   </body>
 </html>

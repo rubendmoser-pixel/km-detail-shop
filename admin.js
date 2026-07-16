@@ -114,6 +114,7 @@ function bindAdminEvents() {
   const on = (element, eventName, handler) => element?.addEventListener?.(eventName, handler);
   const byId = (selector) => document.querySelector(selector);
 
+  setupAdminPasswordToggles();
   on(adminEls.adminLoginForm, "submit", loginAdmin);
   on(byId("#adminLogout"), "click", logoutAdmin);
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => showAdminView(button.dataset.adminView)));
@@ -197,6 +198,21 @@ function bindAdminEvents() {
   on(byId("#reloadOperationDashboard"), "click", loadOperationDashboard);
   on(adminEls.operationDashboard, "click", handleOperationDashboardClick);
   on(adminEls.deleteTestOrdersForm, "submit", deleteTestOrders);
+}
+
+function setupAdminPasswordToggles() {
+  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.querySelector(button.dataset.togglePassword || "");
+      if (!input) return;
+      const willShow = input.type === "password";
+      input.type = willShow ? "text" : "password";
+      button.textContent = willShow ? "Ocultar" : "Ver";
+      button.setAttribute("aria-label", willShow ? "Ocultar contrasena" : "Mostrar contrasena");
+      button.setAttribute("aria-pressed", String(willShow));
+      button.title = willShow ? "Ocultar contrasena" : "Mostrar contrasena";
+    });
+  });
 }
 
 async function loginAdmin(event) {
