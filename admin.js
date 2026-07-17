@@ -2766,12 +2766,11 @@ async function loadOrders() {
     return `
     <tr class="order-list-card ${escapeAdmin(nextAction.tone)}"><td data-label="Pedido"><div class="order-code-cell">${customerClassBadge(order.commercial_class)}<strong>${escapeAdmin(order.order_number)}</strong></div></td><td class="order-customer-cell" data-label="Cliente"><strong>${escapeAdmin(order.business_name)}</strong></td>
       <td data-label="Origen">${orderOriginBadge(order)}</td>
-      <td data-label="Etapa">${stateBadge(orderStageText(order.stage), orderStageClasses[order.stage])}</td>
       <td class="order-list-next-action ${escapeAdmin(nextAction.tone)}" data-label="Próxima acción"><strong>${escapeAdmin(nextAction.short)}</strong></td>
       <td data-label="Pago">${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
       <td data-label="Total">${adminMoney.format(order.total_cents / 100)}</td><td data-label="Fecha">${formatDate(order.created_at)}</td>
       <td data-label="Detalle"><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>`;
-  }).join("") : `<tr><td colspan="9">${adminState.orderScope === "history" ? "No hay pedidos históricos para esta búsqueda." : "No hay pedidos activos para este filtro."}</td></tr>`;
+  }).join("") : `<tr><td colspan="8">${adminState.orderScope === "history" ? "No hay pedidos históricos para esta búsqueda." : "No hay pedidos activos para este filtro."}</td></tr>`;
 }
 
 function orderStageText(stage) {
