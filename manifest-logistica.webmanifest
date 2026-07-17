@@ -1,0 +1,19 @@
+{
+  "id": "/logistica.html",
+  "name": "KM Logística",
+  "short_name": "KM Logística",
+  "description": "Operación logística de KM Detail Line.",
+  "start_url": "/logistica.html?source=pwa",
+  "scope": "/",
+  "lang": "es-AR",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#08090b",
+  "theme_color": "#78dd91",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/assets/app-logistica-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/app-logistica-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

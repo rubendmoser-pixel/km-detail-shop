@@ -1,0 +1,19 @@
+{
+  "id": "/vendedor.html",
+  "name": "KM Ventas",
+  "short_name": "KM Ventas",
+  "description": "Gestión comercial y de ventas de KM Detail Line.",
+  "start_url": "/vendedor.html?source=pwa",
+  "scope": "/",
+  "lang": "es-AR",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#08090b",
+  "theme_color": "#858bff",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/assets/app-ventas-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/app-ventas-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

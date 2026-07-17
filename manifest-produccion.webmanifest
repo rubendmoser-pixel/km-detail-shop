@@ -1,0 +1,19 @@
+{
+  "id": "/produccion",
+  "name": "KM Producción",
+  "short_name": "KM Producción",
+  "description": "Operación de producción de KM Detail Line.",
+  "start_url": "/",
+  "scope": "/",
+  "lang": "es-AR",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#08090b",
+  "theme_color": "#f1c94a",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/assets/app-produccion-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/app-produccion-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

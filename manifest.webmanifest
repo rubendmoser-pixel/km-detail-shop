@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "KM Detail Line",
-  "short_name": "KM Detail",
+  "name": "KM Compras | KM Detail Line",
+  "short_name": "KM Compras",
   "description": "Plataforma comercial de KM Detail Line para distribuidores, pinturerias y comercios especializados.",
   "start_url": "/",
   "scope": "/",

@@ -1,0 +1,19 @@
+{
+  "id": "/admin.html",
+  "name": "KM Administración",
+  "short_name": "KM Admin",
+  "description": "Administración general de KM Detail Line.",
+  "start_url": "/admin.html?source=pwa",
+  "scope": "/",
+  "lang": "es-AR",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#08090b",
+  "theme_color": "#5fb3ff",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/assets/app-admin-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/app-admin-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
