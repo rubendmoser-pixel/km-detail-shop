@@ -5,9 +5,16 @@ import { openDatabase } from "./db.js";
 import { createApp } from "./app.js";
 import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
+import { synchronizeProductionMaster } from "./services/production-master-service.js";
 
 fs.mkdirSync(config.uploadsPath, { recursive: true });
 const db = await openDatabase(config);
+try {
+  const master = synchronizeProductionMaster(db);
+  console.log(`Maestro de producción ${master.version}: ${master.products} recetas, ${master.recipeLines} componentes${master.skipped ? " (sin cambios)" : " importados"}.`);
+} catch (error) {
+  console.error("No se pudo sincronizar el maestro de producción:", error.message);
+}
 const pushService = createPushService({ db, config });
 const emailService = createEmailService({ db, config, pushService });
 void emailService.flush();

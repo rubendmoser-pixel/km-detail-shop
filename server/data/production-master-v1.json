@@ -1,0 +1,4761 @@
+{
+  "version": "2026-07-17-v1",
+  "identityRule": "km_code+ean13",
+  "expectedProducts": 104,
+  "expectedSourceLines": 560,
+  "materials": [
+    {
+      "itemCode": "MP-ESP-BLA-06",
+      "name": "Espuma blanca 6 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 11,
+      "purchaseContent": 49019.60784313725,
+      "notes": "Densidad 34 kg/m3"
+    },
+    {
+      "itemCode": "MP-ESP-BLA-12",
+      "name": "Espuma blanca 12 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 11,
+      "purchaseContent": 24509.803921568626,
+      "notes": "Densidad 34 kg/m3"
+    },
+    {
+      "itemCode": "MP-ESP-BLA-20",
+      "name": "Espuma blanca 20 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 11,
+      "purchaseContent": 14705.882352941175,
+      "notes": "Densidad 34 kg/m3"
+    },
+    {
+      "itemCode": "MP-ESP-BLA-30",
+      "name": "Espuma blanca 30 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 11,
+      "purchaseContent": 9803.921568627451,
+      "notes": "Densidad 34 kg/m3"
+    },
+    {
+      "itemCode": "MP-ESP-CEL-12",
+      "name": "Espuma celeste 12 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10,
+      "purchaseContent": 32051.28205128205,
+      "notes": "Densidad 26 kg/m3"
+    },
+    {
+      "itemCode": "MP-ESP-CEL-20",
+      "name": "Espuma celeste 20 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10,
+      "purchaseContent": 19230.76923076923,
+      "notes": "Densidad 26 kg/m3"
+    },
+    {
+      "itemCode": "MP-ESP-CEL-30",
+      "name": "Espuma celeste 30 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10,
+      "purchaseContent": 12820.51282051282,
+      "notes": "Densidad 26 kg/m3"
+    },
+    {
+      "itemCode": "MP-ESP-NEG-12",
+      "name": "Espuma negra 12 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10,
+      "purchaseContent": 32051.28205128205,
+      "notes": "Densidad 26 kg/m3; stock separado de celeste"
+    },
+    {
+      "itemCode": "MP-ESP-NEG-20",
+      "name": "Espuma negra 20 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10,
+      "purchaseContent": 19230.76923076923,
+      "notes": "Densidad 26 kg/m3; stock separado de celeste"
+    },
+    {
+      "itemCode": "MP-ESP-NEG-30",
+      "name": "Espuma negra 30 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10,
+      "purchaseContent": 12820.51282051282,
+      "notes": "Densidad 26 kg/m3; stock separado de celeste"
+    },
+    {
+      "itemCode": "MP-ESP-AMA-30",
+      "name": "Espuma amarilla 30 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10,
+      "purchaseContent": 12820.51282051282,
+      "notes": "Densidad 26 kg/m3"
+    },
+    {
+      "itemCode": "MP-ESP-VER-12",
+      "name": "Espuma verde 12 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Norflex",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10,
+      "purchaseContent": 37878.78787878788,
+      "notes": "Corregida desde 15 mm; densidad 22 kg/m3"
+    },
+    {
+      "itemCode": "MP-ALF-AZUL",
+      "name": "Alfombra / velcro azul",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Delfin",
+      "purchaseUnit": "rollo",
+      "currency": "USD",
+      "purchaseCost": 350,
+      "purchaseContent": 1000000,
+      "notes": "Rollo 50 m x 2 m"
+    },
+    {
+      "itemCode": "MP-TELA-LUB",
+      "name": "Tela LUB",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "rollo",
+      "currency": "USD",
+      "purchaseCost": 1050,
+      "purchaseContent": 765000,
+      "notes": "Rollo 51 m x 1,5 m"
+    },
+    {
+      "itemCode": "MP-LANA-22",
+      "name": "Tela tejida de lana 22 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Olitex",
+      "purchaseUnit": "metro lineal",
+      "currency": "USD",
+      "purchaseCost": 59,
+      "purchaseContent": 15000,
+      "notes": "Ancho 1,5 m; largo de rollo variable"
+    },
+    {
+      "itemCode": "MP-LANA-15",
+      "name": "Tela tejida de lana 15 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "Olitex",
+      "purchaseUnit": "metro lineal",
+      "currency": "USD",
+      "purchaseCost": 54,
+      "purchaseContent": 15000,
+      "notes": "Ancho 1,5 m; largo de rollo variable"
+    },
+    {
+      "itemCode": "MP-CORDON",
+      "name": "Cordon Patagonico",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "Boutique de Hilados",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 36,
+      "purchaseContent": 1000,
+      "notes": "Bobina por peso"
+    },
+    {
+      "itemCode": "MP-LANA-ANDINA",
+      "name": "Lana Andina 70/30",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "Boutique de Hilados",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 36,
+      "purchaseContent": 1000,
+      "notes": "Bobina por peso"
+    },
+    {
+      "itemCode": "MP-YUTE",
+      "name": "Yute titulo 28/2",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "Boutique de Hilados",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 28,
+      "purchaseContent": 1000,
+      "notes": "Bobina por peso"
+    },
+    {
+      "itemCode": "MP-E530",
+      "name": "Pegamento E530",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "Amichen",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 3.95,
+      "purchaseContent": 1000,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-DBP",
+      "name": "DBP plastificante",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "Amichen",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 6.09,
+      "purchaseContent": 1000,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-HOSTAPUR",
+      "name": "Hostapur espumante",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "Amichen",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10.39,
+      "purchaseContent": 1000,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-TYLOSE",
+      "name": "Tylose 30000",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "Amichen",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 10.9,
+      "purchaseContent": 1000,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-CEMENTO",
+      "name": "Cemento de contacto",
+      "itemType": "raw_material",
+      "unit": "cc",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "litro",
+      "currency": "USD",
+      "purchaseCost": 8,
+      "purchaseContent": 1000,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-DILUYENTE",
+      "name": "Diluyente de cemento",
+      "itemType": "raw_material",
+      "unit": "cc",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "litro",
+      "currency": "USD",
+      "purchaseCost": 5,
+      "purchaseContent": 1000,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-VELCRO-100",
+      "name": "Velcro 100 mm",
+      "itemType": "raw_material",
+      "unit": "cm lineal",
+      "active": true,
+      "supplier": "Insutex",
+      "purchaseUnit": "rollo",
+      "currency": "USD",
+      "purchaseCost": 30,
+      "purchaseContent": 2500,
+      "notes": "Rollo de 25 m"
+    },
+    {
+      "itemCode": "MP-VELCRO-150",
+      "name": "Velcro 150 mm",
+      "itemType": "raw_material",
+      "unit": "cm lineal",
+      "active": true,
+      "supplier": "Insutex",
+      "purchaseUnit": "rollo",
+      "currency": "USD",
+      "purchaseCost": 92.5,
+      "purchaseContent": 2500,
+      "notes": "Rollo de 25 m"
+    },
+    {
+      "itemCode": "MP-EVA-NEG-03",
+      "name": "Goma EVA negra 3 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "placa",
+      "currency": "USD",
+      "purchaseCost": 9,
+      "purchaseContent": 13000,
+      "notes": "Placa 100 x 130 cm"
+    },
+    {
+      "itemCode": "MP-EVA-NEG-10",
+      "name": "Goma EVA negra 10 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "placa",
+      "currency": "USD",
+      "purchaseCost": 18.5,
+      "purchaseContent": 11025,
+      "notes": "Placa 105 x 105 cm; antes figuraba 8 mm"
+    },
+    {
+      "itemCode": "MP-EVA-GRI-25",
+      "name": "Goma EVA gris 25 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "placa",
+      "currency": "USD",
+      "purchaseCost": 25,
+      "purchaseContent": 8100,
+      "notes": "Placa 90 x 90 cm; antes figuraba 20 mm"
+    },
+    {
+      "itemCode": "MP-PLA",
+      "name": "Plastico PLA",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "Bureu",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 12,
+      "purchaseContent": 1000,
+      "notes": "Bobina de 1 kg; color unificado"
+    },
+    {
+      "itemCode": "MP-BOLSA-075",
+      "name": "Bolsa para 7,5",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Poliwal",
+      "purchaseUnit": "unidad",
+      "currency": "USD",
+      "purchaseCost": 0.065,
+      "purchaseContent": 1,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-BOLSA-065",
+      "name": "Bolsa para 6,5 / 6",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Poliwal",
+      "purchaseUnit": "unidad",
+      "currency": "USD",
+      "purchaseCost": 0.055,
+      "purchaseContent": 1,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-BOLSA-050",
+      "name": "Bolsa para 5",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Poliwal",
+      "purchaseUnit": "unidad",
+      "currency": "USD",
+      "purchaseCost": 0.045,
+      "purchaseContent": 1,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-BOLSA-040",
+      "name": "Bolsa para 4",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Poliwal",
+      "purchaseUnit": "unidad",
+      "currency": "USD",
+      "purchaseCost": 0.04,
+      "purchaseContent": 1,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-BOLSA-032",
+      "name": "Bolsa para 3 / 2",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Poliwal",
+      "purchaseUnit": "unidad",
+      "currency": "USD",
+      "purchaseCost": 0.03,
+      "purchaseContent": 1,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-BOLSA-1215",
+      "name": "Bolsa lisa 12 x 15 cm",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "unidad",
+      "currency": "USD",
+      "purchaseCost": 0.020521428571428572,
+      "purchaseContent": 1,
+      "notes": "Precio informado $28,73 y convertido a USD con TC 1.400"
+    },
+    {
+      "itemCode": "MP-BOLSA-ZIP",
+      "name": "Bolsa tipo Ziploc 17 x 25",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": false,
+      "supplier": "Poliwal",
+      "purchaseUnit": "unidad",
+      "currency": "USD",
+      "purchaseCost": 0.12,
+      "purchaseContent": 1,
+      "notes": "Descartada; no usar en compras ni recetas nuevas"
+    },
+    {
+      "itemCode": "MP-CANO",
+      "name": "Caño rectangular 20 x 10 x 0,9 mm",
+      "itemType": "raw_material",
+      "unit": "cm lineal",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "barra 6 m",
+      "currency": "USD",
+      "purchaseCost": 10.5,
+      "purchaseContent": 600,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-TORNILLO",
+      "name": "Tornillo",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "unidad",
+      "currency": "USD",
+      "purchaseCost": 0.03,
+      "purchaseContent": 1,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-BURLETE",
+      "name": "Burlete de goma",
+      "itemType": "raw_material",
+      "unit": "cm lineal",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "metro lineal",
+      "currency": "USD",
+      "purchaseCost": 0.43,
+      "purchaseContent": 100,
+      "notes": "Rollos de largo variable"
+    },
+    {
+      "itemCode": "MP-PISO-GOMA",
+      "name": "Piso de goma lisa 3 mm",
+      "itemType": "raw_material",
+      "unit": "cm2",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "m2",
+      "currency": "USD",
+      "purchaseCost": 11.5,
+      "purchaseContent": 10000,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-ABS",
+      "name": "ABS reciclado",
+      "itemType": "raw_material",
+      "unit": "g",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "kg",
+      "currency": "USD",
+      "purchaseCost": 1.5,
+      "purchaseContent": 1000,
+      "notes": ""
+    },
+    {
+      "itemCode": "MP-BARRA-AL",
+      "name": "Barra tubo aluminio 5/8 x 2 mm",
+      "itemType": "raw_material",
+      "unit": "barra",
+      "active": true,
+      "supplier": "A confirmar",
+      "purchaseUnit": "barra 2 m",
+      "currency": "USD",
+      "purchaseCost": 7.2,
+      "purchaseContent": 1,
+      "notes": "15 cm de desperdicio; rinde 185 bujes"
+    },
+    {
+      "itemCode": "SRV-INYECCION",
+      "name": "Servicio de inyeccion de placa",
+      "itemType": "raw_material",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Inyector a confirmar",
+      "purchaseUnit": "unidad",
+      "currency": "ARS",
+      "purchaseCost": 380,
+      "purchaseContent": 1,
+      "notes": ""
+    },
+    {
+      "itemCode": "INT-PEG-ESP",
+      "name": "Pegamento espumoso preparado",
+      "itemType": "intermediate",
+      "unit": "cc",
+      "active": true,
+      "supplier": "Produccion interna",
+      "purchaseUnit": "lote",
+      "currency": "ARS",
+      "purchaseCost": null,
+      "purchaseContent": 9773.19587628866,
+      "notes": "Lote 9.480 g; PE 0,97; uso estandar 0,07 cc/cm2"
+    },
+    {
+      "itemCode": "INT-CEMENTO",
+      "name": "Mezcla cemento de contacto 4:1",
+      "itemType": "intermediate",
+      "unit": "cc",
+      "active": true,
+      "supplier": "Preparado al usar",
+      "purchaseUnit": "litro",
+      "currency": "ARS",
+      "purchaseCost": null,
+      "purchaseContent": 1000,
+      "notes": "800 cc cemento + 200 cc diluyente; sin lote"
+    },
+    {
+      "itemCode": "INT-BUJE",
+      "name": "Buje de aluminio terminado",
+      "itemType": "intermediate",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Produccion interna",
+      "purchaseUnit": "lote por barra",
+      "currency": "ARS",
+      "purchaseCost": null,
+      "purchaseContent": 185,
+      "notes": "1 cm por buje; corte y ranurado automatico"
+    },
+    {
+      "itemCode": "INT-PLACA",
+      "name": "Placa inyectada unificada 6",
+      "itemType": "intermediate",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Tercero / KM",
+      "purchaseUnit": "unidad",
+      "currency": "ARS",
+      "purchaseCost": null,
+      "purchaseContent": 1,
+      "notes": "52 g ABS + 1 buje + servicio de inyeccion"
+    },
+    {
+      "itemCode": "PT-DL045H",
+      "name": "DL045H terminado",
+      "itemType": "intermediate",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Produccion interna",
+      "purchaseUnit": "unidad",
+      "currency": "ARS",
+      "purchaseCost": null,
+      "purchaseContent": 1,
+      "notes": "Componente del kit DL046H"
+    },
+    {
+      "itemCode": "PT-DL047H",
+      "name": "DL047H terminado",
+      "itemType": "intermediate",
+      "unit": "unidad",
+      "active": true,
+      "supplier": "Produccion interna",
+      "purchaseUnit": "unidad",
+      "currency": "ARS",
+      "purchaseCost": null,
+      "purchaseContent": 1,
+      "notes": "Componente del kit DL046H"
+    }
+  ],
+  "recipes": [
+    {
+      "kmCode": "CP171K",
+      "ean13": "0781100144695",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-AMA-30",
+          "quantity": 400,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 544,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-CORDON",
+          "quantity": 40,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-E530",
+          "quantity": 120,
+          "step": "Pegado de lana",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 13.160000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "CP172K",
+      "ean13": "0781100144701",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 400,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 544,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-ANDINA",
+          "quantity": 45,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-E530",
+          "quantity": 120,
+          "step": "Pegado de lana",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 13.160000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "CP671K",
+      "ean13": "0764451541467",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-AMA-30",
+          "quantity": 400,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 544,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-CORDON",
+          "quantity": 40,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-E530",
+          "quantity": 120,
+          "step": "Pegado de lana",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 13.160000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 26,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "CP672K",
+      "ean13": "0764451541450",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 400,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 544,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-ANDINA",
+          "quantity": 45,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-E530",
+          "quantity": 120,
+          "step": "Pegado de lana",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 13.160000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 26,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "CP271K",
+      "ean13": "0781100144718",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 400,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 544,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 13.160000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "CP272K",
+      "ean13": "0781100144725",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 400,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 544,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 13.160000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PA166K",
+      "ean13": "0734191447008",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-12",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 315,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 40.95,
+          "step": "Paso C",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 29.25,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PA165K",
+      "ean13": "0734191447015",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-12",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 256,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.23,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.23,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 36.400000000000006,
+          "step": "Paso C",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 26,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PA164K",
+      "ean13": "0734191447022",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-12",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 26.46,
+          "step": "Paso C",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 18.900000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PA163K",
+      "ean13": "0734191447039",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-12",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 144,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 21.42,
+          "step": "Paso C",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 15.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PA162K",
+      "ean13": "0734191447046",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-12",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 12.600000000000001,
+          "step": "Paso C",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 9,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PA161K",
+      "ean13": "0736372495204",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-12",
+          "quantity": 49,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 49,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 43,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 49,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 3.43,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 3.43,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 6.16,
+          "step": "Paso C",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 4.4,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PA160K",
+      "ean13": "0736372495211",
+      "status": "Corregida",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-12",
+          "quantity": 10,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 10,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 9,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 10,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 0.7000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion validada: 700 cc/m2"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 0.7000000000000001,
+          "step": "Paso B",
+          "notes": "Conversion validada: 700 cc/m2"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 1.4000000000000001,
+          "step": "Paso C",
+          "notes": "Conversion validada: 700 cc/m2"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 1,
+          "step": "Pegado",
+          "notes": "Mezcla 4:1; 1 litro rinde 2 m2"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "PX866K",
+      "ean13": "0764451541542",
+      "status": "Reconstruida",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 289,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 256,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 289,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.23,
+          "step": "Paso B",
+          "notes": "Conversion validada: 700 cc/m2"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 36.400000000000006,
+          "step": "Paso C",
+          "notes": "Conversion validada: 700 cc/m2"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 26,
+          "step": "Pegado",
+          "notes": "Mezcla 4:1; 1 litro rinde 2 m2"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "PB171K",
+      "ean13": "0736372495273",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 29.25,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB172K",
+      "ean13": "0736372495280",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 29.25,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB173K",
+      "ean13": "0736372495440",
+      "status": "Reconstruida",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 325,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 325,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Paso A",
+          "notes": "Conversion validada: 700 cc/m2"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 29.25,
+          "step": "Pegado",
+          "notes": "Mezcla 4:1; 1 litro rinde 2 m2"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "PB161K",
+      "ean13": "0736372495389",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.23,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 26,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB162K",
+      "ean13": "0736372495396",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.23,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 26,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB163K",
+      "ean13": "0736372495402",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.23,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 26,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB151K",
+      "ean13": "0736372495358",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 18.900000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB152K",
+      "ean13": "0736372495365",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 18.900000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB153K",
+      "ean13": "0736372495372",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 18.900000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB141K",
+      "ean13": "0736372495327",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 15.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB142K",
+      "ean13": "0736372495334",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 15.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB143K",
+      "ean13": "0736372495341",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 15.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB131K",
+      "ean13": "0736372495419",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 9,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB132K",
+      "ean13": "0736372495426",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 9,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "PB133K",
+      "ean13": "0736372495433",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 9,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL267K",
+      "ean13": "0734191446810",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL268K",
+      "ean13": "0734191446827",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL269K",
+      "ean13": "0734191446834",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL261K",
+      "ean13": "0788115794020",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL262K",
+      "ean13": "0788115794037",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL263K",
+      "ean13": "0788115794044",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL251K",
+      "ean13": "0788115794068",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL252K",
+      "ean13": "0788115794075",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL253K",
+      "ean13": "0788115794082",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL241K",
+      "ean13": "0734191446599",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL242K",
+      "ean13": "0734191446605",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL243K",
+      "ean13": "0734191446612",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL231K",
+      "ean13": "0734191446636",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL232K",
+      "ean13": "0734191446643",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL233K",
+      "ean13": "0734191446650",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL221K",
+      "ean13": "0734191446674",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-20",
+          "quantity": 150,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 150,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 10.500000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL222K",
+      "ean13": "0734191446681",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 150,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 150,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 10.500000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL223K",
+      "ean13": "0734191446698",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-20",
+          "quantity": 150,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 150,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 10.500000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL201K",
+      "ean13": "0734191446711",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL202K",
+      "ean13": "0734191446728",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-12",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL203K",
+      "ean13": "0734191446735",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-12",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL166K",
+      "ean13": "0734191446803",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 315,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 325,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 22.750000000000004,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 40.95,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL161K",
+      "ean13": "0788115794051",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 256,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 289,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.23,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 36.400000000000006,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL151K",
+      "ean13": "0788115794099",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 26.46,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL141K",
+      "ean13": "0734191446582",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 144,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 170,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 11.9,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 21.42,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL131K",
+      "ean13": "0734191446629",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 12.600000000000001,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL121K",
+      "ean13": "0734191446667",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 49,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 43,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 49,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 3.43,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 6.16,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL101K",
+      "ean13": "0734191446704",
+      "status": "Reconstruida",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 9,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 9,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 9,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 0.6300000000000001,
+          "step": "Paso A",
+          "notes": "Conversion validada: 700 cc/m2"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 1.1340000000000001,
+          "step": "Paso B",
+          "notes": "Conversion validada: 700 cc/m2"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "DC152K",
+      "ean13": "0764451541344",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-15",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DC154K",
+      "ean13": "0764451541368",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-15",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-06",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DC156K",
+      "ean13": "0764451541375",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL257K",
+      "ean13": "0734191446551",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-30",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL258K",
+      "ean13": "0734191446568",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-30",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL259K",
+      "ean13": "0734191446575",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 290,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 20.3,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DR251K",
+      "ean13": "0736372495297",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-20",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DR252K",
+      "ean13": "0736372495303",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DR253K",
+      "ean13": "0736372495310",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-20",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DA231K",
+      "ean13": "0734191446841",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-20",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.000000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DA232K",
+      "ean13": "0734191446858",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.000000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DA233K",
+      "ean13": "0734191446865",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-20",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.000000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DN251K",
+      "ean13": "0736372495235",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 26.46,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DC151K",
+      "ean13": "0764451541337",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-15",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DC153K",
+      "ean13": "0764451541351",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-15",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-06",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DC155K",
+      "ean13": "0764451541382",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 183,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.700000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DC132K",
+      "ean13": "0764451541399",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-15",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DC134K",
+      "ean13": "0764451541405",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-15",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-06",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DC136K",
+      "ean13": "0764451541412",
+      "status": "Recuperada",
+      "components": [
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DN252K",
+      "ean13": "0736372495228",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-LANA-22",
+          "quantity": 73,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TELA-LUB",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 7.000000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 12.600000000000001,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB011K",
+      "ean13": "0734191446742",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 9,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 1.35,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB021K",
+      "ean13": "0734191446759",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 6,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 36,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 3.6,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB031K",
+      "ean13": "0734191446766",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 9,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 81,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 8.1,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB041K",
+      "ean13": "0734191446773",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 11,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 121,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 12.100000000000001,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB051K",
+      "ean13": "0734191446780",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-150",
+          "quantity": 13,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 200,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 16.900000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB061K",
+      "ean13": "0734191446797",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-150",
+          "quantity": 16,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 240,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 24,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB151K",
+      "ean13": "0764451541313",
+      "status": "Corregida",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-150",
+          "quantity": 13,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 200,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-12",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 23,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 29.400000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB251K",
+      "ean13": "0764451541320",
+      "status": "Corregida",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-150",
+          "quantity": 13,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 200,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-20",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 23,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 29.400000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DB131K",
+      "ean13": "0764451541306",
+      "status": "Corregida",
+      "components": [
+        {
+          "itemCode": "INT-PLACA",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 8,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-10",
+          "quantity": 169,
+          "step": "",
+          "notes": "Espesor corregido a 10 mm"
+        },
+        {
+          "itemCode": "MP-ESP-BLA-20",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 100,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 14,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 14.000000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL045H",
+      "ean13": "0734191446872",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-30",
+          "quantity": 121,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ALF-AZUL",
+          "quantity": 121,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 8.47,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-040",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL046H",
+      "ean13": "0734191446889",
+      "status": "Reconstruida",
+      "components": [
+        {
+          "itemCode": "PT-DL045H",
+          "quantity": 3,
+          "step": "Armado de kit",
+          "notes": ""
+        },
+        {
+          "itemCode": "PT-DL047H",
+          "quantity": 1,
+          "step": "Armado de kit",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "Embalaje",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "DL047H",
+      "ean13": "0734191446896",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-EVA-GRI-25",
+          "quantity": 64,
+          "step": "",
+          "notes": "Espesor corregido a 25 mm"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 8,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 3.2,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "DL112K",
+      "ean13": "0764451541474",
+      "status": "Reconstruida",
+      "components": [
+        {
+          "itemCode": "MP-ESP-VER-12",
+          "quantity": 121,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-BOLSA-1215",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "DL114K",
+      "ean13": "0764451541481",
+      "status": "Reconstruida",
+      "components": [
+        {
+          "itemCode": "MP-ESP-CEL-20",
+          "quantity": 121,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-BOLSA-1215",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "DL116K",
+      "ean13": "0764451541498",
+      "status": "Reconstruida",
+      "components": [
+        {
+          "itemCode": "MP-ESP-NEG-20",
+          "quantity": 121,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-BOLSA-1215",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "SI614A",
+      "ean13": "0788115794105",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-VELCRO-150",
+          "quantity": 16,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-NEG-12",
+          "quantity": 240,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 16.8,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 16.8,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-065",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "SI514A",
+      "ean13": "0734191446902",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-VELCRO-150",
+          "quantity": 15,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-NEG-12",
+          "quantity": 225,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 15.750000000000002,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 15.750000000000002,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "SI314A",
+      "ean13": "0734191446919",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 9,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-ESP-NEG-12",
+          "quantity": 81,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 5.670000000000001,
+          "step": "Paso A",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "INT-PEG-ESP",
+          "quantity": 5.670000000000001,
+          "step": "Paso B",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-032",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "AA131K",
+      "ean13": "0734191446926",
+      "status": "Corregida",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 47,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 9,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-03",
+          "quantity": 72,
+          "step": "",
+          "notes": "Relacion validada por costo; espesor 3 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 14.4,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "AA132K",
+      "ean13": "0734191446933",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 85,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 16,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-03",
+          "quantity": 128,
+          "step": "",
+          "notes": "Relacion validada por costo; espesor 3 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 25.6,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "AA133K",
+      "ean13": "0734191446940",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 105,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 23,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-03",
+          "quantity": 184,
+          "step": "",
+          "notes": "Relacion validada por costo; espesor 3 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 36.800000000000004,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "AA134K",
+      "ean13": "0734191446957",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 145,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 30,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-03",
+          "quantity": 240,
+          "step": "",
+          "notes": "Relacion validada por costo; espesor 3 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 48,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-CANO",
+          "quantity": 24,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "AA135K",
+      "ean13": "0734191446964",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 210,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 37,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-03",
+          "quantity": 296,
+          "step": "",
+          "notes": "Relacion validada por costo; espesor 3 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 59.2,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-CANO",
+          "quantity": 34,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BURLETE",
+          "quantity": 38,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TORNILLO",
+          "quantity": 3,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "AA136K",
+      "ean13": "0734191446971",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 240,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-VELCRO-100",
+          "quantity": 44,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-EVA-NEG-03",
+          "quantity": 352,
+          "step": "",
+          "notes": "Relacion validada por costo; espesor 3 mm"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 70.4,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-CANO",
+          "quantity": 40,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BURLETE",
+          "quantity": 45,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TORNILLO",
+          "quantity": 3,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "AB132K",
+      "ean13": "0736372495242",
+      "status": "Reconstruida",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 85,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "MP-PISO-GOMA",
+          "quantity": 128,
+          "step": "",
+          "notes": ""
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 12.8,
+          "step": "Pegado",
+          "notes": "Mezcla 4:1; 1 litro rinde 2 m2"
+        },
+        {
+          "itemCode": "MP-BOLSA-050",
+          "quantity": 1,
+          "step": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "kmCode": "AB133K",
+      "ean13": "0736372495259",
+      "status": "Original depurada",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 105,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-PISO-GOMA",
+          "quantity": 184,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 18.400000000000002,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    },
+    {
+      "kmCode": "AB136K",
+      "ean13": "0736372495266",
+      "status": "Corregida",
+      "components": [
+        {
+          "itemCode": "MP-PLA",
+          "quantity": 240,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-PISO-GOMA",
+          "quantity": 352,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "INT-CEMENTO",
+          "quantity": 35.2,
+          "step": "Pegado",
+          "notes": "Conversion corregida; fuente Excel historico"
+        },
+        {
+          "itemCode": "MP-BOLSA-075",
+          "quantity": 1,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-CANO",
+          "quantity": 40,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-BURLETE",
+          "quantity": 45,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        },
+        {
+          "itemCode": "MP-TORNILLO",
+          "quantity": 3,
+          "step": "",
+          "notes": "Fuente: Excel historico"
+        }
+      ]
+    }
+  ]
+}
