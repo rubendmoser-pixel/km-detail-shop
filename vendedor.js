@@ -117,6 +117,9 @@ const nodes = {
   customerRequestMessage: document.getElementById("sellerCustomerRequestMessage"),
   customerRequestPanel: document.querySelector(".seller-request-panel"),
   customerRequestToggleText: document.getElementById("sellerRequestToggleText"),
+  customerRequestClose: document.getElementById("sellerRequestClose"),
+  navToggle: document.getElementById("sellerNavToggle"),
+  tabs: document.getElementById("sellerTabs"),
   shippingSameAsCommercial: document.querySelector("[name='shippingSameAsCommercial']"),
   shippingFields: document.querySelector(".seller-shipping-fields"),
   viewButtons: document.querySelectorAll("[data-seller-view-button]"),
@@ -152,7 +155,20 @@ const SELLER_ICON_PATHS = {
   plus: `<path d="M12 5v14M5 12h14"/>`,
   pencil: `<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>`,
   "message-circle": `<path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.7-5.1A8 8 0 1 1 21 15Z"/>`,
-  mail: `<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 6L2 7"/>`
+  mail: `<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 6L2 7"/>`,
+  "log-in": `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>`,
+  "key-round": `<path d="m15.5 7.5 3-3M17 2l5 5-3 3M11.4 10.6a5 5 0 1 1-7.1 7.1 5 5 0 0 1 7.1-7.1ZM8 14l2 2"/>`,
+  "refresh-cw": `<path d="M21 12a9 9 0 0 0-15.2-6.5L3 8M3 3v5h5M3 12a9 9 0 0 0 15.2 6.5L21 16M16 16h5v5"/>`,
+  menu: `<path d="M4 6h16M4 12h16M4 18h16"/>`,
+  x: `<path d="M18 6 6 18M6 6l12 12"/>`,
+  "layout-dashboard": `<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>`,
+  "shopping-bag": `<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0"/>`,
+  "clipboard-list": `<rect width="14" height="18" x="5" y="3" rx="2"/><path d="M9 3V1h6v2M9 11h6M9 15h6"/>`,
+  users: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3.1a4 4 0 0 1 0 7.8M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>`,
+  settings: `<path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.63 15 1.7 1.7 0 0 0 3.07 14H3v-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.63 1.7 1.7 0 0 0 10.07 3H14v.09A1.7 1.7 0 0 0 15 4.65a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.37 9 1.7 1.7 0 0 0 20.93 10H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/>`,
+  eye: `<path d="M2.1 12a10.7 10.7 0 0 1 19.8 0 10.7 10.7 0 0 1-19.8 0Z"/><circle cx="12" cy="12" r="3"/>`,
+  "map-pin": `<path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>`,
+  check: `<path d="m20 6-11 11-5-5"/>`
 };
 
 function iconSvg(name) {
@@ -165,6 +181,28 @@ function setupSellerIcons(root = document) {
     element.insertAdjacentHTML("afterbegin", iconSvg(element.dataset.icon));
     element.setAttribute("data-icon-ready", "true");
   });
+}
+
+function setSellerNavOpen(open) {
+  const isOpen = Boolean(open);
+  nodes.tabs?.classList.toggle("is-open", isOpen);
+  nodes.navToggle?.setAttribute("aria-expanded", String(isOpen));
+  if (nodes.navToggle) nodes.navToggle.innerHTML = `${iconSvg(isOpen ? "x" : "menu")}${isOpen ? "Cerrar" : "Secciones"}`;
+}
+
+function closeExpandedSellerContent({ keepRequest = false } = {}) {
+  const hadCustomers = Boolean(state.openCustomerAddressesId);
+  const hadOrders = Boolean(state.openOrderId);
+  const hadQuotes = Boolean(state.openQuoteId);
+  state.openCustomerAddressesId = null;
+  state.editingCustomerAddressId = null;
+  state.openOrderId = null;
+  state.openQuoteId = null;
+  if (!keepRequest && nodes.customerRequestPanel) nodes.customerRequestPanel.open = false;
+  setSellerNavOpen(false);
+  if (hadCustomers) renderCustomers(state.dashboard?.customers || []);
+  if (hadOrders) renderOrders(state.dashboard?.orders || []);
+  if (hadQuotes) renderQuotes();
 }
 
 async function sellerApi(path, options = {}) {
@@ -482,7 +520,7 @@ function renderSession() {
   }
   nodes.session.innerHTML = `
     <span>${escapeHtml(state.salesRep.name)}</span>
-    <button class="ghost-button compact" type="button" id="sellerLogout">Cerrar sesion</button>
+    <button class="ghost-button compact" type="button" id="sellerLogout">${iconSvg("x")}Cerrar sesion</button>
   `;
   document.getElementById("sellerLogout")?.addEventListener("click", logout);
 }
@@ -534,8 +572,8 @@ function renderCustomers(customers = []) {
         <div class="seller-meta">${escapeHtml(location || "Sin localidad cargada")}</div>
         <div class="seller-meta">${escapeHtml(contact || "Sin contacto cargado")}</div>
         <div class="quote-actions">
-          <button class="ghost-button compact" type="button" data-manage-addresses="${customer.id}">
-            ${String(state.openCustomerAddressesId) === String(customer.id) ? "Cerrar lugares de entrega" : "Lugares de entrega"}
+          <button class="ghost-button compact button-info" type="button" data-manage-addresses="${customer.id}">
+            ${iconSvg(String(state.openCustomerAddressesId) === String(customer.id) ? "x" : "map-pin")}${String(state.openCustomerAddressesId) === String(customer.id) ? "Cerrar" : "Lugares de entrega"}
           </button>
         </div>
         ${String(state.openCustomerAddressesId) === String(customer.id) ? renderSellerAddressManager(customer) : ""}
@@ -561,9 +599,9 @@ function renderSellerAddressManager(customer) {
         <span>${escapeHtml(address.recipient)} · ${escapeHtml(address.address)}, ${escapeHtml(address.city)}, ${escapeHtml(address.province)} (${escapeHtml(address.postalCode)})</span>
         <small>${escapeHtml(address.contactPhone)}${address.preferredTransport ? ` · ${escapeHtml(address.preferredTransport)}` : ""}</small>
         <div class="quote-actions">
-          <button class="ghost-button compact" type="button" data-edit-address="${address.id}">Editar</button>
-          ${address.isDefault ? "" : `<button class="ghost-button compact" type="button" data-default-address="${address.id}">Hacer principal</button>`}
-          ${addresses.length > 1 ? `<button class="ghost-button compact" type="button" data-delete-address="${address.id}">Eliminar</button>` : ""}
+          <button class="ghost-button compact" type="button" data-edit-address="${address.id}">${iconSvg("pencil")}Editar</button>
+          ${address.isDefault ? "" : `<button class="ghost-button compact button-success" type="button" data-default-address="${address.id}">${iconSvg("check")}Principal</button>`}
+          ${addresses.length > 1 ? `<button class="ghost-button compact button-danger" type="button" data-delete-address="${address.id}">${iconSvg("trash-2")}Eliminar</button>` : ""}
         </div>
       </article>`).join("")}
     </div>
@@ -582,8 +620,9 @@ function renderSellerAddressManager(customer) {
         <label class="seller-field seller-shipping-notes"><span>Indicaciones</span><textarea name="notes" maxlength="500">${escapeHtml(editing.notes || "")}</textarea></label>
       </div>
       <div class="seller-actions">
-        <button class="primary-button compact" type="submit">${editing.id ? "Guardar cambios" : "Agregar lugar"}</button>
-        ${editing.id ? `<button class="ghost-button compact" type="button" data-cancel-address-edit>Cancelar</button>` : ""}
+        <button class="primary-button compact" type="submit">${iconSvg(editing.id ? "check" : "plus")}${editing.id ? "Guardar" : "Agregar lugar"}</button>
+        ${editing.id ? `<button class="ghost-button compact" type="button" data-cancel-address-edit>${iconSvg("x")}Cancelar</button>` : ""}
+        <button class="ghost-button compact" type="button" data-close-addresses>${iconSvg("x")}Cerrar</button>
       </div>
       <p class="form-message" role="status"></p>
     </form>
@@ -640,6 +679,7 @@ function renderOrderDetail(orderId) {
         </div>
       </div>
       ${renderDetailItems(order.items || [])}
+      <div class="seller-detail-close"><button class="ghost-button compact" type="button" data-close-order-detail>${iconSvg("x")}Cerrar detalle</button></div>
     </div>
   `;
 }
@@ -676,6 +716,7 @@ function renderQuoteDetail(quoteId) {
         ${isProspect ? `<button class="primary-button compact" type="button" data-start-registration-from-quote="${quote.id}">${iconSvg("user-plus")}Iniciar alta</button>` : `
           <button class="primary-button compact" type="button" data-create-order-from-quote="${quote.id}" ${canCreateOrder ? "" : "disabled"}>${iconSvg("send")}Generar pedido</button>`}
       </div>
+      <div class="seller-detail-close"><button class="ghost-button compact" type="button" data-close-quote-detail>${iconSvg("x")}Cerrar detalle</button></div>
     </div>
   `;
 }
@@ -718,8 +759,8 @@ function renderOrders(orders = []) {
         </div>
         <div class="seller-meta">Comision estimada: ${commission}</div>
         <div class="quote-actions">
-          <button class="ghost-button compact" type="button" data-view-order="${order.id}">
-            ${String(state.openOrderId) === String(order.id) ? "Cerrar detalle" : "Ver"}
+          <button class="ghost-button compact button-info" type="button" data-view-order="${order.id}">
+            ${iconSvg(String(state.openOrderId) === String(order.id) ? "x" : "eye")}${String(state.openOrderId) === String(order.id) ? "Cerrar" : "Ver"}
           </button>
         </div>
         ${String(state.openOrderId) === String(order.id) ? renderOrderDetail(order.id) : ""}
@@ -776,14 +817,14 @@ function renderQuotes() {
         </div>
         ${quote.validUntil ? `<div class="seller-meta">Valido hasta ${shortDate(quote.validUntil)}</div>` : ""}
         <div class="quote-actions">
-          <button class="ghost-button compact" type="button" data-view-quote="${quote.id}">
-            ${String(state.openQuoteId) === String(quote.id) ? "Cerrar detalle" : "Ver"}
+          <button class="ghost-button compact button-info" type="button" data-view-quote="${quote.id}">
+            ${iconSvg(String(state.openQuoteId) === String(quote.id) ? "x" : "eye")}${String(state.openQuoteId) === String(quote.id) ? "Cerrar" : "Ver"}
           </button>
           ${canShareQuote ? `
-            <button class="ghost-button compact" type="button" data-share-quote-whatsapp="${quote.id}" ${onlyDigits(quote.customerWhatsapp).length ? "" : "disabled"}>
+            <button class="ghost-button compact button-whatsapp" type="button" data-share-quote-whatsapp="${quote.id}" ${onlyDigits(quote.customerWhatsapp).length ? "" : "disabled"}>
               ${iconSvg("message-circle")}WhatsApp
             </button>
-            <button class="ghost-button compact" type="button" data-share-quote-email="${quote.id}" ${quote.customerEmail ? "" : "disabled"}>
+            <button class="ghost-button compact button-info" type="button" data-share-quote-email="${quote.id}" ${quote.customerEmail ? "" : "disabled"}>
               ${iconSvg("mail")}Email
             </button>
           ` : ""}
@@ -1383,6 +1424,15 @@ nodes.customerRequestForm?.addEventListener("submit", async (event) => {
 
 nodes.refresh?.addEventListener("click", loadDashboard);
 
+nodes.navToggle?.addEventListener("click", () => {
+  setSellerNavOpen(nodes.navToggle.getAttribute("aria-expanded") !== "true");
+});
+
+nodes.customerRequestClose?.addEventListener("click", () => {
+  if (nodes.customerRequestPanel) nodes.customerRequestPanel.open = false;
+  nodes.customerRequestPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
 nodes.customerRequestPanel?.addEventListener("toggle", () => {
   if (!nodes.customerRequestToggleText) return;
   nodes.customerRequestToggleText.textContent = nodes.customerRequestPanel.open
@@ -1455,6 +1505,7 @@ nodes.orderDateTo?.addEventListener("change", (event) => {
 
 nodes.viewButtons?.forEach((button) => {
   button.addEventListener("click", () => {
+    closeExpandedSellerContent();
     state.activeView = button.dataset.sellerViewButton || "summary";
     nodes.orderMessage.textContent = "";
     renderSellerView();
@@ -1556,11 +1607,18 @@ nodes.orderShipping?.addEventListener("change", (event) => {
 
 nodes.customers?.addEventListener("click", async (event) => {
   const manage = event.target.closest("[data-manage-addresses]");
+  const closeAddresses = event.target.closest("[data-close-addresses]");
   const edit = event.target.closest("[data-edit-address]");
   const setDefault = event.target.closest("[data-default-address]");
   const remove = event.target.closest("[data-delete-address]");
   const cancel = event.target.closest("[data-cancel-address-edit]");
   const customerCard = event.target.closest(".seller-card");
+  if (closeAddresses) {
+    state.openCustomerAddressesId = null;
+    state.editingCustomerAddressId = null;
+    renderCustomers(state.dashboard?.customers || []);
+    return;
+  }
   if (manage) {
     const customerId = manage.dataset.manageAddresses;
     state.openCustomerAddressesId = String(state.openCustomerAddressesId) === String(customerId) ? null : customerId;
@@ -1632,6 +1690,12 @@ nodes.productResults?.addEventListener("click", (event) => {
 
 nodes.orders?.addEventListener("click", async (event) => {
   const viewButton = event.target.closest("[data-view-order]");
+  const closeButton = event.target.closest("[data-close-order-detail]");
+  if (closeButton) {
+    state.openOrderId = null;
+    renderOrders(state.dashboard?.orders || []);
+    return;
+  }
   if (!viewButton) return;
   const orderId = viewButton.dataset.viewOrder;
   nodes.orderMessage.textContent = "";
@@ -1672,10 +1736,16 @@ nodes.orderItems?.addEventListener("keydown", (event) => {
 
 nodes.quotes?.addEventListener("click", async (event) => {
   const viewButton = event.target.closest("[data-view-quote]");
+  const closeButton = event.target.closest("[data-close-quote-detail]");
   const createOrderButton = event.target.closest("[data-create-order-from-quote]");
   const whatsappButton = event.target.closest("[data-share-quote-whatsapp]");
   const emailButton = event.target.closest("[data-share-quote-email]");
   const registrationButton = event.target.closest("[data-start-registration-from-quote]");
+  if (closeButton) {
+    state.openQuoteId = null;
+    renderQuotes();
+    return;
+  }
   if (!viewButton && !createOrderButton && !whatsappButton && !emailButton && !registrationButton) return;
   if (viewButton) {
     const quoteId = viewButton.dataset.viewQuote;
@@ -1832,7 +1902,19 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
   }
 });
 
+document.addEventListener("click", (event) => {
+  if (nodes.navToggle?.getAttribute("aria-expanded") !== "true") return;
+  if (event.target.closest("#sellerNavToggle, #sellerTabs")) return;
+  setSellerNavOpen(false);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  closeExpandedSellerContent();
+});
+
 setupSellerIcons();
+setSellerNavOpen(false);
 setupPasswordToggles();
 if (state.passwordResetToken) {
   nodes.dashboard?.classList.add("hidden");

@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Gestion de ventas | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260717f" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260717g" />
   </head>
   <body>
     <header class="seller-header">
@@ -33,7 +33,7 @@
               <button class="password-toggle" type="button" data-toggle-password="#sellerLoginPassword" aria-label="Mostrar clave">Ver</button>
             </span>
           </label>
-          <button class="primary-button" type="submit">Ingresar</button>
+          <button class="primary-button" type="submit" data-icon="log-in">Ingresar</button>
           <button class="link-button" type="button" id="sellerForgotOpen">Olvide mi clave</button>
           <p class="form-message" id="sellerLoginMessage" role="status"></p>
         </form>
@@ -44,8 +44,8 @@
             <span>Email</span>
             <input name="email" type="email" autocomplete="username" required />
           </label>
-          <button class="primary-button" type="submit">Enviar enlace</button>
-          <button class="link-button" type="button" id="sellerForgotBack">Volver al ingreso</button>
+          <button class="primary-button" type="submit" data-icon="mail">Enviar enlace</button>
+          <button class="link-button" type="button" id="sellerForgotBack" data-icon="arrow-left">Volver al ingreso</button>
           <p class="form-message" id="sellerForgotMessage" role="status"></p>
         </form>
         <form id="sellerResetForm" class="seller-login-form seller-secondary-form hidden">
@@ -65,8 +65,8 @@
               <button class="password-toggle" type="button" data-toggle-password="#sellerResetPasswordConfirm" aria-label="Mostrar clave">Ver</button>
             </span>
           </label>
-          <button class="primary-button" type="submit">Guardar nueva clave</button>
-          <button class="link-button" type="button" id="sellerResetBack">Volver al ingreso</button>
+          <button class="primary-button" type="submit" data-icon="key-round">Guardar nueva clave</button>
+          <button class="link-button" type="button" id="sellerResetBack" data-icon="arrow-left">Volver al ingreso</button>
           <p class="form-message" id="sellerResetMessage" role="status"></p>
         </form>
       </section>
@@ -78,17 +78,18 @@
             <h1 id="sellerTitle">Mi cartera</h1>
             <p id="sellerSubtitle">Clientes asignados y pedidos activos.</p>
           </div>
-          <button class="ghost-button" id="refreshSellerDashboard" type="button">Actualizar</button>
+          <button class="ghost-button button-info" id="refreshSellerDashboard" type="button" data-icon="refresh-cw">Actualizar</button>
         </div>
 
-        <nav class="seller-tabs" aria-label="Navegacion de gestion de ventas">
-          <button class="active" type="button" data-seller-view-button="summary">Resumen</button>
-          <button type="button" data-seller-view-button="builder">Operacion</button>
-          <button type="button" data-seller-view-button="quotes">Presupuestos</button>
-          <button type="button" data-seller-view-button="orders">Pedidos</button>
-          <button type="button" data-seller-view-button="customers">Clientes</button>
-          <button type="button" data-seller-view-button="request">Alta comercial</button>
-          <button type="button" data-seller-view-button="account">Cuenta</button>
+        <button class="seller-nav-toggle" id="sellerNavToggle" type="button" aria-expanded="false" aria-controls="sellerTabs" data-icon="menu">Secciones</button>
+        <nav class="seller-tabs" id="sellerTabs" aria-label="Navegacion de gestion de ventas">
+          <button class="active" type="button" data-seller-view-button="summary" data-icon="layout-dashboard">Resumen</button>
+          <button type="button" data-seller-view-button="builder" data-icon="shopping-bag">Operacion</button>
+          <button type="button" data-seller-view-button="quotes" data-icon="file-text">Presupuestos</button>
+          <button type="button" data-seller-view-button="orders" data-icon="clipboard-list">Pedidos</button>
+          <button type="button" data-seller-view-button="customers" data-icon="users">Clientes</button>
+          <button type="button" data-seller-view-button="request" data-icon="user-plus">Alta comercial</button>
+          <button type="button" data-seller-view-button="account" data-icon="settings">Cuenta</button>
         </nav>
 
         <section class="seller-view active" data-seller-view="summary">
@@ -244,7 +245,8 @@
               <textarea name="notes" placeholder="Zona, potencial, referencias o condicion comercial sugerida"></textarea>
             </label>
             <div class="seller-actions">
-              <button class="primary-button" type="submit">Enviar solicitud a KM</button>
+              <button class="primary-button button-success" type="submit" data-icon="send">Enviar solicitud</button>
+              <button class="ghost-button" type="button" id="sellerRequestClose" data-icon="x">Cerrar formulario</button>
             </div>
             <p class="form-message" id="sellerCustomerRequestMessage" role="status"></p>
           </form>
@@ -330,8 +332,8 @@
               </div>
             </div>
             <div class="seller-actions seller-product-actions">
-              <button class="ghost-button" type="button" id="clearSellerOrder" data-icon="trash-2">Limpiar</button>
-              <button class="primary-button" type="submit" id="sellerOrderDirectSubmit" data-icon="send">Enviar pedido</button>
+              <button class="ghost-button button-danger" type="button" id="clearSellerOrder" data-icon="trash-2">Limpiar</button>
+              <button class="primary-button button-success" type="submit" id="sellerOrderDirectSubmit" data-icon="send">Enviar pedido</button>
               <button class="ghost-button hidden" type="button" id="sellerBackToQuoteData" data-icon="arrow-left">Volver</button>
               <button class="primary-button hidden" type="button" id="sellerReviewQuote" data-icon="clipboard-check">Revisar</button>
             </div>
@@ -464,7 +466,7 @@
                 </span>
               </label>
               <div class="seller-actions">
-                <button class="primary-button" type="submit">Guardar clave</button>
+                <button class="primary-button" type="submit" data-icon="key-round">Guardar clave</button>
               </div>
               <p class="form-message" id="sellerChangePasswordMessage" role="status"></p>
             </form>
@@ -475,6 +477,6 @@
     </main>
 
     <script src="/form-validation.js?v=1" defer></script>
-    <script src="/vendedor.js?v=20260717f" type="module"></script>
+    <script src="/vendedor.js?v=20260717g" type="module"></script>
   </body>
 </html>
