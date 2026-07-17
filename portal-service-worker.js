@@ -1,10 +1,11 @@
-const PORTAL_CACHE = "km-portal-apps-v1";
+const PORTAL_CACHE = "km-portal-apps-v2";
 
 function portalStartPage() {
   const host = self.location.hostname;
   if (host.startsWith("ventas.")) return "/vendedor.html";
   if (host.startsWith("logistica.")) return "/logistica.html";
   if (host.startsWith("admin.")) return "/admin.html";
+  if (host.startsWith("produccion.")) return "/produccion.html";
   return "/";
 }
 

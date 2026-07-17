@@ -16,6 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=67" />
+    <link rel="stylesheet" href="./admin-production.css?v=1" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -50,6 +51,7 @@
           <button class="active" type="button" data-admin-view="customers" title="Clientes"><span class="admin-tab-label">Clientes</span></button>
           <button type="button" data-admin-view="sales" title="Vendedores"><span class="admin-tab-label">Vendedores</span></button>
           <button type="button" data-admin-view="logistics" title="Logística"><span class="admin-tab-label">Logística</span></button>
+          <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Producción</span></button>
           <button type="button" data-admin-view="commissions" title="Comisiones"><span class="admin-tab-label">Comisiones</span></button>
           <button type="button" data-admin-view="distributors" title="Distribuidores"><span class="admin-tab-label">Distribuidores</span></button>
           <button type="button" data-admin-view="products" title="Productos"><span class="admin-tab-label">Productos</span></button>
@@ -240,6 +242,15 @@
               <p class="form-message" id="logisticsOperatorMessage" role="status"></p>
             </form>
           </div>
+        </section>
+
+        <section class="admin-view" id="productionView" hidden>
+          <div class="admin-titlebar"><div><p class="eyebrow">Fabricación</p><h1>Producción semanal</h1></div><div class="admin-toolbar"><a class="ghost-button" href="https://produccion.km-detail.com/produccion.html" target="_blank" rel="noreferrer">Abrir portal de producción</a><button class="ghost-button toolbar-refresh-button" id="reloadProductionAdmin" type="button">Actualizar</button></div></div>
+          <div class="production-admin-grid">
+            <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Planificación</p><h2>Objetivo semanal</h2></div><form id="productionPlanForm"><label><span>Semana desde</span><input name="weekStart" type="date" required></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="production-add-row"><select id="productionProductPicker" aria-label="Producto"></select><input id="productionProductQuantity" type="number" min="1" step="1" value="1" aria-label="Cantidad"><button class="ghost-button" id="addProductionPlanItem" type="button">Agregar</button></div><div id="productionPlanItems"></div><div class="form-actions"><button class="ghost-button" type="submit">Guardar planificación</button><button class="primary-button" id="approveProductionPlan" type="button" disabled>Aprobar y habilitar</button></div><p class="form-message" id="productionPlanMessage"></p></form><div id="productionPlanHistory"></div></section>
+            <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Control administrativo</p><h2>Partes diarios</h2></div><div id="productionReportsAdmin"></div></section>
+          </div>
+          <section class="production-admin-panel production-access-panel"><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
         </section>
 
         <section class="admin-view" id="commissionsView" hidden>
@@ -702,6 +713,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=90" defer></script>
+    <script src="./admin.js?v=91" defer></script>
+    <script src="./admin-production.js?v=1" defer></script>
   </body>
 </html>

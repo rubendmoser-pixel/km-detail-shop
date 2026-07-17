@@ -79,13 +79,19 @@ import {
 } from "./services/sales-rep-service.js";
 import { createProspectSalesQuote, createSalesQuote, getSalesQuote, listProspectQuoteProducts, listSalesQuotesForSalesRep, markSalesQuoteConverted, markSalesQuoteShared } from "./services/sales-quote-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
-import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearLogisticsSessionCookie, clearSalesRepSessionCookie, clearSessionCookie, logisticsSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
+import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearLogisticsSessionCookie, clearProductionSessionCookie, clearSalesRepSessionCookie, clearSessionCookie, logisticsSessionCookie, parseCookies, productionSessionCookie, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import {
   authenticateLogisticsOperator, claimLogisticsOrder, confirmLogisticsAvailability, dispatchLogisticsOrder,
   getLogisticsOrder, listLogisticsOperators, listLogisticsOrders, loginLogisticsOperator, logoutLogisticsOperator,
   logisticsLabels, logisticsPickingList, logisticsShippingRemit, requireLogisticsOperator,
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
+import {
+  approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard,
+  listProductionOperators, listProductionPlans, listProductionReports, loginProductionOperator, logoutProductionOperator,
+  requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
+  submitDailyProductionReport, upsertProductionOperator
+} from "./services/production-service.js";
 import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
 import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
@@ -121,6 +127,7 @@ export function createApp({
     const currentUser = authenticate(db, cookies.km_session);
     const currentSalesRep = authenticateSalesRep(db, cookies.km_sales_session);
     const currentLogisticsOperator = authenticateLogisticsOperator(db, cookies.km_logistics_session);
+    const currentProductionOperator = authenticateProductionOperator(db, cookies.km_production_session);
 
     try {
       let match;
@@ -233,6 +240,36 @@ export function createApp({
             clearSalesRepSessionCookie({ secure: config.secureCookies })
           ]
         });
+      }
+      if (request.method === "POST" && url.pathname === "/api/production/login") {
+        const result = await loginProductionOperator(db, await readJson(request), config.sessionDays || 30);
+        logout(db, cookies.km_session);
+        logoutSalesRep(db, cookies.km_sales_session);
+        logoutLogisticsOperator(db, cookies.km_logistics_session);
+        return sendJson(response, 200, { operator: result.operator, expiresAt: result.expiresAt }, {
+          "set-cookie": [
+            productionSessionCookie(result.token, { secure: config.secureCookies, maxAgeSeconds: (config.sessionDays || 30) * 86_400 }),
+            clearSessionCookie({ secure: config.secureCookies }), clearSalesRepSessionCookie({ secure: config.secureCookies }),
+            clearLogisticsSessionCookie({ secure: config.secureCookies })
+          ]
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/production/logout") {
+        logoutProductionOperator(db, cookies.km_production_session);
+        return sendJson(response, 200, { ok: true }, { "set-cookie": clearProductionSessionCookie({ secure: config.secureCookies }) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/production/me") {
+        return sendJson(response, 200, { operator: requireProductionOperator(currentProductionOperator) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/production/dashboard") {
+        return sendJson(response, 200, { operator: requireProductionOperator(currentProductionOperator), ...getCurrentProductionDashboard(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/production/reports") {
+        return sendJson(response, 201, { report: saveDailyProductionReport(db, await readJson(request), requireProductionOperator(currentProductionOperator)) });
+      }
+      match = url.pathname.match(/^\/api\/production\/reports\/(\d+)\/submit$/);
+      if (request.method === "POST" && match) {
+        return sendJson(response, 200, { report: submitDailyProductionReport(db, Number(match[1]), requireProductionOperator(currentProductionOperator)) });
       }
       if (request.method === "POST" && url.pathname === "/api/logistics/logout") {
         logoutLogisticsOperator(db, cookies.km_logistics_session);
@@ -694,6 +731,34 @@ export function createApp({
       if (request.method === "POST" && url.pathname === "/api/admin/logistics-operators") {
         return sendJson(response, 201, { operator: await upsertLogisticsOperator(db, await readJson(request)) });
       }
+      if (request.method === "GET" && url.pathname === "/api/admin/production-operators") {
+        return sendJson(response, 200, { operators: listProductionOperators(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production-operators") {
+        return sendJson(response, 201, { operator: await upsertProductionOperator(db, await readJson(request)) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/plans") {
+        return sendJson(response, 200, { plans: listProductionPlans(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/plans") {
+        return sendJson(response, 201, { plan: saveProductionPlan(db, await readJson(request), currentUser.id) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/approve$/);
+      if (request.method === "POST" && match) {
+        return sendJson(response, 200, { plan: approveProductionPlan(db, Number(match[1]), currentUser.id) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/reports") {
+        return sendJson(response, 200, { reports: listProductionReports(db, { status: url.searchParams.get("status") || "" }) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/production\/reports\/(\d+)\/confirm$/);
+      if (request.method === "POST" && match) {
+        return sendJson(response, 200, confirmDailyProductionReport(db, Number(match[1]), currentUser.id));
+      }
+      match = url.pathname.match(/^\/api\/admin\/production\/reports\/(\d+)\/return$/);
+      if (request.method === "POST" && match) {
+        const body = await readJson(request);
+        return sendJson(response, 200, { report: returnDailyProductionReport(db, Number(match[1]), body.reason) });
+      }
       if (request.method === "POST" && url.pathname === "/api/admin/sales-reps") {
         return sendJson(response, 201, { salesRep: await upsertSalesRep(db, await readJson(request)) });
       }
@@ -924,6 +989,9 @@ export function createApp({
           response.end(productPage);
           return;
         }
+      }
+      if (request.method === "GET" && url.pathname === "/" && String(request.headers.host || "").split(":")[0].toLowerCase() === "produccion.km-detail.com") {
+        url.pathname = "/produccion.html";
       }
       if (request.method === "GET" && serveStatic(response, projectRoot, url.pathname)) return;
       return sendJson(response, 404, { error: "No encontramos el recurso solicitado." });

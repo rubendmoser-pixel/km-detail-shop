@@ -147,6 +147,21 @@ export function clearLogisticsSessionCookie({ secure = false } = {}) {
   return logisticsSessionCookie("", { secure, maxAgeSeconds: 0 });
 }
 
+export function productionSessionCookie(token, { secure = false, maxAgeSeconds = 2_592_000 } = {}) {
+  return [
+    `km_production_session=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${maxAgeSeconds}`,
+    secure ? "Secure" : ""
+  ].filter(Boolean).join("; ");
+}
+
+export function clearProductionSessionCookie({ secure = false } = {}) {
+  return productionSessionCookie("", { secure, maxAgeSeconds: 0 });
+}
+
 export function serveStatic(response, projectRoot, pathname) {
   const requested = pathname === "/" ? "/index.html" : pathname;
   const decoded = decodeURIComponent(requested);

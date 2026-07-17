@@ -155,6 +155,114 @@ function migrate(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS production_operators (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      phone TEXT NOT NULL DEFAULT '',
+      password_hash TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS production_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      operator_id INTEGER NOT NULL REFERENCES production_operators(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS production_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_start TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'in_progress', 'closed')),
+      notes TEXT NOT NULL DEFAULT '',
+      created_by INTEGER REFERENCES users(id),
+      approved_by INTEGER REFERENCES users(id),
+      approved_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS production_plan_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plan_id INTEGER NOT NULL REFERENCES production_plans(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      suggested_quantity INTEGER NOT NULL DEFAULT 0 CHECK (suggested_quantity >= 0),
+      target_quantity INTEGER NOT NULL CHECK (target_quantity > 0),
+      adjustment_note TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(plan_id, product_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS production_daily_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_number TEXT NOT NULL UNIQUE,
+      production_date TEXT NOT NULL UNIQUE,
+      operator_id INTEGER NOT NULL REFERENCES production_operators(id),
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'confirmed', 'returned')),
+      notes TEXT NOT NULL DEFAULT '',
+      submitted_at TEXT,
+      confirmed_by INTEGER REFERENCES users(id),
+      confirmed_at TEXT,
+      return_reason TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS production_daily_report_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_id INTEGER NOT NULL REFERENCES production_daily_reports(id) ON DELETE CASCADE,
+      plan_item_id INTEGER REFERENCES production_plan_items(id) ON DELETE SET NULL,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      good_quantity INTEGER NOT NULL DEFAULT 0 CHECK (good_quantity >= 0),
+      rejected_quantity INTEGER NOT NULL DEFAULT 0 CHECK (rejected_quantity >= 0),
+      notes TEXT NOT NULL DEFAULT '',
+      UNIQUE(report_id, product_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_code TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      name TEXT NOT NULL,
+      item_type TEXT NOT NULL CHECK (item_type IN ('raw_material', 'intermediate', 'finished_product')),
+      unit TEXT NOT NULL DEFAULT 'unidad',
+      product_id INTEGER UNIQUE REFERENCES products(id) ON DELETE CASCADE,
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_balances (
+      item_id INTEGER PRIMARY KEY REFERENCES inventory_items(id) ON DELETE CASCADE,
+      quantity REAL NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS product_bom (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      component_item_id INTEGER NOT NULL REFERENCES inventory_items(id),
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+      UNIQUE(product_id, component_item_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_movements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_id INTEGER NOT NULL REFERENCES inventory_items(id),
+      quantity_delta REAL NOT NULL,
+      movement_type TEXT NOT NULL,
+      reference_type TEXT NOT NULL DEFAULT '',
+      reference_id INTEGER,
+      notes TEXT NOT NULL DEFAULT '',
+      actor_user_id INTEGER REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS sales_rep_password_reset_tokens (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
@@ -795,6 +903,11 @@ function migrate(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_customers_sales_rep ON customers(sales_rep_id);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_logistics_operators_status ON logistics_operators(status, name);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_logistics_sessions_token ON logistics_sessions(token_hash, expires_at);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_production_operators_status ON production_operators(status, name);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_production_sessions_token ON production_sessions(token_hash, expires_at);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_production_plans_week ON production_plans(week_start, status);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_production_reports_status_date ON production_daily_reports(status, production_date DESC);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_inventory_movements_item_date ON inventory_movements(item_id, created_at DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_orders_logistics_queue ON orders(fulfillment_status, logistics_status, logistics_operator_id);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_payment_accounts_active ON payment_accounts(active, sort_order, name);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_customer_payment_accounts_customer ON customer_payment_accounts(customer_id);");

@@ -1,9 +1,9 @@
 {
-  "id": "/produccion",
+  "id": "/produccion.html",
   "name": "KM Producción",
   "short_name": "KM Producción",
   "description": "Operación de producción de KM Detail Line.",
-  "start_url": "/",
+  "start_url": "/produccion.html?source=pwa",
   "scope": "/",
   "lang": "es-AR",
   "display": "standalone",
