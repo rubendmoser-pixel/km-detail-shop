@@ -593,6 +593,15 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(readyResponse.status, 200);
   const readyOrder = (await readyResponse.json()).order;
   assert.equal(readyOrder.fulfillment.status, "ready");
+  const logisticsLabelsPayload = await getJson(`${baseUrl}/api/logistics/orders/${orderPayload.order.id}/shipping-labels?packages=99`, logisticsCookie);
+  assert.equal(logisticsLabelsPayload.packages.length, 3);
+  assert.equal(logisticsLabelsPayload.packages[2].number, 3);
+  const shippingRemitPayload = await getJson(`${baseUrl}/api/logistics/orders/${orderPayload.order.id}/shipping-remit`, logisticsCookie);
+  assert.equal(shippingRemitPayload.order.packages, 3);
+  assert.equal(shippingRemitPayload.order.declaredValueCents, 37_296);
+  assert.equal(shippingRemitPayload.order.items[0].quantity, 1);
+  assert.equal("subtotalNetCents" in shippingRemitPayload.order, false);
+  assert.equal("unitPriceCents" in shippingRemitPayload.order.items[0], false);
   const preparedOrders = await getJson(`${baseUrl}/api/admin/orders?stage=prepared`, adminCookie);
   assert.equal(preparedOrders.orders.some((order) => order.id === orderPayload.order.id), true);
   const internalReadyEmail = db.prepare("SELECT COUNT(*) AS total FROM email_outbox WHERE event_type = 'order_fulfillment_customer'").get();

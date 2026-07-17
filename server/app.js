@@ -82,7 +82,7 @@ import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearLogisticsSessionCookie, cl
 import {
   authenticateLogisticsOperator, claimLogisticsOrder, confirmLogisticsAvailability, dispatchLogisticsOrder,
   getLogisticsOrder, listLogisticsOperators, listLogisticsOrders, loginLogisticsOperator, logoutLogisticsOperator,
-  logisticsLabels, logisticsPickingList, requireLogisticsOperator,
+  logisticsLabels, logisticsPickingList, logisticsShippingRemit, requireLogisticsOperator,
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import { createEmailService } from "./services/email-service.js";
@@ -273,8 +273,13 @@ export function createApp({
         requireLogisticsOperator(currentLogisticsOperator);
         const id = Number(logisticsMatch[1]);
         const document = logisticsMatch[2] === "picking-list" ? logisticsPickingList(db, id)
-          : logisticsLabels(db, id, Number(url.searchParams.get("packages") || 1));
+          : logisticsLabels(db, id);
         return sendJson(response, 200, document);
+      }
+      logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)\/shipping-remit$/);
+      if (request.method === "GET" && logisticsMatch) {
+        requireLogisticsOperator(currentLogisticsOperator);
+        return sendJson(response, 200, logisticsShippingRemit(db, Number(logisticsMatch[1])));
       }
       if (request.method === "POST" && url.pathname === "/api/sales/forgot-password") {
         const body = await readJson(request);

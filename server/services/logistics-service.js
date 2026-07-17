@@ -158,7 +158,32 @@ export function dispatchLogisticsOrder(db, orderId, input, operator) {
 }
 
 export function logisticsPickingList(db, orderId) { return createPickingList(db, orderId); }
-export function logisticsLabels(db, orderId, packages) { return createShippingLabels(db, orderId, packages); }
+export function logisticsLabels(db, orderId) {
+  const row = db.prepare("SELECT logistics_packages FROM orders WHERE id = ?").get(orderId);
+  if (!row) throw new NotFoundError("Pedido no encontrado");
+  return createShippingLabels(db, orderId, positiveInteger(Number(row.logistics_packages || 0), "packages"));
+}
+export function logisticsShippingRemit(db, orderId) {
+  const order = getOrder(db, positiveInteger(Number(orderId), "orderId"), null, true);
+  const logistics = db.prepare("SELECT logistics_packages FROM orders WHERE id = ?").get(orderId);
+  const packages = positiveInteger(Number(logistics?.logistics_packages || 0), "packages");
+  const items = order.items.map((item) => ({
+    kmCode: item.kmCode,
+    ean13: item.ean13,
+    productName: item.productName,
+    quantity: item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity
+  })).filter((item) => item.quantity > 0);
+  return {
+    generatedAt: new Date().toISOString(),
+    order: {
+      id: order.id, orderNumber: order.orderNumber, remitNumber: `REM-${order.orderNumber}`,
+      businessName: order.businessName, contactPerson: order.contactPerson,
+      customerWhatsapp: order.customerWhatsapp, email: order.email,
+      shipping: order.shipping, fulfillment: order.fulfillment, packages,
+      declaredValueCents: Math.round(Number(order.subtotalNetCents || 0) * 0.2), items
+    }
+  };
+}
 
 function publicOperator(row) { return { id: row.id, name: row.name, email: row.email, phone: row.phone || "", status: row.status }; }
 function stageFor(row) {
