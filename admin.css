@@ -565,6 +565,164 @@
   }
 }
 
+/* Disposicion profesional exclusiva para escritorio */
+@media (min-width: 1100px) {
+  .admin-body {
+    overflow-x: hidden;
+  }
+
+  .admin-main {
+    width: min(1680px, 100%);
+    padding: 20px clamp(20px, 2.2vw, 36px) 34px;
+  }
+
+  #adminWorkspace:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(205px, 225px) minmax(0, 1fr);
+    gap: clamp(18px, 2vw, 28px);
+    align-items: start;
+  }
+
+  #adminWorkspace > .admin-tabs {
+    position: sticky;
+    top: 82px;
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    max-height: calc(100vh - 102px);
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--admin-radius-md);
+    background: linear-gradient(160deg, rgba(22, 24, 29, 0.98), rgba(12, 13, 16, 0.98));
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(183, 184, 255, 0.36) transparent;
+  }
+
+  #adminWorkspace > .admin-tabs::before {
+    content: "Administracion";
+    padding: 9px 10px 7px;
+    color: #8e94a0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  #adminWorkspace > .admin-tabs button {
+    width: 100%;
+    min-height: 42px;
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    text-align: left;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  #adminWorkspace > .admin-tabs button:hover {
+    color: #f4f5f8;
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: none;
+  }
+
+  #adminWorkspace > .admin-tabs button.active {
+    color: #eef0ff;
+    background: linear-gradient(90deg, rgba(127, 133, 255, 0.28), rgba(127, 133, 255, 0.08));
+    border-color: rgba(183, 184, 255, 0.36);
+    box-shadow: inset 3px 0 0 #9da2ff;
+  }
+
+  #adminWorkspace > .admin-view {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .admin-titlebar {
+    min-width: 0;
+    margin-bottom: 18px;
+  }
+
+  .admin-titlebar > div:first-child {
+    min-width: 220px;
+  }
+
+  .admin-toolbar {
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .admin-toolbar input[type="search"] {
+    min-width: min(280px, 30vw);
+    flex: 1 1 260px;
+    max-width: 440px;
+  }
+
+  .admin-toolbar select {
+    min-width: 150px;
+    max-width: 260px;
+  }
+
+  .orders-table-wrap,
+  .customer-table-wrap,
+  .price-update-list,
+  .commission-table-wrap,
+  .security-table-wrap,
+  .email-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .admin-table,
+  .orders-list-table,
+  .availability-table {
+    max-width: 100%;
+  }
+
+  #ordersView .orders-list-table {
+    min-width: 1040px;
+  }
+
+  #ordersView .availability-table {
+    min-width: 920px;
+  }
+
+  .admin-stats,
+  .sales-admin-summary,
+  .commission-summary,
+  .operation-metrics {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .customer-list,
+  .sales-admin-layout,
+  .operation-layout,
+  .order-detail-panel,
+  .settings-form,
+  .product-workspace,
+  .price-panel,
+  .current-account-dashboard {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 520px) {
   #ordersView .order-ops-grid {
     grid-template-columns: 1fr;
