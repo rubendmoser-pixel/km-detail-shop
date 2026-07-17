@@ -677,32 +677,11 @@ function renderQuoteDetail(quoteId) {
   const canCreateOrder = !isProspect && quote.status === "generated";
   return `
     <div class="seller-detail">
-      <div class="seller-detail-grid">
-        <div>
-          <span>Cliente</span>
-          <strong>${escapeHtml(quote.businessName || "")}</strong>
-        </div>
-        <div>
-          <span>Total</span>
-          <strong>${money(quote.totalCents || 0)}</strong>
-        </div>
-        <div>
-          <span>Validez</span>
-          <strong>${quote.validUntil ? shortDate(quote.validUntil) : "Sin fecha"}</strong>
-        </div>
-        <div>
-          <span>Estado</span>
-          <strong>${escapeHtml(quoteStatusLabels[quote.status] || quote.status || "Generado")}</strong>
-        </div>
-        ${isProspect ? `<div><span>Precio de lista</span><strong>${money(quote.subtotalListCents || 0)}</strong></div>
-          <div><span>Descuento</span><strong>${Number(quote.prospectDiscountBps || 0) / 100}% (${money(quote.discountCents || 0)})</strong></div>` : ""}
-      </div>
       ${renderDetailItems(quote.items || [])}
       <div class="quote-actions">
         ${isProspect ? `<button class="primary-button compact" type="button" data-start-registration-from-quote="${quote.id}">${iconSvg("user-plus")}Iniciar alta</button>` : `
           <button class="primary-button compact" type="button" data-create-order-from-quote="${quote.id}" ${canCreateOrder ? "" : "disabled"}>${iconSvg("send")}Generar pedido</button>`}
       </div>
-      <div class="seller-detail-close"><button class="ghost-button compact" type="button" data-close-quote-detail>${iconSvg("x")}Cerrar detalle</button></div>
     </div>
   `;
 }
@@ -1716,16 +1695,10 @@ nodes.orderItems?.addEventListener("keydown", (event) => {
 
 nodes.quotes?.addEventListener("click", async (event) => {
   const viewButton = event.target.closest("[data-view-quote]");
-  const closeButton = event.target.closest("[data-close-quote-detail]");
   const createOrderButton = event.target.closest("[data-create-order-from-quote]");
   const whatsappButton = event.target.closest("[data-share-quote-whatsapp]");
   const emailButton = event.target.closest("[data-share-quote-email]");
   const registrationButton = event.target.closest("[data-start-registration-from-quote]");
-  if (closeButton) {
-    state.openQuoteId = null;
-    renderQuotes();
-    return;
-  }
   if (!viewButton && !createOrderButton && !whatsappButton && !emailButton && !registrationButton) return;
   if (viewButton) {
     const quoteId = viewButton.dataset.viewQuote;
