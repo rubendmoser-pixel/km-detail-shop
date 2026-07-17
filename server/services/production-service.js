@@ -9,6 +9,17 @@ export function listProductionOperators(db) {
     FROM production_operators ORDER BY status='active' DESC,name COLLATE NOCASE`).all();
 }
 
+export function searchProductionProducts(db, query = "") {
+  const search = String(query || "").trim().toUpperCase().slice(0, 30);
+  if (!search) return [];
+  return db.prepare(`SELECT id,km_code,ean13,name FROM products
+    WHERE active=1 AND UPPER(km_code) LIKE ?
+    ORDER BY CASE WHEN UPPER(km_code)=? THEN 0 WHEN UPPER(km_code) LIKE ? THEN 1 ELSE 2 END,km_code
+    LIMIT 12`).all(`%${search}%`, search, `${search}%`).map((row) => ({
+      id: row.id, kmCode: row.km_code, ean13: row.ean13, name: row.name
+    }));
+}
+
 export async function upsertProductionOperator(db, input = {}) {
   const id = Number(input.id || 0);
   const existing = id ? db.prepare("SELECT id,password_hash FROM production_operators WHERE id=?").get(id) : null;

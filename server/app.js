@@ -88,7 +88,7 @@ import {
 } from "./services/logistics-service.js";
 import {
   approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard,
-  listProductionOperators, listProductionPlans, listProductionReports, loginProductionOperator, logoutProductionOperator,
+  listProductionOperators, listProductionPlans, listProductionReports, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
   submitDailyProductionReport, upsertProductionOperator
 } from "./services/production-service.js";
@@ -736,6 +736,9 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/production-operators") {
         return sendJson(response, 201, { operator: await upsertProductionOperator(db, await readJson(request)) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/products") {
+        return sendJson(response, 200, { products: searchProductionProducts(db, url.searchParams.get("q") || "") });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/plans") {
         return sendJson(response, 200, { plans: listProductionPlans(db) });

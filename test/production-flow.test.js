@@ -6,7 +6,7 @@ import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
   approveProductionPlan, confirmDailyProductionReport, getCurrentProductionDashboard, loginProductionOperator,
-  saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionOperator
+  saveDailyProductionReport, saveProductionPlan, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator
 } from "../server/services/production-service.js";
 
 test("production plan, daily report and admin confirmation update stock with traceability", async (t) => {
@@ -21,6 +21,8 @@ test("production plan, daily report and admin confirmation update stock with tra
   const product = db.prepare(`INSERT INTO products(km_code,ean13,name,slug,family_id,base_price_cents,price_effective_from)
     VALUES('TEST-PROD','7790000000001','Producto de prueba','producto-prueba-produccion',?,1000,'2026-07-17') RETURNING id`).get(family.id);
   const raw = db.prepare(`INSERT INTO inventory_items(item_code,name,item_type,unit) VALUES('MP-TEST','Materia prima de prueba','raw_material','unidad') RETURNING id`).get();
+  assert.equal(searchProductionProducts(db, "test-prod")[0].kmCode, "TEST-PROD");
+  assert.deepEqual(searchProductionProducts(db, "no-existe"), []);
   db.prepare("INSERT INTO inventory_balances(item_id,quantity) VALUES(?,100)").run(raw.id);
   db.prepare("INSERT INTO product_bom(product_id,component_item_id,quantity) VALUES(?,?,2)").run(product.id, raw.id);
 
