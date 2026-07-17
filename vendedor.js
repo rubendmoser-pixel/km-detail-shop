@@ -1017,7 +1017,7 @@ function renderProductResults() {
   }
   const query = (nodes.productSearch.value || "").trim().toLowerCase();
   if (!query) {
-    nodes.productResults.innerHTML = `<div class="empty-state">Busca por codigo, producto o EAN para agregar articulos.</div>`;
+    nodes.productResults.innerHTML = "";
     return;
   }
   const products = state.order.products
