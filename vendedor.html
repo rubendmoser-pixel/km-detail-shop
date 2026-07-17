@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Gestion de ventas | KM Detail Line</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260717e" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260717f" />
   </head>
   <body>
     <header class="seller-header">
@@ -267,18 +267,18 @@
             <nav class="seller-quote-steps hidden" id="sellerQuoteSteps" aria-label="Etapas del presupuesto">
               <button class="active" type="button" data-quote-step-button="1"><span>1</span> Datos</button>
               <button type="button" data-quote-step-button="2"><span>2</span> Productos</button>
-              <button type="button" data-quote-step-button="3"><span>3</span> Revisar</button>
+              <button type="button" data-quote-step-button="3"><span>3</span> Revisión</button>
             </nav>
             <section class="seller-builder-step" id="sellerQuoteDataStep">
               <div class="seller-step-heading hidden" id="sellerQuoteDataHeading">
-                <span class="seller-step-icon" aria-hidden="true">&#128100;</span>
-                <div><strong>1. Datos del destinatario</strong><small>Completa y valida los datos antes de seleccionar productos.</small></div>
+                <span class="seller-step-icon" data-icon="user-round" aria-hidden="true"></span>
+                <strong>Datos del destinatario</strong>
               </div>
             <div class="seller-quote-audience hidden" id="sellerQuoteAudience">
               <span class="seller-section-label">Destinatario del presupuesto</span>
               <div class="seller-mode-toggle" role="group" aria-label="Tipo de cliente del presupuesto">
-                <button class="active" type="button" data-quote-audience="registered"><span aria-hidden="true">&#128100;</span> Cliente registrado</button>
-                <button type="button" data-quote-audience="prospect"><span aria-hidden="true">&#10133;</span> Cliente potencial</button>
+                <button class="active" type="button" data-quote-audience="registered" data-icon="user-check">Cliente registrado</button>
+                <button type="button" data-quote-audience="prospect" data-icon="user-plus">Cliente potencial</button>
               </div>
             </div>
             <div class="order-builder-grid">
@@ -309,14 +309,14 @@
               <label class="seller-field"><span>Observaciones del presupuesto</span><textarea id="sellerQuoteNotes" maxlength="1000"></textarea></label>
             </div>
               <div class="seller-step-actions hidden" id="sellerQuoteDataActions">
-                <button class="primary-button" type="button" id="sellerContinueToProducts"><span aria-hidden="true">&#10003;</span> Continuar a productos</button>
+                <button class="primary-button" type="button" id="sellerContinueToProducts" data-icon="package-search">Cargar productos</button>
               </div>
               <p class="form-message" id="sellerQuoteDataMessage" role="status"></p>
             </section>
             <section class="seller-builder-step" id="sellerQuoteProductsStep">
               <div class="seller-step-heading hidden" id="sellerQuoteProductsHeading">
-                <span class="seller-step-icon" aria-hidden="true">&#128269;</span>
-                <div><strong>2. Seleccionar productos</strong><small>Busca, agrega y ajusta las cantidades del presupuesto.</small></div>
+                <span class="seller-step-icon" data-icon="package-search" aria-hidden="true"></span>
+                <strong>Cargar productos</strong>
               </div>
               <label class="seller-field seller-product-search-field"><span>Buscar producto</span><input id="sellerProductSearch" type="search" placeholder="Codigo, articulo, EAN..." autocomplete="off" /></label>
             <div class="order-builder-grid">
@@ -329,19 +329,19 @@
                 <div class="seller-order-total" id="sellerOrderTotal"></div>
               </div>
             </div>
-            <div class="seller-actions">
-              <button class="ghost-button" type="button" id="clearSellerOrder"><span aria-hidden="true">&#10005;</span> Limpiar</button>
-              <button class="primary-button" type="submit" id="sellerOrderDirectSubmit">Enviar pedido a KM</button>
-              <button class="ghost-button hidden" type="button" id="sellerBackToQuoteData"><span aria-hidden="true">&#8592;</span> Volver a datos</button>
-              <button class="primary-button hidden" type="button" id="sellerReviewQuote"><span aria-hidden="true">&#128722;</span> Revisar presupuesto</button>
+            <div class="seller-actions seller-product-actions">
+              <button class="ghost-button" type="button" id="clearSellerOrder" data-icon="trash-2">Limpiar</button>
+              <button class="primary-button" type="submit" id="sellerOrderDirectSubmit" data-icon="send">Enviar pedido</button>
+              <button class="ghost-button hidden" type="button" id="sellerBackToQuoteData" data-icon="arrow-left">Volver</button>
+              <button class="primary-button hidden" type="button" id="sellerReviewQuote" data-icon="clipboard-check">Revisar</button>
             </div>
             </section>
             <section class="seller-builder-step hidden" id="sellerQuoteReviewStep">
-              <div class="seller-step-heading"><span class="seller-step-icon" aria-hidden="true">&#128196;</span><div><strong>3. Revisar presupuesto</strong><small>Comprueba los datos, productos e importes antes de generarlo.</small></div></div>
+              <div class="seller-step-heading"><span class="seller-step-icon" data-icon="clipboard-check" aria-hidden="true"></span><strong>Revisar presupuesto</strong></div>
               <div class="seller-quote-review" id="sellerQuoteReview"></div>
               <div class="seller-actions">
-                <button class="ghost-button" type="button" id="sellerBackToProducts"><span aria-hidden="true">&#8592;</span> Editar productos</button>
-                <button class="primary-button" type="submit" id="sellerOrderSubmit"><span aria-hidden="true">&#128196;</span> Generar presupuesto</button>
+                <button class="ghost-button" type="button" id="sellerBackToProducts" data-icon="arrow-left">Productos</button>
+                <button class="primary-button" type="submit" id="sellerOrderSubmit" data-icon="file-text">Generar presupuesto</button>
               </div>
             </section>
             <p class="form-message" id="sellerOrderMessage" role="status"></p>
@@ -475,6 +475,6 @@
     </main>
 
     <script src="/form-validation.js?v=1" defer></script>
-    <script src="/vendedor.js?v=20260717e" type="module"></script>
+    <script src="/vendedor.js?v=20260717f" type="module"></script>
   </body>
 </html>

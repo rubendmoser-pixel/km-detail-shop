@@ -139,6 +139,34 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+const SELLER_ICON_PATHS = {
+  "user-round": `<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>`,
+  "user-check": `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/>`,
+  "user-plus": `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>`,
+  "package-search": `<path d="m7.5 4.27 9 5.15M3.27 6.96 12 12l8.73-5.04M12 22V12"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l5 2.86"/><circle cx="18.5" cy="18.5" r="2.5"/><path d="m20.3 20.3 1.7 1.7"/>`,
+  "clipboard-check": `<rect width="14" height="18" x="5" y="3" rx="2"/><path d="M9 3V1h6v2M9 12l2 2 4-4"/>`,
+  "trash-2": `<path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/>`,
+  send: `<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>`,
+  "arrow-left": `<path d="m15 18-6-6 6-6M9 12h12"/>`,
+  "file-text": `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/>`,
+  plus: `<path d="M12 5v14M5 12h14"/>`,
+  pencil: `<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>`,
+  "message-circle": `<path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.7-5.1A8 8 0 1 1 21 15Z"/>`,
+  mail: `<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 6L2 7"/>`
+};
+
+function iconSvg(name) {
+  const paths = SELLER_ICON_PATHS[name] || SELLER_ICON_PATHS.plus;
+  return `<svg class="seller-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+}
+
+function setupSellerIcons(root = document) {
+  root.querySelectorAll("[data-icon]:not([data-icon-ready])").forEach((element) => {
+    element.insertAdjacentHTML("afterbegin", iconSvg(element.dataset.icon));
+    element.setAttribute("data-icon-ready", "true");
+  });
+}
+
 async function sellerApi(path, options = {}) {
   const hasBody = Object.prototype.hasOwnProperty.call(options, "body");
   const response = await fetch(path, {
@@ -645,8 +673,8 @@ function renderQuoteDetail(quoteId) {
       </div>
       ${renderDetailItems(quote.items || [])}
       <div class="quote-actions">
-        ${isProspect ? `<button class="primary-button compact" type="button" data-start-registration-from-quote="${quote.id}">Iniciar alta comercial</button>` : `
-          <button class="primary-button compact" type="button" data-create-order-from-quote="${quote.id}" ${canCreateOrder ? "" : "disabled"}>Generar pedido</button>`}
+        ${isProspect ? `<button class="primary-button compact" type="button" data-start-registration-from-quote="${quote.id}">${iconSvg("user-plus")}Iniciar alta</button>` : `
+          <button class="primary-button compact" type="button" data-create-order-from-quote="${quote.id}" ${canCreateOrder ? "" : "disabled"}>${iconSvg("send")}Generar pedido</button>`}
       </div>
     </div>
   `;
@@ -753,10 +781,10 @@ function renderQuotes() {
           </button>
           ${canShareQuote ? `
             <button class="ghost-button compact" type="button" data-share-quote-whatsapp="${quote.id}" ${onlyDigits(quote.customerWhatsapp).length ? "" : "disabled"}>
-              <span aria-hidden="true">&#128172;</span> WhatsApp cliente
+              ${iconSvg("message-circle")}WhatsApp
             </button>
             <button class="ghost-button compact" type="button" data-share-quote-email="${quote.id}" ${quote.customerEmail ? "" : "disabled"}>
-              <span aria-hidden="true">&#9993;</span> Email cliente
+              ${iconSvg("mail")}Email
             </button>
           ` : ""}
         </div>
@@ -941,8 +969,8 @@ function renderQuoteReview() {
     email: customer?.email || ""
   };
   nodes.quoteReview.innerHTML = `
-    <article class="seller-review-card"><div class="seller-review-title"><strong>Destinatario</strong><button type="button" data-review-edit="data">&#9998; Editar datos</button></div><p><b>${escapeHtml(recipient.name)}</b><br>${escapeHtml(recipient.contact)} · WhatsApp ${escapeHtml(recipient.whatsapp)}<br>${escapeHtml(recipient.email)}</p></article>
-    <article class="seller-review-card"><div class="seller-review-title"><strong>Productos (${state.order.items.length})</strong><button type="button" data-review-edit="products">&#9998; Editar productos</button></div>${state.order.items.map((item) => { const product = findProduct(item.productId); return `<p>${item.quantity} x <b>${escapeHtml(product?.kmCode || "")}</b> ${escapeHtml(product?.name || "")} — ${money(productDisplayPrice(product || {}))}</p>`; }).join("")}</article>
+    <article class="seller-review-card"><div class="seller-review-title"><strong>Destinatario</strong><button type="button" data-review-edit="data">${iconSvg("pencil")}Editar</button></div><p><b>${escapeHtml(recipient.name)}</b><br>${escapeHtml(recipient.contact)} · WhatsApp ${escapeHtml(recipient.whatsapp)}<br>${escapeHtml(recipient.email)}</p></article>
+    <article class="seller-review-card"><div class="seller-review-title"><strong>Productos (${state.order.items.length})</strong><button type="button" data-review-edit="products">${iconSvg("pencil")}Editar</button></div>${state.order.items.map((item) => { const product = findProduct(item.productId); return `<p>${item.quantity} x <b>${escapeHtml(product?.kmCode || "")}</b> ${escapeHtml(product?.name || "")} — ${money(productDisplayPrice(product || {}))}</p>`; }).join("")}</article>
     <article class="seller-review-card seller-review-totals"><p><span>Precio de lista</span><b>${money(totals.subtotalListCents)}</b></p>${isProspect ? `<p><span>Descuento ${prospectDiscountPercent()}%</span><b>- ${money(totals.discountCents)}</b></p>` : ""}<p><span>Subtotal sin IVA</span><b>${money(totals.subtotalNetCents)}</b></p><p><span>IVA ${Number(state.order.vatBps || 0) / 100}%</span><b>${money(totals.vatCents)}</b></p><p class="grand"><span>Total final</span><b>${money(totals.totalCents)}</b></p></article>`;
 }
 
@@ -1034,7 +1062,7 @@ function renderProductResults() {
         <div class="seller-meta">${escapeHtml(product.family?.name || "")} ${product.ean13 ? `| EAN ${escapeHtml(product.ean13)}` : ""}</div>
         <div class="seller-meta">${state.mode === "quote" && state.quoteAudience === "prospect" ? "Precio de lista: " : ""}${money(productDisplayPrice(product))} + IVA</div>
       </div>
-      <button class="ghost-button compact" type="button" data-add-product="${product.id}"><span aria-hidden="true">&#65291;</span> Agregar</button>
+      <button class="ghost-button compact" type="button" data-add-product="${product.id}">${iconSvg("plus")}Agregar</button>
     </article>
   `).join("");
 }
@@ -1804,6 +1832,7 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
   }
 });
 
+setupSellerIcons();
 setupPasswordToggles();
 if (state.passwordResetToken) {
   nodes.dashboard?.classList.add("hidden");
