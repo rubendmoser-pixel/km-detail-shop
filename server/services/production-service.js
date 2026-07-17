@@ -12,7 +12,7 @@ export function listProductionOperators(db) {
 export async function upsertProductionOperator(db, input = {}) {
   const id = Number(input.id || 0);
   const existing = id ? db.prepare("SELECT id,password_hash FROM production_operators WHERE id=?").get(id) : null;
-  if (id && !existing) throw new NotFoundError("Operario de producciÃ³n no encontrado.");
+  if (id && !existing) throw new NotFoundError("Operario de producción no encontrado.");
   const name = requiredText(input.name, "name", { min: 2, max: 160 });
   const email = normalizeEmail(input.email);
   const phone = optionalText(input.phone, "phone", { max: 60 });
@@ -20,7 +20,7 @@ export async function upsertProductionOperator(db, input = {}) {
   const status = input.status === "inactive" ? "inactive" : "active";
   const enabled = input.portalAccessEnabled !== false;
   const password = optionalText(input.portalPassword, "portalPassword", { max: 200 });
-  if (enabled && !password && !existing?.password_hash) throw new ValidationError("IngresÃ¡ una clave de al menos 10 caracteres para habilitar el acceso.");
+  if (enabled && !password && !existing?.password_hash) throw new ValidationError("Ingresá una clave de al menos 10 caracteres para habilitar el acceso.");
   let passwordHash = enabled ? (existing?.password_hash || "") : "";
   if (enabled && password) {
     try { passwordHash = await hashPassword(password); }
@@ -38,7 +38,7 @@ export async function upsertProductionOperator(db, input = {}) {
     }
     return listProductionOperators(db).find((operator) => operator.id === id);
   } catch (error) {
-    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Ya existe un operario de producciÃ³n con ese email.");
+    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Ya existe un operario de producción con ese email.");
     throw error;
   }
 }
@@ -64,7 +64,7 @@ export function authenticateProductionOperator(db, token) {
 }
 
 export function requireProductionOperator(operator) {
-  if (!operator) throw new AuthError("IniciÃ¡ sesiÃ³n como operario de producciÃ³n.", 401);
+  if (!operator) throw new AuthError("Iniciá sesión como operario de producción.", 401);
   return operator;
 }
 
@@ -76,11 +76,11 @@ export function saveProductionPlan(db, input = {}, adminId) {
   const weekStart = validDate(input.weekStart, "semana");
   const notes = optionalText(input.notes, "notes", { max: 1500 });
   const items = normalizePlanItems(db, input.items);
-  if (!items.length) throw new ValidationError("AgregÃ¡ al menos un producto a la planificaciÃ³n.");
+  if (!items.length) throw new ValidationError("Agregá al menos un producto a la planificación.");
   db.exec("BEGIN IMMEDIATE");
   try {
     let plan = db.prepare("SELECT * FROM production_plans WHERE week_start=?").get(weekStart);
-    if (plan?.status === "closed") throw new ValidationError("La planificaciÃ³n de esa semana ya estÃ¡ cerrada.");
+    if (plan?.status === "closed") throw new ValidationError("La planificación de esa semana ya está cerrada.");
     if (!plan) {
       plan = db.prepare(`INSERT INTO production_plans(week_start,notes,created_by) VALUES(?,?,?) RETURNING *`).get(weekStart, notes, adminId);
     } else {
@@ -100,7 +100,7 @@ export function saveProductionPlan(db, input = {}, adminId) {
 export function approveProductionPlan(db, planId, adminId) {
   const result = db.prepare(`UPDATE production_plans SET status='approved',approved_by=?,approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
     WHERE id=? AND status IN ('draft','approved','in_progress')`).run(adminId, positiveId(planId));
-  if (!result.changes) throw new NotFoundError("PlanificaciÃ³n no encontrada.");
+  if (!result.changes) throw new NotFoundError("Planificación no encontrada.");
   return getProductionPlan(db, planId);
 }
 
@@ -115,7 +115,7 @@ export function getCurrentProductionDashboard(db) {
 
 export function getProductionPlan(db, planId) {
   const plan = db.prepare("SELECT * FROM production_plans WHERE id=?").get(positiveId(planId));
-  if (!plan) throw new NotFoundError("PlanificaciÃ³n no encontrada.");
+  if (!plan) throw new NotFoundError("Planificación no encontrada.");
   const items = db.prepare(`SELECT pi.id,pi.product_id,pi.suggested_quantity,pi.target_quantity,pi.adjustment_note,
       p.km_code,p.ean13,p.name,p.warehouse_location,
       COALESCE(SUM(CASE WHEN r.status='confirmed' THEN ri.good_quantity ELSE 0 END),0) AS produced_quantity
@@ -132,14 +132,14 @@ export function getProductionPlan(db, planId) {
 }
 
 export function saveDailyProductionReport(db, input = {}, operator) {
-  const productionDate = validDate(input.productionDate, "fecha de producciÃ³n");
+  const productionDate = validDate(input.productionDate, "fecha de producción");
   const notes = optionalText(input.notes, "notes", { max: 1500 });
   const items = normalizeReportItems(db, input.items);
-  if (!items.length || !items.some((item) => item.goodQuantity || item.rejectedQuantity)) throw new ValidationError("CargÃ¡ al menos una cantidad fabricada o rechazada.");
+  if (!items.length || !items.some((item) => item.goodQuantity || item.rejectedQuantity)) throw new ValidationError("Cargá al menos una cantidad fabricada o rechazada.");
   db.exec("BEGIN IMMEDIATE");
   try {
     let report = db.prepare("SELECT * FROM production_daily_reports WHERE production_date=?").get(productionDate);
-    if (report && !["draft", "returned"].includes(report.status)) throw new ValidationError("El parte de ese dÃ­a ya fue enviado y no puede modificarse.");
+    if (report && !["draft", "returned"].includes(report.status)) throw new ValidationError("El parte de ese día ya fue enviado y no puede modificarse.");
     if (!report) {
       const number = `PF-${productionDate.replaceAll("-", "")}`;
       report = db.prepare(`INSERT INTO production_daily_reports(report_number,production_date,operator_id,notes) VALUES(?,?,?,?) RETURNING *`)
@@ -169,13 +169,13 @@ export function submitDailyProductionReport(db, reportId, operator) {
 export function returnDailyProductionReport(db, reportId, reason) {
   const returnReason = requiredText(reason, "motivo", { min: 3, max: 500 });
   const result = db.prepare(`UPDATE production_daily_reports SET status='returned',return_reason=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='submitted'`).run(returnReason, positiveId(reportId));
-  if (!result.changes) throw new ValidationError("El parte no estÃ¡ pendiente de revisiÃ³n.");
+  if (!result.changes) throw new ValidationError("El parte no está pendiente de revisión.");
   return getProductionReport(db, reportId);
 }
 
 export function confirmDailyProductionReport(db, reportId, adminId) {
   const report = db.prepare("SELECT * FROM production_daily_reports WHERE id=?").get(positiveId(reportId));
-  if (!report || report.status !== "submitted") throw new ValidationError("El parte no estÃ¡ pendiente de confirmaciÃ³n.");
+  if (!report || report.status !== "submitted") throw new ValidationError("El parte no está pendiente de confirmación.");
   const items = db.prepare("SELECT * FROM production_daily_report_items WHERE report_id=?").all(report.id);
   const warnings = [];
   db.exec("BEGIN IMMEDIATE");
@@ -222,8 +222,8 @@ function normalizePlanItems(db, raw) {
   const seen = new Set();
   return raw.map((item) => {
     const productId = positiveId(item.productId);
-    if (seen.has(productId)) throw new ValidationError("No repitas productos en la planificaciÃ³n.");
-    if (!db.prepare("SELECT id FROM products WHERE id=? AND active=1").get(productId)) throw new ValidationError("Uno de los productos no estÃ¡ activo.");
+    if (seen.has(productId)) throw new ValidationError("No repitas productos en la planificación.");
+    if (!db.prepare("SELECT id FROM products WHERE id=? AND active=1").get(productId)) throw new ValidationError("Uno de los productos no está activo.");
     seen.add(productId);
     const targetQuantity = nonNegativeInteger(item.targetQuantity, "cantidad objetivo");
     if (!targetQuantity) throw new ValidationError("La cantidad objetivo debe ser mayor que cero.");
@@ -251,6 +251,6 @@ function addMovement(db, itemId, delta, movementType, reportId, notes, adminId) 
 }
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }
 function publicOperator(row) { return { id: row.id, name: row.name, email: row.email, phone: row.phone || "", status: row.status }; }
-function positiveId(value) { const id = Number(value); if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("Identificador invÃ¡lido."); return id; }
-function nonNegativeInteger(value, label) { const number = Number(value); if (!Number.isSafeInteger(number) || number < 0) throw new ValidationError(`${label} debe ser un nÃºmero entero igual o mayor que cero.`); return number; }
-function validDate(value, label) { if (typeof value !== "string" || !ISO_DATE.test(value) || Number.isNaN(Date.parse(`${value}T12:00:00Z`))) throw new ValidationError(`RevisÃ¡ ${label}.`); return value; }
+function positiveId(value) { const id = Number(value); if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("Identificador inválido."); return id; }
+function nonNegativeInteger(value, label) { const number = Number(value); if (!Number.isSafeInteger(number) || number < 0) throw new ValidationError(`${label} debe ser un número entero igual o mayor que cero.`); return number; }
+function validDate(value, label) { if (typeof value !== "string" || !ISO_DATE.test(value) || Number.isNaN(Date.parse(`${value}T12:00:00Z`))) throw new ValidationError(`Revisá ${label}.`); return value; }
