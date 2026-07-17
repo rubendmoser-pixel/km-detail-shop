@@ -5320,3 +5320,226 @@ button.operation-row:hover {
     text-align: left;
   }
 }
+
+/* Escritorio amplio: navegacion compacta y vistas operativas sin recortes */
+@media (min-width: 1100px) {
+  .admin-main {
+    width: min(1900px, 100%);
+    padding: 20px clamp(14px, 1.35vw, 26px) 34px;
+  }
+
+  #adminWorkspace:not([hidden]) {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: clamp(14px, 1.25vw, 22px);
+  }
+
+  #adminWorkspace > .admin-tabs {
+    width: 72px;
+    padding: 7px;
+    gap: 5px;
+  }
+
+  #adminWorkspace > .admin-tabs::before {
+    content: "KM";
+    padding: 8px 0 9px;
+    color: #c9cbff;
+    font-size: 0.74rem;
+    text-align: center;
+  }
+
+  #adminWorkspace > .admin-tabs button {
+    width: 56px;
+    min-height: 46px;
+    justify-content: center;
+    padding: 9px;
+    border-radius: 9px;
+  }
+
+  #adminWorkspace > .admin-tabs button .admin-tab-label {
+    display: none;
+  }
+
+  #adminWorkspace > .admin-tabs button .admin-ui-icon {
+    width: 1.28rem;
+    height: 1.28rem;
+  }
+
+  #adminWorkspace > .admin-tabs button.active {
+    color: #f4f3ff;
+    background: linear-gradient(145deg, rgba(151, 143, 255, 0.46), rgba(91, 83, 191, 0.25));
+    border-color: rgba(183, 184, 255, 0.72);
+    box-shadow: inset 3px 0 0 #c2c5ff, 0 8px 20px rgba(56, 49, 145, 0.2);
+  }
+
+  .admin-titlebar h1 {
+    font-size: clamp(1.7rem, 2vw, 2.35rem);
+    line-height: 1.03;
+  }
+
+  #customersView .admin-titlebar,
+  #productsView .admin-titlebar,
+  #distributorsView .admin-titlebar {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.52fr) minmax(650px, 1.48fr);
+    align-items: end;
+  }
+
+  #customersView .admin-toolbar,
+  #productsView .admin-toolbar,
+  #distributorsView .admin-toolbar {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(170px, 0.55fr) auto auto;
+  }
+
+  #distributorsView .admin-toolbar {
+    grid-template-columns: minmax(280px, 1fr) minmax(180px, 0.55fr) auto;
+  }
+
+  #customersView .admin-toolbar > *,
+  #productsView .admin-toolbar > *,
+  #distributorsView .admin-toolbar > * {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  #customersView .customer-table,
+  #productsView .product-table {
+    width: 100%;
+    min-width: 1320px;
+  }
+
+  #customersView .customer-table th,
+  #customersView .customer-table td,
+  #productsView .product-table th,
+  #productsView .product-table td,
+  #ordersView .orders-list-table th,
+  #ordersView .orders-list-table td {
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+
+  #customersView .customer-table td,
+  #productsView .product-table td {
+    font-size: 0.91rem;
+  }
+
+  #salesView .sales-admin-layout,
+  #logisticsView .sales-admin-layout {
+    grid-template-columns: minmax(455px, 0.8fr) minmax(620px, 1.55fr);
+    gap: 22px;
+  }
+
+  #salesView .sales-rep-card-grid,
+  #logisticsView .sales-rep-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #salesView .sales-rep-card-main,
+  #logisticsView .sales-rep-card-main {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  #salesView .sales-rep-card-main > *,
+  #logisticsView .sales-rep-card-main > * {
+    min-width: 0;
+  }
+
+  #salesView .sales-rep-card-main p,
+  #logisticsView .sales-rep-card-main p,
+  #logisticsView .sales-rep-admin-card {
+    overflow-wrap: anywhere;
+  }
+
+  #commissionsView .admin-titlebar {
+    display: grid;
+    grid-template-columns: minmax(230px, 0.36fr) minmax(720px, 1.64fr);
+    align-items: end;
+  }
+
+  #commissionsView .admin-toolbar {
+    display: grid;
+    grid-template-columns: minmax(210px, 0.55fr) minmax(320px, 1fr) auto auto;
+  }
+
+  #commissionsView .admin-toolbar > * {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  #commissionsView .commission-panel {
+    margin-top: 0;
+  }
+
+  #distributorsView .distributor-admin-layout {
+    grid-template-columns: minmax(410px, 0.62fr) minmax(760px, 1.38fr);
+    gap: 22px;
+  }
+
+  #distributorsView .orders-table-wrap {
+    min-width: 0;
+  }
+
+  #distributorsView .admin-table {
+    width: 100%;
+    min-width: 850px;
+  }
+
+  #distributorsView .admin-table th,
+  #distributorsView .admin-table td {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  #pricesView .admin-titlebar {
+    align-items: flex-start;
+  }
+
+  #pricesView .admin-titlebar h1 {
+    margin-bottom: 8px;
+  }
+
+  #pricesView .admin-note {
+    max-width: 760px;
+    margin-top: 0;
+    line-height: 1.45;
+  }
+
+  #pricesView .price-panel {
+    padding: 22px 24px;
+  }
+
+  #ordersView .admin-titlebar {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.4fr) auto;
+    align-items: end;
+  }
+
+  #ordersView .order-scope-tabs {
+    justify-self: end;
+  }
+
+  #ordersView .admin-toolbar {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(300px, 1.35fr) minmax(200px, 0.8fr) minmax(200px, 0.8fr) auto;
+  }
+
+  #ordersView .admin-toolbar > * {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  #ordersView .orders-list-table {
+    width: 100%;
+    min-width: 1480px;
+    font-size: 0.88rem;
+  }
+
+  #ordersView .orders-list-table .order-list-next-action {
+    min-width: 250px;
+  }
+}

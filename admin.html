@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=65" />
+    <link rel="stylesheet" href="./admin.css?v=66" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -43,20 +43,20 @@
       <div id="adminWorkspace" hidden>
         <button class="admin-nav-toggle" id="adminNavToggle" type="button" aria-expanded="false" aria-controls="adminTabs">Secciones</button>
         <nav class="admin-tabs" id="adminTabs" aria-label="Secciones administrativas">
-          <button class="active" type="button" data-admin-view="customers">Clientes</button>
-          <button type="button" data-admin-view="sales">Vendedores</button>
-          <button type="button" data-admin-view="logistics">Logística</button>
-          <button type="button" data-admin-view="commissions">Comisiones</button>
-          <button type="button" data-admin-view="distributors">Distribuidores</button>
-          <button type="button" data-admin-view="products">Productos</button>
-          <button type="button" data-admin-view="prices">Precios</button>
-          <button type="button" data-admin-view="orders">Pedidos</button>
-          <button type="button" data-admin-view="accounts">Cta. corriente</button>
-          <button type="button" data-admin-view="settings">Configuracion</button>
-          <button type="button" data-admin-view="emails">Emails</button>
-          <button type="button" data-admin-view="security">Seguridad</button>
-          <button type="button" data-admin-view="analytics">Actividad</button>
-          <button type="button" data-admin-view="operation">Operacion</button>
+          <button class="active" type="button" data-admin-view="customers" title="Clientes"><span class="admin-tab-label">Clientes</span></button>
+          <button type="button" data-admin-view="sales" title="Vendedores"><span class="admin-tab-label">Vendedores</span></button>
+          <button type="button" data-admin-view="logistics" title="Logística"><span class="admin-tab-label">Logística</span></button>
+          <button type="button" data-admin-view="commissions" title="Comisiones"><span class="admin-tab-label">Comisiones</span></button>
+          <button type="button" data-admin-view="distributors" title="Distribuidores"><span class="admin-tab-label">Distribuidores</span></button>
+          <button type="button" data-admin-view="products" title="Productos"><span class="admin-tab-label">Productos</span></button>
+          <button type="button" data-admin-view="prices" title="Precios"><span class="admin-tab-label">Precios</span></button>
+          <button type="button" data-admin-view="orders" title="Pedidos"><span class="admin-tab-label">Pedidos</span></button>
+          <button type="button" data-admin-view="accounts" title="Cuenta corriente"><span class="admin-tab-label">Cta. corriente</span></button>
+          <button type="button" data-admin-view="settings" title="Configuración"><span class="admin-tab-label">Configuracion</span></button>
+          <button type="button" data-admin-view="emails" title="Emails"><span class="admin-tab-label">Emails</span></button>
+          <button type="button" data-admin-view="security" title="Seguridad"><span class="admin-tab-label">Seguridad</span></button>
+          <button type="button" data-admin-view="analytics" title="Actividad"><span class="admin-tab-label">Actividad</span></button>
+          <button type="button" data-admin-view="operation" title="Operación"><span class="admin-tab-label">Operacion</span></button>
         </nav>
 
         <section class="admin-view" id="customersView">
@@ -697,6 +697,6 @@
     </main>
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
-    <script src="./admin.js?v=88" defer></script>
+    <script src="./admin.js?v=89" defer></script>
   </body>
 </html>

@@ -442,6 +442,9 @@ function showAdminView(view, updateHash = true) {
   if (updateHash && window.location.hash !== `#${targetView}`) window.location.hash = targetView;
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === targetView));
   document.querySelectorAll(".admin-view").forEach((section) => { section.hidden = section.id !== `${targetView}View`; });
+  document.querySelectorAll(`#${targetView}View .orders-table-wrap, #${targetView}View .customer-table-wrap`).forEach((container) => {
+    container.scrollLeft = 0;
+  });
   if (targetView === "commissions") loadSalesCommissions().catch((error) => showAdminToast(error.message));
   if (targetView === "prices" && !adminState.priceProducts.length) loadPriceUpdates().catch((error) => showAdminToast(error.message));
 }
