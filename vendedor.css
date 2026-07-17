@@ -1665,6 +1665,33 @@ textarea:focus-visible {
   padding-top: 0.15rem;
 }
 
+.seller-detail-delivery {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(99, 179, 237, 0.2);
+  border-radius: var(--radius-sm);
+  color: #a8d8ff;
+  background: rgba(99, 179, 237, 0.06);
+}
+
+.seller-detail-delivery span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+
+.seller-detail-delivery strong {
+  min-width: 0;
+  color: var(--text);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
 .seller-order-total,
 .seller-review-totals .grand b {
   font-weight: 700;

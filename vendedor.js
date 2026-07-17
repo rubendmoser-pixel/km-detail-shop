@@ -660,26 +660,12 @@ function renderOrderDetail(orderId) {
   if (!order) return `<div class="seller-detail">Cargando detalle...</div>`;
   return `
     <div class="seller-detail">
-      <div class="seller-detail-grid">
-        <div>
-          <span>Cliente</span>
-          <strong>${escapeHtml(order.businessName || "")}</strong>
-        </div>
-        <div>
-          <span>Total</span>
-          <strong>${money(order.totalCents || 0)}</strong>
-        </div>
-        <div>
-          <span>Saldo</span>
-          <strong>${money(order.balanceCents || 0)}</strong>
-        </div>
-        <div>
-          <span>Entrega</span>
-          <strong>${escapeHtml([order.shipping?.city, order.shipping?.province].filter(Boolean).join(", ") || "Sin dato")}</strong>
-        </div>
+      <div class="seller-detail-delivery">
+        ${iconSvg("map-pin")}
+        <span>Entrega</span>
+        <strong>${escapeHtml([order.shipping?.city, order.shipping?.province].filter(Boolean).join(", ") || "Sin dato")}</strong>
       </div>
       ${renderDetailItems(order.items || [])}
-      <div class="seller-detail-close"><button class="ghost-button compact" type="button" data-close-order-detail>${iconSvg("x")}Cerrar detalle</button></div>
     </div>
   `;
 }
@@ -1690,12 +1676,6 @@ nodes.productResults?.addEventListener("click", (event) => {
 
 nodes.orders?.addEventListener("click", async (event) => {
   const viewButton = event.target.closest("[data-view-order]");
-  const closeButton = event.target.closest("[data-close-order-detail]");
-  if (closeButton) {
-    state.openOrderId = null;
-    renderOrders(state.dashboard?.orders || []);
-    return;
-  }
   if (!viewButton) return;
   const orderId = viewButton.dataset.viewOrder;
   nodes.orderMessage.textContent = "";
