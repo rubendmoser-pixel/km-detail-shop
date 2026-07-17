@@ -124,7 +124,8 @@ export function createProspectSalesQuote(db, salesRep, input = {}) {
   if (input.items.length > 200) throw new ValidationError("El presupuesto contiene demasiados productos");
   const businessName = requiredText(input.businessName, "businessName", { min: 2, max: 160 });
   const contactPerson = requiredText(input.contactPerson, "contactPerson", { min: 2, max: 140 });
-  const email = normalizeEmail(input.email);
+  const rawEmail = optionalText(input.email, "email", { max: 254 });
+  const email = rawEmail ? normalizeEmail(rawEmail) : "";
   const whatsapp = normalizeProspectPhone(input.whatsapp, "whatsapp");
   const phone = input.phone ? normalizeProspectPhone(input.phone, "phone") : "";
   const city = optionalText(input.city, "city", { max: 120 });

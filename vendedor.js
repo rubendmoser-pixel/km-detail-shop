@@ -12,6 +12,7 @@ const state = {
   activeView: "summary",
   mode: "order",
   quoteAudience: "registered",
+  quoteStep: 1,
   summaryDateFrom: "",
   summaryDateTo: "",
   quoteSearch: "",
@@ -73,6 +74,21 @@ const nodes = {
   builderTitle: document.getElementById("sellerBuilderTitle"),
   itemsLabel: document.getElementById("sellerItemsLabel"),
   orderSubmit: document.getElementById("sellerOrderSubmit"),
+  orderDirectSubmit: document.getElementById("sellerOrderDirectSubmit"),
+  quoteSteps: document.getElementById("sellerQuoteSteps"),
+  quoteStepButtons: document.querySelectorAll("[data-quote-step-button]"),
+  quoteDataStep: document.getElementById("sellerQuoteDataStep"),
+  quoteProductsStep: document.getElementById("sellerQuoteProductsStep"),
+  quoteReviewStep: document.getElementById("sellerQuoteReviewStep"),
+  quoteDataHeading: document.getElementById("sellerQuoteDataHeading"),
+  quoteProductsHeading: document.getElementById("sellerQuoteProductsHeading"),
+  quoteDataActions: document.getElementById("sellerQuoteDataActions"),
+  quoteDataMessage: document.getElementById("sellerQuoteDataMessage"),
+  continueToProducts: document.getElementById("sellerContinueToProducts"),
+  backToQuoteData: document.getElementById("sellerBackToQuoteData"),
+  reviewQuote: document.getElementById("sellerReviewQuote"),
+  backToProducts: document.getElementById("sellerBackToProducts"),
+  quoteReview: document.getElementById("sellerQuoteReview"),
   quoteAudience: document.getElementById("sellerQuoteAudience"),
   quoteAudienceButtons: document.querySelectorAll("[data-quote-audience]"),
   prospectFields: document.getElementById("sellerProspectFields"),
@@ -84,6 +100,7 @@ const nodes = {
   prospectCity: document.getElementById("sellerProspectCity"),
   prospectProvince: document.getElementById("sellerProspectProvince"),
   prospectDiscount: document.getElementById("sellerProspectDiscount"),
+  prospectDiscountMessage: document.getElementById("sellerProspectDiscountMessage"),
   quoteOptions: document.getElementById("sellerQuoteOptions"),
   quoteValidUntil: document.getElementById("sellerQuoteValidUntil"),
   quoteNotes: document.getElementById("sellerQuoteNotes"),
@@ -736,10 +753,10 @@ function renderQuotes() {
           </button>
           ${canShareQuote ? `
             <button class="ghost-button compact" type="button" data-share-quote-whatsapp="${quote.id}" ${onlyDigits(quote.customerWhatsapp).length ? "" : "disabled"}>
-              WhatsApp cliente
+              <span aria-hidden="true">&#128172;</span> WhatsApp cliente
             </button>
             <button class="ghost-button compact" type="button" data-share-quote-email="${quote.id}" ${quote.customerEmail ? "" : "disabled"}>
-              Email cliente
+              <span aria-hidden="true">&#9993;</span> Email cliente
             </button>
           ` : ""}
         </div>
@@ -817,12 +834,28 @@ function renderOrderBuilder() {
 function renderBuilderMode() {
   const isQuote = state.mode === "quote";
   const isProspectQuote = isQuote && state.quoteAudience === "prospect";
+  nodes.quoteSteps?.classList.toggle("hidden", !isQuote);
+  nodes.quoteDataStep?.classList.toggle("hidden", isQuote && state.quoteStep !== 1);
+  nodes.quoteProductsStep?.classList.toggle("hidden", isQuote && state.quoteStep !== 2);
+  nodes.quoteReviewStep?.classList.toggle("hidden", !isQuote || state.quoteStep !== 3);
+  nodes.quoteDataHeading?.classList.toggle("hidden", !isQuote);
+  nodes.quoteProductsHeading?.classList.toggle("hidden", !isQuote);
+  nodes.quoteDataActions?.classList.toggle("hidden", !isQuote);
+  nodes.backToQuoteData?.classList.toggle("hidden", !isQuote);
+  nodes.reviewQuote?.classList.toggle("hidden", !isQuote);
+  nodes.orderDirectSubmit?.classList.toggle("hidden", isQuote);
+  nodes.quoteStepButtons?.forEach((button) => {
+    const step = Number(button.dataset.quoteStepButton);
+    button.classList.toggle("active", isQuote && step === state.quoteStep);
+    button.classList.toggle("completed", isQuote && step < state.quoteStep);
+  });
   nodes.quoteAudience?.classList.toggle("hidden", !isQuote);
   nodes.quoteOptions?.classList.toggle("hidden", !isQuote);
   nodes.prospectFields?.classList.toggle("hidden", !isProspectQuote);
-  [nodes.prospectBusinessName, nodes.prospectContact, nodes.prospectEmail, nodes.prospectWhatsapp].forEach((field) => {
+  [nodes.prospectBusinessName, nodes.prospectContact, nodes.prospectWhatsapp].forEach((field) => {
     if (field) field.required = isProspectQuote;
   });
+  if (nodes.prospectEmail) nodes.prospectEmail.required = false;
   nodes.orderCustomerField?.classList.toggle("hidden", isProspectQuote);
   nodes.orderShippingField?.classList.toggle("hidden", isQuote);
   nodes.quoteAudienceButtons?.forEach((button) => button.classList.toggle("active", button.dataset.quoteAudience === state.quoteAudience));
@@ -842,6 +875,75 @@ function renderBuilderMode() {
   if (nodes.orderSubmit) {
     nodes.orderSubmit.textContent = isQuote ? "Generar presupuesto" : "Enviar pedido a KM";
   }
+}
+
+function prospectDiscountPercent() {
+  return Number(nodes.prospectDiscount?.value || 0);
+}
+
+function validateQuoteData(showMessage = true) {
+  if (state.mode !== "quote") return true;
+  let message = "";
+  if (state.quoteAudience === "registered") {
+    if (!state.order.customerId) message = "Selecciona un cliente para continuar.";
+  } else {
+    const whatsappDigits = onlyDigits(nodes.prospectWhatsapp?.value);
+    const discount = prospectDiscountPercent();
+    if (String(nodes.prospectBusinessName?.value || "").trim().length < 2) message = "Ingresa la empresa o nombre del cliente potencial.";
+    else if (String(nodes.prospectContact?.value || "").trim().length < 2) message = "Ingresa la persona de contacto.";
+    else if (whatsappDigits.length < 8 || whatsappDigits.length > 15) message = "Ingresa un WhatsApp valido de entre 8 y 15 digitos.";
+    else if (nodes.prospectEmail?.value && !nodes.prospectEmail.checkValidity()) message = "Revisa el email ingresado o dejalo vacio.";
+    else if (!Number.isFinite(discount) || discount < 0) message = "El descuento no puede ser menor que 0%.";
+    else if (discount > 30) message = "El descuento maximo permitido es 30%. Ingresa un valor menor para continuar.";
+  }
+  if (showMessage) setFormMessage(nodes.quoteDataMessage, message, message ? "error" : "");
+  return !message;
+}
+
+function setQuoteStep(step) {
+  state.quoteStep = Math.max(1, Math.min(3, Number(step) || 1));
+  nodes.orderMessage.textContent = "";
+  renderBuilderMode();
+  if (state.quoteStep === 3) renderQuoteReview();
+  window.requestAnimationFrame(() => {
+    const target = state.quoteStep === 1 ? nodes.quoteDataStep : state.quoteStep === 2 ? nodes.quoteProductsStep : nodes.quoteReviewStep;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function quoteDraftTotals() {
+  let subtotalListCents = 0;
+  let subtotalNetCents = 0;
+  for (const item of state.order.items) {
+    const product = findProduct(item.productId);
+    if (!product) continue;
+    subtotalListCents += Number(product.basePriceCents || product.finalPriceCents || 0) * Number(item.quantity || 0);
+    subtotalNetCents += productDisplayPrice(product) * Number(item.quantity || 0);
+  }
+  const vatCents = Math.round(subtotalNetCents * Number(state.order.vatBps || 0) / 10000);
+  return { subtotalListCents, subtotalNetCents, discountCents: subtotalListCents - subtotalNetCents, vatCents, totalCents: subtotalNetCents + vatCents };
+}
+
+function renderQuoteReview() {
+  if (!nodes.quoteReview) return;
+  const isProspect = state.quoteAudience === "prospect";
+  const customer = approvedCustomers().find((item) => String(item.id) === String(state.order.customerId));
+  const totals = quoteDraftTotals();
+  const recipient = isProspect ? {
+    name: nodes.prospectBusinessName.value,
+    contact: nodes.prospectContact.value,
+    whatsapp: nodes.prospectWhatsapp.value,
+    email: nodes.prospectEmail.value || "Sin email"
+  } : {
+    name: customer?.business_name || "Cliente",
+    contact: customer?.contact_person || "",
+    whatsapp: customer?.whatsapp || customer?.phone || "",
+    email: customer?.email || ""
+  };
+  nodes.quoteReview.innerHTML = `
+    <article class="seller-review-card"><div class="seller-review-title"><strong>Destinatario</strong><button type="button" data-review-edit="data">&#9998; Editar datos</button></div><p><b>${escapeHtml(recipient.name)}</b><br>${escapeHtml(recipient.contact)} · WhatsApp ${escapeHtml(recipient.whatsapp)}<br>${escapeHtml(recipient.email)}</p></article>
+    <article class="seller-review-card"><div class="seller-review-title"><strong>Productos (${state.order.items.length})</strong><button type="button" data-review-edit="products">&#9998; Editar productos</button></div>${state.order.items.map((item) => { const product = findProduct(item.productId); return `<p>${item.quantity} x <b>${escapeHtml(product?.kmCode || "")}</b> ${escapeHtml(product?.name || "")} — ${money(productDisplayPrice(product || {}))}</p>`; }).join("")}</article>
+    <article class="seller-review-card seller-review-totals"><p><span>Precio de lista</span><b>${money(totals.subtotalListCents)}</b></p>${isProspect ? `<p><span>Descuento ${prospectDiscountPercent()}%</span><b>- ${money(totals.discountCents)}</b></p>` : ""}<p><span>Subtotal sin IVA</span><b>${money(totals.subtotalNetCents)}</b></p><p><span>IVA ${Number(state.order.vatBps || 0) / 100}%</span><b>${money(totals.vatCents)}</b></p><p class="grand"><span>Total final</span><b>${money(totals.totalCents)}</b></p></article>`;
 }
 
 function renderOrderShipping() {
@@ -932,14 +1034,13 @@ function renderProductResults() {
         <div class="seller-meta">${escapeHtml(product.family?.name || "")} ${product.ean13 ? `| EAN ${escapeHtml(product.ean13)}` : ""}</div>
         <div class="seller-meta">${state.mode === "quote" && state.quoteAudience === "prospect" ? "Precio de lista: " : ""}${money(productDisplayPrice(product))} + IVA</div>
       </div>
-      <button class="ghost-button compact" type="button" data-add-product="${product.id}">Agregar</button>
+      <button class="ghost-button compact" type="button" data-add-product="${product.id}"><span aria-hidden="true">&#65291;</span> Agregar</button>
     </article>
   `).join("");
 }
 
 function prospectDiscountBps() {
-  const percent = Math.max(0, Math.min(30, Number(nodes.prospectDiscount?.value || 0)));
-  return Math.round(percent * 100);
+  return Math.round(prospectDiscountPercent() * 100);
 }
 
 function productDisplayPrice(product) {
@@ -1333,11 +1434,19 @@ nodes.viewButtons?.forEach((button) => {
 });
 
 nodes.modeButtons?.forEach((button) => {
-  button.addEventListener("click", () => {
-    state.mode = button.dataset.sellerMode === "quote" ? "quote" : "order";
+  button.addEventListener("click", async () => {
+    const nextMode = button.dataset.sellerMode === "quote" ? "quote" : "order";
+    if (state.mode !== nextMode) {
+      state.order.items = [];
+      state.order.products = [];
+      nodes.productSearch.value = "";
+    }
+    state.mode = nextMode;
+    if (state.mode === "quote") state.quoteStep = 1;
     nodes.orderMessage.textContent = "";
     renderBuilderMode();
     renderOrderBuilder();
+    if (state.mode === "order" && state.order.customerId) await loadSellerProducts(state.order.customerId);
   });
 });
 
@@ -1350,18 +1459,59 @@ nodes.quoteAudienceButtons?.forEach((button) => {
     state.order.products = [];
     nodes.productSearch.value = "";
     nodes.orderMessage.textContent = "";
+    state.quoteStep = 1;
     renderOrderBuilder();
-    await loadSellerProducts(state.order.customerId);
-    renderOrderItems();
   });
 });
 
 nodes.prospectDiscount?.addEventListener("input", () => {
-  const value = Math.max(0, Math.min(30, Number(nodes.prospectDiscount.value || 0)));
-  if (Number(nodes.prospectDiscount.value) > 30) nodes.prospectDiscount.value = "30";
-  if (value < 0) nodes.prospectDiscount.value = "0";
+  const discount = prospectDiscountPercent();
+  const message = discount > 30
+    ? "El descuento maximo permitido es 30%. Ingresa un valor menor para continuar."
+    : discount < 0 ? "El descuento no puede ser menor que 0%." : "";
+  nodes.prospectDiscountMessage.textContent = message;
+  nodes.prospectDiscount.setAttribute("aria-invalid", message ? "true" : "false");
   renderProductResults();
   renderOrderItems();
+});
+
+nodes.continueToProducts?.addEventListener("click", async () => {
+  if (!validateQuoteData(true)) return;
+  setQuoteStep(2);
+  if (!state.order.products.length) await loadSellerProducts(state.order.customerId);
+  renderProductResults();
+  renderOrderItems();
+  nodes.productSearch?.focus();
+});
+
+nodes.backToQuoteData?.addEventListener("click", () => setQuoteStep(1));
+nodes.backToProducts?.addEventListener("click", () => setQuoteStep(2));
+nodes.reviewQuote?.addEventListener("click", () => {
+  if (!state.order.items.length) {
+    nodes.orderMessage.textContent = "Agrega al menos un producto para revisar el presupuesto.";
+    return;
+  }
+  setQuoteStep(3);
+});
+
+nodes.quoteStepButtons?.forEach((button) => {
+  button.addEventListener("click", () => {
+    const step = Number(button.dataset.quoteStepButton);
+    if (step === 1) return setQuoteStep(1);
+    if (!validateQuoteData(true)) return setQuoteStep(1);
+    if (step === 2) return setQuoteStep(2);
+    if (!state.order.items.length) {
+      nodes.orderMessage.textContent = "Agrega al menos un producto antes de revisar.";
+      return setQuoteStep(2);
+    }
+    setQuoteStep(3);
+  });
+});
+
+nodes.quoteReview?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-review-edit]");
+  if (!button) return;
+  setQuoteStep(button.dataset.reviewEdit === "data" ? 1 : 2);
 });
 
 nodes.orderCustomer?.addEventListener("change", async (event) => {
@@ -1606,19 +1756,19 @@ nodes.clearOrder?.addEventListener("click", () => {
 nodes.orderForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   nodes.orderMessage.textContent = "";
+  const isQuote = state.mode === "quote";
+  if (isQuote && !validateQuoteData(true)) {
+    setQuoteStep(1);
+    return;
+  }
   if (!state.order.items.length) {
     nodes.orderMessage.textContent = "Agrega productos antes de enviar el pedido.";
     return;
   }
-  const button = event.currentTarget.querySelector("button[type='submit']");
+  const button = isQuote ? nodes.orderSubmit : nodes.orderDirectSubmit;
   button.disabled = true;
   try {
-    const isQuote = state.mode === "quote";
     const isProspectQuote = isQuote && state.quoteAudience === "prospect";
-    if (isProspectQuote && prospectDiscountBps() > 3000) {
-      nodes.orderMessage.textContent = "El descuento no puede superar el 30%.";
-      return;
-    }
     const payload = await sellerApi(isQuote ? "/api/sales/quotes" : "/api/sales/orders", {
       method: "POST",
       body: {
@@ -1642,6 +1792,7 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
       }
     });
     state.order.items = [];
+    if (isQuote) state.quoteStep = 1;
     nodes.orderMessage.textContent = isQuote
       ? `Presupuesto ${payload.quote?.quoteNumber || ""} generado.`
       : `Pedido ${payload.order?.orderNumber || ""} enviado a KM.`;

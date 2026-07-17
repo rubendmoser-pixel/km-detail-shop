@@ -445,6 +445,17 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   });
   assert.equal(blockedProspectDiscount.status, 400);
   assert.match((await blockedProspectDiscount.json()).error, /no puede superar el 30%/i);
+  const whatsappOnlyQuoteResponse = await fetch(`${baseUrl}/api/sales/quotes`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({
+      kind: "prospect", businessName: "Potencial sin email", contactPerson: "Contacto WhatsApp",
+      email: "", whatsapp: "5493414444444", discountBps: 500,
+      items: [{ productId: product.id, quantity: 1 }]
+    })
+  });
+  assert.equal(whatsappOnlyQuoteResponse.status, 201);
+  assert.equal((await whatsappOnlyQuoteResponse.json()).quote.customerEmail, "");
   const blockedPriceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`);
   assert.equal(blockedPriceListResponse.status, 401);
   const priceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`, { headers: { cookie: customerCookie } });
