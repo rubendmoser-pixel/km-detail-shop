@@ -383,7 +383,7 @@ const customerStatusLabels = {
 };
 
 const orderStatusLabels = {
-  order_created: "Pedido recibido",
+  order_created: "Pedido recibido por KM",
   availability_confirmed: "Disponibilidad confirmada",
   confirmed: "Pedido confirmado",
   in_preparation: "Pendiente de preparacion",
