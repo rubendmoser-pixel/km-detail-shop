@@ -11,6 +11,7 @@ import {
   normalizePhone,
   normalizePostalCode
 } from "./auth-service.js";
+import { ensureSeedAddress, validateShippingAddress } from "./shipping-address-service.js";
 
 const SALES_REP_STATUSES = new Set(["active", "inactive"]);
 
@@ -35,6 +36,16 @@ export async function requestCommercialCustomer(db, salesRep, input = {}) {
   const notes = optionalText(input.notes, "notes", { max: 1000 });
   const sellerNote = `Solicitud iniciada por vendedor: ${salesRep.name || "Vendedor"} (${salesRep.email || ""}).`;
   const combinedNotes = notes ? `${sellerNote}\n${notes}` : sellerNote;
+  const shipping = validateShippingAddress(input.shipping || {
+    label: "Principal",
+    recipient: contactPerson || businessName,
+    address,
+    city,
+    province,
+    postalCode,
+    contactPhone: whatsapp || phone,
+    isDefault: true
+  });
   const passwordHash = await hashPassword(randomUUID());
   const acceptedAt = new Date().toISOString();
 
@@ -54,6 +65,16 @@ export async function requestCommercialCustomer(db, salesRep, input = {}) {
         salesRepId, salesRepId, acceptedAt, acceptedAt
       );
       db.prepare("INSERT INTO customer_discounts (customer_id) VALUES (?)").run(customer.id);
+      db.prepare(`
+        INSERT INTO customer_shipping_addresses (
+          customer_id, label, recipient, address, city, province, postal_code,
+          contact_phone, preferred_transport, notes, is_default
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      `).run(
+        customer.id, shipping.label, shipping.recipient, shipping.address, shipping.city,
+        shipping.province, shipping.postalCode, shipping.contactPhone,
+        shipping.preferredTransport, shipping.notes
+      );
       return {
         user,
         customer: {
@@ -581,20 +602,21 @@ export function getSalesRepPortalDashboard(db, salesRepId) {
 export function getAssignedApprovedCustomerForSalesRep(db, salesRepId, customerId) {
   const repId = positiveInteger(Number(salesRepId), "salesRepId");
   const id = positiveInteger(Number(customerId), "customerId");
-  const customer = db.prepare(`
-    SELECT c.id, c.user_id, c.business_name, c.approval_status, c.sales_rep_id,
-           (
-        SELECT sa.id
-        FROM customer_shipping_addresses sa
-        WHERE sa.customer_id = c.id
-        ORDER BY sa.is_default DESC, sa.id ASC
-        LIMIT 1
-      ) AS default_shipping_address_id
-    FROM customers c
-    WHERE c.id = ? AND c.sales_rep_id = ?
-  `).get(id, repId);
+  const customer = getAssignedCustomerForSalesRep(db, repId, id);
   if (!customer) throw new NotFoundError("Cliente no asignado al vendedor");
   if (customer.approval_status !== "approved") throw new ValidationError("El cliente no esta aprobado");
+  ensureSeedAddress(db, id);
+  return db.prepare(`SELECT c.id, c.user_id, c.business_name, c.approval_status, c.sales_rep_id,
+    (SELECT sa.id FROM customer_shipping_addresses sa WHERE sa.customer_id=c.id ORDER BY sa.is_default DESC, sa.id ASC LIMIT 1) AS default_shipping_address_id
+    FROM customers c WHERE c.id=?`).get(id);
+}
+
+export function getAssignedCustomerForSalesRep(db, salesRepId, customerId) {
+  const repId = positiveInteger(Number(salesRepId), "salesRepId");
+  const id = positiveInteger(Number(customerId), "customerId");
+  const customer = db.prepare(`SELECT id, user_id, business_name, approval_status, sales_rep_id
+    FROM customers WHERE id=? AND sales_rep_id=?`).get(id, repId);
+  if (!customer) throw new NotFoundError("Cliente no asignado al vendedor");
   return customer;
 }
 

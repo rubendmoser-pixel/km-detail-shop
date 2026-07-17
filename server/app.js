@@ -61,6 +61,7 @@ import {
   changeSalesRepPassword,
   createSalesCommissionSettlement,
   createSalesRepPasswordReset,
+  getAssignedCustomerForSalesRep,
   getAssignedApprovedCustomerForSalesRep,
   getSalesRepPortalDashboard,
   getSalesRepDashboard,
@@ -122,6 +123,7 @@ export function createApp({
     const currentLogisticsOperator = authenticateLogisticsOperator(db, cookies.km_logistics_session);
 
     try {
+      let match;
       const retryAfter = checkRateLimit(request, url.pathname);
       if (retryAfter) {
         if (url.pathname.startsWith("/api/auth/")) {
@@ -317,6 +319,34 @@ export function createApp({
         emailService.queueCustomerRegistration(result.customer.id);
         return sendJson(response, 201, { ...result, message: "Solicitud enviada a KM." });
       }
+      match = url.pathname.match(/^\/api\/sales\/customers\/(\d+)\/shipping-addresses$/);
+      if (match && request.method === "GET") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const customer = getAssignedCustomerForSalesRep(db, salesRep.id, Number(match[1]));
+        return sendJson(response, 200, { addresses: listShippingAddresses(db, customer.id) });
+      }
+      if (match && request.method === "POST") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const customer = getAssignedCustomerForSalesRep(db, salesRep.id, Number(match[1]));
+        return sendJson(response, 201, { address: upsertShippingAddress(db, customer.id, await readJson(request)) });
+      }
+      match = url.pathname.match(/^\/api\/sales\/customers\/(\d+)\/shipping-addresses\/(\d+)$/);
+      if (match && request.method === "PUT") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const customer = getAssignedCustomerForSalesRep(db, salesRep.id, Number(match[1]));
+        return sendJson(response, 200, { address: upsertShippingAddress(db, customer.id, { ...(await readJson(request)), id: Number(match[2]) }) });
+      }
+      if (match && request.method === "DELETE") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const customer = getAssignedCustomerForSalesRep(db, salesRep.id, Number(match[1]));
+        return sendJson(response, 200, deleteShippingAddress(db, customer.id, Number(match[2])));
+      }
+      match = url.pathname.match(/^\/api\/sales\/customers\/(\d+)\/shipping-addresses\/(\d+)\/default$/);
+      if (match && request.method === "PATCH") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const customer = getAssignedCustomerForSalesRep(db, salesRep.id, Number(match[1]));
+        return sendJson(response, 200, { address: setDefaultShippingAddress(db, customer.id, Number(match[2])) });
+      }
       if (request.method === "GET" && url.pathname === "/api/sales/products") {
         const salesRep = requireSalesRep(currentSalesRep);
         const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, url.searchParams.get("customerId"));
@@ -338,7 +368,7 @@ export function createApp({
         }
         const order = createOrder(db, customer.id, {
           items: body.items,
-          shippingAddressId: customer.default_shipping_address_id,
+          shippingAddressId: Number(body.shippingAddressId || customer.default_shipping_address_id),
           createdByRole: "sales_rep",
           createdBySalesRepId: salesRep.id
         });
@@ -524,7 +554,7 @@ export function createApp({
         return sendJson(response, 200, { address: setDefaultShippingAddress(db, user.customerId, Number(addressMatch[1])) });
       }
 
-      let match = url.pathname.match(/^\/api\/orders\/(\d+)$/);
+      match = url.pathname.match(/^\/api\/orders\/(\d+)$/);
       if (request.method === "GET" && match) {
         const user = requireUser(currentUser);
         return sendJson(response, 200, {
@@ -566,6 +596,14 @@ export function createApp({
       if (request.method === "PATCH" && match) {
         return sendJson(response, 200, { customer: updateCustomerProfile(db, Number(match[1]), await readJson(request)) });
       }
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/shipping-addresses$/);
+      if (match && request.method === "GET") return sendJson(response, 200, { addresses: listShippingAddresses(db, Number(match[1])) });
+      if (match && request.method === "POST") return sendJson(response, 201, { address: upsertShippingAddress(db, Number(match[1]), await readJson(request)) });
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/shipping-addresses\/(\d+)$/);
+      if (match && request.method === "PUT") return sendJson(response, 200, { address: upsertShippingAddress(db, Number(match[1]), { ...(await readJson(request)), id: Number(match[2]) }) });
+      if (match && request.method === "DELETE") return sendJson(response, 200, deleteShippingAddress(db, Number(match[1]), Number(match[2])));
+      match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/shipping-addresses\/(\d+)\/default$/);
+      if (match && request.method === "PATCH") return sendJson(response, 200, { address: setDefaultShippingAddress(db, Number(match[1]), Number(match[2])) });
       if (request.method === "GET" && url.pathname === "/api/admin/distributors") {
         return sendJson(response, 200, {
           distributors: listOfficialDistributors(db, {

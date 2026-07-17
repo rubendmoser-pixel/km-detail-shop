@@ -7,6 +7,38 @@ import path from "node:path";
 import { createApp } from "../server/app.js";
 import { openDatabase } from "../server/db.js";
 import { createEmailService } from "../server/services/email-service.js";
+import { requestCommercialCustomer } from "../server/services/sales-rep-service.js";
+
+test("seller commercial registration stores its shipping location", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-seller-shipping-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath });
+  const salesRep = db.prepare("INSERT INTO sales_reps (name, email) VALUES (?, ?) RETURNING id, name, email").get("Vendedor API", "vendedor@km-detail.com");
+  t.after(() => {
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+  const result = await requestCommercialCustomer(db, salesRep, {
+    ...customerRegistration(),
+    shipping: {
+      label: "Deposito Rosario",
+      recipient: "Encargado de deposito",
+      address: "Bv. Industrial 890",
+      city: "Rosario",
+      province: "Santa Fe",
+      postalCode: "2000",
+      contactPhone: "3415555555",
+      preferredTransport: "Expreso Rosario",
+      notes: "Recibir de 8 a 16",
+      isDefault: true
+    }
+  });
+  const address = db.prepare("SELECT * FROM customer_shipping_addresses WHERE customer_id = ?").get(result.customer.id);
+  assert.equal(address.label, "Deposito Rosario");
+  assert.equal(address.address, "Bv. Industrial 890");
+  assert.equal(address.city, "Rosario");
+  assert.equal(address.preferred_transport, "Expreso Rosario");
+  assert.equal(address.is_default, 1);
+});
 
 test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-api-${Date.now()}.sqlite`);
@@ -279,6 +311,42 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(products.products[0].images.length, 1);
   assert.equal(products.products[0].images[0].url, images[0].url);
   const salesCookie = await salesLoginCookie(baseUrl, "vendedor-api@km-detail.com", "sales-portal-password-456");
+  const sellerAddresses = await getJson(`${baseUrl}/api/sales/customers/${registration.customer.id}/shipping-addresses`, salesCookie);
+  assert.equal(sellerAddresses.addresses.length, 1);
+  assert.equal(sellerAddresses.addresses[0].isDefault, true);
+  const sellerAddressResponse = await fetch(`${baseUrl}/api/sales/customers/${registration.customer.id}/shipping-addresses`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({
+      label: "Sucursal vendedor",
+      recipient: "Recepcion API",
+      address: "Av. Prueba 456",
+      city: "Cordoba",
+      province: "Cordoba",
+      postalCode: "5000",
+      contactPhone: "3511111111",
+      preferredTransport: "Expreso vendedor",
+      notes: "Ingreso lateral"
+    })
+  });
+  assert.equal(sellerAddressResponse.status, 201);
+  const sellerAddress = (await sellerAddressResponse.json()).address;
+  assert.equal(sellerAddress.label, "Sucursal vendedor");
+  const setSellerDefaultResponse = await fetch(`${baseUrl}/api/sales/customers/${registration.customer.id}/shipping-addresses/${sellerAddress.id}/default`, {
+    method: "PATCH", headers: jsonHeaders(salesCookie), body: "{}"
+  });
+  assert.equal(setSellerDefaultResponse.status, 200);
+  const adminAddresses = await getJson(`${baseUrl}/api/admin/customers/${registration.customer.id}/shipping-addresses`, adminCookie);
+  assert.equal(adminAddresses.addresses.find((address) => address.id === sellerAddress.id).isDefault, true);
+  const deleteSellerAddressResponse = await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/shipping-addresses/${sellerAddress.id}`, {
+    method: "DELETE", headers: { cookie: adminCookie }
+  });
+  assert.equal(deleteSellerAddressResponse.status, 200);
+  const protectedLastAddress = await fetch(`${baseUrl}/api/admin/customers/${registration.customer.id}/shipping-addresses/${sellerAddresses.addresses[0].id}`, {
+    method: "DELETE", headers: { cookie: adminCookie }
+  });
+  assert.equal(protectedLastAddress.status, 400);
+  assert.match((await protectedLastAddress.json()).error, /conservar al menos un lugar/i);
   const salesProducts = await getJson(`${baseUrl}/api/sales/products?customerId=${registration.customer.id}`, salesCookie);
   assert.equal(salesProducts.products[0].finalPriceCents, 50_400);
   const quoteResponse = await fetch(`${baseUrl}/api/sales/quotes`, {

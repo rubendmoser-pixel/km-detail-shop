@@ -825,6 +825,68 @@
   grid-column: 1 / -1;
 }
 
+.customer-shipping-card {
+  grid-column: 1 / -1;
+}
+
+.customer-shipping-list {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-shipping-row {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #34363b;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.customer-shipping-row > div:first-child {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.customer-shipping-row span,
+.customer-shipping-row small {
+  color: #a7a9ae;
+  overflow-wrap: anywhere;
+}
+
+.customer-shipping-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #34363b;
+}
+
+.customer-shipping-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.customer-shipping-form label > span {
+  color: #a7a9ae;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.customer-shipping-form .span-2 {
+  grid-column: 1 / -1;
+}
+
+.customer-shipping-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .customer-config-title {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -4695,5 +4757,18 @@ button.operation-row:hover {
 
   .price-card {
     padding: 12px;
+  }
+
+  .customer-shipping-form {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-shipping-form .span-2 {
+    grid-column: auto;
+  }
+
+  .customer-shipping-actions > * {
+    width: 100%;
+    min-height: 48px;
   }
 }

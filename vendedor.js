@@ -4,6 +4,9 @@ const state = {
   quotes: [],
   quoteDetails: {},
   orderDetails: {},
+  customerAddresses: {},
+  openCustomerAddressesId: null,
+  editingCustomerAddressId: null,
   openQuoteId: null,
   openOrderId: null,
   activeView: "summary",
@@ -21,6 +24,9 @@ const state = {
   passwordResetToken: new URLSearchParams(window.location.search).get("reset") || "",
   order: {
     customerId: "",
+    addresses: [],
+    shippingAddressId: "",
+    loadingAddresses: false,
     products: [],
     loadingProducts: false,
     items: []
@@ -52,6 +58,8 @@ const nodes = {
   refresh: document.getElementById("refreshSellerDashboard"),
   orderForm: document.getElementById("sellerOrderForm"),
   orderCustomer: document.getElementById("sellerOrderCustomer"),
+  orderShipping: document.getElementById("sellerOrderShipping"),
+  orderShippingField: document.getElementById("sellerOrderShippingField"),
   productSearch: document.getElementById("sellerProductSearch"),
   productResults: document.getElementById("sellerProductResults"),
   orderItems: document.getElementById("sellerOrderItems"),
@@ -75,11 +83,18 @@ const nodes = {
   customerRequestMessage: document.getElementById("sellerCustomerRequestMessage"),
   customerRequestPanel: document.querySelector(".seller-request-panel"),
   customerRequestToggleText: document.getElementById("sellerRequestToggleText"),
+  shippingSameAsCommercial: document.querySelector("[name='shippingSameAsCommercial']"),
+  shippingFields: document.querySelector(".seller-shipping-fields"),
   viewButtons: document.querySelectorAll("[data-seller-view-button]"),
   views: document.querySelectorAll("[data-seller-view]")
 };
 
 const SELLER_LIST_LIMIT = 20;
+const SELLER_PROVINCES = [
+  "Buenos Aires", "Ciudad Autonoma de Buenos Aires", "Catamarca", "Chaco", "Chubut", "Cordoba", "Corrientes",
+  "Entre Rios", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquen", "Rio Negro",
+  "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucuman"
+];
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -452,9 +467,68 @@ function renderCustomers(customers = []) {
         </div>
         <div class="seller-meta">${escapeHtml(location || "Sin localidad cargada")}</div>
         <div class="seller-meta">${escapeHtml(contact || "Sin contacto cargado")}</div>
+        <div class="quote-actions">
+          <button class="ghost-button compact" type="button" data-manage-addresses="${customer.id}">
+            ${String(state.openCustomerAddressesId) === String(customer.id) ? "Cerrar lugares de entrega" : "Lugares de entrega"}
+          </button>
+        </div>
+        ${String(state.openCustomerAddressesId) === String(customer.id) ? renderSellerAddressManager(customer) : ""}
       </article>
     `;
   }).join("");
+}
+
+function sellerProvinceOptions(selected = "") {
+  return `<option value="">Seleccionar</option>${SELLER_PROVINCES.map((province) =>
+    `<option ${province === selected ? "selected" : ""}>${escapeHtml(province)}</option>`
+  ).join("")}`;
+}
+
+function renderSellerAddressManager(customer) {
+  const addresses = state.customerAddresses[customer.id];
+  if (!addresses) return `<div class="seller-address-manager"><div class="empty-state">Cargando lugares de entrega...</div></div>`;
+  const editing = addresses.find((address) => Number(address.id) === Number(state.editingCustomerAddressId)) || {};
+  return `<div class="seller-address-manager">
+    <div class="seller-address-list">
+      ${addresses.map((address) => `<article class="seller-address-card">
+        <div><strong>${escapeHtml(address.label)}</strong>${address.isDefault ? badge("Principal", "green") : ""}</div>
+        <span>${escapeHtml(address.recipient)} · ${escapeHtml(address.address)}, ${escapeHtml(address.city)}, ${escapeHtml(address.province)} (${escapeHtml(address.postalCode)})</span>
+        <small>${escapeHtml(address.contactPhone)}${address.preferredTransport ? ` · ${escapeHtml(address.preferredTransport)}` : ""}</small>
+        <div class="quote-actions">
+          <button class="ghost-button compact" type="button" data-edit-address="${address.id}">Editar</button>
+          ${address.isDefault ? "" : `<button class="ghost-button compact" type="button" data-default-address="${address.id}">Hacer principal</button>`}
+          ${addresses.length > 1 ? `<button class="ghost-button compact" type="button" data-delete-address="${address.id}">Eliminar</button>` : ""}
+        </div>
+      </article>`).join("")}
+    </div>
+    <form class="seller-address-form" data-customer-id="${customer.id}">
+      <h3>${editing.id ? "Editar lugar de entrega" : "Agregar lugar de entrega"}</h3>
+      <input name="addressId" type="hidden" value="${editing.id || ""}" />
+      <div class="seller-form-grid">
+        <label class="seller-field"><span>Nombre del lugar</span><input name="label" maxlength="80" value="${escapeHtml(editing.label || "")}" placeholder="Principal, Deposito..." required /></label>
+        <label class="seller-field"><span>Quien recibe</span><input name="recipient" maxlength="120" value="${escapeHtml(editing.recipient || "")}" required /></label>
+        <label class="seller-field"><span>Direccion</span><input name="address" maxlength="180" value="${escapeHtml(editing.address || "")}" required /></label>
+        <label class="seller-field"><span>Localidad</span><input name="city" maxlength="80" value="${escapeHtml(editing.city || "")}" required /></label>
+        <label class="seller-field"><span>Provincia</span><select name="province" required>${sellerProvinceOptions(editing.province)}</select></label>
+        <label class="seller-field"><span>Codigo postal</span><input name="postalCode" maxlength="12" value="${escapeHtml(editing.postalCode || "")}" required /></label>
+        <label class="seller-field"><span>Telefono de recepcion</span><input name="contactPhone" value="${escapeHtml(editing.contactPhone || "")}" required /></label>
+        <label class="seller-field"><span>Transporte preferido</span><input name="preferredTransport" maxlength="120" value="${escapeHtml(editing.preferredTransport || "")}" /></label>
+        <label class="seller-field seller-shipping-notes"><span>Indicaciones</span><textarea name="notes" maxlength="500">${escapeHtml(editing.notes || "")}</textarea></label>
+      </div>
+      <div class="seller-actions">
+        <button class="primary-button compact" type="submit">${editing.id ? "Guardar cambios" : "Agregar lugar"}</button>
+        ${editing.id ? `<button class="ghost-button compact" type="button" data-cancel-address-edit>Cancelar</button>` : ""}
+      </div>
+      <p class="form-message" role="status"></p>
+    </form>
+  </div>`;
+}
+
+async function loadSellerCustomerAddresses(customerId, shouldRender = true) {
+  const payload = await sellerApi(`/api/sales/customers/${encodeURIComponent(customerId)}/shipping-addresses`);
+  state.customerAddresses[customerId] = payload.addresses || [];
+  if (shouldRender) renderCustomers(state.dashboard?.customers || []);
+  return state.customerAddresses[customerId];
 }
 
 function renderDetailItems(items = []) {
@@ -688,6 +762,7 @@ function renderOrderBuilder() {
   const customers = approvedCustomers();
   if (!customers.length) {
     nodes.orderCustomer.innerHTML = `<option value="">Sin clientes aprobados</option>`;
+    if (nodes.orderShipping) nodes.orderShipping.innerHTML = `<option value="">Sin lugares de entrega</option>`;
     nodes.productResults.innerHTML = `<div class="empty-state">No hay clientes aprobados para cargar pedidos.</div>`;
     nodes.orderItems.innerHTML = `<div class="empty-state">Selecciona un cliente aprobado.</div>`;
     nodes.orderTotal.textContent = "";
@@ -703,12 +778,15 @@ function renderOrderBuilder() {
       ${escapeHtml(customer.business_name)}
     </option>
   `).join("");
+  renderOrderShipping();
   renderProductResults();
   renderOrderItems();
 }
 
 function renderBuilderMode() {
   const isQuote = state.mode === "quote";
+  nodes.orderShippingField?.classList.toggle("hidden", isQuote);
+  if (nodes.orderShipping) nodes.orderShipping.required = !isQuote;
   nodes.modeButtons?.forEach((button) => {
     button.classList.toggle("active", button.dataset.sellerMode === state.mode);
   });
@@ -723,6 +801,45 @@ function renderBuilderMode() {
   if (nodes.orderSubmit) {
     nodes.orderSubmit.textContent = isQuote ? "Generar presupuesto" : "Enviar pedido a KM";
   }
+}
+
+function renderOrderShipping() {
+  if (!nodes.orderShipping) return;
+  if (state.order.loadingAddresses) {
+    nodes.orderShipping.innerHTML = `<option value="">Cargando lugares...</option>`;
+    nodes.orderShipping.disabled = true;
+    return;
+  }
+  nodes.orderShipping.disabled = false;
+  if (!state.order.addresses.length) {
+    nodes.orderShipping.innerHTML = `<option value="">Sin lugares de entrega cargados</option>`;
+    state.order.shippingAddressId = "";
+    return;
+  }
+  if (!state.order.addresses.some((address) => String(address.id) === String(state.order.shippingAddressId))) {
+    state.order.shippingAddressId = String(state.order.addresses.find((address) => address.isDefault)?.id || state.order.addresses[0].id);
+  }
+  nodes.orderShipping.innerHTML = state.order.addresses.map((address) => `
+    <option value="${address.id}" ${String(address.id) === String(state.order.shippingAddressId) ? "selected" : ""}>
+      ${escapeHtml(address.label)} — ${escapeHtml(address.address)}, ${escapeHtml(address.city)}${address.isDefault ? " (principal)" : ""}
+    </option>
+  `).join("");
+}
+
+async function loadSellerAddresses(customerId) {
+  if (!customerId) return;
+  state.order.loadingAddresses = true;
+  state.order.addresses = [];
+  state.order.shippingAddressId = "";
+  renderOrderShipping();
+  try {
+    state.order.addresses = await loadSellerCustomerAddresses(customerId, false);
+  } catch (error) {
+    nodes.orderMessage.textContent = error.message || "No se pudieron cargar los lugares de entrega.";
+  } finally {
+    state.order.loadingAddresses = false;
+  }
+  renderOrderShipping();
 }
 
 async function loadSellerProducts(customerId) {
@@ -869,6 +986,9 @@ function renderDashboard(payload) {
   if (state.order.customerId && !state.order.products.length && !state.order.loadingProducts) {
     loadSellerProducts(state.order.customerId);
   }
+  if (state.order.customerId && !state.order.addresses.length && !state.order.loadingAddresses) {
+    loadSellerAddresses(state.order.customerId);
+  }
   loadQuotes();
 }
 
@@ -1002,6 +1122,20 @@ nodes.changePasswordForm?.addEventListener("submit", async (event) => {
   }
 });
 
+function syncCommercialShippingFields() {
+  const same = Boolean(nodes.shippingSameAsCommercial?.checked);
+  if (nodes.shippingFields) nodes.shippingFields.hidden = same;
+  nodes.shippingFields?.querySelectorAll("input, select, textarea").forEach((field) => {
+    field.disabled = same;
+    if (["shippingLabel", "shippingRecipient", "shippingAddress", "shippingCity", "shippingProvince", "shippingPostalCode", "shippingContactPhone"].includes(field.name)) {
+      field.required = !same;
+    }
+  });
+}
+
+nodes.shippingSameAsCommercial?.addEventListener("change", syncCommercialShippingFields);
+syncCommercialShippingFields();
+
 nodes.customerRequestForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   nodes.customerRequestMessage.textContent = "";
@@ -1010,9 +1144,34 @@ nodes.customerRequestForm?.addEventListener("submit", async (event) => {
   try {
     const form = new FormData(event.currentTarget);
     const body = Object.fromEntries(form.entries());
+    const sameShipping = nodes.shippingSameAsCommercial?.checked;
+    body.shipping = sameShipping ? {
+      label: "Principal",
+      recipient: body.contactPerson || body.businessName,
+      address: body.address,
+      city: body.city,
+      province: body.province,
+      postalCode: body.postalCode,
+      contactPhone: body.whatsapp || body.phone,
+      preferredTransport: "",
+      notes: "",
+      isDefault: true
+    } : {
+      label: body.shippingLabel,
+      recipient: body.shippingRecipient,
+      address: body.shippingAddress,
+      city: body.shippingCity,
+      province: body.shippingProvince,
+      postalCode: body.shippingPostalCode,
+      contactPhone: body.shippingContactPhone,
+      preferredTransport: body.shippingPreferredTransport,
+      notes: body.shippingNotes,
+      isDefault: true
+    };
     const payload = await sellerApi("/api/sales/customer-requests", { method: "POST", body });
     nodes.customerRequestMessage.textContent = payload.message || "Solicitud enviada a KM.";
     event.currentTarget.reset();
+    syncCommercialShippingFields();
     await loadDashboard();
   } catch (error) {
     nodes.customerRequestMessage.textContent = error.message || "No se pudo enviar la solicitud.";
@@ -1114,8 +1273,80 @@ nodes.orderCustomer?.addEventListener("change", async (event) => {
   state.order.customerId = event.currentTarget.value;
   state.order.items = [];
   nodes.orderMessage.textContent = "";
-  await loadSellerProducts(state.order.customerId);
+  await Promise.all([loadSellerProducts(state.order.customerId), loadSellerAddresses(state.order.customerId)]);
   renderOrderItems();
+});
+
+nodes.orderShipping?.addEventListener("change", (event) => {
+  state.order.shippingAddressId = event.currentTarget.value;
+});
+
+nodes.customers?.addEventListener("click", async (event) => {
+  const manage = event.target.closest("[data-manage-addresses]");
+  const edit = event.target.closest("[data-edit-address]");
+  const setDefault = event.target.closest("[data-default-address]");
+  const remove = event.target.closest("[data-delete-address]");
+  const cancel = event.target.closest("[data-cancel-address-edit]");
+  const customerCard = event.target.closest(".seller-card");
+  if (manage) {
+    const customerId = manage.dataset.manageAddresses;
+    state.openCustomerAddressesId = String(state.openCustomerAddressesId) === String(customerId) ? null : customerId;
+    state.editingCustomerAddressId = null;
+    renderCustomers(state.dashboard?.customers || []);
+    if (state.openCustomerAddressesId && !state.customerAddresses[customerId]) {
+      try { await loadSellerCustomerAddresses(customerId); } catch (error) { nodes.orderMessage.textContent = error.message; }
+    }
+    return;
+  }
+  const customerId = state.openCustomerAddressesId || customerCard?.querySelector("[data-manage-addresses]")?.dataset.manageAddresses;
+  if (!customerId) return;
+  if (edit || cancel) {
+    state.editingCustomerAddressId = edit?.dataset.editAddress || null;
+    renderCustomers(state.dashboard?.customers || []);
+    return;
+  }
+  try {
+    if (setDefault) {
+      await sellerApi(`/api/sales/customers/${customerId}/shipping-addresses/${setDefault.dataset.defaultAddress}/default`, { method: "PATCH", body: {} });
+      await loadSellerCustomerAddresses(customerId);
+      if (String(state.order.customerId) === String(customerId)) await loadSellerAddresses(customerId);
+      return;
+    }
+    if (remove) {
+      if (!window.confirm("Eliminar este lugar de entrega?")) return;
+      await sellerApi(`/api/sales/customers/${customerId}/shipping-addresses/${remove.dataset.deleteAddress}`, { method: "DELETE" });
+      state.editingCustomerAddressId = null;
+      await loadSellerCustomerAddresses(customerId);
+      if (String(state.order.customerId) === String(customerId)) await loadSellerAddresses(customerId);
+    }
+  } catch (error) {
+    nodes.orderMessage.textContent = error.message || "No se pudo actualizar el lugar de entrega.";
+  }
+});
+
+nodes.customers?.addEventListener("submit", async (event) => {
+  const form = event.target.closest(".seller-address-form");
+  if (!form) return;
+  event.preventDefault();
+  const customerId = form.dataset.customerId;
+  const values = Object.fromEntries(new FormData(form).entries());
+  const addressId = values.addressId;
+  delete values.addressId;
+  const message = form.querySelector(".form-message");
+  const button = form.querySelector("button[type='submit']");
+  button.disabled = true;
+  try {
+    await sellerApi(`/api/sales/customers/${customerId}/shipping-addresses${addressId ? `/${addressId}` : ""}`, {
+      method: addressId ? "PUT" : "POST",
+      body: values
+    });
+    state.editingCustomerAddressId = null;
+    await loadSellerCustomerAddresses(customerId);
+    if (String(state.order.customerId) === String(customerId)) await loadSellerAddresses(customerId);
+  } catch (error) {
+    setFormMessage(message, error.message || "No se pudo guardar el lugar de entrega.", "error");
+    button.disabled = false;
+  }
 });
 
 nodes.productSearch?.addEventListener("input", renderProductResults);
@@ -1272,6 +1503,7 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
       method: "POST",
       body: {
         customerId: Number(state.order.customerId),
+        shippingAddressId: isQuote ? undefined : Number(state.order.shippingAddressId),
         items: state.order.items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity

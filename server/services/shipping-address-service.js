@@ -13,18 +13,18 @@ export function listShippingAddresses(db, customerId) {
 
 export function getShippingAddress(db, customerId, addressId) {
   const address = db.prepare("SELECT * FROM customer_shipping_addresses WHERE id = ? AND customer_id = ?").get(addressId, customerId);
-  if (!address) throw new NotFoundError("Shipping address not found");
+  if (!address) throw new NotFoundError("Lugar de entrega no encontrado");
   return mapAddress(address);
 }
 
 export function upsertShippingAddress(db, customerId, input) {
-  const address = validateAddress(input);
+  const address = validateShippingAddress(input);
   const id = Number(input.id || 0);
   return transaction(db, () => {
     if (address.isDefault) clearDefault(db, customerId);
     if (id) {
       const existing = db.prepare("SELECT id FROM customer_shipping_addresses WHERE id = ? AND customer_id = ?").get(id, customerId);
-      if (!existing) throw new NotFoundError("Shipping address not found");
+      if (!existing) throw new NotFoundError("Lugar de entrega no encontrado");
       db.prepare(`
         UPDATE customer_shipping_addresses
         SET label = ?, recipient = ?, address = ?, city = ?, province = ?, postal_code = ?,
@@ -57,7 +57,7 @@ export function upsertShippingAddress(db, customerId, input) {
 export function setDefaultShippingAddress(db, customerId, addressId) {
   return transaction(db, () => {
     const existing = db.prepare("SELECT id FROM customer_shipping_addresses WHERE id = ? AND customer_id = ?").get(addressId, customerId);
-    if (!existing) throw new NotFoundError("Shipping address not found");
+    if (!existing) throw new NotFoundError("Lugar de entrega no encontrado");
     clearDefault(db, customerId);
     db.prepare("UPDATE customer_shipping_addresses SET is_default = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND customer_id = ?").run(addressId, customerId);
     return getShippingAddress(db, customerId, addressId);
@@ -67,7 +67,8 @@ export function setDefaultShippingAddress(db, customerId, addressId) {
 export function deleteShippingAddress(db, customerId, addressId) {
   return transaction(db, () => {
     const existing = db.prepare("SELECT is_default FROM customer_shipping_addresses WHERE id = ? AND customer_id = ?").get(addressId, customerId);
-    if (!existing) throw new NotFoundError("Shipping address not found");
+    if (!existing) throw new NotFoundError("Lugar de entrega no encontrado");
+    if (countAddresses(db, customerId) <= 1) throw new ValidationError("La cuenta debe conservar al menos un lugar de entrega.");
     db.prepare("DELETE FROM customer_shipping_addresses WHERE id = ? AND customer_id = ?").run(addressId, customerId);
     ensureOneDefault(db, customerId);
     return { deleted: true };
@@ -96,7 +97,7 @@ export function ensureSeedAddress(db, customerId) {
   );
 }
 
-function validateAddress(input = {}) {
+export function validateShippingAddress(input = {}) {
   const province = allowedValue(requiredText(input.province, "province"), ARGENTINA_PROVINCES, "province");
   return {
     label: requiredText(input.label || "Principal", "label", { max: 80 }),

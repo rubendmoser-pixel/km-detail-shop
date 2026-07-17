@@ -2,7 +2,7 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {},
+  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}, customerShippingAddresses: {}, editingCustomerShippingAddress: {},
   priceProducts: [], priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
   orderScope: "active", orderSearches: { active: "", history: "" }, logisticsOperators: []
 };
@@ -2006,9 +2006,10 @@ function renderCustomerDetail(customer) {
             <button class="ghost-button wide" type="submit">Guardar datos del cliente</button>
           </form>
         </div>
+        ${renderAdminShippingAddresses(customer)}
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>2</span>
+            <span>3</span>
             <div><strong>Descuentos globales</strong><small>Descuentos comerciales generales para toda la cuenta.</small></div>
           </div>
           <form class="discount-form">
@@ -2020,7 +2021,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>3</span>
+            <span>4</span>
             <div><strong>Descuentos por productos</strong><small>Condiciones especiales adicionales por codigo KM.</small></div>
           </div>
           <form class="product-discount-form">
@@ -2038,7 +2039,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>4</span>
+            <span>5</span>
             <div><strong>Asignacion vendedor y comisiones</strong><small>Vendedor asociado y porcentaje aplicado a la cuenta.</small></div>
           </div>
           <form class="sales-assignment-form">
@@ -2050,7 +2051,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>5</span>
+            <span>6</span>
             <div><strong>Categorizacion B/N</strong><small>Marca interna visible en pedidos y gestion comercial.</small></div>
           </div>
           <form class="customer-class-form">
@@ -2061,7 +2062,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>6</span>
+            <span>7</span>
             <div><strong>Condicion de pago</strong><small>Condicion sugerida al recibir nuevos pedidos.</small></div>
           </div>
           <form class="customer-payment-form">
@@ -2073,7 +2074,7 @@ function renderCustomerDetail(customer) {
         </div>
         <div class="customer-config-card">
           <div class="customer-config-title">
-            <span>7</span>
+            <span>8</span>
             <div><strong>Asignacion cuenta de cobro</strong><small>Cuentas habilitadas para transferencias de este cliente.</small></div>
           </div>
           <form class="customer-payment-accounts-form">
@@ -2084,6 +2085,46 @@ function renderCustomerDetail(customer) {
         </div>
       </section>
     </article>`;
+}
+
+function renderAdminShippingAddresses(customer) {
+  const addresses = adminState.customerShippingAddresses[customer.id];
+  const editing = (addresses || []).find((address) => Number(address.id) === Number(adminState.editingCustomerShippingAddress[customer.id])) || {};
+  return `<div class="customer-config-card customer-shipping-card">
+    <div class="customer-config-title">
+      <span>2</span>
+      <div><strong>Lugares de entrega</strong><small>Direcciones que pueden usar KM, el vendedor y el cliente al generar pedidos.</small></div>
+    </div>
+    ${!addresses ? `<p class="admin-note">Cargando lugares de entrega...</p>` : `
+      <div class="customer-shipping-list">
+        ${addresses.map((address) => `<article class="customer-shipping-row">
+          <div><strong>${escapeAdmin(address.label)}</strong>${address.isDefault ? stateBadge("Principal", "success") : ""}</div>
+          <span>${escapeAdmin(address.recipient)} · ${escapeAdmin(address.address)}, ${escapeAdmin(address.city)}, ${escapeAdmin(address.province)} (${escapeAdmin(address.postalCode)})</span>
+          <small>${escapeAdmin(address.contactPhone)}${address.preferredTransport ? ` · ${escapeAdmin(address.preferredTransport)}` : ""}</small>
+          <div class="status-actions">
+            <button type="button" data-admin-edit-shipping="${address.id}">Editar</button>
+            ${address.isDefault ? "" : `<button type="button" data-admin-default-shipping="${address.id}">Hacer principal</button>`}
+            ${addresses.length > 1 ? `<button type="button" data-admin-delete-shipping="${address.id}">Eliminar</button>` : ""}
+          </div>
+        </article>`).join("")}
+      </div>
+      <form class="customer-shipping-form">
+        <input name="addressId" type="hidden" value="${editing.id || ""}" />
+        <label><span>Nombre del lugar</span><input name="label" maxlength="80" value="${escapeAdmin(editing.label || "")}" placeholder="Principal, Deposito..." required /></label>
+        <label><span>Quien recibe</span><input name="recipient" maxlength="120" value="${escapeAdmin(editing.recipient || "")}" required /></label>
+        <label class="span-2"><span>Direccion</span><input name="address" maxlength="180" value="${escapeAdmin(editing.address || "")}" required /></label>
+        <label><span>Localidad</span><input name="city" maxlength="80" value="${escapeAdmin(editing.city || "")}" required /></label>
+        <label><span>Provincia</span><select name="province" required>${renderOptions(ARGENTINA_PROVINCES, editing.province)}</select></label>
+        <label><span>Codigo postal</span><input name="postalCode" maxlength="12" value="${escapeAdmin(editing.postalCode || "")}" required /></label>
+        <label><span>Telefono de recepcion</span><input name="contactPhone" value="${escapeAdmin(editing.contactPhone || "")}" required /></label>
+        <label><span>Transporte preferido</span><input name="preferredTransport" maxlength="120" value="${escapeAdmin(editing.preferredTransport || "")}" /></label>
+        <label class="span-2"><span>Indicaciones de entrega</span><textarea name="notes" maxlength="500">${escapeAdmin(editing.notes || "")}</textarea></label>
+        <div class="customer-shipping-actions span-2">
+          <button class="ghost-button" type="submit">${editing.id ? "Guardar cambios" : "Agregar lugar"}</button>
+          ${editing.id ? `<button class="ghost-button" type="button" data-admin-cancel-shipping>Cancelar</button>` : ""}
+        </div>
+      </form>`}
+  </div>`;
 }
 
 function renderCustomerStatusActions(status) {
@@ -2121,6 +2162,11 @@ function bindCustomerControls() {
   adminEls.customerList.querySelectorAll(".customer-payment-accounts-form").forEach((form) => form.addEventListener("submit", saveCustomerPaymentAccounts));
   adminEls.customerList.querySelectorAll(".product-discount-form").forEach((form) => form.addEventListener("submit", saveCustomerProductDiscount));
   adminEls.customerList.querySelectorAll("[data-delete-product-discount]").forEach((button) => button.addEventListener("click", deleteCustomerProductDiscount));
+  adminEls.customerList.querySelectorAll(".customer-shipping-form").forEach((form) => form.addEventListener("submit", saveAdminShippingAddress));
+  adminEls.customerList.querySelectorAll("[data-admin-edit-shipping]").forEach((button) => button.addEventListener("click", editAdminShippingAddress));
+  adminEls.customerList.querySelectorAll("[data-admin-cancel-shipping]").forEach((button) => button.addEventListener("click", cancelAdminShippingAddress));
+  adminEls.customerList.querySelectorAll("[data-admin-default-shipping]").forEach((button) => button.addEventListener("click", defaultAdminShippingAddress));
+  adminEls.customerList.querySelectorAll("[data-admin-delete-shipping]").forEach((button) => button.addEventListener("click", deleteAdminShippingAddress));
 }
 
 async function viewCustomerDetail(event) {
@@ -2134,7 +2180,8 @@ async function viewCustomerDetail(event) {
   renderCustomers();
   await Promise.all([
     loadCustomerProductDiscounts(adminState.selectedCustomerId, false),
-    loadCustomerPaymentAccounts(adminState.selectedCustomerId, false)
+    loadCustomerPaymentAccounts(adminState.selectedCustomerId, false),
+    loadAdminShippingAddresses(adminState.selectedCustomerId, false)
   ]);
   renderCustomers();
 }
@@ -2256,6 +2303,75 @@ function normalizeCustomerClass(value) {
 function customerClassBadge(value) {
   const letter = normalizeCustomerClass(value);
   return `<span class="customer-class-badge ${letter.toLowerCase()}">${letter}</span>`;
+}
+
+async function loadAdminShippingAddresses(customerId, shouldRender = true) {
+  const payload = await adminApi(`/api/admin/customers/${customerId}/shipping-addresses`);
+  adminState.customerShippingAddresses[customerId] = payload.addresses || [];
+  if (shouldRender) renderCustomers();
+}
+
+function editAdminShippingAddress(event) {
+  const customerId = Number(event.currentTarget.closest("[data-customer-id]").dataset.customerId);
+  adminState.editingCustomerShippingAddress[customerId] = Number(event.currentTarget.dataset.adminEditShipping);
+  renderCustomers();
+}
+
+function cancelAdminShippingAddress(event) {
+  const customerId = Number(event.currentTarget.closest("[data-customer-id]").dataset.customerId);
+  adminState.editingCustomerShippingAddress[customerId] = null;
+  renderCustomers();
+}
+
+async function saveAdminShippingAddress(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const customerId = Number(form.closest("[data-customer-id]").dataset.customerId);
+  const body = Object.fromEntries(new FormData(form).entries());
+  const addressId = body.addressId;
+  delete body.addressId;
+  setBusy(form, true);
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/shipping-addresses${addressId ? `/${addressId}` : ""}`, {
+      method: addressId ? "PUT" : "POST",
+      body
+    });
+    adminState.editingCustomerShippingAddress[customerId] = null;
+    await loadAdminShippingAddresses(customerId, false);
+    showAdminToast(addressId ? "Lugar de entrega actualizado." : "Lugar de entrega agregado.");
+    renderCustomers();
+  } catch (error) {
+    showAdminToast(error.message || "No se pudo guardar el lugar de entrega.");
+    setBusy(form, false);
+  }
+}
+
+async function defaultAdminShippingAddress(event) {
+  const button = event.currentTarget;
+  const customerId = Number(button.closest("[data-customer-id]").dataset.customerId);
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/shipping-addresses/${button.dataset.adminDefaultShipping}/default`, { method: "PATCH", body: {} });
+    await loadAdminShippingAddresses(customerId, false);
+    showAdminToast("Lugar de entrega principal actualizado.");
+    renderCustomers();
+  } catch (error) {
+    showAdminToast(error.message || "No se pudo cambiar el lugar principal.");
+  }
+}
+
+async function deleteAdminShippingAddress(event) {
+  const button = event.currentTarget;
+  const customerId = Number(button.closest("[data-customer-id]").dataset.customerId);
+  if (!window.confirm("Eliminar este lugar de entrega?")) return;
+  try {
+    await adminApi(`/api/admin/customers/${customerId}/shipping-addresses/${button.dataset.adminDeleteShipping}`, { method: "DELETE" });
+    adminState.editingCustomerShippingAddress[customerId] = null;
+    await loadAdminShippingAddresses(customerId, false);
+    showAdminToast("Lugar de entrega eliminado.");
+    renderCustomers();
+  } catch (error) {
+    showAdminToast(error.message || "No se pudo eliminar el lugar de entrega.");
+  }
 }
 
 function renderOptions(values, selectedValue) {
