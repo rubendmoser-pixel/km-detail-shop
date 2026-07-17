@@ -241,7 +241,10 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/logistics/orders") {
         const operator = requireLogisticsOperator(currentLogisticsOperator);
-        return sendJson(response, 200, { operator, orders: listLogisticsOrders(db, { search: url.searchParams.get("q") || "" }) });
+        return sendJson(response, 200, { operator, orders: listLogisticsOrders(db, {
+          search: url.searchParams.get("q") || "",
+          scope: url.searchParams.get("scope") || "active"
+        }) });
       }
       let logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)$/);
       if (request.method === "GET" && logisticsMatch) {

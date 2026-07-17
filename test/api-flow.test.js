@@ -621,6 +621,11 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const shippedOrder = (await fulfillmentResponse.json()).order;
   assert.equal(shippedOrder.fulfillment.status, "shipped");
   assert.equal(shippedOrder.fulfillment.carrier, "Expreso API");
+  const activeLogisticsOrders = await getJson(`${baseUrl}/api/logistics/orders`, logisticsCookie);
+  assert.equal(activeLogisticsOrders.orders.some((order) => order.id === orderPayload.order.id), false);
+  const dispatchedLogisticsOrders = await getJson(`${baseUrl}/api/logistics/orders?scope=dispatched&q=Comercio`, logisticsCookie);
+  assert.equal(dispatchedLogisticsOrders.orders.some((order) => order.id === orderPayload.order.id), true);
+  assert.equal(dispatchedLogisticsOrders.orders.every((order) => order.stage === "in_transit"), true);
   const fulfillmentEmail = db.prepare("SELECT recipient, text_body FROM email_outbox WHERE event_type = 'order_fulfillment_customer'").get();
   assert.equal(fulfillmentEmail.recipient, "cliente-api@example.com");
   assert.match(fulfillmentEmail.text_body, /REM-123/);

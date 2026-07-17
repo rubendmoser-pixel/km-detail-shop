@@ -78,6 +78,7 @@ export function logoutLogisticsOperator(db, token) {
 
 export function listLogisticsOrders(db, filters = {}) {
   const params = [];
+  const scopeSql = filters.scope === "dispatched" ? "AND o.fulfillment_status = 'shipped'" : "AND o.fulfillment_status <> 'shipped'";
   let searchSql = "";
   if (filters.search) {
     searchSql = "AND (o.order_number LIKE ? OR c.business_name LIKE ? OR c.tax_id LIKE ?)";
@@ -88,7 +89,7 @@ export function listLogisticsOrders(db, filters = {}) {
       lo.name AS operator_name
     FROM orders o JOIN customers c ON c.id=o.customer_id JOIN users u ON u.id=c.user_id
     LEFT JOIN logistics_operators lo ON lo.id=o.logistics_operator_id
-    WHERE o.status NOT IN ('cancelled','delivered') AND o.fulfillment_status <> 'delivered' ${searchSql}
+    WHERE o.status NOT IN ('cancelled','delivered') AND o.fulfillment_status <> 'delivered' ${scopeSql} ${searchSql}
     ORDER BY CASE o.fulfillment_status WHEN 'ready' THEN 1 WHEN 'pending' THEN 2 WHEN 'shipped' THEN 3 ELSE 4 END, o.created_at
     LIMIT 500`).all(...params).map(logisticsOrderRow);
 }

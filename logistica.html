@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><meta name="robots" content="noindex,nofollow" />
   <title>Logística | KM Detail Line</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/logistica.css?v=2" />
+  <link rel="stylesheet" href="/logistica.css?v=3" />
+  <link rel="stylesheet" href="/logistica-queue.css?v=1" />
 </head>
 <body>
   <header><a class="brand" href="/logistica.html"><img src="/assets/km-metal-logo-small.png" alt="KM Detail Line" /><span>LOGÍSTICA</span></a><div id="logisticsSession"></div></header>
@@ -16,10 +17,11 @@
     </form></section>
     <section class="workspace hidden" id="logisticsWorkspace">
       <div class="title"><div><p class="eyebrow">Operación de depósito</p><h1>Próximas acciones</h1></div><button id="reloadLogistics" type="button">Actualizar</button></div>
-      <div class="toolbar"><input id="logisticsSearch" type="search" placeholder="Buscar pedido, cliente o CUIT" /><select id="logisticsStage"><option value="">Todas las etapas</option><option value="review_availability">Revisar disponibilidad</option><option value="waiting">En espera</option><option value="ready_to_prepare">Listos para preparar</option><option value="preparing">En preparación</option><option value="awaiting_dispatch">Esperando despacho</option><option value="in_transit">En tránsito</option></select></div>
+      <div class="queue-tabs" role="group" aria-label="Vista de pedidos"><button class="active" type="button" data-queue="active">Trabajo pendiente</button><button type="button" data-queue="dispatched">Despachados</button></div>
+      <div class="toolbar"><input id="logisticsSearch" type="search" placeholder="Buscar pedido, cliente o CUIT" /><select id="logisticsStage"><option value="">Todas las etapas</option><option value="review_availability">Revisar disponibilidad</option><option value="waiting">En espera</option><option value="ready_to_prepare">Listos para preparar</option><option value="preparing">En preparación</option><option value="awaiting_dispatch">Esperando despacho</option></select></div>
       <div class="stats" id="logisticsStats"></div><div class="orders" id="logisticsOrders"></div>
       <section class="detail hidden" id="logisticsDetail"></section>
     </section>
   </main>
-  <div class="toast" id="logisticsToast"></div><script src="/logistica.js?v=3" defer></script>
+  <div class="toast" id="logisticsToast"></div><script src="/logistica.js?v=4" defer></script>
 </body></html>

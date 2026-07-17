@@ -1,0 +1,27 @@
+.queue-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.queue-tabs button {
+  flex: 1;
+  background: #15181d;
+}
+
+.queue-tabs button.active {
+  color: #071009;
+  background: linear-gradient(#c8f7d0, #78dd91);
+  border-color: #78dd91;
+}
+
+.stats {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+@media (max-width: 720px) {
+  .queue-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
