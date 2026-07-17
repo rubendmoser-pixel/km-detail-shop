@@ -26,7 +26,7 @@ const ARGENTINA_PROVINCES = [
   "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucuman"
 ];
 const orderStatusLabels = {
-  order_created: "Pedido recibido",
+  order_created: "Pedido recibido por KM",
   availability_confirmed: "Disponibilidad confirmada",
   confirmed: "Pedido confirmado",
   in_preparation: "Disponibilidad confirmada",
@@ -44,7 +44,7 @@ const paymentStatusLabels = {
   rejected: "Pago rechazado"
 };
 const fulfillmentStatusLabels = {
-  pending: "Pendiente de preparacion",
+  pending: "Preparación pendiente",
   ready: "Preparado para despacho",
   shipped: "Despachado",
   delivered: "Recibido por cliente"
@@ -75,6 +75,87 @@ const fulfillmentStateClasses = {
   delivered: "done"
 };
 
+const ADMIN_ICON_PATHS = {
+  menu: `<path d="M4 6h16M4 12h16M4 18h16"/>`,
+  x: `<path d="M18 6 6 18M6 6l12 12"/>`,
+  users: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3.1a4 4 0 0 1 0 7.8M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>`,
+  "user-round": `<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>`,
+  truck: `<path d="M10 17h4V5H2v12h3M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>`,
+  coins: `<circle cx="8" cy="8" r="6"/><path d="M18.1 8.7A6 6 0 1 1 9.3 18M8 5v6M6 7h3a2 2 0 0 1 0 4H6"/>`,
+  building: `<path d="M3 21h18M6 21V4h12v17M9 8h2M13 8h2M9 12h2M13 12h2M9 16h2M13 16h2"/>`,
+  package: `<path d="m7.5 4.27 9 5.15M3.27 6.96 12 12l8.73-5.04M12 22V12"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>`,
+  tags: `<path d="M12.6 2.6a2 2 0 0 0-1.4-.6H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4L12 22l10-10Z"/><circle cx="7.5" cy="7.5" r="1.5"/>`,
+  "clipboard-list": `<rect width="14" height="18" x="5" y="3" rx="2"/><path d="M9 3V1h6v2M9 11h6M9 15h6"/>`,
+  wallet: `<path d="M20 7V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h16v10a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V6"/><path d="M16 13h2"/>`,
+  settings: `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34A1.7 1.7 0 0 0 14 20.93V21h-4v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.63 15 1.7 1.7 0 0 0 3.07 14H3v-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.63 1.7 1.7 0 0 0 10.07 3H14v.09A1.7 1.7 0 0 0 15 4.65a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.37 9 1.7 1.7 0 0 0 20.93 10H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/>`,
+  mail: `<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 6L2 7"/>`,
+  shield: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>`,
+  activity: `<path d="M3 12h4l3-9 4 18 3-9h4"/>`,
+  "layout-dashboard": `<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>`,
+  refresh: `<path d="M21 12a9 9 0 0 0-15.2-6.5L3 8M3 3v5h5M3 12a9 9 0 0 0 15.2 6.5L21 16M16 16h5v5"/>`,
+  plus: `<path d="M12 5v14M5 12h14"/>`,
+  save: `<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/>`,
+  eye: `<path d="M2.1 12a10.7 10.7 0 0 1 19.8 0 10.7 10.7 0 0 1-19.8 0Z"/><circle cx="12" cy="12" r="3"/>`,
+  pencil: `<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>`,
+  trash: `<path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/>`,
+  check: `<path d="m20 6-11 11-5-5"/>`,
+  login: `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>`
+};
+
+const ADMIN_VIEW_ICONS = {
+  customers: "users", sales: "user-round", logistics: "truck", commissions: "coins", distributors: "building",
+  products: "package", prices: "tags", orders: "clipboard-list", accounts: "wallet", settings: "settings",
+  emails: "mail", security: "shield", analytics: "activity", operation: "layout-dashboard"
+};
+
+function adminIconSvg(name) {
+  const paths = ADMIN_ICON_PATHS[name] || ADMIN_ICON_PATHS.plus;
+  return `<svg class="admin-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+}
+
+function adminIconName(element) {
+  if (element.matches?.("[data-toggle-password], .seller-qty button")) return "";
+  if (element.dataset?.adminView) return ADMIN_VIEW_ICONS[element.dataset.adminView] || "layout-dashboard";
+  if (element.dataset?.orderScope === "active") return "clipboard-list";
+  if (element.dataset?.orderScope === "history") return "activity";
+  if (element.classList?.contains("toolbar-refresh-button")) return "refresh";
+  if (element.classList?.contains("danger-button") || element.classList?.contains("danger-soft")) return "trash";
+  const text = String(element.textContent || "").trim().toLocaleLowerCase("es");
+  if (/^(cerrar|cancelar|ocultar)/.test(text)) return "x";
+  if (/^(actualizar|reintentar)/.test(text)) return "refresh";
+  if (/^(crear|nuevo|agregar)/.test(text)) return "plus";
+  if (/^(guardar|programar)/.test(text)) return "save";
+  if (/^(confirmar|aprobar|registrar|enviar)/.test(text)) return "check";
+  if (/^(ver|abrir|detalle)/.test(text)) return "eye";
+  if (/^editar/.test(text)) return "pencil";
+  if (/^(eliminar|borrar|limpiar)/.test(text)) return "trash";
+  if (/^ingresar/.test(text)) return "login";
+  return "";
+}
+
+function decorateAdminIcons(root = document) {
+  const elements = [];
+  if (root.matches?.("button, a.ghost-button, a.primary-button")) elements.push(root);
+  elements.push(...(root.querySelectorAll?.("button, a.ghost-button, a.primary-button") || []));
+  elements.forEach((element) => {
+    if (element.querySelector(":scope > .admin-ui-icon")) return;
+    const icon = adminIconName(element);
+    if (!icon) return;
+    element.insertAdjacentHTML("afterbegin", adminIconSvg(icon));
+    element.classList.add("admin-icon-button");
+    const text = String(element.textContent || "").trim().toLocaleLowerCase("es");
+    if (/^(confirmar|aprobar|registrar|enviar)/.test(text)) element.classList.add("admin-action-success");
+    if (/^(ver|abrir|detalle)/.test(text)) element.classList.add("admin-action-info");
+  });
+}
+
+function observeAdminIcons() {
+  decorateAdminIcons(document);
+  new MutationObserver((records) => records.forEach((record) => {
+    if (record.target instanceof Element) decorateAdminIcons(record.target);
+  })).observe(document.body, { childList: true, subtree: true });
+}
+
 const orderStageLabels = {
   review_availability: "Revisar disponibilidad",
   awaiting_acceptance: "Esperando aceptación",
@@ -101,7 +182,7 @@ const orderStageClasses = {
 
 const adminEls = Object.fromEntries([
   "adminSession", "adminEmail", "adminLoginPanel", "adminLoginForm", "adminLoginMessage",
-  "adminWorkspace", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "toggleCustomerCreate",
+  "adminWorkspace", "adminNavToggle", "adminTabs", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "toggleCustomerCreate",
   "customerCreatePanel", "customerCreateForm", "customerCreateMessage", "cancelCustomerCreate", "ordersTableBody",
   "orderSearch", "orderStageFilter", "orderPaymentFilter", "orderOpsStats", "orderScopeTabs", "activeOrdersCount", "historyOrdersCount",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
@@ -125,6 +206,7 @@ const adminEls = Object.fromEntries([
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
+  observeAdminIcons();
   bindAdminEvents();
   syncOrderScopeControls();
   try {
@@ -142,6 +224,7 @@ function bindAdminEvents() {
   const byId = (selector) => document.querySelector(selector);
 
   setupAdminPasswordToggles();
+  on(adminEls.adminNavToggle, "click", () => setAdminNavOpen(adminEls.adminNavToggle.getAttribute("aria-expanded") !== "true"));
   on(adminEls.adminLoginForm, "submit", loginAdmin);
   on(byId("#adminLogout"), "click", logoutAdmin);
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => showAdminView(button.dataset.adminView)));
@@ -234,6 +317,36 @@ function bindAdminEvents() {
   on(byId("#reloadOperationDashboard"), "click", loadOperationDashboard);
   on(adminEls.operationDashboard, "click", handleOperationDashboardClick);
   on(adminEls.deleteTestOrdersForm, "submit", deleteTestOrders);
+  on(document, "click", (event) => {
+    if (adminEls.adminNavToggle?.getAttribute("aria-expanded") !== "true") return;
+    if (event.target.closest("#adminNavToggle, #adminTabs")) return;
+    setAdminNavOpen(false);
+  });
+  on(document, "keydown", (event) => {
+    if (event.key === "Escape") closeAdminExpandedContent();
+  });
+}
+
+function setAdminNavOpen(open) {
+  const isOpen = Boolean(open);
+  adminEls.adminTabs?.classList.toggle("is-open", isOpen);
+  adminEls.adminNavToggle?.setAttribute("aria-expanded", String(isOpen));
+  if (adminEls.adminNavToggle) {
+    adminEls.adminNavToggle.innerHTML = `${adminIconSvg(isOpen ? "x" : "menu")}${isOpen ? "Cerrar" : "Secciones"}`;
+    adminEls.adminNavToggle.classList.add("admin-icon-button");
+  }
+}
+
+function closeAdminExpandedContent() {
+  setAdminNavOpen(false);
+  document.querySelectorAll("details[open]").forEach((details) => { details.open = false; });
+  if (adminEls.customerCreatePanel && !adminEls.customerCreatePanel.hidden) toggleCustomerCreatePanel(false);
+  if (adminState.selectedOrder) closeOrderDetail();
+  if (adminState.currentAccountOrderId) {
+    adminState.currentAccountOrderId = null;
+    adminState.currentAccountPaymentsOpen = false;
+    renderCurrentAccountDashboard();
+  }
 }
 
 function setupAdminPasswordToggles() {
@@ -324,6 +437,8 @@ function currentAdminView() {
 
 function showAdminView(view, updateHash = true) {
   const targetView = adminViews.has(view) ? view : "customers";
+  setAdminNavOpen(false);
+  document.querySelectorAll("details[open]").forEach((details) => { details.open = false; });
   if (updateHash && window.location.hash !== `#${targetView}`) window.location.hash = targetView;
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === targetView));
   document.querySelectorAll(".admin-view").forEach((section) => { section.hidden = section.id !== `${targetView}View`; });
