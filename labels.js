@@ -3,6 +3,7 @@ const params = new URLSearchParams(window.location.search);
 const orderId = Number(params.get("order") || 0);
 const packageCount = Number(params.get("packages") || 1);
 const logisticsSource = params.get("source") === "logistics";
+const returnUrl = logisticsSource ? `./logistica.html?order=${orderId}` : `./admin.html?order=${orderId}#orders`;
 
 const CODE39 = {
   "0": "101001101101", "1": "110100101011", "2": "101100101011", "3": "110110010101",
@@ -43,7 +44,7 @@ function renderLabels(payload) {
   const { order, packages } = payload;
   root.innerHTML = `
     <div class="screen-actions">
-      <a href="${logisticsSource ? "./logistica.html" : "./admin.html#orders"}">Volver al panel</a>
+      <a href="${returnUrl}">Volver al pedido ${escapeHtml(order.orderNumber)}</a>
       <div><strong>${escapeHtml(order.orderNumber)}</strong> - ${packages.length} bulto${packages.length === 1 ? "" : "s"}</div>
       <button type="button" id="printLabels">Imprimir etiquetas</button>
     </div>
@@ -129,7 +130,7 @@ function code39Svg(value) {
 }
 
 function renderError(message) {
-  root.innerHTML = `<section class="screen-panel"><h1>No se pudieron generar las etiquetas</h1><p>${escapeHtml(message)}</p><p><a href="./admin.html#orders">Volver al panel</a></p></section>`;
+  root.innerHTML = `<section class="screen-panel"><h1>No se pudieron generar las etiquetas</h1><p>${escapeHtml(message)}</p><p><a href="${returnUrl}">Volver al pedido</a></p></section>`;
 }
 
 function formatDate(value) {

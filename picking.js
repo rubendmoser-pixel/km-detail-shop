@@ -2,6 +2,7 @@ const root = document.querySelector("#pickingRoot");
 const params = new URLSearchParams(window.location.search);
 const orderId = Number(params.get("order") || 0);
 const logisticsSource = params.get("source") === "logistics";
+const returnUrl = logisticsSource ? `./logistica.html?order=${orderId}` : `./admin.html?order=${orderId}#orders`;
 
 initPicking();
 
@@ -26,7 +27,7 @@ function renderPicking(payload) {
   const { order, generatedAt } = payload;
   root.innerHTML = `
     <div class="screen-actions">
-      <a href="${logisticsSource ? "./logistica.html" : "./admin.html#orders"}">Volver al panel</a>
+      <a href="${returnUrl}">Volver al pedido ${escapeHtml(order.orderNumber)}</a>
       <div><strong>${escapeHtml(order.orderNumber)}</strong> - ${order.items.length} linea${order.items.length === 1 ? "" : "s"}</div>
       <button type="button" id="printPicking">Imprimir preparacion</button>
     </div>
@@ -88,7 +89,7 @@ function shippingLine(shipping = {}) {
 }
 
 function renderError(message) {
-  root.innerHTML = `<section class="screen-panel"><h1>No se pudo generar la preparacion</h1><p>${escapeHtml(message)}</p><p><a href="./admin.html#orders">Volver al panel</a></p></section>`;
+  root.innerHTML = `<section class="screen-panel"><h1>No se pudo generar la preparacion</h1><p>${escapeHtml(message)}</p><p><a href="${returnUrl}">Volver al pedido</a></p></section>`;
 }
 
 function formatDate(value) {

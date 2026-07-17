@@ -1,6 +1,7 @@
 const root = document.querySelector("#deliveryNoteRoot");
 const params = new URLSearchParams(window.location.search);
 const orderId = Number(params.get("order") || 0);
+const returnUrl = `./admin.html?order=${orderId}#orders`;
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const CODE39 = {
   "0": "101001101101", "1": "110100101011", "2": "101100101011", "3": "110110010101",
@@ -40,7 +41,7 @@ function renderDeliveryNote(payload) {
   const shipping = order.shipping || {};
   root.innerHTML = `
     <div class="screen-actions">
-      <a href="./admin.html#orders">Volver al panel</a>
+      <a href="${returnUrl}">Volver al pedido ${escapeHtml(order.orderNumber)}</a>
       <div><strong>${escapeHtml(order.orderNumber)}</strong> - ${order.items.length} linea${order.items.length === 1 ? "" : "s"}</div>
       <button type="button" id="printDeliveryNote">Imprimir detalle</button>
     </div>
@@ -147,7 +148,7 @@ function shippingLine(shipping = {}) {
 }
 
 function renderError(message) {
-  root.innerHTML = `<section class="screen-panel"><h1>No se pudo generar el detalle</h1><p>${escapeHtml(message)}</p><p><a href="./admin.html#orders">Volver al panel</a></p></section>`;
+  root.innerHTML = `<section class="screen-panel"><h1>No se pudo generar el detalle</h1><p>${escapeHtml(message)}</p><p><a href="${returnUrl}">Volver al pedido</a></p></section>`;
 }
 
 function code39Svg(value) {

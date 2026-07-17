@@ -291,6 +291,8 @@ async function enterWorkspace() {
     ["operacion", loadOperationDashboard]
   ].map(([label, loader]) => loadAdminSection(label, loader)));
   showAdminView(currentAdminView(), false);
+  const requestedOrderId = Number(new URLSearchParams(window.location.search).get("order") || 0);
+  if (requestedOrderId) await openOrderDetail(requestedOrderId);
   resetProductForm();
   resetSalesRepForm();
   resetLogisticsOperatorForm();
