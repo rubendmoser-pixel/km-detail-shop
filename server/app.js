@@ -77,7 +77,7 @@ import {
   requestCommercialCustomer,
   upsertSalesRep
 } from "./services/sales-rep-service.js";
-import { createSalesQuote, getSalesQuote, listSalesQuotesForSalesRep, markSalesQuoteConverted, markSalesQuoteShared } from "./services/sales-quote-service.js";
+import { createProspectSalesQuote, createSalesQuote, getSalesQuote, listProspectQuoteProducts, listSalesQuotesForSalesRep, markSalesQuoteConverted, markSalesQuoteShared } from "./services/sales-quote-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearLogisticsSessionCookie, clearSalesRepSessionCookie, clearSessionCookie, logisticsSessionCookie, parseCookies, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import {
@@ -390,11 +390,17 @@ export function createApp({
         const salesRep = requireSalesRep(currentSalesRep);
         return sendJson(response, 200, { quotes: listSalesQuotesForSalesRep(db, salesRep.id) });
       }
+      if (request.method === "GET" && url.pathname === "/api/sales/prospect-products") {
+        requireSalesRep(currentSalesRep);
+        applyDuePriceUpdates(db);
+        return sendJson(response, 200, { products: listProspectQuoteProducts(db), vatBps: getCommercialSettings(db).vatBps });
+      }
       {
-        const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)\/order$/);
+        const match = url.pathname.match(/^\/api\/sales\/quotes\/([^/]+)\/order$/);
         if (request.method === "POST" && match) {
           const salesRep = requireSalesRep(currentSalesRep);
-          const quote = getSalesQuote(db, Number(match[1]), salesRep.id);
+          const quote = getSalesQuote(db, match[1], salesRep.id);
+          if (quote.kind === "prospect") throw new ValidationError("Primero inicia y aprueba el alta comercial del cliente potencial");
           if (quote.status !== "generated") throw new ValidationError("El presupuesto ya no esta vigente");
           const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, quote.customerId);
           if (!customer.default_shipping_address_id) {
@@ -415,10 +421,10 @@ export function createApp({
         }
       }
       {
-        const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)\/email$/);
+        const match = url.pathname.match(/^\/api\/sales\/quotes\/([^/]+)\/email$/);
         if (request.method === "POST" && match) {
           const salesRep = requireSalesRep(currentSalesRep);
-          const quote = getSalesQuote(db, Number(match[1]), salesRep.id);
+          const quote = getSalesQuote(db, match[1], salesRep.id);
           if (!quote.customerEmail) throw new ValidationError("El cliente no tiene email cargado");
           emailService.queueSalesQuoteCustomer(quote);
           const updatedQuote = markSalesQuoteShared(db, quote.id, salesRep.id, "email");
@@ -426,25 +432,29 @@ export function createApp({
         }
       }
       {
-        const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)\/whatsapp$/);
+        const match = url.pathname.match(/^\/api\/sales\/quotes\/([^/]+)\/whatsapp$/);
         if (request.method === "POST" && match) {
           const salesRep = requireSalesRep(currentSalesRep);
-          const quote = getSalesQuote(db, Number(match[1]), salesRep.id);
+          const quote = getSalesQuote(db, match[1], salesRep.id);
           if (!quote.customerWhatsapp) throw new ValidationError("El cliente no tiene WhatsApp cargado");
           const updatedQuote = markSalesQuoteShared(db, quote.id, salesRep.id, "whatsapp");
           return sendJson(response, 200, { quote: updatedQuote, message: `WhatsApp del presupuesto ${quote.quoteNumber || ""} abierto y registrado.` });
         }
       }
       {
-        const match = url.pathname.match(/^\/api\/sales\/quotes\/(\d+)$/);
+        const match = url.pathname.match(/^\/api\/sales\/quotes\/([^/]+)$/);
         if (request.method === "GET" && match) {
           const salesRep = requireSalesRep(currentSalesRep);
-          return sendJson(response, 200, { quote: getSalesQuote(db, Number(match[1]), salesRep.id) });
+          return sendJson(response, 200, { quote: getSalesQuote(db, match[1], salesRep.id) });
         }
       }
       if (request.method === "POST" && url.pathname === "/api/sales/quotes") {
         const salesRep = requireSalesRep(currentSalesRep);
         const body = await readJson(request);
+        if (body.kind === "prospect") {
+          const quote = createProspectSalesQuote(db, salesRep, body);
+          return sendJson(response, 201, { quote, message: "Presupuesto para cliente potencial generado." });
+        }
         const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, body.customerId);
         const quote = createSalesQuote(db, salesRep, customer.id, {
           items: body.items,

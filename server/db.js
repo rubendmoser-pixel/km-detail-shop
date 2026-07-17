@@ -467,6 +467,51 @@ function migrate(db) {
       subtotal_net_cents INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS sales_prospect_quotes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quote_number TEXT NOT NULL UNIQUE,
+      sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      sales_rep_name TEXT NOT NULL DEFAULT '',
+      sales_rep_email TEXT NOT NULL DEFAULT '',
+      business_name TEXT NOT NULL,
+      contact_person TEXT NOT NULL,
+      email TEXT NOT NULL,
+      whatsapp TEXT NOT NULL,
+      phone TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT '',
+      province TEXT NOT NULL DEFAULT '',
+      discount_bps INTEGER NOT NULL DEFAULT 0 CHECK (discount_bps BETWEEN 0 AND 3000),
+      status TEXT NOT NULL DEFAULT 'generated' CHECK (status IN ('generated', 'cancelled', 'expired')),
+      currency TEXT NOT NULL DEFAULT 'ARS' CHECK (currency = 'ARS'),
+      subtotal_list_cents INTEGER NOT NULL DEFAULT 0,
+      discount_cents INTEGER NOT NULL DEFAULT 0,
+      subtotal_net_cents INTEGER NOT NULL DEFAULT 0,
+      vat_bps INTEGER NOT NULL DEFAULT 0,
+      vat_cents INTEGER NOT NULL DEFAULT 0,
+      total_cents INTEGER NOT NULL DEFAULT 0,
+      valid_until TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      email_sent_at TEXT,
+      whatsapp_sent_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sales_prospect_quote_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quote_id INTEGER NOT NULL REFERENCES sales_prospect_quotes(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      km_code TEXT NOT NULL,
+      ean13 TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      quantity INTEGER NOT NULL CHECK (quantity > 0),
+      base_price_cents INTEGER NOT NULL,
+      discount_bps INTEGER NOT NULL DEFAULT 0 CHECK (discount_bps BETWEEN 0 AND 3000),
+      final_unit_price_cents INTEGER NOT NULL,
+      subtotal_list_cents INTEGER NOT NULL,
+      subtotal_net_cents INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS order_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -596,6 +641,8 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_sales_quotes_rep_created ON sales_quotes(sales_rep_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_sales_quotes_customer_created ON sales_quotes(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_sales_quote_items_quote ON sales_quote_items(quote_id);
+    CREATE INDEX IF NOT EXISTS idx_sales_prospect_quotes_rep_created ON sales_prospect_quotes(sales_rep_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_sales_prospect_quote_items_quote ON sales_prospect_quote_items(quote_id);
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
     CREATE INDEX IF NOT EXISTS idx_sales_rep_sessions_token ON sales_rep_sessions(token_hash, expires_at);
     CREATE INDEX IF NOT EXISTS idx_sales_rep_password_reset_token ON sales_rep_password_reset_tokens(token_hash, expires_at);
@@ -692,6 +739,33 @@ function migrate(db) {
   ensureColumn(db, "sales_quotes", "email_sent_at", "TEXT");
   ensureColumn(db, "sales_quotes", "whatsapp_sent_at", "TEXT");
   db.exec(`
+    CREATE TABLE IF NOT EXISTS sales_prospect_quotes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quote_number TEXT NOT NULL UNIQUE,
+      sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      sales_rep_name TEXT NOT NULL DEFAULT '', sales_rep_email TEXT NOT NULL DEFAULT '',
+      business_name TEXT NOT NULL, contact_person TEXT NOT NULL, email TEXT NOT NULL, whatsapp TEXT NOT NULL,
+      phone TEXT NOT NULL DEFAULT '', city TEXT NOT NULL DEFAULT '', province TEXT NOT NULL DEFAULT '',
+      discount_bps INTEGER NOT NULL DEFAULT 0 CHECK (discount_bps BETWEEN 0 AND 3000),
+      status TEXT NOT NULL DEFAULT 'generated' CHECK (status IN ('generated', 'cancelled', 'expired')),
+      currency TEXT NOT NULL DEFAULT 'ARS' CHECK (currency = 'ARS'),
+      subtotal_list_cents INTEGER NOT NULL DEFAULT 0, discount_cents INTEGER NOT NULL DEFAULT 0,
+      subtotal_net_cents INTEGER NOT NULL DEFAULT 0, vat_bps INTEGER NOT NULL DEFAULT 0,
+      vat_cents INTEGER NOT NULL DEFAULT 0, total_cents INTEGER NOT NULL DEFAULT 0,
+      valid_until TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '',
+      email_sent_at TEXT, whatsapp_sent_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS sales_prospect_quote_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quote_id INTEGER NOT NULL REFERENCES sales_prospect_quotes(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id), km_code TEXT NOT NULL, ean13 TEXT NOT NULL,
+      product_name TEXT NOT NULL, quantity INTEGER NOT NULL CHECK (quantity > 0),
+      base_price_cents INTEGER NOT NULL, discount_bps INTEGER NOT NULL DEFAULT 0 CHECK (discount_bps BETWEEN 0 AND 3000),
+      final_unit_price_cents INTEGER NOT NULL, subtotal_list_cents INTEGER NOT NULL, subtotal_net_cents INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sales_prospect_quotes_rep_created ON sales_prospect_quotes(sales_rep_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_sales_prospect_quote_items_quote ON sales_prospect_quote_items(quote_id);
     CREATE TABLE IF NOT EXISTS sales_rep_sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,

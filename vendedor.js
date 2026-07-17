@@ -11,6 +11,7 @@ const state = {
   openOrderId: null,
   activeView: "summary",
   mode: "order",
+  quoteAudience: "registered",
   summaryDateFrom: "",
   summaryDateTo: "",
   quoteSearch: "",
@@ -25,6 +26,7 @@ const state = {
   order: {
     customerId: "",
     addresses: [],
+    vatBps: 2100,
     shippingAddressId: "",
     loadingAddresses: false,
     products: [],
@@ -58,6 +60,7 @@ const nodes = {
   refresh: document.getElementById("refreshSellerDashboard"),
   orderForm: document.getElementById("sellerOrderForm"),
   orderCustomer: document.getElementById("sellerOrderCustomer"),
+  orderCustomerField: document.getElementById("sellerOrderCustomerField"),
   orderShipping: document.getElementById("sellerOrderShipping"),
   orderShippingField: document.getElementById("sellerOrderShippingField"),
   productSearch: document.getElementById("sellerProductSearch"),
@@ -70,6 +73,20 @@ const nodes = {
   builderTitle: document.getElementById("sellerBuilderTitle"),
   itemsLabel: document.getElementById("sellerItemsLabel"),
   orderSubmit: document.getElementById("sellerOrderSubmit"),
+  quoteAudience: document.getElementById("sellerQuoteAudience"),
+  quoteAudienceButtons: document.querySelectorAll("[data-quote-audience]"),
+  prospectFields: document.getElementById("sellerProspectFields"),
+  prospectBusinessName: document.getElementById("sellerProspectBusinessName"),
+  prospectContact: document.getElementById("sellerProspectContact"),
+  prospectEmail: document.getElementById("sellerProspectEmail"),
+  prospectWhatsapp: document.getElementById("sellerProspectWhatsapp"),
+  prospectPhone: document.getElementById("sellerProspectPhone"),
+  prospectCity: document.getElementById("sellerProspectCity"),
+  prospectProvince: document.getElementById("sellerProspectProvince"),
+  prospectDiscount: document.getElementById("sellerProspectDiscount"),
+  quoteOptions: document.getElementById("sellerQuoteOptions"),
+  quoteValidUntil: document.getElementById("sellerQuoteValidUntil"),
+  quoteNotes: document.getElementById("sellerQuoteNotes"),
   quotes: document.getElementById("sellerQuotes"),
   quoteSearch: document.getElementById("sellerQuoteSearch"),
   quoteStatus: document.getElementById("sellerQuoteStatus"),
@@ -236,6 +253,10 @@ function quoteShareText(quote) {
   lines.push(
     "",
     "*Resumen del presupuesto*",
+    ...(quote.kind === "prospect" ? [
+      `Total a precio de lista: ${money(quote.subtotalListCents || 0)}`,
+      `Descuento ${(Number(quote.prospectDiscountBps || 0) / 100).toFixed(2).replace(".00", "")}%: ${money(quote.discountCents || 0)}`
+    ] : []),
     `Subtotal sin IVA: ${money(quote.subtotalNetCents || 0)}`,
     `${vatLabel}: ${money(quote.vatCents || 0)}`,
     `*Total con IVA: ${money(quote.totalCents || 0)}*`,
@@ -581,7 +602,8 @@ function renderOrderDetail(orderId) {
 function renderQuoteDetail(quoteId) {
   const quote = state.quoteDetails[quoteId];
   if (!quote) return `<div class="seller-detail">Cargando detalle...</div>`;
-  const canCreateOrder = quote.status === "generated";
+  const isProspect = quote.kind === "prospect";
+  const canCreateOrder = !isProspect && quote.status === "generated";
   return `
     <div class="seller-detail">
       <div class="seller-detail-grid">
@@ -601,12 +623,13 @@ function renderQuoteDetail(quoteId) {
           <span>Estado</span>
           <strong>${escapeHtml(quoteStatusLabels[quote.status] || quote.status || "Generado")}</strong>
         </div>
+        ${isProspect ? `<div><span>Precio de lista</span><strong>${money(quote.subtotalListCents || 0)}</strong></div>
+          <div><span>Descuento</span><strong>${Number(quote.prospectDiscountBps || 0) / 100}% (${money(quote.discountCents || 0)})</strong></div>` : ""}
       </div>
       ${renderDetailItems(quote.items || [])}
       <div class="quote-actions">
-        <button class="primary-button compact" type="button" data-create-order-from-quote="${quote.id}" ${canCreateOrder ? "" : "disabled"}>
-          Generar pedido
-        </button>
+        ${isProspect ? `<button class="primary-button compact" type="button" data-start-registration-from-quote="${quote.id}">Iniciar alta comercial</button>` : `
+          <button class="primary-button compact" type="button" data-create-order-from-quote="${quote.id}" ${canCreateOrder ? "" : "disabled"}>Generar pedido</button>`}
       </div>
     </div>
   `;
@@ -700,6 +723,8 @@ function renderQuotes() {
         </div>
         <div class="seller-badges">
           ${badge(quoteStatusLabels[quote.status] || quote.status || "Generado", quoteTone(quote.status))}
+          ${quote.kind === "prospect" ? badge("Cliente potencial", "gold") : badge("Cliente registrado", "green")}
+          ${quote.kind === "prospect" && quote.prospectDiscountBps ? badge(`Desc. ${Number(quote.prospectDiscountBps) / 100}%`, "blue") : ""}
           ${badge(`${quote.itemCount || 0} productos`)}
           ${quote.emailSentAt ? badge(`Email enviado ${shortDate(quote.emailSentAt)}`, "green") : ""}
           ${quote.whatsappSentAt ? badge(`WhatsApp abierto ${shortDate(quote.whatsappSentAt)}`, "blue") : ""}
@@ -760,6 +785,12 @@ function productSearchText(product) {
 function renderOrderBuilder() {
   renderBuilderMode();
   const customers = approvedCustomers();
+  const isProspectQuote = state.mode === "quote" && state.quoteAudience === "prospect";
+  if (isProspectQuote) {
+    renderProductResults();
+    renderOrderItems();
+    return;
+  }
   if (!customers.length) {
     nodes.orderCustomer.innerHTML = `<option value="">Sin clientes aprobados</option>`;
     if (nodes.orderShipping) nodes.orderShipping.innerHTML = `<option value="">Sin lugares de entrega</option>`;
@@ -785,14 +816,24 @@ function renderOrderBuilder() {
 
 function renderBuilderMode() {
   const isQuote = state.mode === "quote";
+  const isProspectQuote = isQuote && state.quoteAudience === "prospect";
+  nodes.quoteAudience?.classList.toggle("hidden", !isQuote);
+  nodes.quoteOptions?.classList.toggle("hidden", !isQuote);
+  nodes.prospectFields?.classList.toggle("hidden", !isProspectQuote);
+  [nodes.prospectBusinessName, nodes.prospectContact, nodes.prospectEmail, nodes.prospectWhatsapp].forEach((field) => {
+    if (field) field.required = isProspectQuote;
+  });
+  nodes.orderCustomerField?.classList.toggle("hidden", isProspectQuote);
   nodes.orderShippingField?.classList.toggle("hidden", isQuote);
+  nodes.quoteAudienceButtons?.forEach((button) => button.classList.toggle("active", button.dataset.quoteAudience === state.quoteAudience));
+  if (nodes.orderCustomer) nodes.orderCustomer.required = !isProspectQuote;
   if (nodes.orderShipping) nodes.orderShipping.required = !isQuote;
   nodes.modeButtons?.forEach((button) => {
     button.classList.toggle("active", button.dataset.sellerMode === state.mode);
   });
   if (nodes.builderTitle) {
     nodes.builderTitle.textContent = isQuote
-      ? "Generar presupuesto para cliente asignado"
+      ? (isProspectQuote ? "Generar presupuesto para cliente potencial" : "Generar presupuesto para cliente asignado")
       : "Cargar pedido para cliente asignado";
   }
   if (nodes.itemsLabel) {
@@ -843,13 +884,17 @@ async function loadSellerAddresses(customerId) {
 }
 
 async function loadSellerProducts(customerId) {
-  if (!customerId) return;
+  const isProspectQuote = state.mode === "quote" && state.quoteAudience === "prospect";
+  if (!customerId && !isProspectQuote) return;
   state.order.loadingProducts = true;
   state.order.products = [];
   renderProductResults();
   try {
-    const payload = await sellerApi(`/api/sales/products?customerId=${encodeURIComponent(customerId)}`);
+    const payload = await sellerApi(isProspectQuote
+      ? "/api/sales/prospect-products"
+      : `/api/sales/products?customerId=${encodeURIComponent(customerId)}`);
     state.order.products = payload.products || [];
+    if (isProspectQuote) state.order.vatBps = Number(payload.vatBps || 0);
   } catch (error) {
     nodes.productResults.innerHTML = `<div class="empty-state">${escapeHtml(error.message || "No se pudieron cargar productos.")}</div>`;
     return;
@@ -865,7 +910,7 @@ function renderProductResults() {
     return;
   }
   if (!state.order.products.length) {
-    nodes.productResults.innerHTML = `<div class="empty-state">Selecciona un cliente para ver productos.</div>`;
+    nodes.productResults.innerHTML = `<div class="empty-state">${state.mode === "quote" && state.quoteAudience === "prospect" ? "Cargando precios de lista..." : "Selecciona un cliente para ver productos."}</div>`;
     return;
   }
   const query = (nodes.productSearch.value || "").trim().toLowerCase();
@@ -885,11 +930,23 @@ function renderProductResults() {
       <div>
         <strong>${escapeHtml(product.kmCode)} - ${escapeHtml(product.name)}</strong>
         <div class="seller-meta">${escapeHtml(product.family?.name || "")} ${product.ean13 ? `| EAN ${escapeHtml(product.ean13)}` : ""}</div>
-        <div class="seller-meta">${money(product.finalPriceCents || 0)} + IVA</div>
+        <div class="seller-meta">${state.mode === "quote" && state.quoteAudience === "prospect" ? "Precio de lista: " : ""}${money(productDisplayPrice(product))} + IVA</div>
       </div>
       <button class="ghost-button compact" type="button" data-add-product="${product.id}">Agregar</button>
     </article>
   `).join("");
+}
+
+function prospectDiscountBps() {
+  const percent = Math.max(0, Math.min(30, Number(nodes.prospectDiscount?.value || 0)));
+  return Math.round(percent * 100);
+}
+
+function productDisplayPrice(product) {
+  if (state.mode === "quote" && state.quoteAudience === "prospect") {
+    return Math.round(Number(product.basePriceCents || 0) * (10000 - prospectDiscountBps()) / 10000);
+  }
+  return Number(product.finalPriceCents || 0);
 }
 
 function addOrderItem(productId) {
@@ -941,16 +998,19 @@ function renderOrderItems() {
     return;
   }
   let total = 0;
+  let listTotal = 0;
   nodes.orderItems.innerHTML = state.order.items.map((item) => {
     const product = findProduct(item.productId);
     if (!product) return "";
-    const lineTotal = Number(product.finalPriceCents || 0) * Number(item.quantity || 0);
+    const unitPrice = productDisplayPrice(product);
+    const lineTotal = unitPrice * Number(item.quantity || 0);
+    listTotal += Number(product.basePriceCents || unitPrice) * Number(item.quantity || 0);
     total += lineTotal;
     return `
       <article class="seller-order-row">
         <div>
           <strong>${escapeHtml(product.kmCode)} - ${escapeHtml(product.name)}</strong>
-          <div class="seller-meta">${item.quantity} x ${money(product.finalPriceCents || 0)} = ${money(lineTotal)}</div>
+          <div class="seller-meta">${item.quantity} x ${money(unitPrice)} = ${money(lineTotal)}</div>
         </div>
         <div class="seller-qty">
           <button type="button" data-dec-product="${product.id}">-</button>
@@ -960,9 +1020,21 @@ function renderOrderItems() {
       </article>
     `;
   }).join("");
-  nodes.orderTotal.textContent = state.mode === "quote"
-    ? `Subtotal neto presupuestado: ${money(total)} + IVA`
-    : `Subtotal neto estimado: ${money(total)} + IVA`;
+  if (state.mode === "quote" && state.quoteAudience === "prospect") {
+    const discountCents = listTotal - total;
+    const vatCents = Math.round(total * Number(state.order.vatBps || 0) / 10000);
+    nodes.orderTotal.innerHTML = `<div class="prospect-total-grid">
+      <span>Precio de lista <strong>${money(listTotal)}</strong></span>
+      <span>Descuento ${(prospectDiscountBps() / 100).toFixed(2).replace(".00", "")}% <strong>- ${money(discountCents)}</strong></span>
+      <span>Subtotal sin IVA <strong>${money(total)}</strong></span>
+      <span>IVA ${Number(state.order.vatBps || 0) / 100}% <strong>${money(vatCents)}</strong></span>
+      <span class="prospect-grand-total">Total final <strong>${money(total + vatCents)}</strong></span>
+    </div>`;
+  } else {
+    nodes.orderTotal.textContent = state.mode === "quote"
+      ? `Subtotal neto presupuestado: ${money(total)} + IVA`
+      : `Subtotal neto estimado: ${money(total)} + IVA`;
+  }
 }
 
 function renderDashboard(payload) {
@@ -1265,8 +1337,31 @@ nodes.modeButtons?.forEach((button) => {
     state.mode = button.dataset.sellerMode === "quote" ? "quote" : "order";
     nodes.orderMessage.textContent = "";
     renderBuilderMode();
+    renderOrderBuilder();
+  });
+});
+
+nodes.quoteAudienceButtons?.forEach((button) => {
+  button.addEventListener("click", async () => {
+    const nextAudience = button.dataset.quoteAudience === "prospect" ? "prospect" : "registered";
+    if (state.quoteAudience === nextAudience) return;
+    state.quoteAudience = nextAudience;
+    state.order.items = [];
+    state.order.products = [];
+    nodes.productSearch.value = "";
+    nodes.orderMessage.textContent = "";
+    renderOrderBuilder();
+    await loadSellerProducts(state.order.customerId);
     renderOrderItems();
   });
+});
+
+nodes.prospectDiscount?.addEventListener("input", () => {
+  const value = Math.max(0, Math.min(30, Number(nodes.prospectDiscount.value || 0)));
+  if (Number(nodes.prospectDiscount.value) > 30) nodes.prospectDiscount.value = "30";
+  if (value < 0) nodes.prospectDiscount.value = "0";
+  renderProductResults();
+  renderOrderItems();
 });
 
 nodes.orderCustomer?.addEventListener("change", async (event) => {
@@ -1402,7 +1497,8 @@ nodes.quotes?.addEventListener("click", async (event) => {
   const createOrderButton = event.target.closest("[data-create-order-from-quote]");
   const whatsappButton = event.target.closest("[data-share-quote-whatsapp]");
   const emailButton = event.target.closest("[data-share-quote-email]");
-  if (!viewButton && !createOrderButton && !whatsappButton && !emailButton) return;
+  const registrationButton = event.target.closest("[data-start-registration-from-quote]");
+  if (!viewButton && !createOrderButton && !whatsappButton && !emailButton && !registrationButton) return;
   if (viewButton) {
     const quoteId = viewButton.dataset.viewQuote;
     nodes.orderMessage.textContent = "";
@@ -1441,6 +1537,25 @@ nodes.quotes?.addEventListener("click", async (event) => {
     } finally {
       createOrderButton.disabled = false;
     }
+    return;
+  }
+  if (registrationButton) {
+    const quote = await getQuoteDetail(registrationButton.dataset.startRegistrationFromQuote);
+    const form = nodes.customerRequestForm;
+    if (!form) return;
+    form.elements.businessName.value = quote.businessName || "";
+    form.elements.contactPerson.value = quote.customerContact || "";
+    form.elements.email.value = quote.customerEmail || "";
+    form.elements.phone.value = quote.customerPhone || quote.customerWhatsapp || "";
+    form.elements.whatsapp.value = quote.customerWhatsapp || "";
+    form.elements.city.value = quote.customerCity || "";
+    form.elements.province.value = quote.customerProvince || "";
+    form.elements.notes.value = `Origen: presupuesto ${quote.quoteNumber || ""} para cliente potencial.`;
+    state.activeView = "request";
+    renderSellerView();
+    if (nodes.customerRequestPanel) nodes.customerRequestPanel.open = true;
+    form.elements.businessName.focus();
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
   const button = whatsappButton || emailButton;
@@ -1499,11 +1614,27 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
   button.disabled = true;
   try {
     const isQuote = state.mode === "quote";
+    const isProspectQuote = isQuote && state.quoteAudience === "prospect";
+    if (isProspectQuote && prospectDiscountBps() > 3000) {
+      nodes.orderMessage.textContent = "El descuento no puede superar el 30%.";
+      return;
+    }
     const payload = await sellerApi(isQuote ? "/api/sales/quotes" : "/api/sales/orders", {
       method: "POST",
       body: {
-        customerId: Number(state.order.customerId),
+        kind: isProspectQuote ? "prospect" : "registered",
+        customerId: isProspectQuote ? undefined : Number(state.order.customerId),
         shippingAddressId: isQuote ? undefined : Number(state.order.shippingAddressId),
+        businessName: isProspectQuote ? nodes.prospectBusinessName.value : undefined,
+        contactPerson: isProspectQuote ? nodes.prospectContact.value : undefined,
+        email: isProspectQuote ? nodes.prospectEmail.value : undefined,
+        whatsapp: isProspectQuote ? nodes.prospectWhatsapp.value : undefined,
+        phone: isProspectQuote ? nodes.prospectPhone.value : undefined,
+        city: isProspectQuote ? nodes.prospectCity.value : undefined,
+        province: isProspectQuote ? nodes.prospectProvince.value : undefined,
+        discountBps: isProspectQuote ? prospectDiscountBps() : undefined,
+        validUntil: isQuote ? nodes.quoteValidUntil.value : undefined,
+        notes: isQuote ? nodes.quoteNotes.value : undefined,
         items: state.order.items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity

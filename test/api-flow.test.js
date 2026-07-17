@@ -394,6 +394,57 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(quoteWhatsappResponse.status, 200);
   const quoteWhatsappPayload = await quoteWhatsappResponse.json();
   assert.ok(quoteWhatsappPayload.quote.whatsappSentAt);
+  const prospectProducts = await getJson(`${baseUrl}/api/sales/prospect-products`, salesCookie);
+  assert.equal(prospectProducts.products.find((item) => item.id === product.id).finalPriceCents, 100_000);
+  const prospectQuoteResponse = await fetch(`${baseUrl}/api/sales/quotes`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({
+      kind: "prospect",
+      businessName: "Potencial API",
+      contactPerson: "Contacto Potencial",
+      email: "potencial@example.com",
+      whatsapp: "5493412222222",
+      phone: "3412222222",
+      city: "Rosario",
+      province: "Santa Fe",
+      discountBps: 3000,
+      validUntil: "2026-08-20",
+      notes: "Primera cotizacion",
+      items: [{ productId: product.id, quantity: 2 }]
+    })
+  });
+  assert.equal(prospectQuoteResponse.status, 201);
+  const prospectQuote = (await prospectQuoteResponse.json()).quote;
+  assert.match(prospectQuote.id, /^P\d+$/);
+  assert.match(prospectQuote.quoteNumber, /^PR-\d{4}-P\d{5}$/);
+  assert.equal(prospectQuote.kind, "prospect");
+  assert.equal(prospectQuote.subtotalListCents, 200_000);
+  assert.equal(prospectQuote.discountCents, 60_000);
+  assert.equal(prospectQuote.subtotalNetCents, 140_000);
+  assert.equal(prospectQuote.vatCents, 29_400);
+  assert.equal(prospectQuote.totalCents, 169_400);
+  assert.equal(prospectQuote.items[0].finalUnitPriceCents, 70_000);
+  const prospectDetail = await getJson(`${baseUrl}/api/sales/quotes/${prospectQuote.id}`, salesCookie);
+  assert.equal(prospectDetail.quote.customerEmail, "potencial@example.com");
+  const prospectEmailResponse = await fetch(`${baseUrl}/api/sales/quotes/${prospectQuote.id}/email`, {
+    method: "POST", headers: jsonHeaders(salesCookie), body: "{}"
+  });
+  assert.equal(prospectEmailResponse.status, 200);
+  const prospectEmail = db.prepare("SELECT text_body FROM email_outbox WHERE event_type = 'sales_quote_customer' AND recipient = ?").get("potencial@example.com");
+  assert.match(prospectEmail.text_body, /Total a precio de lista/);
+  assert.match(prospectEmail.text_body, /Descuento activo: 30\.00%/);
+  const blockedProspectDiscount = await fetch(`${baseUrl}/api/sales/quotes`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({
+      kind: "prospect", businessName: "Descuento invalido", contactPerson: "Contacto API",
+      email: "otro@example.com", whatsapp: "5493413333333", discountBps: 3001,
+      items: [{ productId: product.id, quantity: 1 }]
+    })
+  });
+  assert.equal(blockedProspectDiscount.status, 400);
+  assert.match((await blockedProspectDiscount.json()).error, /no puede superar el 30%/i);
   const blockedPriceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`);
   assert.equal(blockedPriceListResponse.status, 401);
   const priceListResponse = await fetch(`${baseUrl}/api/products/price-list.xlsx`, { headers: { cookie: customerCookie } });
