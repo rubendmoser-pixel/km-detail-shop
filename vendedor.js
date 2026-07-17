@@ -408,7 +408,7 @@ const paymentStatusLabels = {
 };
 
 const fulfillmentStatusLabels = {
-  pending: "Pendiente",
+  pending: "Preparación pendiente",
   pending_preparation: "Pendiente de preparacion",
   ready: "Preparado para despacho",
   ready_to_ship: "Preparado para despacho",
