@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=23" />
+    <link rel="stylesheet" href="./admin-production.css?v=24" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -307,7 +307,7 @@
             </section>
             <section class="production-week-panel production-calendar-workspace production-desktop-only" data-production-week-panel="calendar">
               <form class="production-admin-panel" id="productionDefaultCalendarForm"><div class="panel-heading"><p class="eyebrow">Configuración habitual</p><h2>Semana normal</h2><p>Se copiará automáticamente al crear nuevas semanas.</p></div><div class="production-week-days" id="productionDefaultCalendarDays"></div><div class="form-actions"><button class="primary-button" type="submit">Guardar configuración habitual</button></div><p class="form-message" id="productionDefaultCalendarMessage"></p></form>
-              <form class="production-admin-panel" id="productionWeekCalendarForm"><div class="panel-heading"><p class="eyebrow">Excepción semanal</p><h2>Calendario de la semana seleccionada</h2><p>Los cambios afectan solamente a esta semana.</p></div><div class="production-week-days" id="productionWeekCalendarDays"></div><div class="form-actions"><button class="primary-button" type="submit">Guardar calendario semanal</button></div><p class="form-message" id="productionWeekCalendarMessage"></p></form>
+              <form class="production-admin-panel" id="productionWeekCalendarForm"><div class="panel-heading"><p class="eyebrow">Excepción semanal</p><h2>Calendario de la semana seleccionada</h2><p>Los cambios afectan solamente a esta semana.</p></div><label class="production-operator-count"><span>Operarios disponibles</span><input id="productionWeekOperatorCount" name="operatorCount" type="number" min="1" step="1" value="1"><small>Se usa únicamente para comparar horas disponibles y requeridas.</small></label><div class="production-week-days" id="productionWeekCalendarDays"></div><div class="form-actions"><button class="primary-button" type="submit">Guardar calendario semanal</button></div><p class="form-message" id="productionWeekCalendarMessage"></p></form>
             </section>
             <section class="production-week-panel production-plan-workspace" data-production-week-panel="plan">
               <section class="production-suggestion-panel production-desktop-only">
@@ -413,7 +413,7 @@
             </div>
             <section class="production-material-list-panel" id="productionRecipeListPanel">
               <div class="production-material-list-heading"><div><p class="eyebrow">Listado</p><h3>Recetas de productos</h3></div><p id="productionRecipeCount">0 recetas</p></div>
-              <div class="orders-table-wrap"><table class="admin-table production-recipe-table"><thead><tr><th>Código KM</th><th>Producto</th><th>EAN</th><th>Componentes</th><th>Estado</th><th>Editar</th></tr></thead><tbody id="productionRecipeTableBody"></tbody></table></div>
+              <div class="orders-table-wrap"><table class="admin-table production-recipe-table"><thead><tr><th>Código KM</th><th>Producto</th><th>EAN</th><th>Componentes</th><th>Tiempo</th><th>Estado</th><th>Editar</th></tr></thead><tbody id="productionRecipeTableBody"></tbody></table></div>
             </section>
             <form class="production-material-form production-recipe-form" id="productionRecipeForm" hidden>
               <div class="production-material-form-heading"><div><p class="eyebrow">Ficha de receta</p><h3 id="productionRecipeFormTitle">Nueva receta</h3></div><button class="ghost-button" id="closeProductionRecipeForm" type="button">Volver al listado</button></div>
@@ -421,6 +421,7 @@
                 <label class="wide"><span>Producto por código KM</span><select name="productId" id="productionRecipeProduct" required><option value="">Seleccionar producto</option></select></label>
                 <div class="production-recipe-identity" id="productionRecipeIdentity">Seleccioná un producto para ver su código KM y EAN.</div>
               </fieldset>
+              <fieldset class="production-recipe-time-field"><legend>Tiempo de fabricación</legend><label class="wide production-recipe-time"><span>Minutos de trabajo por unidad</span><input name="productionMinutesPerUnit" type="number" min="0.01" step="0.01" placeholder="Pendiente de determinar"><small>Dato opcional. Incluye solamente trabajo efectivo; no incluye secado, curado ni esperas.</small></label></fieldset>
               <fieldset class="production-recipe-components-fieldset"><legend>Composición por unidad fabricada</legend>
                 <div class="production-recipe-add-row"><label><span>Insumo</span><select id="productionRecipeComponent"><option value="">Seleccionar insumo</option></select></label><label><span>Cantidad</span><input id="productionRecipeQuantity" type="number" min="0.000001" step="0.000001" value="1"></label><button class="ghost-button" id="addProductionRecipeComponent" type="button">+ Agregar insumo</button></div>
                 <div class="production-recipe-components" id="productionRecipeComponents"></div>
@@ -1061,6 +1062,6 @@
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
     <script src="./admin.js?v=101" defer></script>
-    <script src="./admin-production.js?v=20" defer></script>
+    <script src="./admin-production.js?v=21" defer></script>
   </body>
 </html>

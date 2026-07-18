@@ -6,7 +6,7 @@ import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
   approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, getCurrentProductionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
-  saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator
+  saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator, upsertProductionRecipe
 } from "../server/services/production-service.js";
 
 test("production plan, daily report and admin confirmation update stock with traceability", async (t) => {
@@ -33,7 +33,12 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.equal(searchProductionProducts(db, "test-prod")[0].kmCode, "TEST-PROD");
   assert.deepEqual(searchProductionProducts(db, "no-existe"), []);
   db.prepare("INSERT INTO inventory_balances(item_id,quantity) VALUES(?,100)").run(raw.id);
-  db.prepare("INSERT INTO product_bom(product_id,component_item_id,quantity) VALUES(?,?,2)").run(product.id, raw.id);
+  const recipe = upsertProductionRecipe(db, {
+    productId: product.id, kmCode: "TEST-PROD", ean13: "7790000000001", productionMinutesPerUnit: 30,
+    components: [{ itemId: raw.id, quantity: 2 }]
+  });
+  assert.equal(recipe.productionMinutesPerUnit, 30);
+  assert.equal(searchProductionProducts(db, "test-prod")[0].productionMinutesPerUnit, 30);
 
   const operator = await upsertProductionOperator(db, {
     name: "Operario Produccion", email: "produccion@km-detail.com", portalPassword: "clave-produccion-2026", portalAccessEnabled: true
@@ -44,9 +49,18 @@ test("production plan, daily report and admin confirmation update stock with tra
   const plan = saveProductionPlan(db, { weekStart: "2026-07-13", items: [{ productId: product.id, targetQuantity: 10 }] }, admin.id);
   assert.equal(plan.summary.workingDays, 5);
   assert.equal(plan.summary.scheduledHours, 40);
+  assert.equal(plan.summary.operatorCount, 1);
+  assert.equal(plan.summary.availableLaborHours, 40);
+  assert.equal(plan.summary.requiredLaborHours, 5);
+  assert.equal(plan.summary.productsWithoutTime, 0);
   const defaultDays = getProductionScheduleDefaults(db).days;
   saveProductionScheduleDefaults(db, { days: defaultDays.map((day) => ({ ...day, plannedHours: day.enabled ? 7 : 0 })) });
-  assert.equal(saveProductionPlanCalendar(db, plan.id, { days: plan.days.map((day) => ({ ...day, plannedHours: day.weekday === 5 ? 6 : day.plannedHours })) }).summary.scheduledHours, 38);
+  const capacity = saveProductionPlanCalendar(db, plan.id, { operatorCount: 3, days: plan.days.map((day) => ({ ...day, plannedHours: day.weekday === 5 ? 6 : day.plannedHours })) });
+  assert.equal(capacity.summary.scheduledHours, 38);
+  assert.equal(capacity.summary.operatorCount, 3);
+  assert.equal(capacity.summary.availableLaborHours, 114);
+  assert.equal(capacity.summary.requiredLaborHours, 5);
+  assert.equal(capacity.summary.overCapacityHours, 0);
   approveProductionPlan(db, plan.id, admin.id);
   assert.equal(getCurrentProductionDashboard(db).plan.items[0].remainingQuantity, 10);
 
@@ -72,6 +86,9 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.equal(closed.plan.status, "closed");
   assert.equal(closed.nextPlan.weekStart, "2026-07-20");
   assert.equal(closed.nextPlan.summary.scheduledHours, 35);
+  assert.equal(closed.nextPlan.summary.operatorCount, 3);
+  assert.equal(closed.nextPlan.summary.availableLaborHours, 105);
+  assert.equal(closed.nextPlan.summary.requiredLaborHours, 4);
   assert.equal(closed.nextPlan.items[0].carryoverQuantity, 5);
   assert.equal(closed.nextPlan.items[0].suggestedQuantity, 8);
   assert.equal(closed.nextPlan.items[0].targetQuantity, 8);

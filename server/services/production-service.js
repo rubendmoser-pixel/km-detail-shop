@@ -12,11 +12,12 @@ export function listProductionOperators(db) {
 export function searchProductionProducts(db, query = "") {
   const search = String(query || "").trim().toUpperCase().slice(0, 30);
   if (!search) return [];
-  return db.prepare(`SELECT id,km_code,ean13,name FROM products
+  return db.prepare(`SELECT id,km_code,ean13,name,production_minutes_per_unit FROM products
     WHERE active=1 AND UPPER(km_code) LIKE ?
     ORDER BY CASE WHEN UPPER(km_code)=? THEN 0 WHEN UPPER(km_code) LIKE ? THEN 1 ELSE 2 END,km_code
     LIMIT 12`).all(`%${search}%`, search, `${search}%`).map((row) => ({
-      id: row.id, kmCode: row.km_code, ean13: row.ean13, name: row.name
+      id: row.id, kmCode: row.km_code, ean13: row.ean13, name: row.name,
+      productionMinutesPerUnit: Number(row.production_minutes_per_unit || 0)
     }));
 }
 
@@ -30,13 +31,13 @@ export function listProductionRecipes(db, { query = "", status = "" } = {}) {
   }
   if (status === "complete") clauses.push("EXISTS(SELECT 1 FROM product_bom bx WHERE bx.product_id=p.id AND bx.active=1)");
   if (status === "missing") clauses.push("NOT EXISTS(SELECT 1 FROM product_bom bx WHERE bx.product_id=p.id AND bx.active=1)");
-  return db.prepare(`SELECT p.id,p.km_code,p.ean13,p.name FROM products p WHERE ${clauses.join(" AND ")}
+  return db.prepare(`SELECT p.id,p.km_code,p.ean13,p.name,p.production_minutes_per_unit FROM products p WHERE ${clauses.join(" AND ")}
     ORDER BY p.km_code COLLATE NOCASE`).all(...params).map((row) => publicRecipe(row, db));
 }
 
 export function upsertProductionRecipe(db, input = {}) {
   const productId = positiveId(input.productId);
-  const product = db.prepare("SELECT id,km_code,ean13,name FROM products WHERE id=? AND active=1").get(productId);
+  const product = db.prepare("SELECT id,km_code,ean13,name,production_minutes_per_unit FROM products WHERE id=? AND active=1").get(productId);
   if (!product) throw new NotFoundError("Producto activo no encontrado.");
   const kmCode = requiredText(input.kmCode, "código KM", { min: 2, max: 40 }).toUpperCase();
   const ean13 = String(input.ean13 || "").replace(/\D/g, "");
@@ -44,6 +45,11 @@ export function upsertProductionRecipe(db, input = {}) {
     throw new ValidationError("El código KM o el EAN no coinciden con el producto seleccionado.");
   }
   if (!Array.isArray(input.components) || !input.components.length) throw new ValidationError("Agregá al menos un insumo a la receta.");
+  const hasProductionTime = Object.prototype.hasOwnProperty.call(input, "productionMinutesPerUnit");
+  const minutesRaw = String(input.productionMinutesPerUnit ?? "").trim();
+  const productionMinutesPerUnit = hasProductionTime
+    ? (minutesRaw ? positiveNumber(minutesRaw, "tiempo de fabricación") : 0)
+    : Number(product.production_minutes_per_unit || 0);
   const seen = new Set();
   const components = input.components.map((component) => {
     const itemId = positiveId(component.itemId);
@@ -55,11 +61,12 @@ export function upsertProductionRecipe(db, input = {}) {
   });
   db.exec("BEGIN IMMEDIATE");
   try {
+    db.prepare("UPDATE products SET production_minutes_per_unit=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(productionMinutesPerUnit, productId);
     db.prepare("DELETE FROM product_bom WHERE product_id=?").run(productId);
     const insert = db.prepare("INSERT INTO product_bom(product_id,component_item_id,quantity,active) VALUES(?,?,?,1)");
     for (const component of components) insert.run(productId, component.itemId, component.quantity);
     db.exec("COMMIT");
-    return publicRecipe(product, db);
+    return publicRecipe({ ...product, production_minutes_per_unit: productionMinutesPerUnit }, db);
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;
@@ -221,7 +228,7 @@ export function getProductionPlan(db, planId) {
   if (!plan) throw new NotFoundError("Planificación no encontrada.");
   const items = db.prepare(`SELECT pi.id,pi.product_id,pi.suggested_quantity,pi.target_quantity,pi.adjustment_note,
       pi.carryover_quantity,pi.carryover_from_plan_item_id,
-      p.km_code,p.ean13,p.name,p.warehouse_location,
+      p.km_code,p.ean13,p.name,p.warehouse_location,p.production_minutes_per_unit,
       COALESCE(SUM(CASE WHEN r.status='confirmed' THEN ri.good_quantity ELSE 0 END),0) AS produced_quantity
     FROM production_plan_items pi JOIN products p ON p.id=pi.product_id
     LEFT JOIN production_daily_report_items ri ON ri.plan_item_id=pi.id
@@ -231,7 +238,9 @@ export function getProductionPlan(db, planId) {
       warehouseLocation: row.warehouse_location || "", suggestedQuantity: row.suggested_quantity,
       targetQuantity: row.target_quantity, producedQuantity: row.produced_quantity,
       remainingQuantity: Math.max(0, row.target_quantity - row.produced_quantity), adjustmentNote: row.adjustment_note || "",
-      carryoverQuantity: Number(row.carryover_quantity || 0), carryoverFromPlanItemId: row.carryover_from_plan_item_id || null
+      carryoverQuantity: Number(row.carryover_quantity || 0), carryoverFromPlanItemId: row.carryover_from_plan_item_id || null,
+      productionMinutesPerUnit: Number(row.production_minutes_per_unit || 0),
+      requiredHours: Number(row.production_minutes_per_unit || 0) > 0 ? Number(row.target_quantity) * Number(row.production_minutes_per_unit) / 60 : null
     }));
   ensureProductionPlanDays(db, plan.id, plan.week_start);
   const days = db.prepare("SELECT work_date,weekday,enabled,planned_hours FROM production_plan_days WHERE plan_id=? ORDER BY work_date").all(plan.id).map(publicPlanDay);
@@ -242,8 +251,16 @@ export function getProductionPlan(db, planId) {
   const targetQuantity = items.reduce((sum, item) => sum + item.targetQuantity, 0);
   const producedQuantity = items.reduce((sum, item) => sum + Number(item.producedQuantity || 0), 0);
   const carryoverQuantity = items.reduce((sum, item) => sum + Number(item.carryoverQuantity || 0), 0);
-  return { id: plan.id, weekStart: plan.week_start, weekEnd, status: plan.status, notes: plan.notes, approvedAt: plan.approved_at, days, items,
-    summary: { workingDays: days.filter((day) => day.enabled).length, scheduledHours: days.reduce((sum, day) => sum + day.plannedHours, 0),
+  const scheduledHours = days.reduce((sum, day) => sum + day.plannedHours, 0);
+  const operatorCount = Number(plan.operator_count || 1);
+  const availableLaborHours = scheduledHours * operatorCount;
+  const requiredLaborHours = items.reduce((sum, item) => sum + Number(item.requiredHours || 0), 0);
+  const productsWithoutTime = items.filter((item) => !item.productionMinutesPerUnit).length;
+  return { id: plan.id, weekStart: plan.week_start, weekEnd, status: plan.status, notes: plan.notes, approvedAt: plan.approved_at, operatorCount, days, items,
+    summary: { workingDays: days.filter((day) => day.enabled).length, scheduledHours,
+      operatorCount, availableLaborHours, requiredLaborHours, productsWithoutTime,
+      overCapacityHours: Math.max(0, requiredLaborHours - availableLaborHours),
+      capacityPercent: availableLaborHours > 0 ? requiredLaborHours / availableLaborHours * 100 : 0,
       products: items.length, targetQuantity, producedQuantity, remainingQuantity: Math.max(0, targetQuantity - producedQuantity), carryoverQuantity,
       submittedReports: reportCounts.submitted || 0, confirmedReports: reportCounts.confirmed || 0, returnedReports: reportCounts.returned || 0 } };
 }
@@ -269,10 +286,12 @@ export function saveProductionPlanCalendar(db, planId, input = {}) {
   if (!plan) throw new NotFoundError("Planificación no encontrada.");
   if (plan.status === "closed") throw new ValidationError("La semana está cerrada y su calendario ya no puede modificarse.");
   const days = normalizeScheduleDays(input.days);
+  const operatorCount = positiveInteger(input.operatorCount ?? plan.operator_count ?? 1, "cantidad de operarios");
   const update = db.prepare(`INSERT INTO production_plan_days(plan_id,work_date,weekday,enabled,planned_hours) VALUES(?,?,?,?,?)
     ON CONFLICT(plan_id,work_date) DO UPDATE SET weekday=excluded.weekday,enabled=excluded.enabled,planned_hours=excluded.planned_hours`);
   db.exec("BEGIN IMMEDIATE");
   try {
+    db.prepare("UPDATE production_plans SET operator_count=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(operatorCount, plan.id);
     for (const day of days) update.run(plan.id, addDays(plan.week_start, day.weekday - 1), day.weekday, day.enabled ? 1 : 0, day.plannedHours);
     db.exec("COMMIT");
   } catch (error) { db.exec("ROLLBACK"); throw error; }
@@ -291,8 +310,8 @@ export function closeProductionPlan(db, planId, adminId) {
   db.exec("BEGIN IMMEDIATE");
   try {
     db.prepare("UPDATE production_plans SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(plan.id);
-    if (!next) next = db.prepare(`INSERT INTO production_plans(week_start,notes,created_by) VALUES(?,? ,?) RETURNING *`)
-      .get(nextWeek, `Creada automáticamente al cerrar la semana ${plan.week_start}.`, adminId);
+    if (!next) next = db.prepare(`INSERT INTO production_plans(week_start,notes,created_by,operator_count) VALUES(?,?,?,?) RETURNING *`)
+      .get(nextWeek, `Creada automáticamente al cerrar la semana ${plan.week_start}.`, adminId, Number(plan.operator_count || 1));
     ensureProductionPlanDays(db, next.id, next.week_start);
     const existingItems = new Map(db.prepare("SELECT * FROM production_plan_items WHERE plan_id=?").all(next.id).map((row) => [row.product_id, row]));
     const upsert = db.prepare(`INSERT INTO production_plan_items(plan_id,product_id,suggested_quantity,target_quantity,adjustment_note,sort_order,carryover_quantity,carryover_from_plan_item_id)
@@ -928,6 +947,7 @@ function publicRecipe(row, db) {
       itemKind: component.item_kind || component.item_type, unit: component.unit, quantity: Number(component.quantity)
     }));
   return { productId: row.id, kmCode: row.km_code, ean13: row.ean13 || "", name: row.name,
+    productionMinutesPerUnit: Number(row.production_minutes_per_unit || 0),
     complete: components.length > 0, componentCount: components.length, components };
 }
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }
@@ -937,6 +957,7 @@ function publicPlanDay(row) { return { date: row.work_date || "", weekday: Numbe
 function nonNegativeNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number < 0) throw new ValidationError(`${label} debe ser un número igual o mayor que cero.`); return number; }
 function positiveNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number <= 0) throw new ValidationError(`${label} debe ser mayor que cero.`); return number; }
 function positiveId(value) { const id = Number(value); if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("Identificador inválido."); return id; }
+function positiveInteger(value, label) { const number = Number(value); if (!Number.isSafeInteger(number) || number <= 0) throw new ValidationError(`${label} debe ser un número entero mayor que cero.`); return number; }
 function nonNegativeInteger(value, label) { const number = Number(value); if (!Number.isSafeInteger(number) || number < 0) throw new ValidationError(`${label} debe ser un número entero igual o mayor que cero.`); return number; }
 function stockSafetyDays(value, label) { const days = nonNegativeInteger(value, label); if (days > 730) throw new ValidationError(`${label} no puede superar 730 días.`); return days; }
 function settingInteger(db, key, fallback) { const value = Number(db.prepare("SELECT value FROM settings WHERE key=?").get(key)?.value); return Number.isSafeInteger(value) && value >= 0 ? value : fallback; }

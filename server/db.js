@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 23;
+const SCHEMA_VERSION = 24;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -187,6 +187,7 @@ function migrate(db) {
     CREATE TABLE IF NOT EXISTS production_plans (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       week_start TEXT NOT NULL UNIQUE,
+      operator_count INTEGER NOT NULL DEFAULT 1 CHECK (operator_count > 0),
       status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'in_progress', 'closed')),
       notes TEXT NOT NULL DEFAULT '',
       created_by INTEGER REFERENCES users(id),
@@ -363,6 +364,7 @@ function migrate(db) {
       promotion_starts_at TEXT NOT NULL DEFAULT '',
       promotion_ends_at TEXT NOT NULL DEFAULT '',
       promotion_active INTEGER NOT NULL DEFAULT 0 CHECK (promotion_active IN (0, 1)),
+      production_minutes_per_unit REAL NOT NULL DEFAULT 0 CHECK (production_minutes_per_unit >= 0),
       currency TEXT NOT NULL DEFAULT 'ARS' CHECK (currency = 'ARS'),
       price_effective_from TEXT NOT NULL,
       active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
@@ -812,6 +814,7 @@ function migrate(db) {
   ensureColumn(db, "products", "promotion_starts_at", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "promotion_ends_at", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "promotion_active", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_active IN (0, 1))");
+  ensureColumn(db, "products", "production_minutes_per_unit", "REAL NOT NULL DEFAULT 0 CHECK (production_minutes_per_unit >= 0)");
   ensureColumn(db, "orders", "payment_method", "TEXT NOT NULL DEFAULT 'bank_transfer'");
   ensureColumn(db, "orders", "commercial_class", "TEXT NOT NULL DEFAULT 'B' CHECK (commercial_class IN ('B', 'N'))");
   ensureColumn(db, "orders", "created_by_role", "TEXT NOT NULL DEFAULT 'customer' CHECK (created_by_role IN ('customer', 'sales_rep', 'admin'))");
@@ -889,6 +892,7 @@ function migrate(db) {
   ensureColumn(db, "inventory_items", "tracks_stock", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "production_plan_items", "carryover_quantity", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "production_plan_items", "carryover_from_plan_item_id", "INTEGER");
+  ensureColumn(db, "production_plans", "operator_count", "INTEGER NOT NULL DEFAULT 1 CHECK (operator_count > 0)");
   db.exec("UPDATE inventory_items SET item_kind='intermediate' WHERE item_type='intermediate' AND item_kind='raw_material'");
   db.exec(`
     CREATE TABLE IF NOT EXISTS production_suppliers (
