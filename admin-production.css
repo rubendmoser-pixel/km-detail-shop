@@ -23,6 +23,119 @@
   display: none !important;
 }
 
+/* Ficha profesional de operarios, exclusiva de escritorio. */
+@media (min-width: 1100px) {
+  .production-access-panel {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .production-access-grid {
+    grid-template-columns: minmax(320px, 0.72fr) minmax(620px, 1.28fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .production-access-list-card,
+  .production-access-form {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    background: #111318;
+  }
+
+  .production-access-card-head {
+    grid-column: 1 / -1;
+    margin-bottom: 14px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .production-access-card-head .eyebrow,
+  .production-access-card-head h2 {
+    margin: 0;
+  }
+
+  .production-access-card-head h2 {
+    margin-top: 4px;
+    font-size: 1.35rem;
+  }
+
+  .production-access-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 14px;
+  }
+
+  .production-access-form label {
+    min-width: 0;
+    margin: 8px 0;
+  }
+
+  .production-access-form .production-portal-switch {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    align-items: center;
+    gap: 11px;
+    min-height: 54px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .production-access-form .production-portal-switch input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+  }
+
+  .production-access-form .production-portal-switch span {
+    display: grid;
+    gap: 2px;
+  }
+
+  .production-access-form .production-portal-switch small {
+    color: #9fa7b3;
+    font-weight: 500;
+  }
+
+  .production-access-form .form-actions,
+  .production-access-form .form-message {
+    grid-column: 1 / -1;
+  }
+
+  .production-operator-card {
+    align-items: center;
+    margin: 0 0 10px;
+    padding: 14px;
+  }
+
+  .production-operator-card > div {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+  }
+
+  .production-operator-card span,
+  .production-operator-card small {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .production-operator-card span {
+    color: #c4cad3;
+  }
+
+  .production-operator-card small {
+    color: #8fdbaa;
+  }
+}
+
 @media (max-width: 1099px) {
   .production-desktop-only {
     display: none !important;

@@ -87,7 +87,7 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
@@ -253,6 +253,17 @@ export function createApp({
             clearLogisticsSessionCookie({ secure: config.secureCookies })
           ]
         });
+      }
+      if (request.method === "GET" && url.pathname === "/api/production/admin-handoff") {
+        const result = consumeProductionAdminPortalAccess(db, url.searchParams.get("token") || "", config.sessionDays || 30);
+        response.writeHead(302, {
+          location: "/produccion.html",
+          "set-cookie": productionSessionCookie(result.token, { secure: config.secureCookies, maxAgeSeconds: (config.sessionDays || 30) * 86_400 }),
+          "cache-control": "no-store",
+          ...SECURITY_HEADERS
+        });
+        response.end();
+        return;
       }
       if (request.method === "POST" && url.pathname === "/api/production/logout") {
         logoutProductionOperator(db, cookies.km_production_session);
@@ -627,6 +638,20 @@ export function createApp({
       }
 
       if (url.pathname.startsWith("/api/admin/")) requireAdmin(currentUser);
+
+      if (request.method === "GET" && url.pathname === "/api/admin/production/portal-entry") {
+        const access = createProductionAdminPortalAccess(db, currentUser);
+        const host = request.headers.host || "";
+        const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host);
+        const origin = local ? `${config.secureCookies ? "https" : "http"}://${host}` : "https://produccion.km-detail.com";
+        response.writeHead(302, {
+          location: `${origin}/api/production/admin-handoff?token=${encodeURIComponent(access.token)}`,
+          "cache-control": "no-store",
+          ...SECURITY_HEADERS
+        });
+        response.end();
+        return;
+      }
 
       if (request.method === "GET" && url.pathname === "/api/admin/customers") {
         return sendJson(response, 200, {

@@ -113,11 +113,46 @@ export async function loginProductionOperator(db, input = {}, sessionDays = 30) 
   return { operator: publicOperator(row), token, expiresAt };
 }
 
+export function createProductionAdminPortalAccess(db, admin, handoffMinutes = 2) {
+  if (!admin || admin.role !== "admin" || admin.status !== "active") throw new AuthError("La sesión administrativa no es válida.", 401);
+  const { token, tokenHash } = createSessionToken();
+  const expiresAt = new Date(Date.now() + handoffMinutes * 60_000).toISOString();
+  db.prepare("DELETE FROM production_admin_portal_sessions WHERE expires_at<=?").run(new Date().toISOString());
+  db.prepare("INSERT INTO production_admin_portal_sessions(admin_id,token_hash,state,expires_at) VALUES(?,?,'handoff',?)")
+    .run(admin.id, tokenHash, expiresAt);
+  return { token, expiresAt };
+}
+
+export function consumeProductionAdminPortalAccess(db, token, sessionDays = 30) {
+  if (!token) throw new AuthError("El acceso administrativo venció o ya fue utilizado.", 401);
+  const tokenHash = hashToken(token);
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + sessionDays * 86_400_000).toISOString();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const row = db.prepare(`SELECT s.id,u.id AS admin_id,u.email,u.role,u.status
+      FROM production_admin_portal_sessions s JOIN users u ON u.id=s.admin_id
+      WHERE s.token_hash=? AND s.state='handoff' AND s.expires_at>? AND u.role='admin' AND u.status='active'`).get(tokenHash, now);
+    if (!row) throw new AuthError("El acceso administrativo venció o ya fue utilizado.", 401);
+    db.prepare("UPDATE production_admin_portal_sessions SET state='active',expires_at=? WHERE id=?").run(expiresAt, row.id);
+    db.exec("COMMIT");
+    return { operator: publicAdminPortalUser(row), token, expiresAt };
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 export function authenticateProductionOperator(db, token) {
   if (!token) return null;
   const row = db.prepare(`SELECT o.* FROM production_sessions s JOIN production_operators o ON o.id=s.operator_id
     WHERE s.token_hash=? AND s.expires_at>? AND o.status='active'`).get(hashToken(token), new Date().toISOString());
-  return row ? publicOperator(row) : null;
+  if (row) return publicOperator(row);
+  const admin = db.prepare(`SELECT u.id AS admin_id,u.email,u.role,u.status
+    FROM production_admin_portal_sessions s JOIN users u ON u.id=s.admin_id
+    WHERE s.token_hash=? AND s.state='active' AND s.expires_at>? AND u.role='admin' AND u.status='active'`)
+    .get(hashToken(token), new Date().toISOString());
+  return admin ? publicAdminPortalUser(admin) : null;
 }
 
 export function requireProductionOperator(operator) {
@@ -126,7 +161,10 @@ export function requireProductionOperator(operator) {
 }
 
 export function logoutProductionOperator(db, token) {
-  if (token) db.prepare("DELETE FROM production_sessions WHERE token_hash=?").run(hashToken(token));
+  if (!token) return;
+  const tokenHash = hashToken(token);
+  db.prepare("DELETE FROM production_sessions WHERE token_hash=?").run(tokenHash);
+  db.prepare("DELETE FROM production_admin_portal_sessions WHERE token_hash=?").run(tokenHash);
 }
 
 export function saveProductionPlan(db, input = {}, adminId) {
@@ -276,6 +314,7 @@ export function closeProductionPlan(db, planId, adminId) {
 }
 
 export function saveDailyProductionReport(db, input = {}, operator) {
+  if (operator?.isAdmin) throw new ValidationError("El acceso administrativo es de supervisión. Los partes deben ser cargados por un operario de producción.");
   const productionDate = validDate(input.productionDate, "fecha de producción");
   const notes = optionalText(input.notes, "notes", { max: 1500 });
   const items = normalizeReportItems(db, input.items);
@@ -304,6 +343,7 @@ export function saveDailyProductionReport(db, input = {}, operator) {
 }
 
 export function submitDailyProductionReport(db, reportId, operator) {
+  if (operator?.isAdmin) throw new ValidationError("El acceso administrativo es de supervisión. Los partes deben ser enviados por un operario de producción.");
   const report = db.prepare("SELECT * FROM production_daily_reports WHERE id=?").get(positiveId(reportId));
   if (!report) throw new NotFoundError("Parte diario no encontrado.");
   if (!["draft", "returned"].includes(report.status)) throw new ValidationError("Este parte ya fue enviado.");
@@ -892,6 +932,7 @@ function publicRecipe(row, db) {
 }
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }
 function publicOperator(row) { return { id: row.id, name: row.name, email: row.email, phone: row.phone || "", status: row.status }; }
+function publicAdminPortalUser(row) { return { id: null, name: "Administración KM", email: row.email, status: "active", portalRole: "admin", isAdmin: true }; }
 function publicPlanDay(row) { return { date: row.work_date || "", weekday: Number(row.weekday), enabled: Boolean(row.enabled), plannedHours: Number(row.planned_hours || 0) }; }
 function nonNegativeNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number < 0) throw new ValidationError(`${label} debe ser un número igual o mayor que cero.`); return number; }
 function positiveNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number <= 0) throw new ValidationError(`${label} debe ser mayor que cero.`); return number; }

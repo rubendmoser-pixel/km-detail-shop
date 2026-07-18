@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
-  approveProductionPlan, closeProductionPlan, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator,
+  approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, getCurrentProductionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
   saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator
 } from "../server/services/production-service.js";
 
@@ -17,6 +17,15 @@ test("production plan, daily report and admin confirmation update stock with tra
     for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
   });
   const admin = db.prepare("SELECT id FROM users WHERE role='admin'").get();
+  const adminUser = db.prepare("SELECT id,email,role,status FROM users WHERE role='admin'").get();
+  const handoff = createProductionAdminPortalAccess(db, adminUser);
+  const adminPortal = consumeProductionAdminPortalAccess(db, handoff.token);
+  assert.equal(adminPortal.operator.isAdmin, true);
+  assert.equal(authenticateProductionOperator(db, handoff.token).portalRole, "admin");
+  assert.throws(() => consumeProductionAdminPortalAccess(db, handoff.token), /venció o ya fue utilizado/);
+  assert.throws(() => saveDailyProductionReport(db, { productionDate: "2026-07-14", items: [] }, adminPortal.operator), /supervisión/);
+  logoutProductionOperator(db, handoff.token);
+  assert.equal(authenticateProductionOperator(db, handoff.token), null);
   const family = db.prepare("INSERT INTO product_families(name,slug) VALUES('Prueba produccion','prueba-produccion') RETURNING id").get();
   const product = db.prepare(`INSERT INTO products(km_code,ean13,name,slug,family_id,base_price_cents,price_effective_from)
     VALUES('TEST-PROD','7790000000001','Producto de prueba','producto-prueba-produccion',?,1000,'2026-07-17') RETURNING id`).get(family.id);
