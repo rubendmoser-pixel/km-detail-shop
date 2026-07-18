@@ -7,7 +7,8 @@
 /* Maestro de Insumos: pantalla exclusiva para administración en PC */
 .production-material-form[hidden],
 .production-material-list-panel[hidden],
-.production-supplier-form[hidden] {
+.production-supplier-form[hidden],
+.production-recipe-form[hidden] {
   display: none !important;
 }
 
@@ -19,7 +20,8 @@
 
 @media (min-width: 1100px) {
   .production-materials-workspace,
-  .production-suppliers-workspace {
+  .production-suppliers-workspace,
+  .production-recipes-workspace {
     min-width: 0;
   }
 
@@ -57,6 +59,10 @@
 
   .production-supplier-filters {
     grid-template-columns: minmax(320px, 1fr) minmax(140px, 0.35fr) auto;
+  }
+
+  .production-recipe-filters {
+    grid-template-columns: minmax(320px, 1fr) minmax(150px, 0.4fr) auto;
   }
 
   .production-material-list-panel,
@@ -162,6 +168,40 @@
     overflow-wrap: normal;
   }
 
+  .production-recipe-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .production-recipe-table th:nth-child(1) { width: 12%; }
+  .production-recipe-table th:nth-child(2) { width: 36%; }
+  .production-recipe-table th:nth-child(3) { width: 18%; }
+  .production-recipe-table th:nth-child(4) { width: 14%; }
+  .production-recipe-table th:nth-child(5) { width: 10%; }
+  .production-recipe-table th:nth-child(6) { width: 10%; }
+
+  .production-recipe-table td {
+    overflow: hidden;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .production-recipe-table td:nth-child(1),
+  .production-recipe-table td:nth-child(3),
+  .production-recipe-table td:nth-child(5),
+  .production-recipe-table .ghost-button {
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+
+  .production-recipe-table .ghost-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding-inline: 8px;
+  }
+
   .production-supplier-table .ghost-button {
     width: 100%;
     min-width: 0;
@@ -190,6 +230,92 @@
 
   .production-supplier-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .production-recipe-form {
+    grid-template-columns: minmax(280px, 0.35fr) minmax(0, 1.65fr);
+  }
+
+  .production-recipe-components-fieldset {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .production-recipe-identity {
+    display: grid;
+    gap: 5px;
+    margin-top: 14px;
+    padding: 14px;
+    color: #aeb6c2;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .production-recipe-identity strong {
+    color: #fff;
+    font-size: 1.2rem;
+  }
+
+  .production-recipe-add-row {
+    display: grid;
+    grid-template-columns: minmax(210px, 1fr) minmax(105px, 135px) auto;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .production-recipe-add-row label {
+    margin: 0;
+  }
+
+  .production-recipe-add-row button {
+    min-height: 48px;
+    white-space: nowrap;
+  }
+
+  .production-recipe-components {
+    display: grid;
+    gap: 7px;
+    margin-top: 16px;
+  }
+
+  .production-recipe-component-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(120px, 145px) 54px auto;
+    gap: 9px;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .production-recipe-component-row > div span,
+  .production-recipe-component-row > div strong {
+    display: block;
+  }
+
+  .production-recipe-component-row > div span {
+    color: #aeb6c2;
+  }
+
+  .production-recipe-component-row label {
+    margin: 0;
+  }
+
+  .production-recipe-component-row label span {
+    font-size: 0.72rem;
+  }
+
+  .production-recipe-unit {
+    color: #b9dfff;
+    text-align: center;
+  }
+
+  .production-recipe-component-row .ghost-button {
+    min-width: 88px;
+    padding-inline: 10px;
+    white-space: nowrap;
   }
 
   .production-supplier-material-picker {
@@ -278,7 +404,8 @@
   }
 
   .production-materials-workspace.is-editor-open .production-materials-toolbar .production-materials-filters,
-  .production-suppliers-workspace.is-editor-open .production-materials-toolbar .production-materials-filters {
+  .production-suppliers-workspace.is-editor-open .production-materials-toolbar .production-materials-filters,
+  .production-recipes-workspace.is-editor-open .production-materials-toolbar .production-materials-filters {
     display: none;
   }
 }

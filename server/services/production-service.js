@@ -20,6 +20,52 @@ export function searchProductionProducts(db, query = "") {
     }));
 }
 
+export function listProductionRecipes(db, { query = "", status = "" } = {}) {
+  const search = String(query || "").trim().slice(0, 100);
+  const clauses = ["p.active=1"];
+  const params = [];
+  if (search) {
+    clauses.push("(p.km_code LIKE ? OR p.ean13 LIKE ? OR p.name LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+  if (status === "complete") clauses.push("EXISTS(SELECT 1 FROM product_bom bx WHERE bx.product_id=p.id AND bx.active=1)");
+  if (status === "missing") clauses.push("NOT EXISTS(SELECT 1 FROM product_bom bx WHERE bx.product_id=p.id AND bx.active=1)");
+  return db.prepare(`SELECT p.id,p.km_code,p.ean13,p.name FROM products p WHERE ${clauses.join(" AND ")}
+    ORDER BY p.km_code COLLATE NOCASE`).all(...params).map((row) => publicRecipe(row, db));
+}
+
+export function upsertProductionRecipe(db, input = {}) {
+  const productId = positiveId(input.productId);
+  const product = db.prepare("SELECT id,km_code,ean13,name FROM products WHERE id=? AND active=1").get(productId);
+  if (!product) throw new NotFoundError("Producto activo no encontrado.");
+  const kmCode = requiredText(input.kmCode, "código KM", { min: 2, max: 40 }).toUpperCase();
+  const ean13 = String(input.ean13 || "").replace(/\D/g, "");
+  if (product.km_code.toUpperCase() !== kmCode || String(product.ean13 || "").replace(/\D/g, "") !== ean13) {
+    throw new ValidationError("El código KM o el EAN no coinciden con el producto seleccionado.");
+  }
+  if (!Array.isArray(input.components) || !input.components.length) throw new ValidationError("Agregá al menos un insumo a la receta.");
+  const seen = new Set();
+  const components = input.components.map((component) => {
+    const itemId = positiveId(component.itemId);
+    if (seen.has(itemId)) throw new ValidationError("No repitas insumos en la receta.");
+    const item = db.prepare("SELECT id FROM inventory_items WHERE id=? AND product_id IS NULL AND active=1").get(itemId);
+    if (!item) throw new ValidationError("Uno de los insumos no existe o está inactivo.");
+    seen.add(itemId);
+    return { itemId, quantity: positiveNumber(component.quantity, "cantidad del insumo") };
+  });
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.prepare("DELETE FROM product_bom WHERE product_id=?").run(productId);
+    const insert = db.prepare("INSERT INTO product_bom(product_id,component_item_id,quantity,active) VALUES(?,?,?,1)");
+    for (const component of components) insert.run(productId, component.itemId, component.quantity);
+    db.exec("COMMIT");
+    return publicRecipe(product, db);
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 export async function upsertProductionOperator(db, input = {}) {
   const id = Number(input.id || 0);
   const existing = id ? db.prepare("SELECT id,password_hash FROM production_operators WHERE id=?").get(id) : null;
@@ -499,6 +545,16 @@ function publicSupplier(row, db) {
     province: row.province || "", notes: row.notes || "", active: Boolean(row.active),
     materialIds: materials.map((material) => material.id), materials: materials.map((material) => ({ id: material.id,
       itemCode: material.item_code, name: material.name, primary: Boolean(material.is_primary) })) };
+}
+function publicRecipe(row, db) {
+  const components = db.prepare(`SELECT i.id,i.item_code,i.name,i.item_kind,i.item_type,i.unit,b.quantity
+    FROM product_bom b JOIN inventory_items i ON i.id=b.component_item_id
+    WHERE b.product_id=? AND b.active=1 ORDER BY i.item_code COLLATE NOCASE`).all(row.id).map((component) => ({
+      itemId: component.id, itemCode: component.item_code, name: component.name,
+      itemKind: component.item_kind || component.item_type, unit: component.unit, quantity: Number(component.quantity)
+    }));
+  return { productId: row.id, kmCode: row.km_code, ean13: row.ean13 || "", name: row.name,
+    complete: components.length > 0, componentCount: components.length, components };
 }
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }
 function publicOperator(row) { return { id: row.id, name: row.name, email: row.email, phone: row.phone || "", status: row.status }; }

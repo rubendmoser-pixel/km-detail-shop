@@ -9,8 +9,8 @@ import { synchronizeProductionMaster } from "../server/services/production-maste
 import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
   approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, listProductionMaterials,
-  listProductionSuppliers, saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial,
-  upsertProductionOperator, upsertProductionSupplier
+  listProductionRecipes, listProductionSuppliers, saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial,
+  upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
 } from "../server/services/production-service.js";
 
 const catalogPath = path.resolve(import.meta.dirname, "..", "server", "data", "catalog-2026.json");
@@ -44,6 +44,19 @@ test("production master imports every validated recipe idempotently by KM code a
   const importedSuppliers = listProductionSuppliers(db);
   assert.equal(importedSuppliers.length, 8);
   assert.ok(importedSuppliers.find((supplier) => supplier.name === "Norflex").materials.length > 0);
+  const recipes = listProductionRecipes(db);
+  assert.equal(recipes.length, 104);
+  assert.ok(recipes.every((recipe) => recipe.complete));
+  const cp171Recipe = recipes.find((recipe) => recipe.kmCode === "CP171K");
+  const updatedRecipe = upsertProductionRecipe(db, {
+    productId: cp171Recipe.productId, kmCode: cp171Recipe.kmCode, ean13: cp171Recipe.ean13,
+    components: cp171Recipe.components.map((component, index) => ({ itemId: component.itemId, quantity: index ? component.quantity : component.quantity + 1 }))
+  });
+  assert.equal(updatedRecipe.components[0].quantity, cp171Recipe.components[0].quantity + 1);
+  assert.throws(() => upsertProductionRecipe(db, {
+    productId: cp171Recipe.productId, kmCode: cp171Recipe.kmCode, ean13: "9999999999999",
+    components: cp171Recipe.components
+  }), /EAN/i);
 
   const createdMaterial = upsertProductionMaterial(db, {
     itemCode: "MP-PRUEBA", name: "Insumo de prueba", category: "Pruebas", itemKind: "raw_material",
