@@ -8,8 +8,8 @@ import { upsertProduct } from "../server/services/product-service.js";
 import { synchronizeProductionMaster } from "../server/services/production-master-service.js";
 import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
-  approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, saveDailyProductionReport, saveProductionPlan,
-  submitDailyProductionReport, upsertProductionOperator
+  approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, listProductionMaterials,
+  saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator
 } from "../server/services/production-service.js";
 
 const catalogPath = path.resolve(import.meta.dirname, "..", "server", "data", "catalog-2026.json");
@@ -33,6 +33,24 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.equal(imported.recipeLines, 527);
   assert.equal(db.prepare("SELECT COUNT(DISTINCT product_id) AS count FROM product_bom WHERE active=1").get().count, 104);
   assert.equal(db.prepare("SELECT active FROM inventory_items WHERE item_code='MP-BOLSA-ZIP'").get().active, 0);
+  const materials = listProductionMaterials(db);
+  assert.equal(materials.length, 49);
+  assert.equal(materials.find((item) => item.itemCode === "MP-ESP-CEL-12").purchaseCost, 10);
+  assert.equal(materials.find((item) => item.itemCode === "MP-ESP-CEL-12").purchaseUnit, "kg");
+  assert.equal(materials.find((item) => item.itemCode === "MP-BOLSA-065").itemKind, "packaging");
+  assert.equal(materials.find((item) => item.itemCode === "SRV-INYECCION").tracksStock, false);
+
+  const createdMaterial = upsertProductionMaterial(db, {
+    itemCode: "MP-PRUEBA", name: "Insumo de prueba", category: "Pruebas", itemKind: "raw_material",
+    purchaseUnit: "rollo", currency: "USD", purchaseCost: 25.5, minimumPurchase: 2,
+    leadTimeDays: 7, unit: "metro", conversionFactor: 50, tracksStock: true, active: true
+  });
+  assert.equal(createdMaterial.conversionFactor, 50);
+  assert.equal(createdMaterial.quantity, 0);
+  const editedMaterial = upsertProductionMaterial(db, { ...createdMaterial, purchaseCost: 27, active: false });
+  assert.equal(editedMaterial.purchaseCost, 27);
+  assert.equal(editedMaterial.active, false);
+  assert.throws(() => upsertProductionMaterial(db, { ...createdMaterial, id: undefined }), /código interno/i);
 
   const pa160Glue = db.prepare(`SELECT b.quantity FROM product_bom b
     JOIN products p ON p.id=b.product_id JOIN inventory_items i ON i.id=b.component_item_id

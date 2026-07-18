@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-17-v1",
+  "version": "2026-07-17-v2",
   "identityRule": "km_code+ean13",
   "expectedProducts": 104,
   "expectedSourceLines": 560,

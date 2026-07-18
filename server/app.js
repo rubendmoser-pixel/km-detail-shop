@@ -88,9 +88,9 @@ import {
 } from "./services/logistics-service.js";
 import {
   approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact,
-  listProductionOperators, listProductionPlans, listProductionReports, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
+  listProductionMaterials, listProductionOperators, listProductionPlans, listProductionReports, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
-  submitDailyProductionReport, upsertProductionOperator
+  submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator
 } from "./services/production-service.js";
 import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
@@ -755,6 +755,14 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/inventory") {
         return sendJson(response, 200, { inventory: getProductionInventory(db, { query: url.searchParams.get("q") || "", type: url.searchParams.get("type") || "" }) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/materials") {
+        return sendJson(response, 200, { materials: listProductionMaterials(db, {
+          query: url.searchParams.get("q") || "", kind: url.searchParams.get("kind") || "", status: url.searchParams.get("status") || ""
+        }) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/materials") {
+        return sendJson(response, 201, { material: upsertProductionMaterial(db, await readJson(request)) });
       }
       match = url.pathname.match(/^\/api\/admin\/production\/reports\/(\d+)\/impact$/);
       if (request.method === "GET" && match) {

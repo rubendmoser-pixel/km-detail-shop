@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=5" />
+    <link rel="stylesheet" href="./admin-production.css?v=6" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -278,6 +278,7 @@
           <div class="admin-titlebar"><div><p class="eyebrow">Fabricación</p><h1>Producción semanal</h1></div><div class="admin-toolbar"><a class="ghost-button" href="https://produccion.km-detail.com/produccion.html" target="_blank" rel="noreferrer">Abrir portal de producción</a><button class="ghost-button toolbar-refresh-button" id="reloadProductionAdmin" type="button">Actualizar</button></div></div>
           <nav class="production-module-nav" aria-label="Secciones de producción">
             <button class="is-active" type="button" data-production-screen="overview">Plan y partes</button>
+            <button class="production-desktop-only" type="button" data-production-screen="materials">Insumos</button>
             <button type="button" data-production-screen="stock">Stock</button>
             <button type="button" data-production-screen="movements">Movimientos</button>
             <button type="button" data-production-screen="access">Accesos</button>
@@ -286,6 +287,46 @@
             <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Planificación</p><h2>Objetivo semanal</h2></div><form id="productionPlanForm"><label><span>Semana desde</span><input name="weekStart" type="date" required></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="production-add-row"><div class="production-product-search"><input id="productionProductSearch" type="search" autocomplete="off" placeholder="Buscar código KM" aria-label="Buscar producto por código KM" aria-controls="productionProductResults" aria-expanded="false"><div class="production-product-results" id="productionProductResults" role="listbox" hidden></div><div class="production-product-selected" id="productionProductSelected" hidden></div></div><input id="productionProductQuantity" type="number" min="1" step="1" value="1" aria-label="Cantidad"><button class="ghost-button" id="addProductionPlanItem" type="button">Agregar</button></div><div id="productionPlanItems"></div><div class="form-actions"><button class="ghost-button" type="submit">Guardar planificación</button><button class="primary-button" id="approveProductionPlan" type="button" disabled>Aprobar y habilitar</button></div><p class="form-message" id="productionPlanMessage"></p></form><div id="productionPlanHistory"></div></section>
             <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Control administrativo</p><h2>Partes diarios</h2></div><div id="productionReportsAdmin"></div></section>
           </div>
+          <section class="production-materials-workspace production-desktop-only" data-production-panel="materials" hidden>
+            <div class="production-materials-toolbar">
+              <div><p class="eyebrow">Maestro productivo</p><h2>Insumos</h2></div>
+              <div class="production-materials-filters">
+                <input id="productionMaterialSearch" type="search" placeholder="Buscar código, nombre o categoría" aria-label="Buscar insumos">
+                <select id="productionMaterialKindFilter" aria-label="Filtrar por tipo"><option value="">Todos los tipos</option><option value="raw_material">Materia prima</option><option value="packaging">Embalaje</option><option value="service">Servicio o mano de obra</option><option value="intermediate">Intermedio</option></select>
+                <select id="productionMaterialStatusFilter" aria-label="Filtrar por estado"><option value="">Todos</option><option value="active">Activos</option><option value="inactive">Inactivos</option></select>
+                <button class="ghost-button" id="newProductionMaterial" type="button">+ Nuevo insumo</button>
+              </div>
+            </div>
+            <section class="production-material-list-panel" id="productionMaterialListPanel">
+              <div class="production-material-list-heading"><div><p class="eyebrow">Listado</p><h3>Maestro de insumos</h3></div><p id="productionMaterialCount">0 insumos</p></div>
+              <div class="orders-table-wrap"><table class="admin-table production-material-table"><thead><tr><th>Código</th><th>Insumo</th><th>Tipo</th><th>Unidad de stock</th><th>Costo de compra</th><th>Estado</th><th>Editar</th></tr></thead><tbody id="productionMaterialTableBody"></tbody></table></div>
+            </section>
+            <form class="production-material-form" id="productionMaterialForm" hidden>
+              <div class="production-material-form-heading"><div><p class="eyebrow">Ficha de insumo</p><h3 id="productionMaterialFormTitle">Nuevo insumo</h3></div><button class="ghost-button" id="closeProductionMaterialForm" type="button">Volver al listado</button></div>
+              <input name="id" type="hidden">
+              <fieldset><legend>Identificación</legend>
+                <label><span>Código interno</span><input name="itemCode" required maxlength="60" autocomplete="off"></label>
+                <label><span>Nombre</span><input name="name" required maxlength="180"></label>
+                <label><span>Categoría</span><input name="category" maxlength="100"></label>
+                <label><span>Tipo</span><select name="itemKind"><option value="raw_material">Materia prima</option><option value="packaging">Embalaje</option><option value="service">Servicio o mano de obra</option><option value="intermediate">Intermedio</option></select></label>
+              </fieldset>
+              <fieldset><legend>Compra y costo</legend>
+                <label><span>Unidad de compra</span><input name="purchaseUnit" required maxlength="40" value="unidad"></label>
+                <label><span>Moneda</span><select name="currency"><option value="USD">USD</option><option value="ARS">ARS</option></select></label>
+                <label><span>Costo por unidad de compra</span><input name="purchaseCost" type="number" min="0" step="0.000001" value="0" required></label>
+                <label><span>Compra mínima</span><input name="minimumPurchase" type="number" min="0" step="0.001" value="0"></label>
+                <label><span>Plazo habitual (días)</span><input name="leadTimeDays" type="number" min="0" step="1" value="0"></label>
+              </fieldset>
+              <fieldset><legend>Stock y conversión</legend>
+                <label><span>Unidad de stock</span><input name="unit" required maxlength="40" value="unidad"></label>
+                <label><span>Unidades de stock por unidad comprada</span><input name="conversionFactor" type="number" min="0.000001" step="0.000001" value="1" required></label>
+                <label class="portal-access-option"><input name="tracksStock" type="checkbox" checked><span>Controla stock físico</span></label>
+                <label class="portal-access-option"><input name="active" type="checkbox" checked><span>Insumo activo</span></label>
+              </fieldset>
+              <div class="form-actions"><button class="primary-button" type="submit">Guardar insumo</button><button class="ghost-button" id="resetProductionMaterial" type="button">Limpiar</button></div>
+              <p class="form-message" id="productionMaterialMessage" role="status"></p>
+            </form>
+          </section>
           <section class="production-admin-panel" data-production-panel="stock" hidden>
             <div class="panel-heading"><p class="eyebrow">Inventario</p><h2>Stock actual</h2></div>
             <div id="productionInventoryStatus"></div>
@@ -775,6 +816,6 @@
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
     <script src="./admin.js?v=93" defer></script>
-    <script src="./admin-production.js?v=5" defer></script>
+    <script src="./admin-production.js?v=6" defer></script>
   </body>
 </html>

@@ -3,3 +3,180 @@
 .production-module-nav{display:flex;gap:8px;margin:0 0 18px;padding:5px;overflow-x:auto;background:#111318;border:1px solid #34373e;border-radius:12px;scrollbar-width:none}.production-module-nav button{flex:0 0 auto;min-height:44px;padding:0 18px;color:#c8ced8;background:transparent;border:0;border-radius:8px;font-weight:800}.production-module-nav button.is-active{color:#0b0c0f;background:linear-gradient(135deg,#cbc6ff,#8f83ff)}[data-production-panel="stock"],[data-production-panel="movements"],[data-production-panel="access"]{margin-top:0}.production-inventory-status{display:flex;justify-content:space-between;gap:14px;margin:12px 0 18px;padding:14px 16px;border-radius:10px}.production-inventory-status strong,.production-inventory-status span{display:block}.production-inventory-status.is-pending{color:#ffe8a3;background:#4a390f;border:1px solid #a8831c}.production-inventory-status.is-ready{color:#bff7d3;background:#123d25;border:1px solid #2b8d50}.production-inventory-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}.production-inventory-summary div{padding:14px;background:#191c21;border:1px solid #383d45;border-radius:10px}.production-inventory-summary span,.production-inventory-summary strong{display:block}.production-inventory-summary span{color:#aeb6c2;font-size:.82rem}.production-inventory-summary strong{margin-top:5px;font-size:1.45rem}.production-stock-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.35fr);gap:10px;margin:18px 0}.production-stock-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.production-stock-card,.production-movement-card{display:flex;justify-content:space-between;gap:16px;padding:13px 15px;background:#191c21;border:1px solid #383d45;border-radius:10px}.production-stock-card>div:last-child,.production-movement-card>div:last-child{text-align:right}.production-stock-card span,.production-stock-card small,.production-movement-card span,.production-movement-card small{display:block;color:#adb5c1}.production-stock-card.is-negative{border-color:#9b454c;background:#2b171a}.production-stock-card.is-negative>div:last-child strong,.production-movement-card .is-negative{color:#ff9ea5}.production-movement-card .is-positive{color:#8ef0b0}.production-movement-list{display:grid;gap:8px;margin-top:15px}.production-impact{margin-top:14px;padding:14px;background:#101216;border:1px solid #5c6473;border-radius:10px}.production-impact-title{display:flex;justify-content:space-between;align-items:center}.production-impact-title button{width:36px;height:36px;color:#fff;background:transparent;border:0;font-size:1.5rem}.production-impact h4{margin:14px 0 6px;color:#c5ccd7;font-size:.82rem;text-transform:uppercase;letter-spacing:.07em}.production-impact-list{display:grid;gap:5px}.production-impact-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:9px 10px;background:#1a1d23;border-radius:7px}.production-impact-row div span,.production-impact-row small{display:block;color:#aeb6c2}.production-impact-row small{grid-column:2;text-align:right}.production-impact-row.is-negative{background:#30191c}.production-impact-delta{font-weight:900;color:#ff9ea5}.production-impact-delta.is-positive{color:#8ef0b0}.production-impact-warning{margin:10px 0;padding:9px 12px;color:#ffe8a3;background:#4a390f;border-radius:7px}.production-impact-warning p{margin:3px 0}.production-confirm-impact{width:100%;margin-top:14px}
 
 @media(max-width:900px){.production-inventory-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.production-stock-list{grid-template-columns:1fr}}@media(max-width:680px){.production-module-nav{margin-right:-5px;margin-left:-5px}.production-module-nav button{padding:0 14px}.production-inventory-status,.production-stock-card,.production-movement-card{flex-direction:column}.production-inventory-status,.production-stock-toolbar{grid-template-columns:1fr}.production-stock-card>div:last-child,.production-movement-card>div:last-child{text-align:left}.production-impact-row{grid-template-columns:1fr}.production-impact-row small{grid-column:1;text-align:left}.production-inventory-summary{grid-template-columns:1fr 1fr}}
+
+/* Maestro de Insumos: pantalla exclusiva para administración en PC */
+.production-material-form[hidden],
+.production-material-list-panel[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 1099px) {
+  .production-desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1100px) {
+  .production-materials-workspace {
+    min-width: 0;
+  }
+
+  .production-materials-toolbar {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.35fr) minmax(720px, 1.65fr);
+    align-items: end;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .production-materials-toolbar h2,
+  .production-materials-toolbar p,
+  .production-material-list-heading h3,
+  .production-material-list-heading p,
+  .production-material-form-heading h3,
+  .production-material-form-heading p {
+    margin: 0;
+  }
+
+  .production-materials-toolbar h2 {
+    font-size: clamp(1.55rem, 1.6vw, 1.9rem);
+  }
+
+  .production-materials-filters {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(170px, 0.55fr) minmax(125px, 0.35fr) auto;
+    gap: 10px;
+  }
+
+  .production-materials-filters > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .production-material-list-panel,
+  .production-material-form {
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 12px;
+    background: rgba(15, 17, 21, 0.72);
+  }
+
+  .production-material-list-panel {
+    overflow: hidden;
+  }
+
+  .production-material-list-heading,
+  .production-material-form-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .production-material-list-heading {
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .production-material-list-heading h3,
+  .production-material-form-heading h3 {
+    font-size: clamp(1.3rem, 1.35vw, 1.6rem);
+  }
+
+  .production-material-list-heading > p {
+    color: #aeb4c1;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .production-material-list-panel .orders-table-wrap {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .production-material-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .production-material-table th:nth-child(1) { width: 14%; }
+  .production-material-table th:nth-child(2) { width: 27%; }
+  .production-material-table th:nth-child(3) { width: 15%; }
+  .production-material-table th:nth-child(4) { width: 16%; }
+  .production-material-table th:nth-child(5) { width: 13%; }
+  .production-material-table th:nth-child(6) { width: 8%; }
+  .production-material-table th:nth-child(7) { width: 7%; }
+
+  .production-material-table td {
+    overflow: hidden;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .production-material-table td:nth-child(5) {
+    white-space: nowrap;
+  }
+
+  .production-material-table .ghost-button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .production-material-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    padding: 22px;
+    border-color: rgba(183, 184, 255, 0.24);
+  }
+
+  .production-material-form-heading,
+  .production-material-form > .form-actions,
+  .production-material-form > .form-message {
+    grid-column: 1 / -1;
+  }
+
+  .production-material-form fieldset {
+    align-content: start;
+    margin: 0;
+  }
+
+  .production-material-form label {
+    display: grid;
+    gap: 7px;
+    margin: 12px 0;
+  }
+
+  .production-material-form .portal-access-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 11px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .production-material-form .portal-access-option input {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+  }
+
+  .production-material-form > .form-actions {
+    position: sticky;
+    bottom: 12px;
+    z-index: 3;
+    padding: 12px;
+    border: 1px solid rgba(183, 184, 255, 0.18);
+    border-radius: 10px;
+    background: rgba(12, 14, 18, 0.96);
+  }
+
+  .production-materials-workspace.is-editor-open .production-materials-toolbar .production-materials-filters {
+    display: none;
+  }
+}

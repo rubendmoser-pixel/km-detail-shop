@@ -29,18 +29,27 @@ export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath
 
   db.exec("BEGIN IMMEDIATE");
   try {
-    const upsertItem = db.prepare(`INSERT INTO inventory_items(item_code,name,item_type,unit,product_id,active,updated_at)
-      VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)
+    const upsertItem = db.prepare(`INSERT INTO inventory_items(item_code,name,item_type,unit,product_id,active,item_kind,purchase_unit,
+      conversion_factor,currency,purchase_cost,tracks_stock,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
       ON CONFLICT(item_code) DO UPDATE SET name=excluded.name,item_type=excluded.item_type,unit=excluded.unit,
-      product_id=excluded.product_id,active=excluded.active,updated_at=CURRENT_TIMESTAMP`);
+      product_id=excluded.product_id,active=excluded.active,item_kind=excluded.item_kind,purchase_unit=excluded.purchase_unit,
+      conversion_factor=excluded.conversion_factor,currency=excluded.currency,purchase_cost=excluded.purchase_cost,
+      tracks_stock=excluded.tracks_stock,updated_at=CURRENT_TIMESTAMP`);
 
     for (const recipe of master.recipes) {
       const product = productByCode.get(recipe.kmCode.toUpperCase());
-      upsertItem.run(`PT-${product.km_code}`, product.name, "finished_product", "unidad", product.id, 1);
+      upsertItem.run(`PT-${product.km_code}`, product.name, "finished_product", "unidad", product.id, 1,
+        "finished_product", "unidad", 1, "ARS", 0, 1);
     }
     for (const material of master.materials) {
       if (material.itemCode.startsWith("PT-")) continue;
-      upsertItem.run(material.itemCode, material.name, material.itemType, material.unit, null, material.active ? 1 : 0);
+      const itemKind = material.itemCode.startsWith("SRV-") ? "service"
+        : material.itemCode.startsWith("MP-BOLSA-") ? "packaging"
+        : material.itemType === "intermediate" ? "intermediate" : "raw_material";
+      upsertItem.run(material.itemCode, material.name, material.itemType, material.unit, null, material.active ? 1 : 0,
+        itemKind, material.purchaseUnit || material.unit, Number(material.purchaseContent || 1),
+        material.currency === "ARS" ? "ARS" : "USD", Number(material.purchaseCost || 0), itemKind === "service" ? 0 : 1);
     }
     db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) SELECT id,0 FROM inventory_items").run();
 

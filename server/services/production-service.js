@@ -200,7 +200,8 @@ export function confirmDailyProductionReport(db, reportId, adminId) {
       ensureBalance(db, finished.id);
       if (row.good_quantity > 0) addMovement(db, finished.id, row.good_quantity, "production_in", report.id, `Ingreso confirmado ${report.report_number}`, adminId);
       const attempted = row.good_quantity + row.rejected_quantity;
-      const bom = db.prepare("SELECT component_item_id,quantity FROM product_bom WHERE product_id=? AND active=1").all(row.product_id);
+      const bom = db.prepare(`SELECT b.component_item_id,b.quantity FROM product_bom b
+        JOIN inventory_items i ON i.id=b.component_item_id WHERE b.product_id=? AND b.active=1 AND i.tracks_stock=1`).all(row.product_id);
       for (const component of bom) addMovement(db, component.component_item_id, -(component.quantity * attempted), "production_consumption", report.id, `Consumo ${report.report_number} / ${product.km_code}`, adminId);
     }
     db.prepare(`UPDATE production_daily_reports SET status='confirmed',confirmed_by=?,confirmed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?`).run(adminId, report.id);
@@ -244,7 +245,7 @@ export function getProductionReportImpact(db, reportId) {
     const attempted = row.good_quantity + row.rejected_quantity;
     const bom = db.prepare(`SELECT b.component_item_id,b.quantity,i.item_code,i.name,i.unit,COALESCE(ib.quantity,0) AS balance
       FROM product_bom b JOIN inventory_items i ON i.id=b.component_item_id
-      LEFT JOIN inventory_balances ib ON ib.item_id=i.id WHERE b.product_id=? AND b.active=1`).all(row.product_id);
+      LEFT JOIN inventory_balances ib ON ib.item_id=i.id WHERE b.product_id=? AND b.active=1 AND i.tracks_stock=1`).all(row.product_id);
     if (!bom.length) warnings.push(`${row.km_code}: receta pendiente de importar.`);
     for (const component of bom) {
       const existing = componentTotals.get(component.component_item_id) || {
@@ -268,7 +269,7 @@ export function getProductionInventory(db, { query = "", type = "" } = {}) {
   const search = String(query || "").trim().slice(0, 80);
   const allowedTypes = new Set(["raw_material", "intermediate", "finished_product"]);
   const itemType = allowedTypes.has(type) ? type : "";
-  const clauses = ["i.active=1"];
+  const clauses = ["i.active=1", "i.tracks_stock=1"];
   const params = [];
   if (itemType) { clauses.push("i.item_type=?"); params.push(itemType); }
   if (search) { clauses.push("(i.item_code LIKE ? OR i.name LIKE ?)"); params.push(`%${search}%`, `%${search}%`); }
@@ -296,6 +297,64 @@ export function getProductionInventory(db, { query = "", type = "" } = {}) {
     },
     items, movements
   };
+}
+
+export function listProductionMaterials(db, { query = "", kind = "", status = "" } = {}) {
+  const search = String(query || "").trim().slice(0, 100);
+  const allowedKinds = new Set(["raw_material", "packaging", "service", "intermediate"]);
+  const clauses = ["i.product_id IS NULL"];
+  const params = [];
+  if (allowedKinds.has(kind)) { clauses.push("i.item_kind=?"); params.push(kind); }
+  if (status === "active" || status === "inactive") { clauses.push("i.active=?"); params.push(status === "active" ? 1 : 0); }
+  if (search) {
+    clauses.push("(i.item_code LIKE ? OR i.name LIKE ? OR i.category LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+  return db.prepare(`SELECT i.*,COALESCE(b.quantity,0) AS quantity
+    FROM inventory_items i LEFT JOIN inventory_balances b ON b.item_id=i.id
+    WHERE ${clauses.join(" AND ")} ORDER BY i.active DESC,i.item_code COLLATE NOCASE`)
+    .all(...params).map(publicMaterial);
+}
+
+export function upsertProductionMaterial(db, input = {}) {
+  const id = Number(input.id || 0);
+  const existing = id ? db.prepare("SELECT * FROM inventory_items WHERE id=? AND product_id IS NULL").get(id) : null;
+  if (id && !existing) throw new NotFoundError("Insumo no encontrado.");
+  const itemCode = requiredText(input.itemCode, "código interno", { min: 2, max: 60 }).toUpperCase();
+  const name = requiredText(input.name, "nombre", { min: 2, max: 180 });
+  const category = optionalText(input.category, "categoría", { max: 100 });
+  const allowedKinds = new Set(["raw_material", "packaging", "service", "intermediate"]);
+  const itemKind = allowedKinds.has(input.itemKind) ? input.itemKind : "raw_material";
+  const itemType = itemKind === "intermediate" ? "intermediate" : "raw_material";
+  const unit = requiredText(input.unit, "unidad de stock", { min: 1, max: 40 });
+  const purchaseUnit = requiredText(input.purchaseUnit, "unidad de compra", { min: 1, max: 40 });
+  const conversionFactor = positiveNumber(input.conversionFactor, "factor de conversión");
+  const currency = input.currency === "ARS" ? "ARS" : "USD";
+  const purchaseCost = nonNegativeNumber(input.purchaseCost, "costo de compra");
+  const minimumPurchase = nonNegativeNumber(input.minimumPurchase, "compra mínima");
+  const leadTimeDays = nonNegativeInteger(input.leadTimeDays || 0, "plazo de entrega");
+  const tracksStock = itemKind === "service" ? 0 : input.tracksStock === false ? 0 : 1;
+  const active = input.active === false ? 0 : 1;
+  try {
+    let materialId = id;
+    if (existing) {
+      db.prepare(`UPDATE inventory_items SET item_code=?,name=?,item_type=?,unit=?,active=?,category=?,item_kind=?,
+        purchase_unit=?,conversion_factor=?,currency=?,purchase_cost=?,minimum_purchase=?,lead_time_days=?,tracks_stock=?,updated_at=CURRENT_TIMESTAMP
+        WHERE id=?`).run(itemCode, name, itemType, unit, active, category, itemKind, purchaseUnit, conversionFactor,
+        currency, purchaseCost, minimumPurchase, leadTimeDays, tracksStock, id);
+    } else {
+      materialId = db.prepare(`INSERT INTO inventory_items(item_code,name,item_type,unit,active,category,item_kind,purchase_unit,
+        conversion_factor,currency,purchase_cost,minimum_purchase,lead_time_days,tracks_stock)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`).get(itemCode, name, itemType, unit, active, category, itemKind,
+        purchaseUnit, conversionFactor, currency, purchaseCost, minimumPurchase, leadTimeDays, tracksStock).id;
+      ensureBalance(db, materialId);
+    }
+    return publicMaterial(db.prepare(`SELECT i.*,COALESCE(b.quantity,0) AS quantity FROM inventory_items i
+      LEFT JOIN inventory_balances b ON b.item_id=i.id WHERE i.id=?`).get(materialId));
+  } catch (error) {
+    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Ya existe un insumo con ese código interno.");
+    throw error;
+  }
 }
 
 export function listProductionReports(db, { status = "", limit = 60 } = {}) {
@@ -354,8 +413,18 @@ function publicMovement(row) { return { id: row.id, itemCode: row.item_code, nam
   unit: row.unit, delta: Number(row.quantity_delta), movementType: row.movement_type, referenceType: row.reference_type,
   referenceId: row.reference_id, notes: row.notes || "", balanceAfter: row.balance_after === null ? null : Number(row.balance_after),
   currentBalance: Number(row.current_balance || 0), createdAt: row.created_at }; }
+function publicMaterial(row) { return {
+  id: row.id, itemCode: row.item_code, name: row.name, category: row.category || "", itemKind: row.item_kind || row.item_type,
+  itemType: row.item_type, unit: row.unit, purchaseUnit: row.purchase_unit || row.unit,
+  conversionFactor: Number(row.conversion_factor || 1), currency: row.currency === "ARS" ? "ARS" : "USD",
+  purchaseCost: Number(row.purchase_cost || 0), minimumPurchase: Number(row.minimum_purchase || 0),
+  leadTimeDays: Number(row.lead_time_days || 0), tracksStock: Boolean(row.tracks_stock), active: Boolean(row.active),
+  quantity: Number(row.quantity || 0)
+}; }
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }
 function publicOperator(row) { return { id: row.id, name: row.name, email: row.email, phone: row.phone || "", status: row.status }; }
+function nonNegativeNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number < 0) throw new ValidationError(`${label} debe ser un número igual o mayor que cero.`); return number; }
+function positiveNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number <= 0) throw new ValidationError(`${label} debe ser mayor que cero.`); return number; }
 function positiveId(value) { const id = Number(value); if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("Identificador inválido."); return id; }
 function nonNegativeInteger(value, label) { const number = Number(value); if (!Number.isSafeInteger(number) || number < 0) throw new ValidationError(`${label} debe ser un número entero igual o mayor que cero.`); return number; }
 function validDate(value, label) { if (typeof value !== "string" || !ISO_DATE.test(value) || Number.isNaN(Date.parse(`${value}T12:00:00Z`))) throw new ValidationError(`Revisá ${label}.`); return value; }

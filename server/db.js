@@ -848,6 +848,16 @@ function migrate(db) {
   ensureColumn(db, "sales_quotes", "email_sent_at", "TEXT");
   ensureColumn(db, "sales_quotes", "whatsapp_sent_at", "TEXT");
   ensureColumn(db, "inventory_movements", "balance_after", "REAL");
+  ensureColumn(db, "inventory_items", "category", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "inventory_items", "item_kind", "TEXT NOT NULL DEFAULT 'raw_material'");
+  ensureColumn(db, "inventory_items", "purchase_unit", "TEXT NOT NULL DEFAULT 'unidad'");
+  ensureColumn(db, "inventory_items", "conversion_factor", "REAL NOT NULL DEFAULT 1");
+  ensureColumn(db, "inventory_items", "currency", "TEXT NOT NULL DEFAULT 'USD'");
+  ensureColumn(db, "inventory_items", "purchase_cost", "REAL NOT NULL DEFAULT 0");
+  ensureColumn(db, "inventory_items", "minimum_purchase", "REAL NOT NULL DEFAULT 0");
+  ensureColumn(db, "inventory_items", "lead_time_days", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "inventory_items", "tracks_stock", "INTEGER NOT NULL DEFAULT 1");
+  db.exec("UPDATE inventory_items SET item_kind='intermediate' WHERE item_type='intermediate' AND item_kind='raw_material'");
   db.exec(`
     CREATE TABLE IF NOT EXISTS sales_prospect_quotes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
