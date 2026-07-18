@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=15" />
+    <link rel="stylesheet" href="./admin-production.css?v=16" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -84,6 +84,7 @@
               <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Plan y partes</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-stock" title="Stock de insumos"><span class="admin-tab-label">Stock de insumos</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-movements" title="Movimientos de stock"><span class="admin-tab-label">Movimientos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-recipes" title="Recetas"><span class="admin-tab-label">Recetas</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-suppliers" title="Proveedores"><span class="admin-tab-label">Proveedores</span></button>
             </div>
@@ -405,11 +406,6 @@
                 <div class="production-stock-toolbar"><input id="productionStockSearch" type="search" placeholder="Buscar código o insumo"><select id="productionStockType"><option value="">Todos los insumos</option><option value="raw_material">Materias primas</option><option value="intermediate">Intermedios</option></select></div>
                 <div class="orders-table-wrap"><table class="admin-table production-stock-table"><thead><tr><th>Código</th><th>Insumo</th><th>Unidad de compra</th><th>Stock actual</th><th>Stock mínimo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="productionInventoryList"></tbody></table></div>
               </section>
-              <section class="production-admin-panel production-stock-movements-panel">
-                <div class="panel-heading"><p class="eyebrow">Trazabilidad</p><h2>Últimos movimientos</h2></div>
-                <p class="admin-note">Cada ingreso, consumo y corrección queda registrado con su motivo.</p>
-                <div class="production-movement-list" id="productionMovementList"></div>
-              </section>
             </div>
             <form class="production-material-form production-stock-adjustment-form" id="productionStockAdjustmentForm" hidden>
               <div class="production-material-form-heading"><div><p class="eyebrow" id="productionStockFormEyebrow">Ingreso de existencias</p><h3 id="productionStockAdjustmentTitle">Ingresar stock</h3></div><button class="ghost-button" id="closeProductionStockAdjustment" type="button">Volver al listado</button></div>
@@ -427,6 +423,28 @@
               <div class="form-actions"><button class="primary-button" id="saveProductionStock" type="submit">Confirmar ingreso</button><button class="ghost-button" id="resetProductionStockAdjustment" type="button">Restablecer</button></div>
               <p class="form-message" id="productionStockMessage" role="status"></p>
             </form>
+          </section>
+          <section class="production-movements-workspace production-desktop-only" data-production-panel="movements" hidden>
+            <div class="production-inventory-summary" id="productionMovementSummary"></div>
+            <section class="production-material-list-panel">
+              <div class="production-movement-toolbar">
+                <input id="productionMovementSearch" type="search" placeholder="Buscar código, insumo, proveedor u observación" aria-label="Buscar movimientos">
+                <select id="productionMovementType" aria-label="Filtrar por tipo de movimiento">
+                  <option value="">Todos los movimientos</option>
+                  <option value="stock_receipt">Ingresos por compra</option>
+                  <option value="initial_stock">Stock inicial</option>
+                  <option value="intermediate_preparation">Preparaciones</option>
+                  <option value="production_consumption">Consumos de fabricación</option>
+                  <option value="stock_adjustment">Ajustes manuales</option>
+                </select>
+                <select id="productionMovementDirection" aria-label="Filtrar por dirección">
+                  <option value="">Entradas y salidas</option>
+                  <option value="in">Solo entradas</option>
+                  <option value="out">Solo salidas</option>
+                </select>
+              </div>
+              <div class="orders-table-wrap"><table class="admin-table production-movement-table"><thead><tr><th>Fecha</th><th>Insumo</th><th>Movimiento</th><th>Cantidad</th><th>Proveedor / detalle</th><th>Saldo posterior</th></tr></thead><tbody id="productionMovementList"></tbody></table></div>
+            </section>
           </section>
           <section class="production-admin-panel production-access-panel" data-production-panel="access" hidden><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
         </section>
@@ -461,6 +479,15 @@
             <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionStock" type="button">Actualizar</button></div>
           </div>
           <div id="productionStockMount"></div>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-movementsView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Trazabilidad de inventario</p><h1>Movimientos de stock</h1></div>
+            <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionMovements" type="button">Actualizar</button></div>
+          </div>
+          <p class="admin-note production-movement-note">Se muestran los últimos 120 movimientos registrados. Cada operación conserva la cantidad, el saldo resultante y su origen.</p>
+          <div id="productionMovementsMount"></div>
         </section>
 
         <section class="admin-view" id="commissionsView" hidden>
@@ -936,7 +963,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=97" defer></script>
-    <script src="./admin-production.js?v=14" defer></script>
+    <script src="./admin.js?v=98" defer></script>
+    <script src="./admin-production.js?v=15" defer></script>
   </body>
 </html>
