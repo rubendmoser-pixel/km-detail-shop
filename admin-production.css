@@ -248,11 +248,11 @@
     table-layout: fixed;
   }
 
-  .production-movement-table th:nth-child(1) { width: 13%; }
-  .production-movement-table th:nth-child(2) { width: 20%; }
-  .production-movement-table th:nth-child(3) { width: 16%; }
+  .production-movement-table th:nth-child(1) { width: 12%; }
+  .production-movement-table th:nth-child(2) { width: 19%; }
+  .production-movement-table th:nth-child(3) { width: 19%; }
   .production-movement-table th:nth-child(4) { width: 13%; }
-  .production-movement-table th:nth-child(5) { width: 25%; }
+  .production-movement-table th:nth-child(5) { width: 24%; }
   .production-movement-table th:nth-child(6) { width: 13%; }
 
   .production-movement-table td {
@@ -270,6 +270,15 @@
 
   .production-movement-table td span {
     color: #adb5c1;
+  }
+
+  .production-movement-table td:nth-child(3) .status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow-wrap: normal;
   }
 
   .production-movement-quantity.is-positive { color: #8ef0b0; }
