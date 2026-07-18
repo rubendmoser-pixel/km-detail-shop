@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=17" />
+    <link rel="stylesheet" href="./admin-production.css?v=19" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -84,6 +84,7 @@
               <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Plan y partes</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-stock" title="Stock de insumos"><span class="admin-tab-label">Stock de insumos</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-stock-parameters" title="Parámetros de stock"><span class="admin-tab-label">Parámetros de stock</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-movements" title="Movimientos de stock"><span class="admin-tab-label">Movimientos de stock</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-purchasing" title="Necesidades de compra"><span class="admin-tab-label">Necesidades de compra</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-recipes" title="Recetas"><span class="admin-tab-label">Recetas</span></button>
@@ -425,6 +426,35 @@
               <p class="form-message" id="productionStockMessage" role="status"></p>
             </form>
           </section>
+          <section class="production-parameters-workspace production-desktop-only" data-production-panel="stock-parameters" hidden>
+            <form class="production-default-parameters" id="productionStockDefaultsForm">
+              <div><p class="eyebrow">Valores generales</p><h2>Seguridad por defecto</h2><p>Estos valores se aplican a todos los artículos, excepto cuando tengan una configuración personalizada.</p></div>
+              <label><span>Productos fabricados</span><span class="production-days-input"><input name="productSafetyDays" type="number" min="0" max="730" step="1" required><strong>días</strong></span></label>
+              <label><span>Insumos</span><span class="production-days-input"><input name="materialSafetyDays" type="number" min="0" max="730" step="1" required><strong>días</strong></span></label>
+              <button class="primary-button" type="submit">Guardar valores generales</button>
+              <p class="form-message" id="productionStockDefaultsMessage" role="status"></p>
+            </form>
+            <section class="production-material-list-panel" id="productionStockParameterListPanel">
+              <div class="production-parameter-toolbar">
+                <input id="productionParameterSearch" type="search" placeholder="Buscar código o descripción" aria-label="Buscar parámetros de stock">
+                <select id="productionParameterType" aria-label="Filtrar parámetros por tipo"><option value="product">Productos</option><option value="material">Insumos</option></select>
+                <select id="productionParameterOrigin" aria-label="Filtrar por origen"><option value="">Generales y personalizados</option><option value="default">Valor general</option><option value="custom">Personalizados</option></select>
+              </div>
+              <div class="orders-table-wrap"><table class="admin-table production-parameter-table"><thead><tr><th>Código</th><th>Descripción</th><th>Seguridad</th><th>Origen</th><th>Lote mínimo</th><th>Editar</th></tr></thead><tbody id="productionStockParameterList"></tbody></table></div>
+            </section>
+            <form class="production-material-form production-stock-parameter-form" id="productionStockParameterForm" hidden>
+              <div class="production-material-form-heading"><div><p class="eyebrow">Excepción individual</p><h3 id="productionStockParameterTitle">Editar parámetro</h3></div><button class="ghost-button" id="closeProductionStockParameter" type="button">Volver al listado</button></div>
+              <input name="itemId" type="hidden">
+              <fieldset><legend>Artículo</legend><div class="production-recipe-identity" id="productionStockParameterIdentity"></div></fieldset>
+              <fieldset><legend>Política de stock</legend>
+                <label class="portal-access-option wide"><input name="useDefault" type="checkbox"><span id="productionStockParameterDefaultLabel">Usar valor general</span></label>
+                <label><span>Días de seguridad</span><input name="safetyDays" type="number" min="0" max="730" step="1" required></label>
+                <label id="productionMinimumBatchLabel"><span>Lote mínimo de fabricación</span><input name="minimumBatch" type="number" min="1" step="1" value="1" required></label>
+              </fieldset>
+              <div class="form-actions"><button class="primary-button" type="submit">Guardar parámetro</button><button class="ghost-button" id="resetProductionStockParameter" type="button">Restablecer</button></div>
+              <p class="form-message" id="productionStockParameterMessage" role="status"></p>
+            </form>
+          </section>
           <section class="production-movements-workspace production-desktop-only" data-production-panel="movements" hidden>
             <div class="production-inventory-summary" id="productionMovementSummary"></div>
             <section class="production-material-list-panel">
@@ -495,6 +525,14 @@
             <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionStock" type="button">Actualizar</button></div>
           </div>
           <div id="productionStockMount"></div>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-stock-parametersView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Configuración simple</p><h1>Parámetros de stock</h1></div>
+            <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionStockParameters" type="button">Actualizar</button></div>
+          </div>
+          <div id="productionStockParametersMount"></div>
         </section>
 
         <section class="admin-view production-desktop-only" id="production-movementsView" hidden>
@@ -988,7 +1026,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=99" defer></script>
-    <script src="./admin-production.js?v=16" defer></script>
+    <script src="./admin.js?v=100" defer></script>
+    <script src="./admin-production.js?v=17" defer></script>
   </body>
 </html>

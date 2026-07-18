@@ -8,8 +8,8 @@ import { upsertProduct } from "../server/services/product-service.js";
 import { synchronizeProductionMaster } from "../server/services/production-master-service.js";
 import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, listProductionMaterials,
-  listProductionRecipes, listProductionSuppliers, registerProductionInventoryEntry, saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial,
+  adjustProductionInventory, approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, getProductionStockParameters, listProductionMaterials,
+  listProductionRecipes, listProductionSuppliers, registerProductionInventoryEntry, saveDailyProductionReport, saveProductionPlan, saveProductionStockItemParameter, saveProductionStockParameterDefaults, submitDailyProductionReport, upsertProductionMaterial,
   upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
 } from "../server/services/production-service.js";
 
@@ -128,6 +128,17 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.equal(adjustment.quantity, 150);
   assert.equal(getProductionInventory(db).items.find((item) => item.id === raw.id).minimumStock, 40);
   assert.equal(db.prepare("SELECT movement_type FROM inventory_movements WHERE item_id=? ORDER BY id DESC LIMIT 1").get(raw.id).movement_type, "stock_adjustment");
+  let parameters = getProductionStockParameters(db);
+  assert.deepEqual(parameters.defaults, { productSafetyDays: 30, materialSafetyDays: 30 });
+  parameters = saveProductionStockParameterDefaults(db, { productSafetyDays: 21, materialSafetyDays: 14 }, admin.id);
+  assert.deepEqual(parameters.defaults, { productSafetyDays: 21, materialSafetyDays: 14 });
+  const productItem = parameters.items.find((item) => item.itemCode === "CP171K");
+  parameters = saveProductionStockItemParameter(db, { itemId: productItem.id, safetyDays: 35, minimumBatch: 12 });
+  assert.equal(parameters.items.find((item) => item.id === productItem.id).effectiveSafetyDays, 35);
+  assert.equal(parameters.items.find((item) => item.id === productItem.id).minimumBatch, 12);
+  parameters = saveProductionStockItemParameter(db, { itemId: raw.id, useDefault: true });
+  assert.equal(parameters.items.find((item) => item.id === raw.id).effectiveSafetyDays, 14);
+  assert.equal(parameters.items.find((item) => item.id === raw.id).usesDefault, true);
   db.prepare("UPDATE inventory_balances SET quantity=123.5 WHERE item_id=?").run(raw.id);
   const repeated = synchronizeProductionMaster(db);
   assert.equal(repeated.skipped, true);

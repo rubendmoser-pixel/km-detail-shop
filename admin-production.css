@@ -8,7 +8,9 @@
 .production-material-form[hidden],
 .production-material-list-panel[hidden],
 .production-supplier-form[hidden],
-.production-recipe-form[hidden] {
+.production-recipe-form[hidden],
+.production-stock-parameter-form[hidden],
+.production-default-parameters[hidden] {
   display: none !important;
 }
 
@@ -24,7 +26,8 @@
   .production-recipes-workspace,
   .production-stock-workspace,
   .production-movements-workspace,
-  .production-purchasing-workspace {
+  .production-purchasing-workspace,
+  .production-parameters-workspace {
     min-width: 0;
   }
 
@@ -194,6 +197,102 @@
 
   .production-purchasing-warning {
     color: #ffd86a;
+  }
+
+  .production-default-parameters {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(170px, 0.42fr) minmax(170px, 0.42fr) auto;
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 18px;
+    padding: 18px;
+    background: #15181d;
+    border: 1px solid #343943;
+    border-radius: 12px;
+  }
+
+  .production-default-parameters h2,
+  .production-default-parameters p {
+    margin: 0;
+  }
+
+  .production-default-parameters h2 {
+    font-size: clamp(24px, 2vw, 32px);
+    line-height: 1.08;
+  }
+
+  .production-default-parameters > div > p:last-child {
+    margin-top: 5px;
+    color: #aeb6c2;
+  }
+
+  .production-default-parameters label > span:first-child {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 800;
+  }
+
+  .production-days-input {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .production-days-input strong {
+    color: #b8c0cc;
+  }
+
+  .production-default-parameters .form-message {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  .production-parameter-toolbar {
+    display: grid;
+    grid-template-columns: minmax(360px, 1fr) minmax(180px, 0.32fr) minmax(220px, 0.4fr);
+    gap: 10px;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .production-parameter-toolbar > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .production-parameter-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .production-parameter-table th:nth-child(1) { width: 13%; }
+  .production-parameter-table th:nth-child(2) { width: 35%; }
+  .production-parameter-table th:nth-child(3) { width: 12%; }
+  .production-parameter-table th:nth-child(4) { width: 15%; }
+  .production-parameter-table th:nth-child(5) { width: 11%; }
+  .production-parameter-table th:nth-child(6) { width: 14%; }
+
+  .production-parameter-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    vertical-align: middle;
+  }
+
+  .production-parameter-table .ghost-button {
+    width: 100%;
+    min-width: 88px;
+    padding-inline: 8px;
+    white-space: nowrap;
+  }
+
+  .production-material-form.production-stock-parameter-form {
+    grid-template-columns: minmax(280px, 0.55fr) minmax(0, 1.45fr);
+  }
+
+  #productionMinimumBatchLabel[hidden] {
+    display: none !important;
   }
 
   .production-material-form.production-stock-adjustment-form {

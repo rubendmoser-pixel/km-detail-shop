@@ -347,6 +347,59 @@ export function getProductionInventory(db, { query = "", type = "" } = {}) {
   };
 }
 
+export function getProductionStockParameters(db) {
+  const productSafetyDays = settingInteger(db, "production_product_safety_days", 30);
+  const materialSafetyDays = settingInteger(db, "production_material_safety_days", 30);
+  const items = db.prepare(`SELECT i.id,i.item_code,i.name,i.item_type,i.item_kind,i.unit,i.safety_days,i.minimum_batch,p.km_code,
+    COALESCE(b.quantity,0) AS quantity FROM inventory_items i
+    LEFT JOIN inventory_balances b ON b.item_id=i.id
+    LEFT JOIN products p ON p.id=i.product_id
+    WHERE i.active=1 AND i.tracks_stock=1 AND COALESCE(i.item_kind,'')!='service'
+    ORDER BY i.item_type='finished_product' DESC,i.item_code COLLATE NOCASE`).all().map((row) => {
+      const product = row.item_type === "finished_product";
+      const safetyDays = row.safety_days === null ? null : Number(row.safety_days);
+      return {
+        id: row.id, itemCode: product && row.km_code ? row.km_code : row.item_code, name: row.name, itemType: row.item_type,
+        itemKind: row.item_kind || row.item_type, unit: row.unit, quantity: Number(row.quantity || 0),
+        safetyDays, effectiveSafetyDays: safetyDays === null ? (product ? productSafetyDays : materialSafetyDays) : safetyDays,
+        usesDefault: safetyDays === null, minimumBatch: product ? Math.max(1, Number(row.minimum_batch || 1)) : null
+      };
+    });
+  return { defaults: { productSafetyDays, materialSafetyDays }, items };
+}
+
+export function saveProductionStockParameterDefaults(db, input = {}, adminId) {
+  const productSafetyDays = stockSafetyDays(input.productSafetyDays, "días de seguridad para productos");
+  const materialSafetyDays = stockSafetyDays(input.materialSafetyDays, "días de seguridad para insumos");
+  const statement = db.prepare(`INSERT INTO settings(key,value,updated_by) VALUES(?,?,?)
+    ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP,updated_by=excluded.updated_by`);
+  db.exec("BEGIN");
+  try {
+    statement.run("production_product_safety_days", String(productSafetyDays), adminId || null);
+    statement.run("production_material_safety_days", String(materialSafetyDays), adminId || null);
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+  return getProductionStockParameters(db);
+}
+
+export function saveProductionStockItemParameter(db, input = {}) {
+  const itemId = positiveId(input.itemId);
+  const item = db.prepare("SELECT id,item_type FROM inventory_items WHERE id=? AND active=1 AND tracks_stock=1").get(itemId);
+  if (!item) throw new NotFoundError("Producto o insumo activo no encontrado.");
+  const useDefault = input.useDefault === true;
+  const safetyDays = useDefault ? null : stockSafetyDays(input.safetyDays, "días de seguridad");
+  let minimumBatch = Number(item.item_type === "finished_product" ? input.minimumBatch : 1);
+  if (item.item_type === "finished_product") {
+    if (!Number.isSafeInteger(minimumBatch) || minimumBatch < 1) throw new ValidationError("El lote mínimo debe ser un número entero mayor que cero.");
+  } else minimumBatch = 1;
+  db.prepare("UPDATE inventory_items SET safety_days=?,minimum_batch=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+    .run(safetyDays, minimumBatch, itemId);
+  return getProductionStockParameters(db);
+}
+
 export function registerProductionInventoryEntry(db, input = {}, adminId) {
   const itemId = positiveId(input.itemId);
   const item = db.prepare(`SELECT id,item_code,name,item_kind,item_type,unit,purchase_unit,conversion_factor,
@@ -641,4 +694,6 @@ function nonNegativeNumber(value, label) { const number = Number(value); if (!Nu
 function positiveNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number <= 0) throw new ValidationError(`${label} debe ser mayor que cero.`); return number; }
 function positiveId(value) { const id = Number(value); if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("Identificador inválido."); return id; }
 function nonNegativeInteger(value, label) { const number = Number(value); if (!Number.isSafeInteger(number) || number < 0) throw new ValidationError(`${label} debe ser un número entero igual o mayor que cero.`); return number; }
+function stockSafetyDays(value, label) { const days = nonNegativeInteger(value, label); if (days > 730) throw new ValidationError(`${label} no puede superar 730 días.`); return days; }
+function settingInteger(db, key, fallback) { const value = Number(db.prepare("SELECT value FROM settings WHERE key=?").get(key)?.value); return Number.isSafeInteger(value) && value >= 0 ? value : fallback; }
 function validDate(value, label) { if (typeof value !== "string" || !ISO_DATE.test(value) || Number.isNaN(Date.parse(`${value}T12:00:00Z`))) throw new ValidationError(`Revisá ${label}.`); return value; }

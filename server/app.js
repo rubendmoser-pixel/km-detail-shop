@@ -87,9 +87,9 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact,
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionStockParameters,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
-  registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
+  registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
 } from "./services/production-service.js";
 import { createEmailService } from "./services/email-service.js";
@@ -761,6 +761,15 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/production/inventory/entry") {
         return sendJson(response, 201, { entry: registerProductionInventoryEntry(db, await readJson(request), currentUser.id) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/stock-parameters") {
+        return sendJson(response, 200, { parameters: getProductionStockParameters(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/stock-parameters/defaults") {
+        return sendJson(response, 200, { parameters: saveProductionStockParameterDefaults(db, await readJson(request), currentUser.id) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/stock-parameters/item") {
+        return sendJson(response, 200, { parameters: saveProductionStockItemParameter(db, await readJson(request)) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/materials") {
         return sendJson(response, 200, { materials: listProductionMaterials(db, {
