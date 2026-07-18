@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=24" />
+    <link rel="stylesheet" href="./admin-production.css?v=25" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -417,11 +417,13 @@
             </section>
             <form class="production-material-form production-recipe-form" id="productionRecipeForm" hidden>
               <div class="production-material-form-heading"><div><p class="eyebrow">Ficha de receta</p><h3 id="productionRecipeFormTitle">Nueva receta</h3></div><button class="ghost-button" id="closeProductionRecipeForm" type="button">Volver al listado</button></div>
-              <fieldset><legend>Producto</legend>
-                <label class="wide"><span>Producto por código KM</span><select name="productId" id="productionRecipeProduct" required><option value="">Seleccionar producto</option></select></label>
-                <div class="production-recipe-identity" id="productionRecipeIdentity">Seleccioná un producto para ver su código KM y EAN.</div>
-              </fieldset>
-              <fieldset class="production-recipe-time-field"><legend>Tiempo de fabricación</legend><label class="wide production-recipe-time"><span>Minutos de trabajo por unidad</span><input name="productionMinutesPerUnit" type="number" min="0.01" step="0.01" placeholder="Pendiente de determinar"><small>Dato opcional. Incluye solamente trabajo efectivo; no incluye secado, curado ni esperas.</small></label></fieldset>
+              <div class="production-recipe-sidebar">
+                <fieldset class="production-recipe-product-field"><legend>Producto</legend>
+                  <label class="wide"><span>Producto por código KM</span><select name="productId" id="productionRecipeProduct" required><option value="">Seleccionar producto</option></select></label>
+                  <div class="production-recipe-identity" id="productionRecipeIdentity">Seleccioná un producto para ver su código KM y EAN.</div>
+                </fieldset>
+                <fieldset class="production-recipe-time-field"><legend>Tiempo de fabricación</legend><label class="wide production-recipe-time"><span>Minutos de trabajo por unidad</span><input name="productionMinutesPerUnit" type="number" min="0.01" step="0.01" placeholder="Pendiente de determinar"><small>Dato opcional. Incluye solamente trabajo efectivo; no incluye secado, curado ni esperas.</small></label></fieldset>
+              </div>
               <fieldset class="production-recipe-components-fieldset"><legend>Composición por unidad fabricada</legend>
                 <div class="production-recipe-add-row"><label><span>Insumo</span><select id="productionRecipeComponent"><option value="">Seleccionar insumo</option></select></label><label><span>Cantidad</span><input id="productionRecipeQuantity" type="number" min="0.000001" step="0.000001" value="1"></label><button class="ghost-button" id="addProductionRecipeComponent" type="button">+ Agregar insumo</button></div>
                 <div class="production-recipe-components" id="productionRecipeComponents"></div>
