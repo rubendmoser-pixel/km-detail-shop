@@ -87,9 +87,9 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionStockParameters, getProductionSuggestions,
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
-  registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
+  registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
 } from "./services/production-service.js";
 import { createEmailService } from "./services/email-service.js";
@@ -746,9 +746,23 @@ export function createApp({
       if (request.method === "POST" && url.pathname === "/api/admin/production/plans") {
         return sendJson(response, 201, { plan: saveProductionPlan(db, await readJson(request), currentUser.id) });
       }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/schedule-defaults") {
+        return sendJson(response, 200, { schedule: getProductionScheduleDefaults(db) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/schedule-defaults") {
+        return sendJson(response, 200, { schedule: saveProductionScheduleDefaults(db, await readJson(request)) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/calendar$/);
+      if (request.method === "POST" && match) {
+        return sendJson(response, 200, { plan: saveProductionPlanCalendar(db, Number(match[1]), await readJson(request)) });
+      }
       match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/approve$/);
       if (request.method === "POST" && match) {
         return sendJson(response, 200, { plan: approveProductionPlan(db, Number(match[1]), currentUser.id) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/close$/);
+      if (request.method === "POST" && match) {
+        return sendJson(response, 200, closeProductionPlan(db, Number(match[1]), currentUser.id));
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/reports") {
         return sendJson(response, 200, { reports: listProductionReports(db, { status: url.searchParams.get("status") || "" }) });

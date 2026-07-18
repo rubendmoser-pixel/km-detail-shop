@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 21;
+const SCHEMA_VERSION = 22;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -196,6 +196,23 @@ function migrate(db) {
       adjustment_note TEXT NOT NULL DEFAULT '',
       sort_order INTEGER NOT NULL DEFAULT 0,
       UNIQUE(plan_id, product_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS production_work_schedule_defaults (
+      weekday INTEGER PRIMARY KEY CHECK (weekday BETWEEN 1 AND 7),
+      enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+      planned_hours REAL NOT NULL DEFAULT 0 CHECK (planned_hours BETWEEN 0 AND 24),
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS production_plan_days (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plan_id INTEGER NOT NULL REFERENCES production_plans(id) ON DELETE CASCADE,
+      work_date TEXT NOT NULL,
+      weekday INTEGER NOT NULL CHECK (weekday BETWEEN 1 AND 7),
+      enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+      planned_hours REAL NOT NULL DEFAULT 0 CHECK (planned_hours BETWEEN 0 AND 24),
+      UNIQUE(plan_id, work_date)
     );
 
     CREATE TABLE IF NOT EXISTS production_daily_reports (
@@ -860,6 +877,8 @@ function migrate(db) {
   ensureColumn(db, "inventory_items", "minimum_batch", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "inventory_items", "lead_time_days", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "inventory_items", "tracks_stock", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn(db, "production_plan_items", "carryover_quantity", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "production_plan_items", "carryover_from_plan_item_id", "INTEGER");
   db.exec("UPDATE inventory_items SET item_kind='intermediate' WHERE item_type='intermediate' AND item_kind='raw_material'");
   db.exec(`
     CREATE TABLE IF NOT EXISTS production_suppliers (
@@ -954,6 +973,7 @@ function migrate(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_operators_status ON production_operators(status, name);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_sessions_token ON production_sessions(token_hash, expires_at);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_plans_week ON production_plans(week_start, status);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_production_plan_days_plan_date ON production_plan_days(plan_id, work_date);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_reports_status_date ON production_daily_reports(status, production_date DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_inventory_movements_item_date ON inventory_movements(item_id, created_at DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_orders_logistics_queue ON orders(fulfillment_status, logistics_status, logistics_operator_id);");
@@ -973,6 +993,8 @@ function seedSettings(db, whatsappNumber) {
   insertSetting.run("whatsapp_number", whatsappNumber);
   insertSetting.run("usd_exchange_rate", "1400");
   insertSetting.run("inventory_initial_stock_loaded", "0");
+  const insertProductionDay = db.prepare("INSERT OR IGNORE INTO production_work_schedule_defaults(weekday,enabled,planned_hours) VALUES(?,?,?)");
+  for (let weekday = 1; weekday <= 7; weekday += 1) insertProductionDay.run(weekday, weekday <= 5 ? 1 : 0, weekday <= 5 ? 8 : 0);
   db.prepare("INSERT OR IGNORE INTO bank_settings (id) VALUES (1)").run();
   seedPaymentAccountsFromBankSettings(db);
 }

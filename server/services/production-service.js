@@ -140,6 +140,7 @@ export function saveProductionPlan(db, input = {}, adminId) {
     if (plan?.status === "closed") throw new ValidationError("La planificación de esa semana ya está cerrada.");
     if (!plan) {
       plan = db.prepare(`INSERT INTO production_plans(week_start,notes,created_by) VALUES(?,?,?) RETURNING *`).get(weekStart, notes, adminId);
+      ensureProductionPlanDays(db, plan.id, weekStart);
     } else {
       db.prepare("UPDATE production_plans SET notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(notes, plan.id);
       const productIds = items.map((item) => item.productId);
@@ -155,6 +156,13 @@ export function saveProductionPlan(db, input = {}, adminId) {
 }
 
 export function approveProductionPlan(db, planId, adminId) {
+  const plan = db.prepare("SELECT * FROM production_plans WHERE id=?").get(positiveId(planId));
+  if (!plan) throw new NotFoundError("Planificación no encontrada.");
+  const previousWeek = addDays(plan.week_start, -7);
+  const previous = db.prepare("SELECT status FROM production_plans WHERE week_start=?").get(previousWeek);
+  if (previous && previous.status !== "closed") {
+    throw new ValidationError("Cerrá primero la semana anterior para confirmar los productos pendientes que deben trasladarse.");
+  }
   const result = db.prepare(`UPDATE production_plans SET status='approved',approved_by=?,approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
     WHERE id=? AND status IN ('draft','approved','in_progress')`).run(adminId, positiveId(planId));
   if (!result.changes) throw new NotFoundError("Planificación no encontrada.");
@@ -174,6 +182,7 @@ export function getProductionPlan(db, planId) {
   const plan = db.prepare("SELECT * FROM production_plans WHERE id=?").get(positiveId(planId));
   if (!plan) throw new NotFoundError("Planificación no encontrada.");
   const items = db.prepare(`SELECT pi.id,pi.product_id,pi.suggested_quantity,pi.target_quantity,pi.adjustment_note,
+      pi.carryover_quantity,pi.carryover_from_plan_item_id,
       p.km_code,p.ean13,p.name,p.warehouse_location,
       COALESCE(SUM(CASE WHEN r.status='confirmed' THEN ri.good_quantity ELSE 0 END),0) AS produced_quantity
     FROM production_plan_items pi JOIN products p ON p.id=pi.product_id
@@ -183,9 +192,87 @@ export function getProductionPlan(db, planId) {
       id: row.id, productId: row.product_id, kmCode: row.km_code, ean13: row.ean13, name: row.name,
       warehouseLocation: row.warehouse_location || "", suggestedQuantity: row.suggested_quantity,
       targetQuantity: row.target_quantity, producedQuantity: row.produced_quantity,
-      remainingQuantity: Math.max(0, row.target_quantity - row.produced_quantity), adjustmentNote: row.adjustment_note || ""
+      remainingQuantity: Math.max(0, row.target_quantity - row.produced_quantity), adjustmentNote: row.adjustment_note || "",
+      carryoverQuantity: Number(row.carryover_quantity || 0), carryoverFromPlanItemId: row.carryover_from_plan_item_id || null
     }));
-  return { id: plan.id, weekStart: plan.week_start, status: plan.status, notes: plan.notes, approvedAt: plan.approved_at, items };
+  ensureProductionPlanDays(db, plan.id, plan.week_start);
+  const days = db.prepare("SELECT work_date,weekday,enabled,planned_hours FROM production_plan_days WHERE plan_id=? ORDER BY work_date").all(plan.id).map(publicPlanDay);
+  const weekEnd = addDays(plan.week_start, 6);
+  const reports = db.prepare(`SELECT status,COUNT(*) AS count FROM production_daily_reports
+    WHERE production_date BETWEEN ? AND ? GROUP BY status`).all(plan.week_start, weekEnd);
+  const reportCounts = Object.fromEntries(reports.map((row) => [row.status, Number(row.count || 0)]));
+  const targetQuantity = items.reduce((sum, item) => sum + item.targetQuantity, 0);
+  const producedQuantity = items.reduce((sum, item) => sum + Number(item.producedQuantity || 0), 0);
+  const carryoverQuantity = items.reduce((sum, item) => sum + Number(item.carryoverQuantity || 0), 0);
+  return { id: plan.id, weekStart: plan.week_start, weekEnd, status: plan.status, notes: plan.notes, approvedAt: plan.approved_at, days, items,
+    summary: { workingDays: days.filter((day) => day.enabled).length, scheduledHours: days.reduce((sum, day) => sum + day.plannedHours, 0),
+      products: items.length, targetQuantity, producedQuantity, remainingQuantity: Math.max(0, targetQuantity - producedQuantity), carryoverQuantity,
+      submittedReports: reportCounts.submitted || 0, confirmedReports: reportCounts.confirmed || 0, returnedReports: reportCounts.returned || 0 } };
+}
+
+export function getProductionScheduleDefaults(db) {
+  return { days: db.prepare("SELECT weekday,enabled,planned_hours FROM production_work_schedule_defaults ORDER BY weekday").all().map(publicPlanDay) };
+}
+
+export function saveProductionScheduleDefaults(db, input = {}) {
+  const days = normalizeScheduleDays(input.days);
+  const update = db.prepare(`INSERT INTO production_work_schedule_defaults(weekday,enabled,planned_hours,updated_at) VALUES(?,?,?,CURRENT_TIMESTAMP)
+    ON CONFLICT(weekday) DO UPDATE SET enabled=excluded.enabled,planned_hours=excluded.planned_hours,updated_at=CURRENT_TIMESTAMP`);
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    for (const day of days) update.run(day.weekday, day.enabled ? 1 : 0, day.plannedHours);
+    db.exec("COMMIT");
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+  return getProductionScheduleDefaults(db);
+}
+
+export function saveProductionPlanCalendar(db, planId, input = {}) {
+  const plan = db.prepare("SELECT * FROM production_plans WHERE id=?").get(positiveId(planId));
+  if (!plan) throw new NotFoundError("Planificación no encontrada.");
+  if (plan.status === "closed") throw new ValidationError("La semana está cerrada y su calendario ya no puede modificarse.");
+  const days = normalizeScheduleDays(input.days);
+  const update = db.prepare(`INSERT INTO production_plan_days(plan_id,work_date,weekday,enabled,planned_hours) VALUES(?,?,?,?,?)
+    ON CONFLICT(plan_id,work_date) DO UPDATE SET weekday=excluded.weekday,enabled=excluded.enabled,planned_hours=excluded.planned_hours`);
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    for (const day of days) update.run(plan.id, addDays(plan.week_start, day.weekday - 1), day.weekday, day.enabled ? 1 : 0, day.plannedHours);
+    db.exec("COMMIT");
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+  return getProductionPlan(db, plan.id);
+}
+
+export function closeProductionPlan(db, planId, adminId) {
+  const plan = db.prepare("SELECT * FROM production_plans WHERE id=?").get(positiveId(planId));
+  if (!plan) throw new NotFoundError("Planificación no encontrada.");
+  if (plan.status === "closed") throw new ValidationError("La semana ya está cerrada.");
+  const current = getProductionPlan(db, plan.id);
+  const nextWeek = addDays(plan.week_start, 7);
+  let next = db.prepare("SELECT * FROM production_plans WHERE week_start=?").get(nextWeek);
+  if (next && next.status !== "draft") throw new ValidationError("La semana siguiente ya está aprobada. Volvé a borrador antes de cerrar esta semana.");
+  const suggestions = new Map(getProductionSuggestions(db).products.map((product) => [product.productId, product.suggestedQuantity]));
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.prepare("UPDATE production_plans SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(plan.id);
+    if (!next) next = db.prepare(`INSERT INTO production_plans(week_start,notes,created_by) VALUES(?,? ,?) RETURNING *`)
+      .get(nextWeek, `Creada automáticamente al cerrar la semana ${plan.week_start}.`, adminId);
+    ensureProductionPlanDays(db, next.id, next.week_start);
+    const existingItems = new Map(db.prepare("SELECT * FROM production_plan_items WHERE plan_id=?").all(next.id).map((row) => [row.product_id, row]));
+    const upsert = db.prepare(`INSERT INTO production_plan_items(plan_id,product_id,suggested_quantity,target_quantity,adjustment_note,sort_order,carryover_quantity,carryover_from_plan_item_id)
+      VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(plan_id,product_id) DO UPDATE SET suggested_quantity=excluded.suggested_quantity,
+      target_quantity=MAX(production_plan_items.target_quantity,excluded.target_quantity),carryover_quantity=excluded.carryover_quantity,
+      carryover_from_plan_item_id=excluded.carryover_from_plan_item_id,adjustment_note=excluded.adjustment_note`);
+    let sortOrder = existingItems.size;
+    for (const item of current.items) {
+      const carryover = Math.max(0, item.targetQuantity - item.producedQuantity);
+      if (!carryover) continue;
+      const suggested = Number(suggestions.get(item.productId) || 0);
+      const existing = existingItems.get(item.productId);
+      const target = Math.max(carryover, suggested, Number(existing?.target_quantity || 0));
+      upsert.run(next.id, item.productId, suggested, target, `Arrastre automático desde la semana ${plan.week_start}.`, existing?.sort_order ?? sortOrder++, carryover, item.id);
+    }
+    db.exec("COMMIT");
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+  return { plan: getProductionPlan(db, plan.id), nextPlan: getProductionPlan(db, next.id) };
 }
 
 export function saveDailyProductionReport(db, input = {}, operator) {
@@ -206,8 +293,9 @@ export function saveDailyProductionReport(db, input = {}, operator) {
         .run(operator.id, notes, report.id);
       db.prepare("DELETE FROM production_daily_report_items WHERE report_id=?").run(report.id);
     }
-    const planItems = new Map(db.prepare(`SELECT pi.product_id,pi.id FROM production_plan_items pi WHERE pi.plan_id=(
-      SELECT id FROM production_plans WHERE status IN ('approved','in_progress') ORDER BY week_start DESC LIMIT 1)`).all().map((row) => [row.product_id, row.id]));
+    const planItems = new Map(db.prepare(`SELECT pi.product_id,pi.id FROM production_plan_items pi WHERE pi.plan_id=COALESCE((
+      SELECT id FROM production_plans WHERE status IN ('approved','in_progress') AND ? BETWEEN week_start AND date(week_start,'+6 days') ORDER BY week_start DESC LIMIT 1),(
+      SELECT id FROM production_plans WHERE status IN ('approved','in_progress') ORDER BY week_start DESC LIMIT 1))`).all(productionDate).map((row) => [row.product_id, row.id]));
     const insert = db.prepare(`INSERT INTO production_daily_report_items(report_id,plan_item_id,product_id,good_quantity,rejected_quantity,notes) VALUES(?,?,?,?,?,?)`);
     items.forEach((item) => insert.run(report.id, planItems.get(item.productId) || null, item.productId, item.goodQuantity, item.rejectedQuantity, item.notes));
     db.exec("COMMIT");
@@ -723,6 +811,29 @@ function normalizePlanItems(db, raw) {
   });
 }
 
+function normalizeScheduleDays(raw) {
+  if (!Array.isArray(raw) || raw.length !== 7) throw new ValidationError("Configurá los siete días de la semana.");
+  const seen = new Set();
+  const days = raw.map((day) => {
+    const weekday = Number(day.weekday);
+    if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7 || seen.has(weekday)) throw new ValidationError("Revisá los días del calendario laboral.");
+    seen.add(weekday);
+    const enabled = day.enabled === true;
+    const plannedHours = enabled ? nonNegativeNumber(day.plannedHours, "horas planificadas") : 0;
+    if (plannedHours > 24) throw new ValidationError("Las horas de un día no pueden superar 24.");
+    return { weekday, enabled, plannedHours };
+  });
+  return days.sort((a, b) => a.weekday - b.weekday);
+}
+
+function ensureProductionPlanDays(db, planId, weekStart) {
+  const existing = Number(db.prepare("SELECT COUNT(*) AS count FROM production_plan_days WHERE plan_id=?").get(planId).count || 0);
+  if (existing === 7) return;
+  const defaults = db.prepare("SELECT weekday,enabled,planned_hours FROM production_work_schedule_defaults ORDER BY weekday").all();
+  const insert = db.prepare(`INSERT OR IGNORE INTO production_plan_days(plan_id,work_date,weekday,enabled,planned_hours) VALUES(?,?,?,?,?)`);
+  for (const row of defaults) insert.run(planId, addDays(weekStart, row.weekday - 1), row.weekday, row.enabled, row.planned_hours);
+}
+
 function normalizeReportItems(db, raw) {
   if (!Array.isArray(raw)) return [];
   const seen = new Set();
@@ -781,6 +892,7 @@ function publicRecipe(row, db) {
 }
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }
 function publicOperator(row) { return { id: row.id, name: row.name, email: row.email, phone: row.phone || "", status: row.status }; }
+function publicPlanDay(row) { return { date: row.work_date || "", weekday: Number(row.weekday), enabled: Boolean(row.enabled), plannedHours: Number(row.planned_hours || 0) }; }
 function nonNegativeNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number < 0) throw new ValidationError(`${label} debe ser un número igual o mayor que cero.`); return number; }
 function positiveNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number <= 0) throw new ValidationError(`${label} debe ser mayor que cero.`); return number; }
 function positiveId(value) { const id = Number(value); if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("Identificador inválido."); return id; }
@@ -789,3 +901,4 @@ function stockSafetyDays(value, label) { const days = nonNegativeInteger(value, 
 function settingInteger(db, key, fallback) { const value = Number(db.prepare("SELECT value FROM settings WHERE key=?").get(key)?.value); return Number.isSafeInteger(value) && value >= 0 ? value : fallback; }
 function discretePurchaseUnit(unit) { return /^(unidad|rollo|placa|barra|bobina)/i.test(String(unit || "").trim()); }
 function validDate(value, label) { if (typeof value !== "string" || !ISO_DATE.test(value) || Number.isNaN(Date.parse(`${value}T12:00:00Z`))) throw new ValidationError(`Revisá ${label}.`); return value; }
+function addDays(value, amount) { const date = new Date(`${validDate(value, "fecha")}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + amount); return date.toISOString().slice(0, 10); }

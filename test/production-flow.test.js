@@ -5,8 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
-  approveProductionPlan, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionReportImpact, loginProductionOperator,
-  saveDailyProductionReport, saveProductionPlan, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator
+  approveProductionPlan, closeProductionPlan, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator,
+  saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator
 } from "../server/services/production-service.js";
 
 test("production plan, daily report and admin confirmation update stock with traceability", async (t) => {
@@ -33,6 +33,11 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.equal(session.operator.id, operator.id);
 
   const plan = saveProductionPlan(db, { weekStart: "2026-07-13", items: [{ productId: product.id, targetQuantity: 10 }] }, admin.id);
+  assert.equal(plan.summary.workingDays, 5);
+  assert.equal(plan.summary.scheduledHours, 40);
+  const defaultDays = getProductionScheduleDefaults(db).days;
+  saveProductionScheduleDefaults(db, { days: defaultDays.map((day) => ({ ...day, plannedHours: day.enabled ? 7 : 0 })) });
+  assert.equal(saveProductionPlanCalendar(db, plan.id, { days: plan.days.map((day) => ({ ...day, plannedHours: day.weekday === 5 ? 6 : day.plannedHours })) }).summary.scheduledHours, 38);
   approveProductionPlan(db, plan.id, admin.id);
   assert.equal(getCurrentProductionDashboard(db).plan.items[0].remainingQuantity, 10);
 
@@ -53,4 +58,13 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.equal(db.prepare("SELECT balance_after FROM inventory_movements WHERE item_id=? ORDER BY id DESC LIMIT 1").get(raw.id).balance_after, 88);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM inventory_movements WHERE reference_type='production_report' AND reference_id=?").get(report.id).count, 2);
   assert.equal(getCurrentProductionDashboard(db).plan.items[0].remainingQuantity, 5);
+  db.prepare(`UPDATE inventory_balances SET quantity=-8 WHERE item_id=(SELECT id FROM inventory_items WHERE product_id=?)`).run(product.id);
+  const closed = closeProductionPlan(db, plan.id, admin.id);
+  assert.equal(closed.plan.status, "closed");
+  assert.equal(closed.nextPlan.weekStart, "2026-07-20");
+  assert.equal(closed.nextPlan.summary.scheduledHours, 35);
+  assert.equal(closed.nextPlan.items[0].carryoverQuantity, 5);
+  assert.equal(closed.nextPlan.items[0].suggestedQuantity, 8);
+  assert.equal(closed.nextPlan.items[0].targetQuantity, 8);
+  approveProductionPlan(db, closed.nextPlan.id, admin.id);
 });

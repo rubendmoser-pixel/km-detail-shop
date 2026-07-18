@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=21" />
+    <link rel="stylesheet" href="./admin-production.css?v=22" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -81,7 +81,8 @@
           <div class="admin-nav-group" data-admin-area="produccion">
             <p class="admin-nav-group-title">Producción</p>
             <div class="admin-nav-group-items">
-              <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Plan y partes</span></button>
+              <button type="button" data-admin-view="production" title="Planificación de producción"><span class="admin-tab-label">Planificación de producción</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-access" title="Operarios de producción"><span class="admin-tab-label">Operarios de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-stock" title="Stock de insumos"><span class="admin-tab-label">Stock de insumos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-stock-parameters" title="Parámetros de stock"><span class="admin-tab-label">Parámetros de stock</span></button>
@@ -282,21 +283,43 @@
         </section>
 
         <section class="admin-view" id="productionView" hidden>
-          <div class="admin-titlebar"><div><p class="eyebrow">Fabricación</p><h1>Producción semanal</h1></div><div class="admin-toolbar"><a class="ghost-button" href="https://produccion.km-detail.com/produccion.html" target="_blank" rel="noreferrer">Abrir portal de producción</a><button class="ghost-button toolbar-refresh-button" id="reloadProductionAdmin" type="button">Actualizar</button></div></div>
+          <div class="admin-titlebar"><div><p class="eyebrow">Fabricación</p><h1>Planificación de producción</h1></div><div class="admin-toolbar"><a class="ghost-button" href="https://produccion.km-detail.com/produccion.html" target="_blank" rel="noreferrer">Abrir portal de producción</a><button class="ghost-button toolbar-refresh-button" id="reloadProductionAdmin" type="button">Actualizar</button></div></div>
           <nav class="production-module-nav" aria-label="Secciones de producción">
-            <button class="is-active" type="button" data-production-screen="overview">Plan y partes</button>
+            <button class="is-active" type="button" data-production-screen="overview">Planificación</button>
             <button type="button" data-production-screen="access">Accesos</button>
           </nav>
-          <section class="production-suggestion-panel production-desktop-only" data-production-panel="overview">
-            <div class="production-suggestion-heading"><div><p class="eyebrow">Asistente informativo</p><h2>Sugerido de fabricación</h2><p id="productionSuggestionLearning"></p></div><button class="primary-button" id="addAllProductionSuggestions" type="button">Cargar sugeridos al plan</button></div>
-            <div class="production-inventory-summary" id="productionSuggestionSummary"></div>
-            <div class="production-suggestion-toolbar"><input id="productionSuggestionSearch" type="search" placeholder="Buscar código o producto" aria-label="Buscar sugeridos de fabricación"><select id="productionSuggestionStatus" aria-label="Filtrar sugeridos"><option value="needed">Solo para fabricar</option><option value="all">Todos los productos</option><option value="pending">Con pedidos pendientes</option><option value="learning">Sin historial suficiente</option></select></div>
-            <div class="orders-table-wrap"><table class="admin-table production-suggestion-table"><thead><tr><th>Producto</th><th>Stock</th><th>Pedidos</th><th>Ritmo diario</th><th>Seguridad</th><th>Sugerido</th><th>Acción</th></tr></thead><tbody id="productionSuggestionList"></tbody></table></div>
+          <section data-production-panel="overview">
+            <div class="production-week-bar production-desktop-only">
+              <div class="production-week-picker"><button class="ghost-button" id="productionPreviousWeek" type="button" aria-label="Semana anterior">‹</button><label><span>Semana seleccionada</span><select id="productionWeekSelect"></select></label><button class="ghost-button" id="productionNextWeek" type="button" aria-label="Semana siguiente">›</button></div>
+              <div class="production-week-state"><span class="status-badge" id="productionWeekStatus">Sin planificación</span><strong id="productionWeekCapacity">0 días · 0 horas</strong></div>
+              <button class="ghost-button production-close-week" id="closeProductionWeek" type="button">Cerrar semana y trasladar pendientes</button>
+            </div>
+            <nav class="production-week-tabs production-desktop-only" aria-label="Contenido de la semana">
+              <button class="is-active" type="button" data-production-week-tab="summary">Resumen semanal</button>
+              <button type="button" data-production-week-tab="calendar">Calendario laboral</button>
+              <button type="button" data-production-week-tab="plan">Plan de fabricación</button>
+              <button type="button" data-production-week-tab="reports">Partes diarios</button>
+            </nav>
+            <section class="production-week-panel production-week-summary production-desktop-only is-active" data-production-week-panel="summary">
+              <div class="production-week-summary-grid" id="productionWeekSummary"></div>
+              <div class="production-week-progress"><div><strong>Avance semanal</strong><span id="productionWeekProgressText">Sin planificación</span></div><div class="production-progress-track"><span id="productionWeekProgressBar"></span></div></div>
+              <div class="production-week-alerts" id="productionWeekAlerts"></div>
+            </section>
+            <section class="production-week-panel production-calendar-workspace production-desktop-only" data-production-week-panel="calendar">
+              <form class="production-admin-panel" id="productionDefaultCalendarForm"><div class="panel-heading"><p class="eyebrow">Configuración habitual</p><h2>Semana normal</h2><p>Se copiará automáticamente al crear nuevas semanas.</p></div><div class="production-week-days" id="productionDefaultCalendarDays"></div><div class="form-actions"><button class="primary-button" type="submit">Guardar configuración habitual</button></div><p class="form-message" id="productionDefaultCalendarMessage"></p></form>
+              <form class="production-admin-panel" id="productionWeekCalendarForm"><div class="panel-heading"><p class="eyebrow">Excepción semanal</p><h2>Calendario de la semana seleccionada</h2><p>Los cambios afectan solamente a esta semana.</p></div><div class="production-week-days" id="productionWeekCalendarDays"></div><div class="form-actions"><button class="primary-button" type="submit">Guardar calendario semanal</button></div><p class="form-message" id="productionWeekCalendarMessage"></p></form>
+            </section>
+            <section class="production-week-panel production-plan-workspace" data-production-week-panel="plan">
+              <section class="production-suggestion-panel production-desktop-only">
+                <div class="production-suggestion-heading"><div><p class="eyebrow">Asistente informativo</p><h2>Sugerido de fabricación</h2><p id="productionSuggestionLearning"></p></div><button class="primary-button" id="addAllProductionSuggestions" type="button">Cargar sugeridos al plan</button></div>
+                <div class="production-inventory-summary" id="productionSuggestionSummary"></div>
+                <div class="production-suggestion-toolbar"><input id="productionSuggestionSearch" type="search" placeholder="Buscar código o producto" aria-label="Buscar sugeridos de fabricación"><select id="productionSuggestionStatus" aria-label="Filtrar sugeridos"><option value="needed">Solo para fabricar</option><option value="all">Todos los productos</option><option value="pending">Con pedidos pendientes</option><option value="learning">Sin historial suficiente</option></select></div>
+                <div class="orders-table-wrap"><table class="admin-table production-suggestion-table"><thead><tr><th>Producto</th><th>Stock</th><th>Pedidos</th><th>Ritmo diario</th><th>Seguridad</th><th>Sugerido</th><th>Acción</th></tr></thead><tbody id="productionSuggestionList"></tbody></table></div>
+              </section>
+              <section class="production-admin-panel production-plan-editor"><div class="panel-heading"><p class="eyebrow">Decisión administrativa</p><h2>Objetivo semanal</h2></div><form id="productionPlanForm"><label><span>Semana desde</span><input name="weekStart" type="date" required></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="production-add-row"><div class="production-product-search"><input id="productionProductSearch" type="search" autocomplete="off" placeholder="Buscar código KM" aria-label="Buscar producto por código KM" aria-controls="productionProductResults" aria-expanded="false"><div class="production-product-results" id="productionProductResults" role="listbox" hidden></div><div class="production-product-selected" id="productionProductSelected" hidden></div></div><input id="productionProductQuantity" type="number" min="1" step="1" value="1" aria-label="Cantidad"><button class="ghost-button" id="addProductionPlanItem" type="button">Agregar</button></div><div id="productionPlanItems"></div><div class="form-actions"><button class="ghost-button" type="submit">Guardar planificación</button><button class="primary-button" id="approveProductionPlan" type="button" disabled>Aprobar y habilitar</button></div><p class="form-message" id="productionPlanMessage"></p></form><div id="productionPlanHistory" hidden></div></section>
+            </section>
+            <section class="production-week-panel production-reports-workspace" data-production-week-panel="reports"><section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Control administrativo</p><h2>Partes diarios de la semana</h2></div><div id="productionReportsAdmin"></div></section></section>
           </section>
-          <div class="production-admin-grid" data-production-panel="overview">
-            <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Planificación</p><h2>Objetivo semanal</h2></div><form id="productionPlanForm"><label><span>Semana desde</span><input name="weekStart" type="date" required></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="production-add-row"><div class="production-product-search"><input id="productionProductSearch" type="search" autocomplete="off" placeholder="Buscar código KM" aria-label="Buscar producto por código KM" aria-controls="productionProductResults" aria-expanded="false"><div class="production-product-results" id="productionProductResults" role="listbox" hidden></div><div class="production-product-selected" id="productionProductSelected" hidden></div></div><input id="productionProductQuantity" type="number" min="1" step="1" value="1" aria-label="Cantidad"><button class="ghost-button" id="addProductionPlanItem" type="button">Agregar</button></div><div id="productionPlanItems"></div><div class="form-actions"><button class="ghost-button" type="submit">Guardar planificación</button><button class="primary-button" id="approveProductionPlan" type="button" disabled>Aprobar y habilitar</button></div><p class="form-message" id="productionPlanMessage"></p></form><div id="productionPlanHistory"></div></section>
-            <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Control administrativo</p><h2>Partes diarios</h2></div><div id="productionReportsAdmin"></div></section>
-          </div>
           <section class="production-materials-workspace production-desktop-only" data-production-panel="materials" hidden>
             <div class="production-materials-toolbar">
               <div><p class="eyebrow">Maestro productivo</p><h2>Insumos</h2></div>
@@ -499,6 +522,11 @@
             </section>
           </section>
           <section class="production-admin-panel production-access-panel" data-production-panel="access" hidden><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-accessView" hidden>
+          <div class="admin-titlebar"><div><p class="eyebrow">Accesos restringidos</p><h1>Operarios de producción</h1></div><div class="admin-toolbar"><a class="ghost-button" href="https://produccion.km-detail.com/produccion.html" target="_blank" rel="noreferrer">Abrir portal de producción</a></div></div>
+          <div id="productionAccessMount"></div>
         </section>
 
         <section class="admin-view production-desktop-only" id="production-materialsView" hidden>
@@ -1033,6 +1061,6 @@
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
     <script src="./admin.js?v=100" defer></script>
-    <script src="./admin-production.js?v=19" defer></script>
+    <script src="./admin-production.js?v=20" defer></script>
   </body>
 </html>
