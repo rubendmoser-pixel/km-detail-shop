@@ -188,7 +188,8 @@ export function confirmDailyProductionReport(db, reportId, adminId) {
   const report = db.prepare("SELECT * FROM production_daily_reports WHERE id=?").get(positiveId(reportId));
   if (!report || report.status !== "submitted") throw new ValidationError("El parte no está pendiente de confirmación.");
   const items = db.prepare("SELECT * FROM production_daily_report_items WHERE report_id=?").all(report.id);
-  const warnings = [];
+  const preview = getProductionReportImpact(db, report.id);
+  const warnings = [...preview.warnings];
   db.exec("BEGIN IMMEDIATE");
   try {
     for (const row of items) {
@@ -200,15 +201,101 @@ export function confirmDailyProductionReport(db, reportId, adminId) {
       if (row.good_quantity > 0) addMovement(db, finished.id, row.good_quantity, "production_in", report.id, `Ingreso confirmado ${report.report_number}`, adminId);
       const attempted = row.good_quantity + row.rejected_quantity;
       const bom = db.prepare("SELECT component_item_id,quantity FROM product_bom WHERE product_id=? AND active=1").all(row.product_id);
-      if (!bom.length) warnings.push(`${product.km_code}: receta pendiente de importar; no se descontaron insumos.`);
       for (const component of bom) addMovement(db, component.component_item_id, -(component.quantity * attempted), "production_consumption", report.id, `Consumo ${report.report_number} / ${product.km_code}`, adminId);
     }
     db.prepare(`UPDATE production_daily_reports SET status='confirmed',confirmed_by=?,confirmed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?`).run(adminId, report.id);
     db.prepare(`UPDATE production_plans SET status='in_progress',updated_at=CURRENT_TIMESTAMP WHERE id IN (
       SELECT DISTINCT pi.plan_id FROM production_daily_report_items ri JOIN production_plan_items pi ON pi.id=ri.plan_item_id WHERE ri.report_id=?)`).run(report.id);
     db.exec("COMMIT");
-    return { report: getProductionReport(db, report.id), warnings };
+    return { report: getProductionReport(db, report.id), warnings, impact: getProductionReportImpact(db, report.id) };
   } catch (error) { db.exec("ROLLBACK"); throw error; }
+}
+
+export function getProductionReportImpact(db, reportId) {
+  const report = db.prepare("SELECT id,status,report_number FROM production_daily_reports WHERE id=?").get(positiveId(reportId));
+  if (!report) throw new NotFoundError("Parte diario no encontrado.");
+  const inventoryInitialized = db.prepare("SELECT value FROM settings WHERE key='inventory_initial_stock_loaded'").get()?.value === "1";
+  const reportItems = db.prepare(`SELECT ri.product_id,ri.good_quantity,ri.rejected_quantity,p.km_code,p.name
+    FROM production_daily_report_items ri JOIN products p ON p.id=ri.product_id WHERE ri.report_id=? ORDER BY p.km_code`).all(report.id);
+  if (report.status === "confirmed") {
+    const movements = db.prepare(`SELECT m.id,m.quantity_delta,m.movement_type,m.reference_type,m.reference_id,m.notes,m.balance_after,m.created_at,
+      i.item_code,i.name,i.item_type,i.unit,COALESCE(b.quantity,0) AS current_balance
+      FROM inventory_movements m JOIN inventory_items i ON i.id=m.item_id
+      LEFT JOIN inventory_balances b ON b.item_id=i.id
+      WHERE m.reference_type='production_report' AND m.reference_id=? ORDER BY m.id`).all(report.id).map(publicMovement);
+    return {
+      mode: "applied", inventoryInitialized, reportNumber: report.report_number,
+      products: reportItems.map(publicReportImpactItem),
+      components: movements.filter((movement) => movement.movementType === "production_consumption"),
+      outputs: movements.filter((movement) => movement.movementType === "production_in"),
+      warnings: []
+    };
+  }
+
+  const products = [];
+  const componentTotals = new Map();
+  const warnings = [];
+  for (const row of reportItems) {
+    const finished = db.prepare(`SELECT i.id,i.item_code,i.name,i.unit,COALESCE(b.quantity,0) AS balance
+      FROM inventory_items i LEFT JOIN inventory_balances b ON b.item_id=i.id WHERE i.product_id=?`).get(row.product_id);
+    const currentBalance = Number(finished?.balance || 0);
+    products.push({ ...publicReportImpactItem(row), itemCode: finished?.item_code || `PT-${row.km_code}`,
+      unit: finished?.unit || "unidad", currentBalance, delta: row.good_quantity, resultingBalance: currentBalance + row.good_quantity });
+    const attempted = row.good_quantity + row.rejected_quantity;
+    const bom = db.prepare(`SELECT b.component_item_id,b.quantity,i.item_code,i.name,i.unit,COALESCE(ib.quantity,0) AS balance
+      FROM product_bom b JOIN inventory_items i ON i.id=b.component_item_id
+      LEFT JOIN inventory_balances ib ON ib.item_id=i.id WHERE b.product_id=? AND b.active=1`).all(row.product_id);
+    if (!bom.length) warnings.push(`${row.km_code}: receta pendiente de importar.`);
+    for (const component of bom) {
+      const existing = componentTotals.get(component.component_item_id) || {
+        itemId: component.component_item_id, itemCode: component.item_code, name: component.name,
+        unit: component.unit, currentBalance: Number(component.balance || 0), delta: 0
+      };
+      existing.delta -= Number(component.quantity) * attempted;
+      componentTotals.set(component.component_item_id, existing);
+    }
+  }
+  const components = [...componentTotals.values()].map((component) => ({
+    ...component, resultingBalance: component.currentBalance + component.delta
+  })).sort((a, b) => a.itemCode.localeCompare(b.itemCode));
+  const negatives = components.filter((component) => component.resultingBalance < 0);
+  if (negatives.length && !inventoryInitialized) warnings.unshift("El stock inicial de insumos todavía no fue cargado; los saldos negativos son informativos.");
+  if (negatives.length && inventoryInitialized) warnings.unshift(`${negatives.length} insumos quedarían con stock insuficiente.`);
+  return { mode: "preview", inventoryInitialized, reportNumber: report.report_number, products, components, outputs: [], warnings };
+}
+
+export function getProductionInventory(db, { query = "", type = "" } = {}) {
+  const search = String(query || "").trim().slice(0, 80);
+  const allowedTypes = new Set(["raw_material", "intermediate", "finished_product"]);
+  const itemType = allowedTypes.has(type) ? type : "";
+  const clauses = ["i.active=1"];
+  const params = [];
+  if (itemType) { clauses.push("i.item_type=?"); params.push(itemType); }
+  if (search) { clauses.push("(i.item_code LIKE ? OR i.name LIKE ?)"); params.push(`%${search}%`, `%${search}%`); }
+  const items = db.prepare(`SELECT i.id,i.item_code,i.name,i.item_type,i.unit,i.product_id,
+    COALESCE(b.quantity,0) AS quantity,b.updated_at,p.km_code
+    FROM inventory_items i LEFT JOIN inventory_balances b ON b.item_id=i.id
+    LEFT JOIN products p ON p.id=i.product_id WHERE ${clauses.join(" AND ")}
+    ORDER BY i.item_type,i.item_code`).all(...params).map((row) => ({
+      id: row.id, itemCode: row.item_code, name: row.name, itemType: row.item_type, unit: row.unit,
+      productId: row.product_id, kmCode: row.km_code || "", quantity: Number(row.quantity || 0), updatedAt: row.updated_at || ""
+    }));
+  const movements = db.prepare(`SELECT m.id,m.quantity_delta,m.movement_type,m.reference_type,m.reference_id,
+    m.notes,m.balance_after,m.created_at,i.item_code,i.name,i.item_type,i.unit,COALESCE(b.quantity,0) AS current_balance
+    FROM inventory_movements m JOIN inventory_items i ON i.id=m.item_id
+    LEFT JOIN inventory_balances b ON b.item_id=i.id ORDER BY m.id DESC LIMIT 120`).all().map(publicMovement);
+  const inventoryInitialized = db.prepare("SELECT value FROM settings WHERE key='inventory_initial_stock_loaded'").get()?.value === "1";
+  return {
+    inventoryInitialized,
+    summary: {
+      totalItems: items.length,
+      rawMaterials: items.filter((item) => item.itemType === "raw_material").length,
+      intermediates: items.filter((item) => item.itemType === "intermediate").length,
+      finishedProducts: items.filter((item) => item.itemType === "finished_product").length,
+      negativeBalances: items.filter((item) => item.quantity < 0).length
+    },
+    items, movements
+  };
 }
 
 export function listProductionReports(db, { status = "", limit = 60 } = {}) {
@@ -257,9 +344,16 @@ function normalizeReportItems(db, raw) {
 function addMovement(db, itemId, delta, movementType, reportId, notes, adminId) {
   ensureBalance(db, itemId);
   db.prepare("UPDATE inventory_balances SET quantity=quantity+?,updated_at=CURRENT_TIMESTAMP WHERE item_id=?").run(delta, itemId);
-  db.prepare(`INSERT INTO inventory_movements(item_id,quantity_delta,movement_type,reference_type,reference_id,notes,actor_user_id) VALUES(?,? ,?,'production_report',?,?,?)`)
-    .run(itemId, delta, movementType, reportId, notes, adminId);
+  const balanceAfter = db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(itemId).quantity;
+  db.prepare(`INSERT INTO inventory_movements(item_id,quantity_delta,movement_type,reference_type,reference_id,notes,actor_user_id,balance_after) VALUES(?,? ,?,'production_report',?,?,?,?)`)
+    .run(itemId, delta, movementType, reportId, notes, adminId, balanceAfter);
 }
+function publicReportImpactItem(row) { return { productId: row.product_id, kmCode: row.km_code, name: row.name,
+  goodQuantity: row.good_quantity, rejectedQuantity: row.rejected_quantity, attemptedQuantity: row.good_quantity + row.rejected_quantity }; }
+function publicMovement(row) { return { id: row.id, itemCode: row.item_code, name: row.name, itemType: row.item_type,
+  unit: row.unit, delta: Number(row.quantity_delta), movementType: row.movement_type, referenceType: row.reference_type,
+  referenceId: row.reference_id, notes: row.notes || "", balanceAfter: row.balance_after === null ? null : Number(row.balance_after),
+  currentBalance: Number(row.current_balance || 0), createdAt: row.created_at }; }
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }
 function publicOperator(row) { return { id: row.id, name: row.name, email: row.email, phone: row.phone || "", status: row.status }; }
 function positiveId(value) { const id = Number(value); if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("Identificador inválido."); return id; }

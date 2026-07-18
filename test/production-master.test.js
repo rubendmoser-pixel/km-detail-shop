@@ -6,8 +6,9 @@ import path from "node:path";
 import { openDatabase, transaction } from "../server/db.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { synchronizeProductionMaster } from "../server/services/production-master-service.js";
+import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
-  approveProductionPlan, confirmDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
+  approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, saveDailyProductionReport, saveProductionPlan,
   submitDailyProductionReport, upsertProductionOperator
 } from "../server/services/production-service.js";
 
@@ -39,6 +40,10 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.ok(Math.abs(pa160Glue.quantity - 2.8) < 0.000001);
 
   const admin = db.prepare("SELECT id FROM users WHERE role='admin'").get();
+  assert.equal(getCommercialSettings(db).usdExchangeRate, 1400);
+  updateCommercialSettings(db, { usdExchangeRate: 1525.5 }, admin.id);
+  assert.equal(getCommercialSettings(db).usdExchangeRate, 1525.5);
+  assert.throws(() => updateCommercialSettings(db, { usdExchangeRate: 0 }, admin.id), /tipo de cambio/i);
   const cp171 = db.prepare("SELECT id FROM products WHERE km_code='CP171K'").get();
   const operator = await upsertProductionOperator(db, {
     name: "Operario Maestro", email: "operario-maestro@km-detail.com", portalPassword: "clave-produccion-2026"
@@ -49,10 +54,21 @@ test("production master imports every validated recipe idempotently by KM code a
     productionDate: "2026-07-17", items: [{ productId: cp171.id, goodQuantity: 1, rejectedQuantity: 0 }]
   }, operator);
   submitDailyProductionReport(db, report.id, operator);
+  const preview = getProductionReportImpact(db, report.id);
+  assert.equal(preview.mode, "preview");
+  assert.equal(preview.products[0].resultingBalance, 1);
+  assert.ok(preview.components.length > 0);
+  assert.match(preview.warnings[0], /stock inicial/i);
   const confirmation = confirmDailyProductionReport(db, report.id, admin.id);
-  assert.deepEqual(confirmation.warnings, []);
+  assert.match(confirmation.warnings[0], /stock inicial/i);
+  assert.equal(confirmation.impact.mode, "applied");
+  assert.ok(confirmation.impact.components.every((movement) => movement.balanceAfter !== null));
   assert.equal(db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id
     WHERE i.product_id=?`).get(cp171.id).quantity, 1);
+  const inventory = getProductionInventory(db);
+  assert.equal(inventory.inventoryInitialized, false);
+  assert.equal(inventory.summary.finishedProducts, 104);
+  assert.ok(inventory.movements.length > 0);
 
   const raw = db.prepare("SELECT id FROM inventory_items WHERE item_code='MP-ESP-CEL-12'").get();
   db.prepare("UPDATE inventory_balances SET quantity=123.5 WHERE item_id=?").run(raw.id);

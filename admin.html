@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=67" />
-    <link rel="stylesheet" href="./admin-production.css?v=4" />
+    <link rel="stylesheet" href="./admin-production.css?v=5" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -246,11 +246,29 @@
 
         <section class="admin-view" id="productionView" hidden>
           <div class="admin-titlebar"><div><p class="eyebrow">Fabricación</p><h1>Producción semanal</h1></div><div class="admin-toolbar"><a class="ghost-button" href="https://produccion.km-detail.com/produccion.html" target="_blank" rel="noreferrer">Abrir portal de producción</a><button class="ghost-button toolbar-refresh-button" id="reloadProductionAdmin" type="button">Actualizar</button></div></div>
-          <div class="production-admin-grid">
+          <nav class="production-module-nav" aria-label="Secciones de producción">
+            <button class="is-active" type="button" data-production-screen="overview">Plan y partes</button>
+            <button type="button" data-production-screen="stock">Stock</button>
+            <button type="button" data-production-screen="movements">Movimientos</button>
+            <button type="button" data-production-screen="access">Accesos</button>
+          </nav>
+          <div class="production-admin-grid" data-production-panel="overview">
             <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Planificación</p><h2>Objetivo semanal</h2></div><form id="productionPlanForm"><label><span>Semana desde</span><input name="weekStart" type="date" required></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="production-add-row"><div class="production-product-search"><input id="productionProductSearch" type="search" autocomplete="off" placeholder="Buscar código KM" aria-label="Buscar producto por código KM" aria-controls="productionProductResults" aria-expanded="false"><div class="production-product-results" id="productionProductResults" role="listbox" hidden></div><div class="production-product-selected" id="productionProductSelected" hidden></div></div><input id="productionProductQuantity" type="number" min="1" step="1" value="1" aria-label="Cantidad"><button class="ghost-button" id="addProductionPlanItem" type="button">Agregar</button></div><div id="productionPlanItems"></div><div class="form-actions"><button class="ghost-button" type="submit">Guardar planificación</button><button class="primary-button" id="approveProductionPlan" type="button" disabled>Aprobar y habilitar</button></div><p class="form-message" id="productionPlanMessage"></p></form><div id="productionPlanHistory"></div></section>
             <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Control administrativo</p><h2>Partes diarios</h2></div><div id="productionReportsAdmin"></div></section>
           </div>
-          <section class="production-admin-panel production-access-panel"><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
+          <section class="production-admin-panel" data-production-panel="stock" hidden>
+            <div class="panel-heading"><p class="eyebrow">Inventario</p><h2>Stock actual</h2></div>
+            <div id="productionInventoryStatus"></div>
+            <div class="production-inventory-summary" id="productionInventorySummary"></div>
+            <div class="production-stock-toolbar"><input id="productionStockSearch" type="search" placeholder="Buscar código o insumo"><select id="productionStockType"><option value="">Todos</option><option value="finished_product">Productos terminados</option><option value="raw_material">Materias primas</option><option value="intermediate">Intermedios</option></select></div>
+            <div class="production-stock-list" id="productionInventoryList"></div>
+          </section>
+          <section class="production-admin-panel" data-production-panel="movements" hidden>
+            <div class="panel-heading"><p class="eyebrow">Trazabilidad</p><h2>Movimientos de stock</h2></div>
+            <p class="admin-note">Cada ingreso y consumo queda relacionado con su parte diario.</p>
+            <div class="production-movement-list" id="productionMovementList"></div>
+          </section>
+          <section class="production-admin-panel production-access-panel" data-production-panel="access" hidden><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
         </section>
 
         <section class="admin-view" id="commissionsView" hidden>
@@ -614,6 +632,10 @@
               <label><span>IVA (%)</span><input name="vatPercent" type="number" min="0" max="100" step="0.01" required /></label>
               <label><span>WhatsApp general</span><input name="whatsappNumber" inputmode="tel" /></label>
             </fieldset>
+            <fieldset><legend>Producción y costos</legend>
+              <label><span>Tipo de cambio USD</span><input name="usdExchangeRate" type="number" min="0.01" step="0.01" required /></label>
+              <p class="admin-note wide">Valor en pesos argentinos de un dólar. Se utilizará para recalcular los costos dolarizados.</p>
+            </fieldset>
             <button class="primary-button toolbar-create-button" type="submit">Guardar configuracion</button>
             <p class="form-message" id="settingsMessage" role="status"></p>
           </form>
@@ -713,7 +735,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=91" defer></script>
-    <script src="./admin-production.js?v=4" defer></script>
+    <script src="./admin.js?v=92" defer></script>
+    <script src="./admin-production.js?v=5" defer></script>
   </body>
 </html>

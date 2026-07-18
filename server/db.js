@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 20;
+const SCHEMA_VERSION = 21;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -260,6 +260,7 @@ function migrate(db) {
       reference_id INTEGER,
       notes TEXT NOT NULL DEFAULT '',
       actor_user_id INTEGER REFERENCES users(id),
+      balance_after REAL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -846,6 +847,7 @@ function migrate(db) {
   ensureColumn(db, "sales_reps", "password_hash", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "sales_quotes", "email_sent_at", "TEXT");
   ensureColumn(db, "sales_quotes", "whatsapp_sent_at", "TEXT");
+  ensureColumn(db, "inventory_movements", "balance_after", "REAL");
   db.exec(`
     CREATE TABLE IF NOT EXISTS sales_prospect_quotes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -923,6 +925,8 @@ function seedSettings(db, whatsappNumber) {
   const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
   insertSetting.run("vat_bps", "2100");
   insertSetting.run("whatsapp_number", whatsappNumber);
+  insertSetting.run("usd_exchange_rate", "1400");
+  insertSetting.run("inventory_initial_stock_loaded", "0");
   db.prepare("INSERT OR IGNORE INTO bank_settings (id) VALUES (1)").run();
   seedPaymentAccountsFromBankSettings(db);
 }

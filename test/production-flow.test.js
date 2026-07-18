@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
-  approveProductionPlan, confirmDailyProductionReport, getCurrentProductionDashboard, loginProductionOperator,
+  approveProductionPlan, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionReportImpact, loginProductionOperator,
   saveDailyProductionReport, saveProductionPlan, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator
 } from "../server/services/production-service.js";
 
@@ -40,6 +40,9 @@ test("production plan, daily report and admin confirmation update stock with tra
     productionDate: "2026-07-17", items: [{ productId: product.id, goodQuantity: 5, rejectedQuantity: 1 }]
   }, session.operator);
   submitDailyProductionReport(db, report.id, session.operator);
+  const preview = getProductionReportImpact(db, report.id);
+  assert.equal(preview.components[0].currentBalance, 100);
+  assert.equal(preview.components[0].resultingBalance, 88);
   const result = confirmDailyProductionReport(db, report.id, admin.id);
   assert.equal(result.report.status, "confirmed");
   assert.deepEqual(result.warnings, []);
@@ -47,6 +50,7 @@ test("production plan, daily report and admin confirmation update stock with tra
   const finishedBalance = db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(product.id);
   assert.equal(finishedBalance.quantity, 5);
   assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(raw.id).quantity, 88);
+  assert.equal(db.prepare("SELECT balance_after FROM inventory_movements WHERE item_id=? ORDER BY id DESC LIMIT 1").get(raw.id).balance_after, 88);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM inventory_movements WHERE reference_type='production_report' AND reference_id=?").get(report.id).count, 2);
   assert.equal(getCurrentProductionDashboard(db).plan.items[0].remainingQuantity, 5);
 });

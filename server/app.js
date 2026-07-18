@@ -87,7 +87,7 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard,
+  approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact,
   listProductionOperators, listProductionPlans, listProductionReports, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
   submitDailyProductionReport, upsertProductionOperator
@@ -752,6 +752,13 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/reports") {
         return sendJson(response, 200, { reports: listProductionReports(db, { status: url.searchParams.get("status") || "" }) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/inventory") {
+        return sendJson(response, 200, { inventory: getProductionInventory(db, { query: url.searchParams.get("q") || "", type: url.searchParams.get("type") || "" }) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/production\/reports\/(\d+)\/impact$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { impact: getProductionReportImpact(db, Number(match[1])) });
       }
       match = url.pathname.match(/^\/api\/admin\/production\/reports\/(\d+)\/confirm$/);
       if (request.method === "POST" && match) {

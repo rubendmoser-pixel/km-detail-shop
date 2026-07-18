@@ -1,4 +1,4 @@
-import { basisPoints, optionalText } from "../domain/validation.js";
+import { basisPoints, optionalText, ValidationError } from "../domain/validation.js";
 import { listPaymentAccounts } from "./payment-account-service.js";
 
 export function getCommercialSettings(db) {
@@ -7,6 +7,7 @@ export function getCommercialSettings(db) {
   return {
     vatBps: Number(settings.vat_bps || 2100),
     whatsappNumber: settings.whatsapp_number || "",
+    usdExchangeRate: Number(settings.usd_exchange_rate || 1400),
     bank: publicBank(bank),
     paymentAccounts: listPaymentAccounts(db, { includeInactive: true })
   };
@@ -34,6 +35,16 @@ export function updateCommercialSettings(db, input, adminUserId) {
       INSERT INTO settings (key, value, updated_by) VALUES ('whatsapp_number', ?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
     `).run(number, adminUserId);
+  }
+  if (input.usdExchangeRate !== undefined) {
+    const exchangeRate = Number(input.usdExchangeRate);
+    if (!Number.isFinite(exchangeRate) || exchangeRate <= 0 || exchangeRate > 10_000_000) {
+      throw new ValidationError("Ingresá un tipo de cambio válido mayor que cero.");
+    }
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_by) VALUES ('usd_exchange_rate', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
+    `).run(String(exchangeRate), adminUserId);
   }
   if (input.bank) {
     const bank = input.bank;
