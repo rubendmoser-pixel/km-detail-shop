@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="./assets/app-admin-192.png" />
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=67" />
+    <link rel="stylesheet" href="./admin.css?v=68" />
     <link rel="stylesheet" href="./admin-production.css?v=5" />
   </head>
   <body class="admin-body">
@@ -48,21 +48,51 @@
       <div id="adminWorkspace" hidden>
         <button class="admin-nav-toggle" id="adminNavToggle" type="button" aria-expanded="false" aria-controls="adminTabs">Secciones</button>
         <nav class="admin-tabs" id="adminTabs" aria-label="Secciones administrativas">
-          <button class="active" type="button" data-admin-view="customers" title="Clientes"><span class="admin-tab-label">Clientes</span></button>
-          <button type="button" data-admin-view="sales" title="Vendedores"><span class="admin-tab-label">Vendedores</span></button>
-          <button type="button" data-admin-view="logistics" title="Logística"><span class="admin-tab-label">Logística</span></button>
-          <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Producción</span></button>
-          <button type="button" data-admin-view="commissions" title="Comisiones"><span class="admin-tab-label">Comisiones</span></button>
-          <button type="button" data-admin-view="distributors" title="Distribuidores"><span class="admin-tab-label">Distribuidores</span></button>
-          <button type="button" data-admin-view="products" title="Productos"><span class="admin-tab-label">Productos</span></button>
-          <button type="button" data-admin-view="prices" title="Precios"><span class="admin-tab-label">Precios</span></button>
-          <button type="button" data-admin-view="orders" title="Pedidos"><span class="admin-tab-label">Pedidos</span></button>
-          <button type="button" data-admin-view="accounts" title="Cuenta corriente"><span class="admin-tab-label">Cta. corriente</span></button>
-          <button type="button" data-admin-view="settings" title="Configuración"><span class="admin-tab-label">Configuracion</span></button>
-          <button type="button" data-admin-view="emails" title="Emails"><span class="admin-tab-label">Emails</span></button>
-          <button type="button" data-admin-view="security" title="Seguridad"><span class="admin-tab-label">Seguridad</span></button>
-          <button type="button" data-admin-view="analytics" title="Actividad"><span class="admin-tab-label">Actividad</span></button>
-          <button type="button" data-admin-view="operation" title="Operación"><span class="admin-tab-label">Operacion</span></button>
+          <div class="admin-nav-group" data-admin-area="inicio">
+            <p class="admin-nav-group-title">Inicio</p>
+            <div class="admin-nav-group-items">
+              <button type="button" data-admin-view="operation" title="Tablero"><span class="admin-tab-label">Tablero</span></button>
+            </div>
+          </div>
+          <div class="admin-nav-group" data-admin-area="comercial">
+            <p class="admin-nav-group-title">Comercial</p>
+            <div class="admin-nav-group-items">
+              <button class="active" type="button" data-admin-view="customers" title="Clientes"><span class="admin-tab-label">Clientes</span></button>
+              <button type="button" data-admin-view="sales" title="Vendedores"><span class="admin-tab-label">Vendedores</span></button>
+              <button type="button" data-admin-view="distributors" title="Distribuidores"><span class="admin-tab-label">Distribuidores</span></button>
+              <button type="button" data-admin-view="commissions" title="Comisiones"><span class="admin-tab-label">Comisiones</span></button>
+            </div>
+          </div>
+          <div class="admin-nav-group" data-admin-area="pedidos-finanzas">
+            <p class="admin-nav-group-title">Pedidos y finanzas</p>
+            <div class="admin-nav-group-items">
+              <button type="button" data-admin-view="orders" title="Pedidos"><span class="admin-tab-label">Pedidos</span></button>
+              <button type="button" data-admin-view="accounts" title="Cuenta corriente"><span class="admin-tab-label">Cuenta corriente</span></button>
+              <button type="button" data-admin-view="logistics" title="Equipo de logística"><span class="admin-tab-label">Equipo de logística</span></button>
+            </div>
+          </div>
+          <div class="admin-nav-group" data-admin-area="catalogo">
+            <p class="admin-nav-group-title">Catálogo</p>
+            <div class="admin-nav-group-items">
+              <button type="button" data-admin-view="products" title="Productos"><span class="admin-tab-label">Productos</span></button>
+              <button type="button" data-admin-view="prices" title="Precios"><span class="admin-tab-label">Precios</span></button>
+            </div>
+          </div>
+          <div class="admin-nav-group" data-admin-area="produccion">
+            <p class="admin-nav-group-title">Producción</p>
+            <div class="admin-nav-group-items">
+              <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Plan y partes</span></button>
+            </div>
+          </div>
+          <div class="admin-nav-group" data-admin-area="sistema">
+            <p class="admin-nav-group-title">Sistema</p>
+            <div class="admin-nav-group-items">
+              <button type="button" data-admin-view="analytics" title="Actividad"><span class="admin-tab-label">Actividad</span></button>
+              <button type="button" data-admin-view="settings" title="Configuración"><span class="admin-tab-label">Configuración</span></button>
+              <button type="button" data-admin-view="emails" title="Emails"><span class="admin-tab-label">Emails</span></button>
+              <button type="button" data-admin-view="security" title="Seguridad"><span class="admin-tab-label">Seguridad</span></button>
+            </div>
+          </div>
         </nav>
 
         <section class="admin-view" id="customersView">

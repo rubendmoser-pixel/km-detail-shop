@@ -723,6 +723,96 @@
   }
 }
 
+/* Arquitectura de escritorio: navegación organizada por áreas de negocio */
+.admin-nav-group,
+.admin-nav-group-items {
+  display: contents;
+}
+
+.admin-nav-group-title {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  #adminWorkspace:not([hidden]) {
+    grid-template-columns: 248px minmax(0, 1fr);
+    gap: clamp(18px, 1.5vw, 28px);
+  }
+
+  #adminWorkspace > .admin-tabs {
+    width: 248px;
+    padding: 14px 12px 18px;
+    gap: 0;
+    border-color: rgba(183, 184, 255, 0.18);
+    background: linear-gradient(180deg, rgba(22, 24, 30, 0.98), rgba(13, 15, 19, 0.98));
+  }
+
+  #adminWorkspace > .admin-tabs::before {
+    content: "Administración";
+    padding: 4px 8px 12px;
+    color: #f2f3f7;
+    font-size: 0.86rem;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-align: left;
+    text-transform: none;
+  }
+
+  #adminWorkspace > .admin-tabs .admin-nav-group {
+    display: block;
+    padding: 12px 0 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  #adminWorkspace > .admin-tabs .admin-nav-group:first-of-type {
+    padding-top: 4px;
+    border-top: 0;
+  }
+
+  #adminWorkspace > .admin-tabs .admin-nav-group-title {
+    display: block;
+    margin: 0;
+    padding: 0 9px 7px;
+    color: #858b98;
+    font-size: 0.66rem;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  #adminWorkspace > .admin-tabs .admin-nav-group-items {
+    display: grid;
+    gap: 3px;
+  }
+
+  #adminWorkspace > .admin-tabs button {
+    width: 100%;
+    min-height: 40px;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    border-radius: 8px;
+  }
+
+  #adminWorkspace > .admin-tabs button .admin-tab-label {
+    display: inline;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #adminWorkspace > .admin-tabs button .admin-ui-icon {
+    width: 1.08rem;
+    height: 1.08rem;
+    flex: 0 0 auto;
+  }
+
+  #adminWorkspace > .admin-tabs button.active {
+    box-shadow: inset 3px 0 0 #c2c5ff;
+  }
+}
+
 @media (max-width: 520px) {
   #ordersView .order-ops-grid {
     grid-template-columns: 1fr;
@@ -5541,5 +5631,49 @@ button.operation-row:hover {
 
   #ordersView .orders-list-table .order-list-next-action {
     min-width: 250px;
+  }
+}
+
+/* Precedencia final del nuevo armazón administrativo para PC */
+@media (min-width: 1100px) {
+  #adminWorkspace:not([hidden]) {
+    grid-template-columns: 248px minmax(0, 1fr);
+    gap: clamp(18px, 1.5vw, 28px);
+  }
+
+  #adminWorkspace > .admin-tabs {
+    width: 248px;
+    padding: 14px 12px 18px;
+    gap: 0;
+  }
+
+  #adminWorkspace > .admin-tabs::before {
+    content: "Administración";
+    padding: 4px 8px 12px;
+    font-size: 0.86rem;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-align: left;
+    text-transform: none;
+  }
+
+  #adminWorkspace > .admin-tabs .admin-nav-group {
+    display: block;
+  }
+
+  #adminWorkspace > .admin-tabs button {
+    width: 100%;
+    min-height: 40px;
+    justify-content: flex-start;
+    padding: 8px 10px;
+  }
+
+  #adminWorkspace > .admin-tabs button .admin-tab-label {
+    display: inline;
+  }
+
+  #adminWorkspace > .admin-tabs button .admin-ui-icon {
+    width: 1.08rem;
+    height: 1.08rem;
   }
 }
