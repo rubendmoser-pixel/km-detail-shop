@@ -864,7 +864,29 @@
 /* Configuración semanal simplificada en una única ficha para PC. */
 @media (min-width: 1100px) {
   .production-week-bar {
-    grid-template-columns: minmax(420px, 1fr) auto auto auto;
+    grid-template-columns: minmax(390px, 1fr) minmax(225px, auto) auto auto;
+    gap: 12px;
+  }
+
+  .production-week-state {
+    min-width: 225px;
+    justify-items: start;
+  }
+
+  .production-week-state strong {
+    white-space: nowrap;
+  }
+
+  #newProductionWeek,
+  .production-close-week {
+    min-height: 52px;
+    padding-inline: 18px;
+  }
+
+  .production-close-week {
+    max-width: 320px;
+    white-space: normal;
+    line-height: 1.2;
   }
 
   .production-calendar-workspace,
@@ -912,5 +934,17 @@
 
   .production-week-capacity-preview strong {
     font-size: 1.1rem;
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1599px) {
+  .production-week-bar {
+    grid-template-columns: minmax(360px, 1fr) minmax(225px, auto) auto;
+  }
+
+  .production-close-week {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
   }
 }
