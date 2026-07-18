@@ -891,6 +891,7 @@ function migrate(db) {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_production_supplier_items_primary
       ON production_supplier_items(item_id) WHERE is_primary=1 AND active=1;
   `);
+  ensureColumn(db, "inventory_movements", "supplier_id", "INTEGER REFERENCES production_suppliers(id)");
   db.exec(`
     CREATE TABLE IF NOT EXISTS sales_prospect_quotes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -9,7 +9,7 @@ import { synchronizeProductionMaster } from "../server/services/production-maste
 import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
   adjustProductionInventory, approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, listProductionMaterials,
-  listProductionRecipes, listProductionSuppliers, saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial,
+  listProductionRecipes, listProductionSuppliers, registerProductionInventoryEntry, saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial,
   upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
 } from "../server/services/production-service.js";
 
@@ -114,8 +114,18 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.ok(inventory.movements.length > 0);
 
   const raw = db.prepare("SELECT id FROM inventory_items WHERE item_code='MP-ESP-CEL-12'").get();
+  const rawMaterial = listProductionMaterials(db).find((item) => item.id === raw.id);
+  const receipt = registerProductionInventoryEntry(db, { itemId: raw.id, mode: "purchase", quantity: 2, supplierId: rawMaterial.primarySupplier.id, minimumStock: 50, notes: "Factura de prueba" }, admin.id);
+  assert.equal(receipt.stockQuantity, rawMaterial.conversionFactor * 2);
+  assert.equal(receipt.supplier.name, "Norflex");
+  const initial = registerProductionInventoryEntry(db, { itemId: raw.id, mode: "initial", quantity: 1.5, minimumStock: 40 }, admin.id);
+  assert.equal(initial.quantity, rawMaterial.conversionFactor * 1.5);
+  const intermediate = db.prepare("SELECT id FROM inventory_items WHERE item_code='INT-PEG-ESP'").get();
+  const preparation = registerProductionInventoryEntry(db, { itemId: intermediate.id, mode: "preparation", quantity: 700, minimumStock: 200 }, admin.id);
+  assert.equal(preparation.stockQuantity, 700);
+  assert.throws(() => registerProductionInventoryEntry(db, { itemId: intermediate.id, mode: "purchase", quantity: 1 }, admin.id), /preparación/i);
   const adjustment = adjustProductionInventory(db, { itemId: raw.id, quantity: 150, minimumStock: 40, reason: "Conteo inicial de prueba" }, admin.id);
-  assert.equal(adjustment.delta, 150);
+  assert.equal(adjustment.quantity, 150);
   assert.equal(getProductionInventory(db).items.find((item) => item.id === raw.id).minimumStock, 40);
   assert.equal(db.prepare("SELECT movement_type FROM inventory_movements WHERE item_id=? ORDER BY id DESC LIMIT 1").get(raw.id).movement_type, "stock_adjustment");
   db.prepare("UPDATE inventory_balances SET quantity=123.5 WHERE item_id=?").run(raw.id);

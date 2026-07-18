@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=14" />
+    <link rel="stylesheet" href="./admin-production.css?v=15" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -403,7 +403,7 @@
               <div class="production-inventory-summary" id="productionInventorySummary"></div>
               <section class="production-material-list-panel">
                 <div class="production-stock-toolbar"><input id="productionStockSearch" type="search" placeholder="Buscar código o insumo"><select id="productionStockType"><option value="">Todos los insumos</option><option value="raw_material">Materias primas</option><option value="intermediate">Intermedios</option></select></div>
-                <div class="orders-table-wrap"><table class="admin-table production-stock-table"><thead><tr><th>Código</th><th>Insumo</th><th>Stock actual</th><th>Stock mínimo</th><th>Estado</th><th>Ajustar</th></tr></thead><tbody id="productionInventoryList"></tbody></table></div>
+                <div class="orders-table-wrap"><table class="admin-table production-stock-table"><thead><tr><th>Código</th><th>Insumo</th><th>Unidad de compra</th><th>Stock actual</th><th>Stock mínimo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="productionInventoryList"></tbody></table></div>
               </section>
               <section class="production-admin-panel production-stock-movements-panel">
                 <div class="panel-heading"><p class="eyebrow">Trazabilidad</p><h2>Últimos movimientos</h2></div>
@@ -412,15 +412,19 @@
               </section>
             </div>
             <form class="production-material-form production-stock-adjustment-form" id="productionStockAdjustmentForm" hidden>
-              <div class="production-material-form-heading"><div><p class="eyebrow">Conteo y corrección</p><h3 id="productionStockAdjustmentTitle">Ajustar stock</h3></div><button class="ghost-button" id="closeProductionStockAdjustment" type="button">Volver al listado</button></div>
+              <div class="production-material-form-heading"><div><p class="eyebrow" id="productionStockFormEyebrow">Ingreso de existencias</p><h3 id="productionStockAdjustmentTitle">Ingresar stock</h3></div><button class="ghost-button" id="closeProductionStockAdjustment" type="button">Volver al listado</button></div>
               <input name="itemId" type="hidden">
+              <input name="formMode" type="hidden" value="entry">
               <fieldset><legend>Insumo</legend><div class="production-recipe-identity" id="productionStockIdentity"></div></fieldset>
-              <fieldset><legend>Nuevo saldo</legend>
-                <label><span>Stock actual</span><input name="quantity" type="number" min="0" step="0.000001" required></label>
+              <fieldset><legend id="productionStockOperationLegend">Ingreso</legend>
+                <label id="productionStockEntryTypeLabel"><span>Tipo de ingreso</span><select name="entryType"></select></label>
+                <label id="productionStockSupplierLabel"><span>Proveedor</span><select name="supplierId"><option value="">Sin proveedor informado</option></select></label>
+                <label><span id="productionStockQuantityLabel">Cantidad comprada</span><input name="quantity" type="number" min="0.000001" step="0.000001" required></label>
+                <div class="production-stock-conversion" id="productionStockConversion"></div>
                 <label><span>Stock mínimo</span><input name="minimumStock" type="number" min="0" step="0.000001" value="0" required></label>
-                <label><span>Motivo del ajuste</span><input name="reason" required minlength="3" maxlength="300" placeholder="Ej.: conteo inicial o corrección de inventario"></label>
+                <label><span id="productionStockNotesLabel">Comprobante u observación</span><input name="notes" maxlength="300" placeholder="Ej.: factura, remito u observación"></label>
               </fieldset>
-              <div class="form-actions"><button class="primary-button" type="submit">Guardar ajuste</button><button class="ghost-button" id="resetProductionStockAdjustment" type="button">Restablecer</button></div>
+              <div class="form-actions"><button class="primary-button" id="saveProductionStock" type="submit">Confirmar ingreso</button><button class="ghost-button" id="resetProductionStockAdjustment" type="button">Restablecer</button></div>
               <p class="form-message" id="productionStockMessage" role="status"></p>
             </form>
           </section>
@@ -933,6 +937,6 @@
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
     <script src="./admin.js?v=97" defer></script>
-    <script src="./admin-production.js?v=13" defer></script>
+    <script src="./admin-production.js?v=14" defer></script>
   </body>
 </html>

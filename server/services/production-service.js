@@ -327,10 +327,11 @@ export function getProductionInventory(db, { query = "", type = "" } = {}) {
       id: row.id, itemCode: row.item_code, name: row.name, itemType: row.item_type, itemKind: row.item_kind || row.item_type, unit: row.unit,
       productId: row.product_id, kmCode: row.km_code || "", quantity: Number(row.quantity || 0), minimumStock: Number(row.minimum_stock || 0), updatedAt: row.updated_at || ""
     }));
-  const movements = db.prepare(`SELECT m.id,m.quantity_delta,m.movement_type,m.reference_type,m.reference_id,
-    m.notes,m.balance_after,m.created_at,i.item_code,i.name,i.item_type,i.unit,COALESCE(b.quantity,0) AS current_balance
+  const movements = db.prepare(`SELECT m.id,m.quantity_delta,m.movement_type,m.reference_type,m.reference_id,m.supplier_id,
+    m.notes,m.balance_after,m.created_at,i.item_code,i.name,i.item_type,i.unit,s.name AS supplier_name,COALESCE(b.quantity,0) AS current_balance
     FROM inventory_movements m JOIN inventory_items i ON i.id=m.item_id
-    LEFT JOIN inventory_balances b ON b.item_id=i.id ORDER BY m.id DESC LIMIT 120`).all().map(publicMovement);
+    LEFT JOIN inventory_balances b ON b.item_id=i.id LEFT JOIN production_suppliers s ON s.id=m.supplier_id
+    ORDER BY m.id DESC LIMIT 120`).all().map(publicMovement);
   const inventoryInitialized = db.prepare("SELECT value FROM settings WHERE key='inventory_initial_stock_loaded'").get()?.value === "1";
   return {
     inventoryInitialized,
@@ -344,6 +345,56 @@ export function getProductionInventory(db, { query = "", type = "" } = {}) {
     },
     items, movements
   };
+}
+
+export function registerProductionInventoryEntry(db, input = {}, adminId) {
+  const itemId = positiveId(input.itemId);
+  const item = db.prepare(`SELECT id,item_code,name,item_kind,item_type,unit,purchase_unit,conversion_factor,
+    product_id,active,tracks_stock FROM inventory_items WHERE id=?`).get(itemId);
+  if (!item || item.product_id || !item.active || !item.tracks_stock) throw new NotFoundError("Insumo activo no encontrado.");
+  const mode = ["purchase", "initial", "preparation"].includes(input.mode) ? input.mode : "";
+  if (!mode) throw new ValidationError("Seleccioná el tipo de ingreso.");
+  const intermediate = item.item_kind === "intermediate" || item.item_type === "intermediate";
+  if (mode === "purchase" && intermediate) throw new ValidationError("Los intermedios se ingresan como preparación, no como compra.");
+  if (mode === "preparation" && !intermediate) throw new ValidationError("La preparación solo corresponde a insumos intermedios.");
+  const enteredQuantity = positiveNumber(input.quantity, mode === "purchase" ? "cantidad comprada" : "cantidad ingresada");
+  const conversionFactor = mode === "preparation" ? 1 : positiveNumber(item.conversion_factor, "factor de conversión");
+  const stockQuantity = enteredQuantity * conversionFactor;
+  const minimumStock = nonNegativeNumber(input.minimumStock || 0, "stock mínimo");
+  const notes = optionalText(input.notes, "observaciones", { max: 300 });
+  let supplier = null;
+  if (input.supplierId) {
+    const supplierId = positiveId(input.supplierId);
+    supplier = db.prepare(`SELECT s.id,s.name FROM production_supplier_items si JOIN production_suppliers s ON s.id=si.supplier_id
+      WHERE si.item_id=? AND si.supplier_id=? AND si.active=1 AND s.active=1`).get(itemId, supplierId);
+    if (!supplier) throw new ValidationError("El proveedor seleccionado no abastece este insumo.");
+  }
+  if (mode === "purchase" && !supplier) {
+    supplier = db.prepare(`SELECT s.id,s.name FROM production_supplier_items si JOIN production_suppliers s ON s.id=si.supplier_id
+      WHERE si.item_id=? AND si.active=1 AND s.active=1 ORDER BY si.is_primary DESC,s.name LIMIT 1`).get(itemId) || null;
+  }
+  ensureBalance(db, itemId);
+  const current = Number(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(itemId).quantity || 0);
+  const newQuantity = mode === "initial" ? stockQuantity : current + stockQuantity;
+  const delta = newQuantity - current;
+  const movementType = mode === "purchase" ? "stock_receipt" : mode === "preparation" ? "intermediate_preparation" : "initial_stock";
+  const automaticNote = mode === "purchase" ? `Ingreso por compra${supplier ? ` a ${supplier.name}` : ""}` : mode === "preparation" ? "Preparación de intermedio" : "Carga inicial de stock";
+  const movementNotes = notes ? `${automaticNote} · ${notes}` : automaticNote;
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.prepare("UPDATE inventory_items SET minimum_stock=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(minimumStock, itemId);
+    db.prepare("UPDATE inventory_balances SET quantity=?,updated_at=CURRENT_TIMESTAMP WHERE item_id=?").run(newQuantity, itemId);
+    db.prepare(`INSERT INTO inventory_movements(item_id,quantity_delta,movement_type,reference_type,notes,actor_user_id,balance_after,supplier_id)
+      VALUES(?,?,?,?,?,?,?,?)`).run(itemId, delta, movementType, mode === "purchase" ? "supplier_receipt" : mode === "preparation" ? "production_preparation" : "initial_stock", movementNotes, adminId, newQuantity, supplier?.id || null);
+    db.prepare("INSERT INTO settings(key,value) VALUES('inventory_initial_stock_loaded','1') ON CONFLICT(key) DO UPDATE SET value='1'").run();
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+  return { id: item.id, itemCode: item.item_code, name: item.name, unit: item.unit, purchaseUnit: item.purchase_unit,
+    enteredQuantity, conversionFactor, stockQuantity, previousQuantity: current, quantity: newQuantity, minimumStock,
+    supplier: supplier ? { id: supplier.id, name: supplier.name } : null, movementType };
 }
 
 export function adjustProductionInventory(db, input = {}, adminId) {
@@ -552,7 +603,7 @@ function publicReportImpactItem(row) { return { productId: row.product_id, kmCod
 function publicMovement(row) { return { id: row.id, itemCode: row.item_code, name: row.name, itemType: row.item_type,
   unit: row.unit, delta: Number(row.quantity_delta), movementType: row.movement_type, referenceType: row.reference_type,
   referenceId: row.reference_id, notes: row.notes || "", balanceAfter: row.balance_after === null ? null : Number(row.balance_after),
-  currentBalance: Number(row.current_balance || 0), createdAt: row.created_at }; }
+  currentBalance: Number(row.current_balance || 0), supplierId: row.supplier_id || null, supplierName: row.supplier_name || "", createdAt: row.created_at }; }
 function publicMaterial(row, db) {
   const suppliers = db ? db.prepare(`SELECT s.id,s.name,si.is_primary FROM production_supplier_items si
     JOIN production_suppliers s ON s.id=si.supplier_id WHERE si.item_id=? AND si.active=1 ORDER BY si.is_primary DESC,s.name COLLATE NOCASE`).all(row.id) : [];

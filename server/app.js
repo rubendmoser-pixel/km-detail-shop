@@ -89,7 +89,7 @@ import {
 import {
   adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
-  requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
+  registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
 } from "./services/production-service.js";
 import { createEmailService } from "./services/email-service.js";
@@ -758,6 +758,9 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/production/inventory/adjustment") {
         return sendJson(response, 201, { adjustment: adjustProductionInventory(db, await readJson(request), currentUser.id) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/inventory/entry") {
+        return sendJson(response, 201, { entry: registerProductionInventoryEntry(db, await readJson(request), currentUser.id) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/materials") {
         return sendJson(response, 200, { materials: listProductionMaterials(db, {
