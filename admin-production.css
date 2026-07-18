@@ -940,6 +940,14 @@
     margin-top: 22px;
     padding-top: 0;
   }
+
+  .production-reports-workspace #productionReportsAdmin {
+    margin-top: 20px;
+  }
+
+  .production-reports-workspace #productionReportsAdmin > .admin-note:first-child {
+    margin-top: 0;
+  }
 }
 
 @media (min-width: 1100px) and (max-width: 1599px) {
