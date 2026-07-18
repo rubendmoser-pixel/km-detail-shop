@@ -88,9 +88,9 @@ import {
 } from "./services/logistics-service.js";
 import {
   approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact,
-  listProductionMaterials, listProductionOperators, listProductionPlans, listProductionReports, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
+  listProductionMaterials, listProductionOperators, listProductionPlans, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
-  submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator
+  submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionSupplier
 } from "./services/production-service.js";
 import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
@@ -763,6 +763,14 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/production/materials") {
         return sendJson(response, 201, { material: upsertProductionMaterial(db, await readJson(request)) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/suppliers") {
+        return sendJson(response, 200, { suppliers: listProductionSuppliers(db, {
+          query: url.searchParams.get("q") || "", status: url.searchParams.get("status") || ""
+        }) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/suppliers") {
+        return sendJson(response, 201, { supplier: upsertProductionSupplier(db, await readJson(request)) });
       }
       match = url.pathname.match(/^\/api\/admin\/production\/reports\/(\d+)\/impact$/);
       if (request.method === "GET" && match) {

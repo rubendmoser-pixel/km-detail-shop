@@ -9,7 +9,8 @@ import { synchronizeProductionMaster } from "../server/services/production-maste
 import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
   approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, listProductionMaterials,
-  saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator
+  listProductionSuppliers, saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial,
+  upsertProductionOperator, upsertProductionSupplier
 } from "../server/services/production-service.js";
 
 const catalogPath = path.resolve(import.meta.dirname, "..", "server", "data", "catalog-2026.json");
@@ -39,6 +40,10 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.equal(materials.find((item) => item.itemCode === "MP-ESP-CEL-12").purchaseUnit, "kg");
   assert.equal(materials.find((item) => item.itemCode === "MP-BOLSA-065").itemKind, "packaging");
   assert.equal(materials.find((item) => item.itemCode === "SRV-INYECCION").tracksStock, false);
+  assert.equal(materials.find((item) => item.itemCode === "MP-ESP-CEL-12").primarySupplier.name, "Norflex");
+  const importedSuppliers = listProductionSuppliers(db);
+  assert.equal(importedSuppliers.length, 8);
+  assert.ok(importedSuppliers.find((supplier) => supplier.name === "Norflex").materials.length > 0);
 
   const createdMaterial = upsertProductionMaterial(db, {
     itemCode: "MP-PRUEBA", name: "Insumo de prueba", category: "Pruebas", itemKind: "raw_material",
@@ -47,6 +52,13 @@ test("production master imports every validated recipe idempotently by KM code a
   });
   assert.equal(createdMaterial.conversionFactor, 50);
   assert.equal(createdMaterial.quantity, 0);
+  const supplier = upsertProductionSupplier(db, {
+    name: "Proveedor de prueba", contactName: "Contacto", email: "compras@proveedor.test",
+    city: "Rosario", province: "Santa Fe", materialIds: [createdMaterial.id], active: true
+  });
+  assert.deepEqual(supplier.materialIds, [createdMaterial.id]);
+  const assignedMaterial = upsertProductionMaterial(db, { ...createdMaterial, primarySupplierId: supplier.id });
+  assert.equal(assignedMaterial.primarySupplier.name, "Proveedor de prueba");
   const editedMaterial = upsertProductionMaterial(db, { ...createdMaterial, purchaseCost: 27, active: false });
   assert.equal(editedMaterial.purchaseCost, 27);
   assert.equal(editedMaterial.active, false);

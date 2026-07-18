@@ -13,7 +13,7 @@ const PRODUCT_UPLOAD_TARGET_BYTES = 900 * 1024;
 const PRODUCT_UPLOAD_MAX_DIMENSION = 1600;
 const PRODUCT_UPLOAD_WEBP_QUALITY = 0.82;
 const PRODUCT_UPLOAD_JPEG_QUALITY = 0.86;
-const adminViews = new Set(["customers", "sales", "logistics", "production", "production-materials", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
+const adminViews = new Set(["customers", "sales", "logistics", "production", "production-materials", "production-suppliers", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -103,7 +103,7 @@ const ADMIN_ICON_PATHS = {
 };
 
 const ADMIN_VIEW_ICONS = {
-  customers: "users", sales: "user-round", logistics: "truck", production: "package", "production-materials": "package", commissions: "coins", distributors: "building",
+  customers: "users", sales: "user-round", logistics: "truck", production: "package", "production-materials": "package", "production-suppliers": "building", commissions: "coins", distributors: "building",
   products: "package", prices: "tags", orders: "clipboard-list", accounts: "wallet", settings: "settings",
   emails: "mail", security: "shield", analytics: "activity", operation: "layout-dashboard"
 };

@@ -859,6 +859,38 @@ function migrate(db) {
   ensureColumn(db, "inventory_items", "tracks_stock", "INTEGER NOT NULL DEFAULT 1");
   db.exec("UPDATE inventory_items SET item_kind='intermediate' WHERE item_type='intermediate' AND item_kind='raw_material'");
   db.exec(`
+    CREATE TABLE IF NOT EXISTS production_suppliers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      legal_name TEXT NOT NULL DEFAULT '',
+      tax_id TEXT NOT NULL DEFAULT '',
+      contact_name TEXT NOT NULL DEFAULT '',
+      email TEXT NOT NULL DEFAULT '',
+      phone TEXT NOT NULL DEFAULT '',
+      whatsapp TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT '',
+      province TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS production_supplier_items (
+      supplier_id INTEGER NOT NULL REFERENCES production_suppliers(id) ON DELETE CASCADE,
+      item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
+      is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (supplier_id, item_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_production_suppliers_active_name ON production_suppliers(active, name);
+    CREATE INDEX IF NOT EXISTS idx_production_supplier_items_item ON production_supplier_items(item_id, active);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_production_supplier_items_primary
+      ON production_supplier_items(item_id) WHERE is_primary=1 AND active=1;
+  `);
+  db.exec(`
     CREATE TABLE IF NOT EXISTS sales_prospect_quotes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       quote_number TEXT NOT NULL UNIQUE,

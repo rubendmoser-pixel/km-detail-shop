@@ -313,7 +313,64 @@ export function listProductionMaterials(db, { query = "", kind = "", status = ""
   return db.prepare(`SELECT i.*,COALESCE(b.quantity,0) AS quantity
     FROM inventory_items i LEFT JOIN inventory_balances b ON b.item_id=i.id
     WHERE ${clauses.join(" AND ")} ORDER BY i.active DESC,i.item_code COLLATE NOCASE`)
-    .all(...params).map(publicMaterial);
+    .all(...params).map((row) => publicMaterial(row, db));
+}
+
+export function listProductionSuppliers(db, { query = "", status = "" } = {}) {
+  const search = String(query || "").trim().slice(0, 100);
+  const clauses = [];
+  const params = [];
+  if (status === "active" || status === "inactive") { clauses.push("s.active=?"); params.push(status === "active" ? 1 : 0); }
+  if (search) {
+    clauses.push("(s.name LIKE ? OR s.legal_name LIKE ? OR s.tax_id LIKE ? OR s.contact_name LIKE ? OR s.email LIKE ? OR s.city LIKE ?)");
+    params.push(...Array(6).fill(`%${search}%`));
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  return db.prepare(`SELECT s.* FROM production_suppliers s ${where} ORDER BY s.active DESC,s.name COLLATE NOCASE`)
+    .all(...params).map((row) => publicSupplier(row, db));
+}
+
+export function upsertProductionSupplier(db, input = {}) {
+  const id = Number(input.id || 0);
+  const existing = id ? db.prepare("SELECT id FROM production_suppliers WHERE id=?").get(id) : null;
+  if (id && !existing) throw new NotFoundError("Proveedor no encontrado.");
+  const name = requiredText(input.name, "nombre comercial", { min: 2, max: 160 });
+  const values = {
+    legalName: optionalText(input.legalName, "razón social", { max: 180 }), taxId: optionalText(input.taxId, "CUIT", { max: 30 }),
+    contactName: optionalText(input.contactName, "contacto", { max: 160 }), email: optionalText(input.email, "email", { max: 254 }),
+    phone: optionalText(input.phone, "teléfono", { max: 60 }), whatsapp: optionalText(input.whatsapp, "WhatsApp", { max: 60 }),
+    address: optionalText(input.address, "dirección", { max: 220 }), city: optionalText(input.city, "ciudad", { max: 120 }),
+    province: optionalText(input.province, "provincia", { max: 120 }), notes: optionalText(input.notes, "observaciones", { max: 1000 })
+  };
+  const active = input.active === false ? 0 : 1;
+  const materialIds = [...new Set((Array.isArray(input.materialIds) ? input.materialIds : []).map(Number))];
+  if (materialIds.some((materialId) => !Number.isSafeInteger(materialId) || materialId <= 0)) throw new ValidationError("La selección de insumos no es válida.");
+  if (materialIds.length) {
+    const found = db.prepare(`SELECT COUNT(*) AS count FROM inventory_items WHERE product_id IS NULL AND id IN (${materialIds.map(() => "?").join(",")})`).get(...materialIds).count;
+    if (found !== materialIds.length) throw new ValidationError("Uno de los insumos seleccionados no existe.");
+  }
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    let supplierId = id;
+    if (existing) {
+      db.prepare(`UPDATE production_suppliers SET name=?,legal_name=?,tax_id=?,contact_name=?,email=?,phone=?,whatsapp=?,address=?,city=?,province=?,notes=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+        .run(name, values.legalName, values.taxId, values.contactName, values.email, values.phone, values.whatsapp, values.address, values.city, values.province, values.notes, active, id);
+    } else {
+      supplierId = db.prepare(`INSERT INTO production_suppliers(name,legal_name,tax_id,contact_name,email,phone,whatsapp,address,city,province,notes,active)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`).get(name, values.legalName, values.taxId, values.contactName, values.email, values.phone, values.whatsapp,
+        values.address, values.city, values.province, values.notes, active).id;
+    }
+    const previousPrimary = new Set(db.prepare("SELECT item_id FROM production_supplier_items WHERE supplier_id=? AND is_primary=1").all(supplierId).map((row) => row.item_id));
+    db.prepare("DELETE FROM production_supplier_items WHERE supplier_id=?").run(supplierId);
+    const insert = db.prepare("INSERT INTO production_supplier_items(supplier_id,item_id,is_primary,active) VALUES(?,?,?,1)");
+    for (const materialId of materialIds) insert.run(supplierId, materialId, previousPrimary.has(materialId) ? 1 : 0);
+    db.exec("COMMIT");
+    return publicSupplier(db.prepare("SELECT * FROM production_suppliers WHERE id=?").get(supplierId), db);
+  } catch (error) {
+    db.exec("ROLLBACK");
+    if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Ya existe un proveedor con ese nombre.");
+    throw error;
+  }
 }
 
 export function upsertProductionMaterial(db, input = {}) {
@@ -335,6 +392,10 @@ export function upsertProductionMaterial(db, input = {}) {
   const leadTimeDays = nonNegativeInteger(input.leadTimeDays || 0, "plazo de entrega");
   const tracksStock = itemKind === "service" ? 0 : input.tracksStock === false ? 0 : 1;
   const active = input.active === false ? 0 : 1;
+  const primarySupplierId = Number(input.primarySupplierId || 0);
+  if (primarySupplierId && !db.prepare("SELECT id FROM production_suppliers WHERE id=? AND active=1").get(primarySupplierId)) {
+    throw new ValidationError("El proveedor principal seleccionado no está activo.");
+  }
   try {
     let materialId = id;
     if (existing) {
@@ -349,8 +410,13 @@ export function upsertProductionMaterial(db, input = {}) {
         purchaseUnit, conversionFactor, currency, purchaseCost, minimumPurchase, leadTimeDays, tracksStock).id;
       ensureBalance(db, materialId);
     }
+    db.prepare("UPDATE production_supplier_items SET is_primary=0,updated_at=CURRENT_TIMESTAMP WHERE item_id=?").run(materialId);
+    if (primarySupplierId) {
+      db.prepare(`INSERT INTO production_supplier_items(supplier_id,item_id,is_primary,active) VALUES(?,?,1,1)
+        ON CONFLICT(supplier_id,item_id) DO UPDATE SET is_primary=1,active=1,updated_at=CURRENT_TIMESTAMP`).run(primarySupplierId, materialId);
+    }
     return publicMaterial(db.prepare(`SELECT i.*,COALESCE(b.quantity,0) AS quantity FROM inventory_items i
-      LEFT JOIN inventory_balances b ON b.item_id=i.id WHERE i.id=?`).get(materialId));
+      LEFT JOIN inventory_balances b ON b.item_id=i.id WHERE i.id=?`).get(materialId), db);
   } catch (error) {
     if (String(error.message || "").includes("UNIQUE")) throw new ValidationError("Ya existe un insumo con ese código interno.");
     throw error;
@@ -413,14 +479,27 @@ function publicMovement(row) { return { id: row.id, itemCode: row.item_code, nam
   unit: row.unit, delta: Number(row.quantity_delta), movementType: row.movement_type, referenceType: row.reference_type,
   referenceId: row.reference_id, notes: row.notes || "", balanceAfter: row.balance_after === null ? null : Number(row.balance_after),
   currentBalance: Number(row.current_balance || 0), createdAt: row.created_at }; }
-function publicMaterial(row) { return {
+function publicMaterial(row, db) {
+  const suppliers = db ? db.prepare(`SELECT s.id,s.name,si.is_primary FROM production_supplier_items si
+    JOIN production_suppliers s ON s.id=si.supplier_id WHERE si.item_id=? AND si.active=1 ORDER BY si.is_primary DESC,s.name COLLATE NOCASE`).all(row.id) : [];
+  return {
   id: row.id, itemCode: row.item_code, name: row.name, category: row.category || "", itemKind: row.item_kind || row.item_type,
   itemType: row.item_type, unit: row.unit, purchaseUnit: row.purchase_unit || row.unit,
   conversionFactor: Number(row.conversion_factor || 1), currency: row.currency === "ARS" ? "ARS" : "USD",
   purchaseCost: Number(row.purchase_cost || 0), minimumPurchase: Number(row.minimum_purchase || 0),
   leadTimeDays: Number(row.lead_time_days || 0), tracksStock: Boolean(row.tracks_stock), active: Boolean(row.active),
-  quantity: Number(row.quantity || 0)
+  quantity: Number(row.quantity || 0), supplierIds: suppliers.map((supplier) => supplier.id),
+  primarySupplier: suppliers.find((supplier) => supplier.is_primary) || null
 }; }
+function publicSupplier(row, db) {
+  const materials = db.prepare(`SELECT i.id,i.item_code,i.name,si.is_primary FROM production_supplier_items si
+    JOIN inventory_items i ON i.id=si.item_id WHERE si.supplier_id=? AND si.active=1 ORDER BY i.item_code COLLATE NOCASE`).all(row.id);
+  return { id: row.id, name: row.name, legalName: row.legal_name || "", taxId: row.tax_id || "", contactName: row.contact_name || "",
+    email: row.email || "", phone: row.phone || "", whatsapp: row.whatsapp || "", address: row.address || "", city: row.city || "",
+    province: row.province || "", notes: row.notes || "", active: Boolean(row.active),
+    materialIds: materials.map((material) => material.id), materials: materials.map((material) => ({ id: material.id,
+      itemCode: material.item_code, name: material.name, primary: Boolean(material.is_primary) })) };
+}
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }
 function publicOperator(row) { return { id: row.id, name: row.name, email: row.email, phone: row.phone || "", status: row.status }; }
 function nonNegativeNumber(value, label) { const number = Number(value); if (!Number.isFinite(number) || number < 0) throw new ValidationError(`${label} debe ser un número igual o mayor que cero.`); return number; }

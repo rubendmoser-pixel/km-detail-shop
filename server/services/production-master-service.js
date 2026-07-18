@@ -7,7 +7,10 @@ export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath
   const master = JSON.parse(fs.readFileSync(masterPath, "utf8"));
   validateMasterShape(master);
   const currentVersion = db.prepare("SELECT value FROM settings WHERE key='production_master_version'").get()?.value || "";
-  if (!force && currentVersion === master.version) return masterStatus(db, master, true);
+  if (!force && currentVersion === master.version) {
+    synchronizeSuppliers(db, master);
+    return masterStatus(db, master, true);
+  }
 
   const products = db.prepare("SELECT id,km_code,ean13,name FROM products WHERE active=1").all();
   const productByCode = new Map(products.map((product) => [product.km_code.toUpperCase(), product]));
@@ -52,6 +55,7 @@ export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath
         material.currency === "ARS" ? "ARS" : "USD", Number(material.purchaseCost || 0), itemKind === "service" ? 0 : 1);
     }
     db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) SELECT id,0 FROM inventory_items").run();
+    synchronizeSuppliers(db, master);
 
     const itemByCode = new Map(db.prepare("SELECT id,item_code FROM inventory_items").all()
       .map((item) => [item.item_code.toUpperCase(), item.id]));
@@ -78,6 +82,28 @@ export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;
+  }
+}
+
+function synchronizeSuppliers(db, master) {
+  const ignored = /^(a confirmar|inyector a confirmar|produccion interna|preparado al usar|tercero \/ km)$/i;
+  const insertSupplier = db.prepare("INSERT OR IGNORE INTO production_suppliers(name) VALUES(?)");
+  const supplierByName = db.prepare("SELECT id FROM production_suppliers WHERE name=? COLLATE NOCASE");
+  const itemByCode = db.prepare("SELECT id FROM inventory_items WHERE item_code=? COLLATE NOCASE");
+  const insertRelation = db.prepare(`INSERT OR IGNORE INTO production_supplier_items(supplier_id,item_id,is_primary,active)
+    VALUES(?,?,1,1)`);
+  for (const material of master.materials) {
+    const supplierName = String(material.supplier || "").trim();
+    if (!supplierName || ignored.test(supplierName)) continue;
+    const item = itemByCode.get(material.itemCode);
+    if (!item) continue;
+    insertSupplier.run(supplierName);
+    const supplier = supplierByName.get(supplierName);
+    const currentPrimary = db.prepare(`SELECT supplier_id FROM production_supplier_items
+      WHERE item_id=? AND is_primary=1 AND active=1`).get(item.id);
+    if (!currentPrimary) insertRelation.run(supplier.id, item.id);
+    else db.prepare(`INSERT OR IGNORE INTO production_supplier_items(supplier_id,item_id,is_primary,active)
+      VALUES(?,?,0,1)`).run(supplier.id, item.id);
   }
 }
 
