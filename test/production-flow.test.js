@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
-  approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, getCurrentProductionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
+  approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionWeek, getCurrentProductionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
   saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator, upsertProductionRecipe
 } from "../server/services/production-service.js";
 
@@ -39,6 +39,19 @@ test("production plan, daily report and admin confirmation update stock with tra
   });
   assert.equal(recipe.productionMinutesPerUnit, 30);
   assert.equal(searchProductionProducts(db, "test-prod")[0].productionMinutesPerUnit, 30);
+
+  const configuredWeek = createProductionWeek(db, {
+    weekStart: "2026-08-03",
+    operatorCount: 4,
+    days: getProductionScheduleDefaults(db).days.map((day) => ({ ...day, enabled: day.weekday <= 6, plannedHours: day.weekday <= 5 ? 8 : day.weekday === 6 ? 4 : 0 }))
+  }, admin.id);
+  assert.equal(configuredWeek.items.length, 0);
+  assert.equal(configuredWeek.summary.workingDays, 6);
+  assert.equal(configuredWeek.summary.scheduledHours, 44);
+  assert.equal(configuredWeek.summary.availableLaborHours, 176);
+  assert.throws(() => createProductionWeek(db, {
+    weekStart: "2026-08-04", operatorCount: 1, days: getProductionScheduleDefaults(db).days
+  }, admin.id), /comenzar un lunes/);
 
   const operator = await upsertProductionOperator(db, {
     name: "Operario Produccion", email: "produccion@km-detail.com", portalPassword: "clave-produccion-2026", portalAccessEnabled: true

@@ -200,6 +200,27 @@ export function saveProductionPlan(db, input = {}, adminId) {
   } catch (error) { db.exec("ROLLBACK"); throw error; }
 }
 
+export function createProductionWeek(db, input = {}, adminId) {
+  const weekStart = validDate(input.weekStart, "la fecha de inicio de la semana");
+  if (new Date(`${weekStart}T12:00:00Z`).getUTCDay() !== 1) throw new ValidationError("La semana de trabajo debe comenzar un lunes.");
+  const days = normalizeScheduleDays(input.days);
+  if (!days.some((day) => day.enabled)) throw new ValidationError("Habilitá al menos un día de trabajo.");
+  if (days.some((day) => day.enabled && day.plannedHours <= 0)) throw new ValidationError("Ingresá las horas de cada día habilitado.");
+  const operatorCount = positiveInteger(input.operatorCount ?? 1, "cantidad de operarios");
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    let plan = db.prepare("SELECT * FROM production_plans WHERE week_start=?").get(weekStart);
+    if (plan?.status === "closed") throw new ValidationError("La semana seleccionada ya está cerrada.");
+    if (!plan) plan = db.prepare(`INSERT INTO production_plans(week_start,created_by,operator_count) VALUES(?,?,?) RETURNING *`).get(weekStart, adminId, operatorCount);
+    else db.prepare("UPDATE production_plans SET operator_count=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(operatorCount, plan.id);
+    const update = db.prepare(`INSERT INTO production_plan_days(plan_id,work_date,weekday,enabled,planned_hours) VALUES(?,?,?,?,?)
+      ON CONFLICT(plan_id,work_date) DO UPDATE SET weekday=excluded.weekday,enabled=excluded.enabled,planned_hours=excluded.planned_hours`);
+    for (const day of days) update.run(plan.id, addDays(weekStart, day.weekday - 1), day.weekday, day.enabled ? 1 : 0, day.plannedHours);
+    db.exec("COMMIT");
+    return getProductionPlan(db, plan.id);
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+}
+
 export function approveProductionPlan(db, planId, adminId) {
   const plan = db.prepare("SELECT * FROM production_plans WHERE id=?").get(positiveId(planId));
   if (!plan) throw new NotFoundError("Planificación no encontrada.");

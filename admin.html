@@ -292,7 +292,7 @@
             <div class="production-week-bar production-desktop-only">
               <div class="production-week-picker"><button class="ghost-button" id="productionPreviousWeek" type="button" aria-label="Semana anterior">‹</button><label><span>Semana seleccionada</span><select id="productionWeekSelect"></select></label><button class="ghost-button" id="productionNextWeek" type="button" aria-label="Semana siguiente">›</button></div>
               <div class="production-week-state"><span class="status-badge" id="productionWeekStatus">Sin planificación</span><strong id="productionWeekCapacity">0 días · 0 horas</strong></div>
-              <button class="ghost-button production-close-week" id="closeProductionWeek" type="button">Cerrar semana y trasladar pendientes</button>
+              <button class="ghost-button" id="newProductionWeek" type="button">Nueva semana</button><button class="ghost-button production-close-week" id="closeProductionWeek" type="button">Cerrar semana y trasladar pendientes</button>
             </div>
             <nav class="production-week-tabs production-desktop-only" aria-label="Contenido de la semana">
               <button class="is-active" type="button" data-production-week-tab="summary">Resumen semanal</button>
@@ -306,8 +306,7 @@
               <div class="production-week-alerts" id="productionWeekAlerts"></div>
             </section>
             <section class="production-week-panel production-calendar-workspace production-desktop-only" data-production-week-panel="calendar">
-              <form class="production-admin-panel" id="productionDefaultCalendarForm"><div class="panel-heading"><p class="eyebrow">Configuración habitual</p><h2>Semana normal</h2><p>Se copiará automáticamente al crear nuevas semanas.</p></div><div class="production-week-days" id="productionDefaultCalendarDays"></div><div class="form-actions"><button class="primary-button" type="submit">Guardar configuración habitual</button></div><p class="form-message" id="productionDefaultCalendarMessage"></p></form>
-              <form class="production-admin-panel" id="productionWeekCalendarForm"><div class="panel-heading"><p class="eyebrow">Excepción semanal</p><h2>Calendario de la semana seleccionada</h2><p>Los cambios afectan solamente a esta semana.</p></div><label class="production-operator-count"><span>Operarios disponibles</span><input id="productionWeekOperatorCount" name="operatorCount" type="number" min="1" step="1" value="1"><small>Se usa únicamente para comparar horas disponibles y requeridas.</small></label><div class="production-week-days" id="productionWeekCalendarDays"></div><div class="form-actions"><button class="primary-button" type="submit">Guardar calendario semanal</button></div><p class="form-message" id="productionWeekCalendarMessage"></p></form>
+              <form class="production-admin-panel production-week-form" id="productionWeekCalendarForm"><div class="panel-heading"><p class="eyebrow">Semana de trabajo</p><h2>Configurar días y horas</h2><p>Habilitá los días que se trabajarán y cargá sus horas. Al desmarcar un día, sus horas se eliminan.</p></div><div class="production-week-form-head"><label><span>Semana desde</span><input id="productionWeekStart" name="weekStart" type="date" required></label><label class="production-operator-count"><span>Operarios disponibles</span><input id="productionWeekOperatorCount" name="operatorCount" type="number" min="1" step="1" value="1"><small>Se usa para calcular las horas-persona disponibles.</small></label></div><div class="production-week-days" id="productionWeekCalendarDays"></div><div class="production-week-capacity-preview" id="productionWeekCapacityPreview"></div><div class="form-actions"><button class="primary-button" type="submit">Guardar semana de trabajo</button></div><p class="form-message" id="productionWeekCalendarMessage"></p></form>
             </section>
             <section class="production-week-panel production-plan-workspace" data-production-week-panel="plan">
               <section class="production-suggestion-panel production-desktop-only">
@@ -1064,6 +1063,6 @@
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
     <script src="./admin.js?v=101" defer></script>
-    <script src="./admin-production.js?v=22" defer></script>
+    <script src="./admin-production.js?v=23" defer></script>
   </body>
 </html>

@@ -87,7 +87,7 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionWeek, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
@@ -770,6 +770,9 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/production/plans") {
         return sendJson(response, 201, { plan: saveProductionPlan(db, await readJson(request), currentUser.id) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/weeks") {
+        return sendJson(response, 201, { plan: createProductionWeek(db, await readJson(request), currentUser.id) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/schedule-defaults") {
         return sendJson(response, 200, { schedule: getProductionScheduleDefaults(db) });
