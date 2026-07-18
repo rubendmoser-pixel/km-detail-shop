@@ -5,10 +5,11 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase, transaction } from "../server/db.js";
 import { upsertProduct } from "../server/services/product-service.js";
+import { updateOrderFulfillment } from "../server/services/order-service.js";
 import { synchronizeProductionMaster } from "../server/services/production-master-service.js";
 import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, getProductionStockParameters, listProductionMaterials,
+  adjustProductionInventory, approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, getProductionStockParameters, getProductionSuggestions, listProductionMaterials,
   listProductionRecipes, listProductionSuppliers, registerProductionInventoryEntry, saveDailyProductionReport, saveProductionPlan, saveProductionStockItemParameter, saveProductionStockParameterDefaults, submitDailyProductionReport, upsertProductionMaterial,
   upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
 } from "../server/services/production-service.js";
@@ -139,6 +140,34 @@ test("production master imports every validated recipe idempotently by KM code a
   parameters = saveProductionStockItemParameter(db, { itemId: raw.id, useDefault: true });
   assert.equal(parameters.items.find((item) => item.id === raw.id).effectiveSafetyDays, 14);
   assert.equal(parameters.items.find((item) => item.id === raw.id).usesDefault, true);
+  let suggestions = getProductionSuggestions(db);
+  assert.equal(suggestions.history.status, "collecting");
+  assert.equal(suggestions.products.length, 104);
+  assert.equal(suggestions.summary.productsToProduce, 0);
+  const customerUser = db.prepare("INSERT INTO users(email,password_hash,role) VALUES('forecast@test.local','x','customer') RETURNING id").get();
+  const customer = db.prepare(`INSERT INTO customers(user_id,first_name,last_name,business_name,tax_id,tax_condition,customer_type,industry,city,province,address,phone,whatsapp,contact_person,approval_status,terms_accepted_at,privacy_accepted_at)
+    VALUES(?,'Prueba','Forecast','Cliente forecast','30-99999999-1','RI','comercio','detailing','Rosario','Santa Fe','Calle 1','1','1','Prueba','approved',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING id`).get(customerUser.id);
+  const insertOrder = db.prepare(`INSERT INTO orders(customer_id,status,payment_status,fulfillment_status,discount_1_bps,discount_2_bps,discount_3_bps,subtotal_net_cents,vat_bps,vat_cents,total_cents,bank_snapshot_json,shipping_snapshot_json,price_reserved_at)
+    VALUES(?,?,?,?,0,0,0,1000,2100,210,1210,'{}','{}',CURRENT_TIMESTAMP) RETURNING id`);
+  const insertOrderItem = db.prepare(`INSERT INTO order_items(order_id,product_id,km_code,ean13,product_name,quantity,base_price_cents,discount_1_bps,discount_2_bps,discount_3_bps,final_unit_price_cents,subtotal_net_cents,confirmed_quantity,confirmed_subtotal_net_cents,line_status)
+    VALUES(?,?,?,?,?,?,100,0,0,0,100,1000,?,1000,'confirmed')`);
+  const deliveredOrder = insertOrder.get(customer.id, "delivered", "paid", "delivered");
+  insertOrderItem.run(deliveredOrder.id, cp171.id, "CP171K", cp171Recipe.ean13, cp171Recipe.name, 14, 14);
+  const activeOrder = insertOrder.get(customer.id, "availability_confirmed", "paid", "pending");
+  insertOrderItem.run(activeOrder.id, cp171.id, "CP171K", cp171Recipe.ean13, cp171Recipe.name, 8, 8);
+  suggestions = getProductionSuggestions(db);
+  const cp171Suggestion = suggestions.products.find((product) => product.kmCode === "CP171K");
+  assert.equal(suggestions.history.status, "learning");
+  assert.equal(cp171Suggestion.dailyDemand, 2);
+  assert.equal(cp171Suggestion.pendingQuantity, 8);
+  assert.equal(cp171Suggestion.suggestedQuantity, 84);
+  assert.ok(suggestions.materials.some((material) => material.plannedRequirement > 0));
+  updateOrderFulfillment(db, activeOrder.id, { fulfillmentStatus: "ready" }, admin.id);
+  updateOrderFulfillment(db, activeOrder.id, {
+    fulfillmentStatus: "shipped", fulfillmentMethod: "carrier", fulfillmentCarrier: "Transporte prueba", fulfillmentTracking: "GUIA-1", fulfillmentEstimatedDate: "2026-07-20"
+  }, admin.id);
+  assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(productItem.id).quantity, -7);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM inventory_movements WHERE item_id=? AND movement_type='order_dispatch' AND reference_id=?").get(productItem.id, activeOrder.id).count, 1);
   db.prepare("UPDATE inventory_balances SET quantity=123.5 WHERE item_id=?").run(raw.id);
   const repeated = synchronizeProductionMaster(db);
   assert.equal(repeated.skipped, true);

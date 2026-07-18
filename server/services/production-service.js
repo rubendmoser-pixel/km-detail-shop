@@ -368,6 +368,97 @@ export function getProductionStockParameters(db) {
   return { defaults: { productSafetyDays, materialSafetyDays }, items };
 }
 
+export function getProductionSuggestions(db) {
+  const productSafetyDays = settingInteger(db, "production_product_safety_days", 30);
+  const materialSafetyDays = settingInteger(db, "production_material_safety_days", 30);
+  const history = db.prepare(`SELECT MIN(o.created_at) AS first_sale,COUNT(DISTINCT o.id) AS orders
+    FROM orders o WHERE (o.status='delivered' OR o.fulfillment_status='delivered')
+    AND o.status!='cancelled' AND o.created_at>=datetime('now','-90 days')`).get();
+  const deliveredOrders = Number(history.orders || 0);
+  const rawDays = history.first_sale ? Math.floor(Number(db.prepare("SELECT julianday('now')-julianday(?) AS days").get(history.first_sale).days || 0)) + 1 : 0;
+  const observationDays = deliveredOrders ? Math.min(90, Math.max(7, rawDays)) : 0;
+  const productRows = db.prepare(`SELECT p.id AS product_id,p.km_code,p.name,i.id AS item_id,i.safety_days,i.minimum_batch,
+      COALESCE(b.quantity,0) AS stock,
+      COALESCE(SUM(CASE WHEN (o.status='delivered' OR o.fulfillment_status='delivered') AND o.status!='cancelled'
+        AND o.created_at>=datetime('now','-90 days') THEN CASE WHEN oi.confirmed_quantity>0 THEN oi.confirmed_quantity ELSE oi.quantity END ELSE 0 END),0) AS delivered_quantity,
+      COALESCE(SUM(CASE WHEN o.status IN ('availability_confirmed','confirmed','in_preparation','ready')
+        AND COALESCE(o.fulfillment_status,'pending')!='delivered' THEN oi.confirmed_quantity ELSE 0 END),0) AS pending_quantity
+    FROM products p JOIN inventory_items i ON i.product_id=p.id AND i.active=1 AND i.tracks_stock=1
+    LEFT JOIN inventory_balances b ON b.item_id=i.id
+    LEFT JOIN order_items oi ON oi.product_id=p.id LEFT JOIN orders o ON o.id=oi.order_id
+    WHERE p.active=1 GROUP BY p.id,i.id ORDER BY p.km_code COLLATE NOCASE`).all();
+  const products = productRows.map((row) => {
+    const deliveredQuantity = Number(row.delivered_quantity || 0);
+    const dailyDemand = observationDays ? deliveredQuantity / observationDays : 0;
+    const pendingQuantity = Number(row.pending_quantity || 0);
+    const safetyDays = row.safety_days === null ? productSafetyDays : Number(row.safety_days);
+    const minimumBatch = Math.max(1, Number(row.minimum_batch || 1));
+    const stock = Number(row.stock || 0);
+    const targetStock = dailyDemand * safetyDays;
+    const shortage = Math.max(0, targetStock + pendingQuantity - stock);
+    const suggestedQuantity = shortage > 0 ? Math.ceil(shortage / minimumBatch) * minimumBatch : 0;
+    return {
+      productId: row.product_id, itemId: row.item_id, kmCode: row.km_code, name: row.name, stock,
+      deliveredQuantity, pendingQuantity, dailyDemand, observationDays, safetyDays, targetStock,
+      minimumBatch, suggestedQuantity,
+      reason: suggestedQuantity ? (pendingQuantity > stock ? "pending_orders" : "safety_stock") : (dailyDemand || pendingQuantity ? "covered" : "collecting_data")
+    };
+  });
+  const productById = new Map(products.map((product) => [product.productId, product]));
+  const componentDemand = new Map();
+  for (const row of db.prepare(`SELECT b.product_id,b.component_item_id,b.quantity FROM product_bom b
+    JOIN inventory_items i ON i.id=b.component_item_id WHERE b.active=1 AND i.active=1 AND i.tracks_stock=1`).all()) {
+    const product = productById.get(row.product_id);
+    if (!product) continue;
+    const current = componentDemand.get(row.component_item_id) || { dailyDemand: 0, plannedRequirement: 0 };
+    current.dailyDemand += product.dailyDemand * Number(row.quantity);
+    current.plannedRequirement += product.suggestedQuantity * Number(row.quantity);
+    componentDemand.set(row.component_item_id, current);
+  }
+  const supplierRows = db.prepare(`SELECT si.item_id,s.id,s.name,si.is_primary FROM production_supplier_items si
+    JOIN production_suppliers s ON s.id=si.supplier_id WHERE si.active=1 AND s.active=1
+    ORDER BY si.is_primary DESC,s.name COLLATE NOCASE`).all();
+  const supplierByItem = new Map();
+  for (const supplier of supplierRows) if (!supplierByItem.has(supplier.item_id)) supplierByItem.set(supplier.item_id, supplier);
+  const materials = db.prepare(`SELECT i.id,i.item_code,i.name,i.item_kind,i.item_type,i.unit,i.purchase_unit,i.conversion_factor,
+      i.minimum_purchase,i.safety_days,COALESCE(b.quantity,0) AS stock FROM inventory_items i
+    LEFT JOIN inventory_balances b ON b.item_id=i.id
+    WHERE i.active=1 AND i.tracks_stock=1 AND i.product_id IS NULL AND COALESCE(i.item_kind,'raw_material')!='service'
+    ORDER BY i.item_type='intermediate',i.item_code COLLATE NOCASE`).all().map((row) => {
+      const demand = componentDemand.get(row.id) || { dailyDemand: 0, plannedRequirement: 0 };
+      const safetyDays = row.safety_days === null ? materialSafetyDays : Number(row.safety_days);
+      const safetyStock = demand.dailyDemand * safetyDays;
+      const stock = Number(row.stock || 0);
+      const requiredStock = safetyStock + demand.plannedRequirement;
+      const shortage = Math.max(0, requiredStock - stock);
+      const intermediate = row.item_kind === "intermediate" || row.item_type === "intermediate";
+      const factor = Math.max(Number(row.conversion_factor || 1), 0.000001);
+      let purchaseQuantity = intermediate ? 0 : shortage / factor;
+      if (purchaseQuantity > 0) purchaseQuantity = Math.max(purchaseQuantity, Number(row.minimum_purchase || 0));
+      if (purchaseQuantity > 0 && discretePurchaseUnit(row.purchase_unit)) purchaseQuantity = Math.ceil(purchaseQuantity);
+      const supplier = supplierByItem.get(row.id);
+      return {
+        itemId: row.id, itemCode: row.item_code, name: row.name, itemKind: row.item_kind || row.item_type,
+        unit: row.unit, purchaseUnit: row.purchase_unit || row.unit, conversionFactor: factor, stock,
+        dailyDemand: demand.dailyDemand, plannedRequirement: demand.plannedRequirement, safetyDays, safetyStock,
+        requiredStock, shortage, purchaseQuantity, preparationQuantity: intermediate ? shortage : 0,
+        supplier: supplier ? { id: supplier.id, name: supplier.name } : null,
+        action: shortage <= 0 ? "covered" : intermediate ? "prepare" : "purchase"
+      };
+    });
+  const learningStatus = deliveredOrders === 0 ? "collecting" : (observationDays < 30 || deliveredOrders < 10) ? "learning" : "stable";
+  return {
+    generatedAt: new Date().toISOString(), history: { windowDays: 90, observationDays, deliveredOrders, status: learningStatus },
+    summary: {
+      productsToProduce: products.filter((product) => product.suggestedQuantity > 0).length,
+      unitsToProduce: products.reduce((total, product) => total + product.suggestedQuantity, 0),
+      materialsToPurchase: materials.filter((material) => material.action === "purchase").length,
+      intermediatesToPrepare: materials.filter((material) => material.action === "prepare").length
+    },
+    products, materials
+  };
+}
+
 export function saveProductionStockParameterDefaults(db, input = {}, adminId) {
   const productSafetyDays = stockSafetyDays(input.productSafetyDays, "días de seguridad para productos");
   const materialSafetyDays = stockSafetyDays(input.materialSafetyDays, "días de seguridad para insumos");
@@ -696,4 +787,5 @@ function positiveId(value) { const id = Number(value); if (!Number.isSafeInteger
 function nonNegativeInteger(value, label) { const number = Number(value); if (!Number.isSafeInteger(number) || number < 0) throw new ValidationError(`${label} debe ser un número entero igual o mayor que cero.`); return number; }
 function stockSafetyDays(value, label) { const days = nonNegativeInteger(value, label); if (days > 730) throw new ValidationError(`${label} no puede superar 730 días.`); return days; }
 function settingInteger(db, key, fallback) { const value = Number(db.prepare("SELECT value FROM settings WHERE key=?").get(key)?.value); return Number.isSafeInteger(value) && value >= 0 ? value : fallback; }
+function discretePurchaseUnit(unit) { return /^(unidad|rollo|placa|barra|bobina)/i.test(String(unit || "").trim()); }
 function validDate(value, label) { if (typeof value !== "string" || !ISO_DATE.test(value) || Number.isNaN(Date.parse(`${value}T12:00:00Z`))) throw new ValidationError(`Revisá ${label}.`); return value; }

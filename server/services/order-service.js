@@ -867,20 +867,43 @@ export function updateOrderFulfillment(db, orderId, input, adminUserId) {
     fulfillmentTracking,
     fulfillmentEstimatedDate
   });
-  db.prepare(`
-    UPDATE orders SET fulfillment_status = ?, fulfillment_method = ?, fulfillment_carrier = ?,
-      fulfillment_tracking = ?, fulfillment_estimated_date = ?, fulfillment_notes = ?,
-      status = CASE WHEN ? = 'delivered' THEN 'delivered' ELSE status END,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).run(
-    fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking,
-    fulfillmentEstimatedDate, fulfillmentNotes, fulfillmentStatus, orderId
-  );
-  addOrderEvent(db, orderId, adminUserId, "fulfillment_updated", reason, order, {
-    fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking, fulfillmentEstimatedDate, fulfillmentNotes
+  transaction(db, () => {
+    db.prepare(`
+      UPDATE orders SET fulfillment_status = ?, fulfillment_method = ?, fulfillment_carrier = ?,
+        fulfillment_tracking = ?, fulfillment_estimated_date = ?, fulfillment_notes = ?,
+        status = CASE WHEN ? = 'delivered' THEN 'delivered' ELSE status END,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking,
+      fulfillmentEstimatedDate, fulfillmentNotes, fulfillmentStatus, orderId
+    );
+    if (fulfillmentStatus === "shipped" && order.fulfillment_status !== "shipped") {
+      consumeFinishedProductStock(db, orderId, adminUserId);
+    }
+    addOrderEvent(db, orderId, adminUserId, "fulfillment_updated", reason, order, {
+      fulfillmentStatus, fulfillmentMethod, fulfillmentCarrier, fulfillmentTracking, fulfillmentEstimatedDate, fulfillmentNotes
+    });
   });
   return getOrder(db, orderId, null, true);
+}
+
+function consumeFinishedProductStock(db, orderId, actorUserId) {
+  const items = db.prepare(`SELECT oi.product_id,oi.km_code,oi.product_name,oi.confirmed_quantity,oi.quantity,i.id AS item_id
+    FROM order_items oi JOIN inventory_items i ON i.product_id=oi.product_id AND i.active=1 AND i.tracks_stock=1
+    WHERE oi.order_id=? AND oi.line_status IN ('confirmed','partial')`).all(orderId);
+  for (const item of items) {
+    const quantity = Number(item.confirmed_quantity || item.quantity || 0);
+    if (quantity <= 0) continue;
+    const alreadyApplied = db.prepare(`SELECT 1 FROM inventory_movements
+      WHERE item_id=? AND movement_type='order_dispatch' AND reference_type='order_dispatch' AND reference_id=? LIMIT 1`).get(item.item_id, orderId);
+    if (alreadyApplied) continue;
+    db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(item.item_id);
+    db.prepare("UPDATE inventory_balances SET quantity=quantity-?,updated_at=CURRENT_TIMESTAMP WHERE item_id=?").run(quantity, item.item_id);
+    const balanceAfter = Number(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(item.item_id).quantity || 0);
+    db.prepare(`INSERT INTO inventory_movements(item_id,quantity_delta,movement_type,reference_type,reference_id,notes,actor_user_id,balance_after)
+      VALUES(?,?,'order_dispatch','order_dispatch',?,?,?,?)`).run(item.item_id, -quantity, orderId, `Salida por despacho ${item.km_code}`, actorUserId || null, balanceAfter);
+  }
 }
 
 export function acceptModifiedOrder(db, orderId, customerId, userId) {

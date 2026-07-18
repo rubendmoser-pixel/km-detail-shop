@@ -87,7 +87,7 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionStockParameters,
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionStockParameters, getProductionSuggestions,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
@@ -764,6 +764,9 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/stock-parameters") {
         return sendJson(response, 200, { parameters: getProductionStockParameters(db) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/suggestions") {
+        return sendJson(response, 200, { suggestions: getProductionSuggestions(db) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/production/stock-parameters/defaults") {
         return sendJson(response, 200, { parameters: saveProductionStockParameterDefaults(db, await readJson(request), currentUser.id) });

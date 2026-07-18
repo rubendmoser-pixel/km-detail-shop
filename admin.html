@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=19" />
+    <link rel="stylesheet" href="./admin-production.css?v=21" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -287,6 +287,12 @@
             <button class="is-active" type="button" data-production-screen="overview">Plan y partes</button>
             <button type="button" data-production-screen="access">Accesos</button>
           </nav>
+          <section class="production-suggestion-panel production-desktop-only" data-production-panel="overview">
+            <div class="production-suggestion-heading"><div><p class="eyebrow">Asistente informativo</p><h2>Sugerido de fabricación</h2><p id="productionSuggestionLearning"></p></div><button class="primary-button" id="addAllProductionSuggestions" type="button">Cargar sugeridos al plan</button></div>
+            <div class="production-inventory-summary" id="productionSuggestionSummary"></div>
+            <div class="production-suggestion-toolbar"><input id="productionSuggestionSearch" type="search" placeholder="Buscar código o producto" aria-label="Buscar sugeridos de fabricación"><select id="productionSuggestionStatus" aria-label="Filtrar sugeridos"><option value="needed">Solo para fabricar</option><option value="all">Todos los productos</option><option value="pending">Con pedidos pendientes</option><option value="learning">Sin historial suficiente</option></select></div>
+            <div class="orders-table-wrap"><table class="admin-table production-suggestion-table"><thead><tr><th>Producto</th><th>Stock</th><th>Pedidos</th><th>Ritmo diario</th><th>Seguridad</th><th>Sugerido</th><th>Acción</th></tr></thead><tbody id="productionSuggestionList"></tbody></table></div>
+          </section>
           <div class="production-admin-grid" data-production-panel="overview">
             <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Planificación</p><h2>Objetivo semanal</h2></div><form id="productionPlanForm"><label><span>Semana desde</span><input name="weekStart" type="date" required></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="production-add-row"><div class="production-product-search"><input id="productionProductSearch" type="search" autocomplete="off" placeholder="Buscar código KM" aria-label="Buscar producto por código KM" aria-controls="productionProductResults" aria-expanded="false"><div class="production-product-results" id="productionProductResults" role="listbox" hidden></div><div class="production-product-selected" id="productionProductSelected" hidden></div></div><input id="productionProductQuantity" type="number" min="1" step="1" value="1" aria-label="Cantidad"><button class="ghost-button" id="addProductionPlanItem" type="button">Agregar</button></div><div id="productionPlanItems"></div><div class="form-actions"><button class="ghost-button" type="submit">Guardar planificación</button><button class="primary-button" id="approveProductionPlan" type="button" disabled>Aprobar y habilitar</button></div><p class="form-message" id="productionPlanMessage"></p></form><div id="productionPlanHistory"></div></section>
             <section class="production-admin-panel"><div class="panel-heading"><p class="eyebrow">Control administrativo</p><h2>Partes diarios</h2></div><div id="productionReportsAdmin"></div></section>
@@ -484,12 +490,12 @@
                 <input id="productionPurchasingSearch" type="search" placeholder="Buscar código, insumo o proveedor" aria-label="Buscar necesidades de compra">
                 <select id="productionPurchasingStatus" aria-label="Filtrar necesidades de compra">
                   <option value="needed">Solo por comprar</option>
-                  <option value="all">Todos los insumos comprables</option>
-                  <option value="unconfigured">Sin stock mínimo definido</option>
+                  <option value="all">Todos los insumos proyectados</option>
+                  <option value="prepare">Intermedios por preparar</option>
                   <option value="without_supplier">Sin proveedor asignado</option>
                 </select>
               </div>
-              <div class="orders-table-wrap"><table class="admin-table production-purchasing-table"><thead><tr><th>Insumo</th><th>Stock actual</th><th>Stock mínimo</th><th>Faltante</th><th>Compra sugerida</th><th>Proveedor</th><th>Estado</th></tr></thead><tbody id="productionPurchasingList"></tbody></table></div>
+              <div class="orders-table-wrap"><table class="admin-table production-purchasing-table"><thead><tr><th>Insumo</th><th>Stock</th><th>Para fabricar</th><th>Seguridad</th><th>Faltante</th><th>Sugerido</th><th>Proveedor</th><th>Estado</th></tr></thead><tbody id="productionPurchasingList"></tbody></table></div>
             </section>
           </section>
           <section class="production-admin-panel production-access-panel" data-production-panel="access" hidden><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
@@ -549,7 +555,7 @@
             <div><p class="eyebrow">Abastecimiento sugerido</p><h1>Necesidades de compra</h1></div>
             <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionPurchasing" type="button">Actualizar</button></div>
           </div>
-          <p class="admin-note production-purchasing-note">El sugerido cubre el faltante hasta el stock mínimo y respeta la compra mínima configurada para cada insumo.</p>
+          <p class="admin-note production-purchasing-note">Proyección informativa basada en pedidos, ritmo de ventas, recetas y días de seguridad. Administración conserva siempre la decisión final.</p>
           <div id="productionPurchasingMount"></div>
         </section>
 
@@ -1027,6 +1033,6 @@
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
     <script src="./admin.js?v=100" defer></script>
-    <script src="./admin-production.js?v=17" defer></script>
+    <script src="./admin-production.js?v=18" defer></script>
   </body>
 </html>
