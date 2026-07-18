@@ -189,8 +189,8 @@ const adminEls = Object.fromEntries([
   "orderHistoryPanel",
   "availabilityForm", "availabilityPaymentCondition", "availabilityTermsField", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
   "orderStatusForm", "orderStatusMessage", "orderAdvancedPanel",
-  "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productForm",
-  "productFormTitle", "productMessage", "familyNameOptions", "productImageInput", "productImages",
+  "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productListPanel", "productResultCount", "productForm",
+  "productFormTitle", "productMessage", "closeProductForm", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
   "reloadPrices", "priceModeButtons", "individualPricePanel", "linearPricePanel", "priceEffectiveDate", "fillUnchangedPrices",
   "clearPriceDraft", "saveIndividualPrices", "priceUpdateStats", "priceUpdateFilters", "priceUpdateList", "priceUpdateMessage",
@@ -240,8 +240,9 @@ function bindAdminEvents() {
   on(adminEls.productFamilyFilter, "change", loadProducts);
   on(adminEls.productStatusFilter, "change", loadProducts);
   on(byId("#reloadProducts"), "click", loadProducts);
-  on(byId("#newProduct"), "click", resetProductForm);
+  on(byId("#newProduct"), "click", openNewProductEditor);
   on(byId("#resetProductForm"), "click", resetProductForm);
+  on(adminEls.closeProductForm, "click", closeProductEditor);
   on(adminEls.productForm, "submit", saveProduct);
   on(productField("familyName"), "change", syncSelectedFamilyDescription);
   on(productField("familyName"), "blur", syncSelectedFamilyDescription);
@@ -340,6 +341,7 @@ function setAdminNavOpen(open) {
 function closeAdminExpandedContent() {
   setAdminNavOpen(false);
   document.querySelectorAll("details[open]").forEach((details) => { details.open = false; });
+  if (adminEls.productForm && !adminEls.productForm.hidden) closeProductEditor();
   if (adminEls.customerCreatePanel && !adminEls.customerCreatePanel.hidden) toggleCustomerCreatePanel(false);
   if (adminState.selectedOrder) closeOrderDetail();
   if (adminState.currentAccountOrderId) {
@@ -407,6 +409,7 @@ async function enterWorkspace() {
   const requestedOrderId = Number(new URLSearchParams(window.location.search).get("order") || 0);
   if (requestedOrderId) await openOrderDetail(requestedOrderId);
   resetProductForm();
+  closeProductEditor();
   resetSalesRepForm();
   resetLogisticsOperatorForm();
   resetDistributorForm();
@@ -439,6 +442,7 @@ function showAdminView(view, updateHash = true) {
   const targetView = adminViews.has(view) ? view : "customers";
   setAdminNavOpen(false);
   document.querySelectorAll("details[open]").forEach((details) => { details.open = false; });
+  if (targetView !== "products" && adminEls.productForm && !adminEls.productForm.hidden) closeProductEditor();
   if (updateHash && window.location.hash !== `#${targetView}`) window.location.hash = targetView;
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === targetView));
   document.querySelectorAll(".admin-view").forEach((section) => { section.hidden = section.id !== `${targetView}View`; });
@@ -1577,6 +1581,10 @@ function syncSelectedFamilyDescription() {
 }
 
 function renderProducts() {
+  if (adminEls.productResultCount) {
+    const count = adminState.products.length;
+    adminEls.productResultCount.textContent = `${count} producto${count === 1 ? "" : "s"}`;
+  }
   adminEls.productsTableBody.innerHTML = adminState.products.length ? adminState.products.map((product) => `
     <tr data-product-id="${product.id}">
       <td data-label="KM"><strong>${escapeAdmin(product.kmCode)}</strong>${adminPromotionBadge(product.promotion?.current)}<br><span>${escapeAdmin(product.ean13)}</span></td>
@@ -1627,8 +1635,29 @@ function editProduct(event) {
   productField("recommendedUse").value = product.recommendedUse || "";
   productField("technicalDescription").value = product.technicalDescription || "";
   adminEls.productMessage.textContent = "";
+  openProductEditor();
   loadProductImages(product.id);
   adminEls.productForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function openNewProductEditor() {
+  resetProductForm();
+  openProductEditor();
+  productField("kmCode")?.focus();
+}
+
+function openProductEditor() {
+  if (!adminEls.productForm) return;
+  adminEls.productForm.hidden = false;
+  if (adminEls.productListPanel) adminEls.productListPanel.hidden = true;
+  document.querySelector("#productsView")?.classList.add("product-editor-open");
+}
+
+function closeProductEditor() {
+  if (!adminEls.productForm) return;
+  adminEls.productForm.hidden = true;
+  if (adminEls.productListPanel) adminEls.productListPanel.hidden = false;
+  document.querySelector("#productsView")?.classList.remove("product-editor-open");
 }
 
 function resetProductForm() {
