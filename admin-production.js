@@ -5,8 +5,11 @@ async function api(path,options={}){const hasBody=Object.prototype.hasOwnPropert
 function monday(){const date=new Date();const day=date.getDay()||7;date.setDate(date.getDate()-day+1);return`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`}
 function init(){
   if(!document.querySelector('[data-admin-view="production"]'))return;
-  document.querySelector('[data-admin-view="production"]').addEventListener("click",()=>load().catch(showError));
+  const materialsPanel=document.querySelector('[data-production-panel="materials"]');
+  if(materialsPanel&&$("#productionMaterialsMount"))$("#productionMaterialsMount").append(materialsPanel);
+  document.addEventListener("admin:viewchange",(event)=>handleAdminViewChange(event.detail?.view));
   $("#reloadProductionAdmin")?.addEventListener("click",()=>load(true).catch(showError));
+  $("#reloadProductionMaterials")?.addEventListener("click",()=>load(true).catch(showError));
   document.querySelectorAll("[data-production-screen]").forEach((button)=>button.addEventListener("click",()=>showScreen(button.dataset.productionScreen)));
   $("#productionPlanForm")?.addEventListener("submit",savePlan);$("#productionProductSearch")?.addEventListener("input",handleProductSearch);
   $("#productionProductSearch")?.addEventListener("focus",()=>{if($("#productionProductSearch").value.trim()&&!state.selectedProductId)renderProductResults()});
@@ -17,8 +20,10 @@ function init(){
   $("#productionMaterialSearch")?.addEventListener("input",renderMaterials);$("#productionMaterialKindFilter")?.addEventListener("change",renderMaterials);$("#productionMaterialStatusFilter")?.addEventListener("change",renderMaterials);
   $("#newProductionMaterial")?.addEventListener("click",openNewMaterial);$("#closeProductionMaterialForm")?.addEventListener("click",closeMaterialEditor);$("#resetProductionMaterial")?.addEventListener("click",resetMaterialForm);$("#productionMaterialForm")?.addEventListener("submit",saveMaterial);$("#productionMaterialTableBody")?.addEventListener("click",editMaterial);
   $("#productionOperatorForm")?.addEventListener("submit",saveOperator);$("#productionOperatorsList")?.addEventListener("click",editOperator);$("#resetProductionOperator")?.addEventListener("click",resetOperator);$("[data-production-password]")?.addEventListener("click",togglePassword);
-  document.addEventListener("click",(event)=>{if(!event.target.closest(".production-product-search"))hideProductResults()});$("#productionPlanForm").elements.weekStart.value=monday();showScreen("overview");
+  document.addEventListener("click",(event)=>{if(!event.target.closest(".production-product-search"))hideProductResults()});$("#productionPlanForm").elements.weekStart.value=monday();
+  const initialView=window.location.hash.replace("#","");if(["production","production-materials"].includes(initialView))handleAdminViewChange(initialView);else showScreen("overview");
 }
+function handleAdminViewChange(view){if(view==="production-materials"){showScreen("materials");load().catch(showError);return}if(view==="production"){showScreen("overview");load().catch(showError);return}closeMaterialEditor()}
 function showScreen(screen){if(screen!=="materials")closeMaterialEditor();state.screen=screen;document.querySelectorAll("[data-production-screen]").forEach((button)=>button.classList.toggle("is-active",button.dataset.productionScreen===screen));document.querySelectorAll("[data-production-panel]").forEach((panel)=>panel.hidden=panel.dataset.productionPanel!==screen)}
 async function load(force=false){if(state.loaded&&!force)return;const [plans,reports,operators,inventory,materials]=await Promise.all([api("/api/admin/production/plans"),api("/api/admin/production/reports"),api("/api/admin/production-operators"),api("/api/admin/production/inventory"),api("/api/admin/production/materials")]);state.plans=plans.plans||[];state.reports=reports.reports||[];state.operators=operators.operators||[];state.inventory=inventory.inventory||null;state.materials=materials.materials||[];state.loaded=true;clearProductSelection(false);renderPlanHistory();renderReports();renderOperators();renderInventory();renderMaterials();renderMovements();const selected=state.plans.find((plan)=>plan.id===state.planId);if(selected)usePlan(selected);else if(state.plans.length)usePlan(state.plans[0]);else renderItems()}
 function handleProductSearch(){state.selectedProductId=null;$("#productionProductSelected").hidden=true;clearTimeout(state.searchTimer);const query=$("#productionProductSearch").value.trim();if(!query){state.products=[];hideProductResults();return}const container=$("#productionProductResults");container.innerHTML='<p class="admin-note">Buscando código KM...</p>';container.hidden=false;$("#productionProductSearch").setAttribute("aria-expanded","true");state.searchTimer=setTimeout(()=>searchProductionProducts(query),120)}

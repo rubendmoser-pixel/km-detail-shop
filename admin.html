@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=6" />
+    <link rel="stylesheet" href="./admin-production.css?v=7" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -82,6 +82,7 @@
             <p class="admin-nav-group-title">Producción</p>
             <div class="admin-nav-group-items">
               <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Plan y partes</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
             </div>
           </div>
           <div class="admin-nav-group" data-admin-area="sistema">
@@ -278,7 +279,6 @@
           <div class="admin-titlebar"><div><p class="eyebrow">Fabricación</p><h1>Producción semanal</h1></div><div class="admin-toolbar"><a class="ghost-button" href="https://produccion.km-detail.com/produccion.html" target="_blank" rel="noreferrer">Abrir portal de producción</a><button class="ghost-button toolbar-refresh-button" id="reloadProductionAdmin" type="button">Actualizar</button></div></div>
           <nav class="production-module-nav" aria-label="Secciones de producción">
             <button class="is-active" type="button" data-production-screen="overview">Plan y partes</button>
-            <button class="production-desktop-only" type="button" data-production-screen="materials">Insumos</button>
             <button type="button" data-production-screen="stock">Stock</button>
             <button type="button" data-production-screen="movements">Movimientos</button>
             <button type="button" data-production-screen="access">Accesos</button>
@@ -340,6 +340,14 @@
             <div class="production-movement-list" id="productionMovementList"></div>
           </section>
           <section class="production-admin-panel production-access-panel" data-production-panel="access" hidden><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-materialsView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Stock y costos</p><h1>Insumos</h1></div>
+            <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionMaterials" type="button">Actualizar</button></div>
+          </div>
+          <div id="productionMaterialsMount"></div>
         </section>
 
         <section class="admin-view" id="commissionsView" hidden>
@@ -815,7 +823,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=93" defer></script>
-    <script src="./admin-production.js?v=6" defer></script>
+    <script src="./admin.js?v=94" defer></script>
+    <script src="./admin-production.js?v=7" defer></script>
   </body>
 </html>
