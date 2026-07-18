@@ -168,6 +168,12 @@ test("production master imports every validated recipe idempotently by KM code a
   }, admin.id);
   assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(productItem.id).quantity, -7);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM inventory_movements WHERE item_id=? AND movement_type='order_dispatch' AND reference_id=?").get(productItem.id, activeOrder.id).count, 1);
+  suggestions = getProductionSuggestions(db);
+  const cp171AfterDispatch = suggestions.products.find((product) => product.kmCode === "CP171K");
+  assert.equal(cp171AfterDispatch.pendingQuantity, 0);
+  assert.equal(cp171AfterDispatch.deliveredQuantity, 22);
+  assert.ok(Math.abs(cp171AfterDispatch.dailyDemand - (22 / 7)) < 1e-9);
+  assert.equal(cp171AfterDispatch.suggestedQuantity, 120);
   db.prepare("UPDATE inventory_balances SET quantity=123.5 WHERE item_id=?").run(raw.id);
   const repeated = synchronizeProductionMaster(db);
   assert.equal(repeated.skipped, true);

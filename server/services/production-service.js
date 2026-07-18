@@ -371,18 +371,18 @@ export function getProductionStockParameters(db) {
 export function getProductionSuggestions(db) {
   const productSafetyDays = settingInteger(db, "production_product_safety_days", 30);
   const materialSafetyDays = settingInteger(db, "production_material_safety_days", 30);
-  const history = db.prepare(`SELECT MIN(o.created_at) AS first_sale,COUNT(DISTINCT o.id) AS orders
-    FROM orders o WHERE (o.status='delivered' OR o.fulfillment_status='delivered')
-    AND o.status!='cancelled' AND o.created_at>=datetime('now','-90 days')`).get();
+  const history = db.prepare(`SELECT MIN(COALESCE(o.updated_at,o.created_at)) AS first_sale,COUNT(DISTINCT o.id) AS orders
+    FROM orders o WHERE o.fulfillment_status IN ('shipped','delivered')
+    AND o.status!='cancelled' AND COALESCE(o.updated_at,o.created_at)>=datetime('now','-90 days')`).get();
   const deliveredOrders = Number(history.orders || 0);
   const rawDays = history.first_sale ? Math.floor(Number(db.prepare("SELECT julianday('now')-julianday(?) AS days").get(history.first_sale).days || 0)) + 1 : 0;
   const observationDays = deliveredOrders ? Math.min(90, Math.max(7, rawDays)) : 0;
   const productRows = db.prepare(`SELECT p.id AS product_id,p.km_code,p.name,i.id AS item_id,i.safety_days,i.minimum_batch,
       COALESCE(b.quantity,0) AS stock,
-      COALESCE(SUM(CASE WHEN (o.status='delivered' OR o.fulfillment_status='delivered') AND o.status!='cancelled'
-        AND o.created_at>=datetime('now','-90 days') THEN CASE WHEN oi.confirmed_quantity>0 THEN oi.confirmed_quantity ELSE oi.quantity END ELSE 0 END),0) AS delivered_quantity,
+      COALESCE(SUM(CASE WHEN o.fulfillment_status IN ('shipped','delivered') AND o.status!='cancelled'
+        AND COALESCE(o.updated_at,o.created_at)>=datetime('now','-90 days') THEN CASE WHEN oi.confirmed_quantity>0 THEN oi.confirmed_quantity ELSE oi.quantity END ELSE 0 END),0) AS delivered_quantity,
       COALESCE(SUM(CASE WHEN o.status IN ('availability_confirmed','confirmed','in_preparation','ready')
-        AND COALESCE(o.fulfillment_status,'pending')!='delivered' THEN oi.confirmed_quantity ELSE 0 END),0) AS pending_quantity
+        AND COALESCE(o.fulfillment_status,'pending') IN ('pending','ready') THEN oi.confirmed_quantity ELSE 0 END),0) AS pending_quantity
     FROM products p JOIN inventory_items i ON i.product_id=p.id AND i.active=1 AND i.tracks_stock=1
     LEFT JOIN inventory_balances b ON b.item_id=i.id
     LEFT JOIN order_items oi ON oi.product_id=p.id LEFT JOIN orders o ON o.id=oi.order_id
