@@ -8,7 +8,7 @@ import { upsertProduct } from "../server/services/product-service.js";
 import { synchronizeProductionMaster } from "../server/services/production-master-service.js";
 import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
-  approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, listProductionMaterials,
+  adjustProductionInventory, approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, listProductionMaterials,
   listProductionRecipes, listProductionSuppliers, saveDailyProductionReport, saveProductionPlan, submitDailyProductionReport, upsertProductionMaterial,
   upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
 } from "../server/services/production-service.js";
@@ -114,6 +114,10 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.ok(inventory.movements.length > 0);
 
   const raw = db.prepare("SELECT id FROM inventory_items WHERE item_code='MP-ESP-CEL-12'").get();
+  const adjustment = adjustProductionInventory(db, { itemId: raw.id, quantity: 150, minimumStock: 40, reason: "Conteo inicial de prueba" }, admin.id);
+  assert.equal(adjustment.delta, 150);
+  assert.equal(getProductionInventory(db).items.find((item) => item.id === raw.id).minimumStock, 40);
+  assert.equal(db.prepare("SELECT movement_type FROM inventory_movements WHERE item_id=? ORDER BY id DESC LIMIT 1").get(raw.id).movement_type, "stock_adjustment");
   db.prepare("UPDATE inventory_balances SET quantity=123.5 WHERE item_id=?").run(raw.id);
   const repeated = synchronizeProductionMaster(db);
   assert.equal(repeated.skipped, true);

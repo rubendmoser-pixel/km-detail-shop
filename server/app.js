@@ -87,7 +87,7 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact,
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, confirmDailyProductionReport, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
@@ -755,6 +755,9 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/inventory") {
         return sendJson(response, 200, { inventory: getProductionInventory(db, { query: url.searchParams.get("q") || "", type: url.searchParams.get("type") || "" }) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/inventory/adjustment") {
+        return sendJson(response, 201, { adjustment: adjustProductionInventory(db, await readJson(request), currentUser.id) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/materials") {
         return sendJson(response, 200, { materials: listProductionMaterials(db, {

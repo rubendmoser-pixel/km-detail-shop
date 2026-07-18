@@ -855,6 +855,7 @@ function migrate(db) {
   ensureColumn(db, "inventory_items", "currency", "TEXT NOT NULL DEFAULT 'USD'");
   ensureColumn(db, "inventory_items", "purchase_cost", "REAL NOT NULL DEFAULT 0");
   ensureColumn(db, "inventory_items", "minimum_purchase", "REAL NOT NULL DEFAULT 0");
+  ensureColumn(db, "inventory_items", "minimum_stock", "REAL NOT NULL DEFAULT 0");
   ensureColumn(db, "inventory_items", "lead_time_days", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "inventory_items", "tracks_stock", "INTEGER NOT NULL DEFAULT 1");
   db.exec("UPDATE inventory_items SET item_kind='intermediate' WHERE item_type='intermediate' AND item_kind='raw_material'");

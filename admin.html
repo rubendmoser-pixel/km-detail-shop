@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=12" />
+    <link rel="stylesheet" href="./admin-production.css?v=14" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -83,6 +83,7 @@
             <div class="admin-nav-group-items">
               <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Plan y partes</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-stock" title="Stock de insumos"><span class="admin-tab-label">Stock de insumos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-recipes" title="Recetas"><span class="admin-tab-label">Recetas</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-suppliers" title="Proveedores"><span class="admin-tab-label">Proveedores</span></button>
             </div>
@@ -281,8 +282,6 @@
           <div class="admin-titlebar"><div><p class="eyebrow">Fabricación</p><h1>Producción semanal</h1></div><div class="admin-toolbar"><a class="ghost-button" href="https://produccion.km-detail.com/produccion.html" target="_blank" rel="noreferrer">Abrir portal de producción</a><button class="ghost-button toolbar-refresh-button" id="reloadProductionAdmin" type="button">Actualizar</button></div></div>
           <nav class="production-module-nav" aria-label="Secciones de producción">
             <button class="is-active" type="button" data-production-screen="overview">Plan y partes</button>
-            <button type="button" data-production-screen="stock">Stock</button>
-            <button type="button" data-production-screen="movements">Movimientos</button>
             <button type="button" data-production-screen="access">Accesos</button>
           </nav>
           <div class="production-admin-grid" data-production-panel="overview">
@@ -398,17 +397,32 @@
               <p class="form-message" id="productionRecipeMessage" role="status"></p>
             </form>
           </section>
-          <section class="production-admin-panel" data-production-panel="stock" hidden>
-            <div class="panel-heading"><p class="eyebrow">Inventario</p><h2>Stock actual</h2></div>
-            <div id="productionInventoryStatus"></div>
-            <div class="production-inventory-summary" id="productionInventorySummary"></div>
-            <div class="production-stock-toolbar"><input id="productionStockSearch" type="search" placeholder="Buscar código o insumo"><select id="productionStockType"><option value="">Todos</option><option value="finished_product">Productos terminados</option><option value="raw_material">Materias primas</option><option value="intermediate">Intermedios</option></select></div>
-            <div class="production-stock-list" id="productionInventoryList"></div>
-          </section>
-          <section class="production-admin-panel" data-production-panel="movements" hidden>
-            <div class="panel-heading"><p class="eyebrow">Trazabilidad</p><h2>Movimientos de stock</h2></div>
-            <p class="admin-note">Cada ingreso y consumo queda relacionado con su parte diario.</p>
-            <div class="production-movement-list" id="productionMovementList"></div>
+          <section class="production-stock-workspace production-desktop-only" data-production-panel="stock" hidden>
+            <div id="productionStockListPanel">
+              <div id="productionInventoryStatus"></div>
+              <div class="production-inventory-summary" id="productionInventorySummary"></div>
+              <section class="production-material-list-panel">
+                <div class="production-stock-toolbar"><input id="productionStockSearch" type="search" placeholder="Buscar código o insumo"><select id="productionStockType"><option value="">Todos los insumos</option><option value="raw_material">Materias primas</option><option value="intermediate">Intermedios</option></select></div>
+                <div class="orders-table-wrap"><table class="admin-table production-stock-table"><thead><tr><th>Código</th><th>Insumo</th><th>Stock actual</th><th>Stock mínimo</th><th>Estado</th><th>Ajustar</th></tr></thead><tbody id="productionInventoryList"></tbody></table></div>
+              </section>
+              <section class="production-admin-panel production-stock-movements-panel">
+                <div class="panel-heading"><p class="eyebrow">Trazabilidad</p><h2>Últimos movimientos</h2></div>
+                <p class="admin-note">Cada ingreso, consumo y corrección queda registrado con su motivo.</p>
+                <div class="production-movement-list" id="productionMovementList"></div>
+              </section>
+            </div>
+            <form class="production-material-form production-stock-adjustment-form" id="productionStockAdjustmentForm" hidden>
+              <div class="production-material-form-heading"><div><p class="eyebrow">Conteo y corrección</p><h3 id="productionStockAdjustmentTitle">Ajustar stock</h3></div><button class="ghost-button" id="closeProductionStockAdjustment" type="button">Volver al listado</button></div>
+              <input name="itemId" type="hidden">
+              <fieldset><legend>Insumo</legend><div class="production-recipe-identity" id="productionStockIdentity"></div></fieldset>
+              <fieldset><legend>Nuevo saldo</legend>
+                <label><span>Stock actual</span><input name="quantity" type="number" min="0" step="0.000001" required></label>
+                <label><span>Stock mínimo</span><input name="minimumStock" type="number" min="0" step="0.000001" value="0" required></label>
+                <label><span>Motivo del ajuste</span><input name="reason" required minlength="3" maxlength="300" placeholder="Ej.: conteo inicial o corrección de inventario"></label>
+              </fieldset>
+              <div class="form-actions"><button class="primary-button" type="submit">Guardar ajuste</button><button class="ghost-button" id="resetProductionStockAdjustment" type="button">Restablecer</button></div>
+              <p class="form-message" id="productionStockMessage" role="status"></p>
+            </form>
           </section>
           <section class="production-admin-panel production-access-panel" data-production-panel="access" hidden><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
         </section>
@@ -435,6 +449,14 @@
             <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionRecipes" type="button">Actualizar</button></div>
           </div>
           <div id="productionRecipesMount"></div>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-stockView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Inventario general</p><h1>Stock de insumos</h1></div>
+            <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionStock" type="button">Actualizar</button></div>
+          </div>
+          <div id="productionStockMount"></div>
         </section>
 
         <section class="admin-view" id="commissionsView" hidden>
@@ -910,7 +932,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=96" defer></script>
-    <script src="./admin-production.js?v=12" defer></script>
+    <script src="./admin.js?v=97" defer></script>
+    <script src="./admin-production.js?v=13" defer></script>
   </body>
 </html>

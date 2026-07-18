@@ -319,13 +319,13 @@ export function getProductionInventory(db, { query = "", type = "" } = {}) {
   const params = [];
   if (itemType) { clauses.push("i.item_type=?"); params.push(itemType); }
   if (search) { clauses.push("(i.item_code LIKE ? OR i.name LIKE ?)"); params.push(`%${search}%`, `%${search}%`); }
-  const items = db.prepare(`SELECT i.id,i.item_code,i.name,i.item_type,i.unit,i.product_id,
+  const items = db.prepare(`SELECT i.id,i.item_code,i.name,i.item_type,i.item_kind,i.unit,i.product_id,i.minimum_stock,
     COALESCE(b.quantity,0) AS quantity,b.updated_at,p.km_code
     FROM inventory_items i LEFT JOIN inventory_balances b ON b.item_id=i.id
     LEFT JOIN products p ON p.id=i.product_id WHERE ${clauses.join(" AND ")}
     ORDER BY i.item_type,i.item_code`).all(...params).map((row) => ({
-      id: row.id, itemCode: row.item_code, name: row.name, itemType: row.item_type, unit: row.unit,
-      productId: row.product_id, kmCode: row.km_code || "", quantity: Number(row.quantity || 0), updatedAt: row.updated_at || ""
+      id: row.id, itemCode: row.item_code, name: row.name, itemType: row.item_type, itemKind: row.item_kind || row.item_type, unit: row.unit,
+      productId: row.product_id, kmCode: row.km_code || "", quantity: Number(row.quantity || 0), minimumStock: Number(row.minimum_stock || 0), updatedAt: row.updated_at || ""
     }));
   const movements = db.prepare(`SELECT m.id,m.quantity_delta,m.movement_type,m.reference_type,m.reference_id,
     m.notes,m.balance_after,m.created_at,i.item_code,i.name,i.item_type,i.unit,COALESCE(b.quantity,0) AS current_balance
@@ -339,10 +339,38 @@ export function getProductionInventory(db, { query = "", type = "" } = {}) {
       rawMaterials: items.filter((item) => item.itemType === "raw_material").length,
       intermediates: items.filter((item) => item.itemType === "intermediate").length,
       finishedProducts: items.filter((item) => item.itemType === "finished_product").length,
-      negativeBalances: items.filter((item) => item.quantity < 0).length
+      negativeBalances: items.filter((item) => item.quantity < 0).length,
+      belowMinimum: items.filter((item) => item.itemType !== "finished_product" && item.minimumStock > 0 && item.quantity <= item.minimumStock).length
     },
     items, movements
   };
+}
+
+export function adjustProductionInventory(db, input = {}, adminId) {
+  const itemId = positiveId(input.itemId);
+  const item = db.prepare("SELECT id,item_code,name,unit,product_id,active,tracks_stock FROM inventory_items WHERE id=?").get(itemId);
+  if (!item || item.product_id || !item.active || !item.tracks_stock) throw new NotFoundError("Insumo activo no encontrado.");
+  const quantity = nonNegativeNumber(input.quantity, "stock actual");
+  const minimumStock = nonNegativeNumber(input.minimumStock || 0, "stock mínimo");
+  const reason = requiredText(input.reason, "motivo del ajuste", { min: 3, max: 300 });
+  ensureBalance(db, itemId);
+  const current = Number(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(itemId).quantity || 0);
+  const delta = quantity - current;
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.prepare("UPDATE inventory_items SET minimum_stock=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(minimumStock, itemId);
+    db.prepare("UPDATE inventory_balances SET quantity=?,updated_at=CURRENT_TIMESTAMP WHERE item_id=?").run(quantity, itemId);
+    if (Math.abs(delta) > 0.000000001) {
+      db.prepare(`INSERT INTO inventory_movements(item_id,quantity_delta,movement_type,reference_type,notes,actor_user_id,balance_after)
+        VALUES(?,?,'stock_adjustment','manual_stock',?,?,?)`).run(itemId, delta, reason, adminId, quantity);
+    }
+    db.prepare("INSERT INTO settings(key,value) VALUES('inventory_initial_stock_loaded','1') ON CONFLICT(key) DO UPDATE SET value='1'").run();
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+  return { id: item.id, itemCode: item.item_code, name: item.name, unit: item.unit, previousQuantity: current, quantity, minimumStock, delta };
 }
 
 export function listProductionMaterials(db, { query = "", kind = "", status = "" } = {}) {
@@ -532,7 +560,7 @@ function publicMaterial(row, db) {
   id: row.id, itemCode: row.item_code, name: row.name, category: row.category || "", itemKind: row.item_kind || row.item_type,
   itemType: row.item_type, unit: row.unit, purchaseUnit: row.purchase_unit || row.unit,
   conversionFactor: Number(row.conversion_factor || 1), currency: row.currency === "ARS" ? "ARS" : "USD",
-  purchaseCost: Number(row.purchase_cost || 0), minimumPurchase: Number(row.minimum_purchase || 0),
+  purchaseCost: Number(row.purchase_cost || 0), minimumPurchase: Number(row.minimum_purchase || 0), minimumStock: Number(row.minimum_stock || 0),
   leadTimeDays: Number(row.lead_time_days || 0), tracksStock: Boolean(row.tracks_stock), active: Boolean(row.active),
   quantity: Number(row.quantity || 0), supplierIds: suppliers.map((supplier) => supplier.id),
   primarySupplier: suppliers.find((supplier) => supplier.is_primary) || null
