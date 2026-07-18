@@ -23,7 +23,8 @@
   .production-suppliers-workspace,
   .production-recipes-workspace,
   .production-stock-workspace,
-  .production-movements-workspace {
+  .production-movements-workspace,
+  .production-purchasing-workspace {
     min-width: 0;
   }
 
@@ -140,6 +141,60 @@
 
   .production-movement-quantity.is-positive { color: #8ef0b0; }
   .production-movement-quantity.is-negative { color: #ff9ea5; }
+
+  .production-purchasing-note {
+    margin: -6px 0 16px;
+  }
+
+  .production-purchasing-toolbar {
+    display: grid;
+    grid-template-columns: minmax(380px, 1fr) minmax(260px, 0.42fr);
+    gap: 10px;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .production-purchasing-toolbar > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .production-purchasing-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .production-purchasing-table th:nth-child(1) { width: 20%; }
+  .production-purchasing-table th:nth-child(2) { width: 12%; }
+  .production-purchasing-table th:nth-child(3) { width: 12%; }
+  .production-purchasing-table th:nth-child(4) { width: 11%; }
+  .production-purchasing-table th:nth-child(5) { width: 17%; }
+  .production-purchasing-table th:nth-child(6) { width: 13%; }
+  .production-purchasing-table th:nth-child(7) { width: 15%; }
+
+  .production-purchasing-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    vertical-align: middle;
+  }
+
+  .production-purchasing-table td:nth-child(2),
+  .production-purchasing-table td:nth-child(3),
+  .production-purchasing-table td:nth-child(4),
+  .production-purchasing-table td:nth-child(5),
+  .production-purchasing-table td:nth-child(7) {
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+
+  .production-purchasing-table tr.is-needed td {
+    background: rgba(241, 196, 15, 0.055);
+  }
+
+  .production-purchasing-warning {
+    color: #ffd86a;
+  }
 
   .production-material-form.production-stock-adjustment-form {
     grid-template-columns: minmax(280px, 0.55fr) minmax(0, 1.45fr);

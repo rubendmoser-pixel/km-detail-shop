@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=16" />
+    <link rel="stylesheet" href="./admin-production.css?v=17" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -84,7 +84,8 @@
               <button type="button" data-admin-view="production" title="Producción"><span class="admin-tab-label">Plan y partes</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-stock" title="Stock de insumos"><span class="admin-tab-label">Stock de insumos</span></button>
-              <button class="production-desktop-only" type="button" data-admin-view="production-movements" title="Movimientos de stock"><span class="admin-tab-label">Movimientos</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-movements" title="Movimientos de stock"><span class="admin-tab-label">Movimientos de stock</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-purchasing" title="Necesidades de compra"><span class="admin-tab-label">Necesidades de compra</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-recipes" title="Recetas"><span class="admin-tab-label">Recetas</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-suppliers" title="Proveedores"><span class="admin-tab-label">Proveedores</span></button>
             </div>
@@ -446,6 +447,21 @@
               <div class="orders-table-wrap"><table class="admin-table production-movement-table"><thead><tr><th>Fecha</th><th>Insumo</th><th>Movimiento</th><th>Cantidad</th><th>Proveedor / detalle</th><th>Saldo posterior</th></tr></thead><tbody id="productionMovementList"></tbody></table></div>
             </section>
           </section>
+          <section class="production-purchasing-workspace production-desktop-only" data-production-panel="purchasing" hidden>
+            <div class="production-inventory-summary" id="productionPurchasingSummary"></div>
+            <section class="production-material-list-panel">
+              <div class="production-purchasing-toolbar">
+                <input id="productionPurchasingSearch" type="search" placeholder="Buscar código, insumo o proveedor" aria-label="Buscar necesidades de compra">
+                <select id="productionPurchasingStatus" aria-label="Filtrar necesidades de compra">
+                  <option value="needed">Solo por comprar</option>
+                  <option value="all">Todos los insumos comprables</option>
+                  <option value="unconfigured">Sin stock mínimo definido</option>
+                  <option value="without_supplier">Sin proveedor asignado</option>
+                </select>
+              </div>
+              <div class="orders-table-wrap"><table class="admin-table production-purchasing-table"><thead><tr><th>Insumo</th><th>Stock actual</th><th>Stock mínimo</th><th>Faltante</th><th>Compra sugerida</th><th>Proveedor</th><th>Estado</th></tr></thead><tbody id="productionPurchasingList"></tbody></table></div>
+            </section>
+          </section>
           <section class="production-admin-panel production-access-panel" data-production-panel="access" hidden><div class="panel-heading"><p class="eyebrow">Accesos restringidos</p><h2>Operarios de producción</h2></div><div class="production-access-grid"><div id="productionOperatorsList"></div><form id="productionOperatorForm"><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option"><input name="portalAccessEnabled" type="checkbox" checked><span>Habilitar portal de producción</span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
         </section>
 
@@ -488,6 +504,15 @@
           </div>
           <p class="admin-note production-movement-note">Se muestran los últimos 120 movimientos registrados. Cada operación conserva la cantidad, el saldo resultante y su origen.</p>
           <div id="productionMovementsMount"></div>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-purchasingView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Abastecimiento sugerido</p><h1>Necesidades de compra</h1></div>
+            <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionPurchasing" type="button">Actualizar</button></div>
+          </div>
+          <p class="admin-note production-purchasing-note">El sugerido cubre el faltante hasta el stock mínimo y respeta la compra mínima configurada para cada insumo.</p>
+          <div id="productionPurchasingMount"></div>
         </section>
 
         <section class="admin-view" id="commissionsView" hidden>
@@ -963,7 +988,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=98" defer></script>
-    <script src="./admin-production.js?v=15" defer></script>
+    <script src="./admin.js?v=99" defer></script>
+    <script src="./admin-production.js?v=16" defer></script>
   </body>
 </html>
