@@ -87,7 +87,7 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
@@ -800,6 +800,10 @@ export function createApp({
       }
       if (request.method === "POST" && url.pathname === "/api/admin/production/commission-settlements") {
         return sendJson(response, 201, { settlement: createProductionCommissionSettlement(db, await readJson(request), currentUser.id) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/production\/commission-settlements\/(\d+)$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { settlement: getProductionCommissionSettlement(db, Number(match[1])) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/inventory") {
         return sendJson(response, 200, { inventory: getProductionInventory(db, { query: url.searchParams.get("q") || "", type: url.searchParams.get("type") || "" }) });

@@ -965,3 +965,41 @@
     max-width: none;
   }
 }
+
+@media (min-width: 1100px) {
+  .production-commission-history article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+  }
+
+  .production-commission-history article > div:last-child {
+    text-align: left;
+  }
+
+  .production-commission-history-actions,
+  .production-commission-detail-actions {
+    display: flex !important;
+    gap: 8px !important;
+  }
+
+  .production-commission-detail-meta {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .production-commission-detail-meta > div {
+    display: grid;
+    gap: 6px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,.11);
+    background: #15181d;
+  }
+
+  .production-commission-detail-meta span {
+    color: #aeb4c1;
+    font-size: .78rem;
+  }
+}

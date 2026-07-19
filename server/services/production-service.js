@@ -912,6 +912,33 @@ export function getProductionCommissionDashboard(db, { operatorId = 0 } = {}) {
   };
 }
 
+export function getProductionCommissionSettlement(db, settlementId) {
+  const id = positiveId(settlementId);
+  const settlement = db.prepare(`SELECT s.id,s.settlement_number,s.operator_id,s.total_cents,s.notes,s.settled_at,
+    o.name AS operator_name,o.email AS operator_email,u.email AS settled_by_email
+    FROM production_commission_settlements s
+    JOIN production_operators o ON o.id=s.operator_id
+    JOIN users u ON u.id=s.settled_by
+    WHERE s.id=?`).get(id);
+  if (!settlement) throw new NotFoundError("Liquidación de producción no encontrada.");
+  const items = db.prepare(`SELECT e.id,e.report_id,e.good_quantity,e.unit_commission_cents,e.amount_cents,
+    r.report_number,r.production_date,p.km_code,p.name AS product_name
+    FROM production_commission_entries e
+    JOIN production_daily_reports r ON r.id=e.report_id
+    JOIN products p ON p.id=e.product_id
+    WHERE e.settlement_id=?
+    ORDER BY r.production_date,r.report_number,p.km_code`).all(id).map((row) => ({
+      id: row.id, reportId: row.report_id, reportNumber: row.report_number, productionDate: row.production_date,
+      kmCode: row.km_code, productName: row.product_name, goodQuantity: Number(row.good_quantity),
+      unitCommissionArs: Number(row.unit_commission_cents || 0) / 100, amountArs: Number(row.amount_cents || 0) / 100
+    }));
+  return {
+    id: settlement.id, settlementNumber: settlement.settlement_number, operatorId: settlement.operator_id,
+    operatorName: settlement.operator_name, operatorEmail: settlement.operator_email, totalArs: Number(settlement.total_cents || 0) / 100,
+    notes: settlement.notes || "", settledAt: settlement.settled_at, settledByEmail: settlement.settled_by_email, items
+  };
+}
+
 export function createProductionCommissionSettlement(db, input = {}, adminId) {
   const rawIds = Array.isArray(input.entryIds) ? input.entryIds : [];
   const entryIds = [...new Set(rawIds.map(positiveId))];

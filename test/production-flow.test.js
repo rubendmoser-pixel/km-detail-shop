@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
-  approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
+  approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
   saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator, upsertProductionRecipe
 } from "../server/services/production-service.js";
 
@@ -101,6 +101,10 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.equal(settlement.totalArs, 200);
   const repeatedSettlement = createProductionCommissionSettlement(db, { entryIds: [commissions.pending[0].id], notes: "Reintento duplicado" }, admin.id);
   assert.equal(repeatedSettlement.id, settlement.id);
+  const settlementDetail = getProductionCommissionSettlement(db, settlement.id);
+  assert.equal(settlementDetail.items.length, 1);
+  assert.equal(settlementDetail.items[0].amountArs, 200);
+  assert.equal(settlementDetail.totalArs, 200);
   assert.equal(getProductionCommissionDashboard(db).pending.length, 1);
 
   const finishedBalance = db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(product.id);
