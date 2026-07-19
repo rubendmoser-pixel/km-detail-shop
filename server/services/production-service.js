@@ -889,13 +889,14 @@ export function getProductionCommissionDashboard(db, { operatorId = 0 } = {}) {
     WHERE e.settlement_id IS NULL${filterSql}
     ORDER BY r.production_date,o.name COLLATE NOCASE,p.km_code`).all(...params).map(publicProductionCommissionEntry);
   const settlements = db.prepare(`SELECT s.id,s.settlement_number,s.operator_id,s.total_cents,s.notes,s.settled_at,
-    o.name AS operator_name,COUNT(e.id) AS entry_count
+    o.name AS operator_name,COUNT(e.id) AS entry_count,COALESCE(SUM(e.good_quantity),0) AS total_products
     FROM production_commission_settlements s JOIN production_operators o ON o.id=s.operator_id
     LEFT JOIN production_commission_entries e ON e.settlement_id=s.id
     WHERE 1=1${selectedOperatorId > 0 ? " AND s.operator_id=?" : ""}
     GROUP BY s.id ORDER BY s.settled_at DESC LIMIT 100`).all(...params).map((row) => ({
       id: row.id, settlementNumber: row.settlement_number, operatorId: row.operator_id, operatorName: row.operator_name,
-      totalArs: Number(row.total_cents || 0) / 100, notes: row.notes || "", settledAt: row.settled_at, entryCount: Number(row.entry_count || 0)
+      totalArs: Number(row.total_cents || 0) / 100, notes: row.notes || "", settledAt: row.settled_at,
+      entryCount: Number(row.entry_count || 0), totalProducts: Number(row.total_products || 0)
     }));
   const operatorSummary = db.prepare(`SELECT o.id,o.name,COALESCE(SUM(CASE WHEN e.settlement_id IS NULL THEN e.amount_cents ELSE 0 END),0) AS pending_cents
     FROM production_operators o LEFT JOIN production_commission_entries e ON e.operator_id=o.id
@@ -935,7 +936,8 @@ export function getProductionCommissionSettlement(db, settlementId) {
   return {
     id: settlement.id, settlementNumber: settlement.settlement_number, operatorId: settlement.operator_id,
     operatorName: settlement.operator_name, operatorEmail: settlement.operator_email, totalArs: Number(settlement.total_cents || 0) / 100,
-    notes: settlement.notes || "", settledAt: settlement.settled_at, settledByEmail: settlement.settled_by_email, items
+    notes: settlement.notes || "", settledAt: settlement.settled_at, settledByEmail: settlement.settled_by_email,
+    totalProducts: items.reduce((total, item) => total + item.goodQuantity, 0), items
   };
 }
 

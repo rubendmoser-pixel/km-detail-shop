@@ -20,7 +20,7 @@ function renderSettlement(settlement) {
   root.innerHTML = `
     <div class="screen-actions">
       <a href="./admin.html#production-commissions">Volver a comisiones</a>
-      <div><strong>${escapeHtml(settlement.settlementNumber)}</strong> · ${settlement.items.length} concepto${settlement.items.length === 1 ? "" : "s"}</div>
+      <div><strong>${escapeHtml(settlement.settlementNumber)}</strong> · ${formatNumber(settlement.totalProducts)} producto${Number(settlement.totalProducts) === 1 ? "" : "s"}</div>
       <button type="button" id="printSettlement">Imprimir liquidación</button>
     </div>
     <section class="settlement-sheet">
@@ -30,7 +30,7 @@ function renderSettlement(settlement) {
       </header>
       <section class="meta-grid">
         <div class="meta-card"><span>Operario</span><strong>${escapeHtml(settlement.operatorName)}</strong><small>${escapeHtml(settlement.operatorEmail || "")}</small></div>
-        <div class="meta-card"><span>Conceptos liquidados</span><strong>${settlement.items.length}</strong><small>Unidades buenas confirmadas por Administración</small></div>
+        <div class="meta-card"><span>Total de productos</span><strong>${formatNumber(settlement.totalProducts)}</strong><small>Unidades buenas confirmadas por Administración</small></div>
         <div class="meta-card"><span>Registrado por</span><strong>Administración KM</strong><small>${escapeHtml(settlement.settledByEmail || "")}</small></div>
       </section>
       <table class="settlement-table">

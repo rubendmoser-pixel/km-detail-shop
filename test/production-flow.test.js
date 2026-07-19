@@ -105,6 +105,7 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.equal(settlementDetail.items.length, 1);
   assert.equal(settlementDetail.items[0].amountArs, 200);
   assert.equal(settlementDetail.totalArs, 200);
+  assert.equal(settlementDetail.totalProducts, 5);
   assert.equal(getProductionCommissionDashboard(db).pending.length, 1);
 
   const finishedBalance = db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(product.id);
