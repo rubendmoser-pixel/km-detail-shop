@@ -2,10 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 const defaultMasterPath = path.resolve(import.meta.dirname, "..", "data", "production-master-v1.json");
+const initialProductionTimesKey = "production_time_defaults_20260719_v1";
 
 export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath, force = false } = {}) {
   const master = JSON.parse(fs.readFileSync(masterPath, "utf8"));
   validateMasterShape(master);
+  synchronizeInitialProductionTimes(db);
   const currentVersion = db.prepare("SELECT value FROM settings WHERE key='production_master_version'").get()?.value || "";
   if (!force && currentVersion === master.version) {
     synchronizeSuppliers(db, master);
@@ -83,6 +85,35 @@ export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath
     synchronizeIntermediateRecipes(db);
     db.exec("COMMIT");
     return { ...masterStatus(db, master, false), recipeLines };
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+function synchronizeInitialProductionTimes(db) {
+  if (db.prepare("SELECT value FROM settings WHERE key=?").get(initialProductionTimesKey)) return;
+  const activeProducts = db.prepare("SELECT COUNT(*) AS count FROM products WHERE active=1").get().count;
+  if (!activeProducts) return;
+
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const updated = db.prepare(`UPDATE products
+      SET production_minutes_per_unit=5,updated_at=CURRENT_TIMESTAMP
+      WHERE active=1`).run();
+    const exceptions = db.prepare(`UPDATE products
+      SET production_minutes_per_unit=0.25,updated_at=CURRENT_TIMESTAMP
+      WHERE active=1 AND UPPER(km_code) IN ('DL112K','DL114K','DL116K')`).run();
+    if (exceptions.changes !== 3) {
+      throw new Error("No se encontraron los tres productos DL112K, DL114K y DL116K para asignar sus tiempos.");
+    }
+    db.prepare("INSERT INTO settings(key,value) VALUES(?,?)").run(initialProductionTimesKey, JSON.stringify({
+      products: updated.changes,
+      defaultMinutes: 5,
+      exceptionMinutes: 0.25,
+      appliedAt: new Date().toISOString()
+    }));
+    db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;

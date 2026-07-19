@@ -49,6 +49,10 @@ test("production master imports every validated recipe idempotently by KM code a
   const recipes = listProductionRecipes(db);
   assert.equal(recipes.length, 104);
   assert.ok(recipes.every((recipe) => recipe.complete));
+  assert.equal(recipes.filter((recipe) => recipe.productionMinutesPerUnit === 5).length, 101);
+  assert.equal(recipes.find((recipe) => recipe.kmCode === "DL112K").productionMinutesPerUnit, 0.25);
+  assert.equal(recipes.find((recipe) => recipe.kmCode === "DL114K").productionMinutesPerUnit, 0.25);
+  assert.equal(recipes.find((recipe) => recipe.kmCode === "DL116K").productionMinutesPerUnit, 0.25);
   assert.equal(recipes.find((recipe) => recipe.kmCode === "CP171K").productionCommissionArs, 120);
   assert.equal(recipes.find((recipe) => recipe.kmCode === "CP271K").productionCommissionArs, 0);
   assert.equal(recipes.find((recipe) => recipe.kmCode === "AB132K").productionCommissionArs, 80);
