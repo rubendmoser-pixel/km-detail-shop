@@ -992,8 +992,21 @@
     overflow-wrap: anywhere;
   }
 
+  .production-purchasing-table td:nth-child(8) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+  }
+
+  .production-purchasing-table td:nth-child(8) strong,
+  .production-purchasing-table td:nth-child(8) span {
+    display: block;
+    max-width: 100%;
+  }
+
   .production-purchasing-table td:nth-child(9) .status-badge {
     display: inline-flex;
+    max-width: 100%;
     white-space: nowrap;
   }
 
