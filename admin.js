@@ -2087,14 +2087,14 @@ function renderCustomers() {
 function renderCustomerRow(customer) {
   const isSelected = customer.id === adminState.selectedCustomerId;
   return `<tr class="${isSelected ? "selected" : ""}">
-    <td><strong>${escapeAdmin(customer.business_name)}</strong><span>${escapeAdmin(customer.tax_id)} · ${escapeAdmin(customer.email)}</span></td>
+    <td class="customer-table-primary"><strong>${escapeAdmin(customer.business_name)}</strong><span>${escapeAdmin(customer.tax_id)}</span><small>${escapeAdmin(customer.email)}</small></td>
     <td>${stateBadge(statusLabels[customer.approval_status] || customer.approval_status, customer.approval_status === "approved" ? "success" : customer.approval_status === "pending" ? "warning" : "neutral")}</td>
     <td>${customerClassBadge(customer.commercial_class)}</td>
     <td><strong>${escapeAdmin(customerPaymentConditionText(customer))}</strong></td>
     <td>${escapeAdmin(customer.sales_rep_name || "Sin vendedor")}<span>${escapeAdmin(customerCommissionText(customer))}</span></td>
     <td>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)}<span>${escapeAdmin(customer.postal_code || "")}</span></td>
     <td>${escapeAdmin(customerDiscountText(customer))}</td>
-    <td>${customer.last_order_number ? `<strong>${escapeAdmin(customer.last_order_number)}</strong><span>${formatDate(customer.last_order_at)}</span>` : `<span>Sin pedidos</span>`}</td>
+    <td class="customer-last-order-cell">${customer.last_order_number ? `<strong>${escapeAdmin(customer.last_order_number)}</strong>${formatOrderListDate(customer.last_order_at)}` : `<span>Sin pedidos</span>`}</td>
     <td><button class="ghost-button row-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Editar"}</button></td>
   </tr>`;
 }
