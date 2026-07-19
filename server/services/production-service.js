@@ -838,7 +838,7 @@ export function upsertProductionMaterial(db, input = {}) {
   const purchaseUnit = requiredText(input.purchaseUnit, "unidad de compra", { min: 1, max: 40 });
   const conversionFactor = positiveNumber(input.conversionFactor, "factor de conversión");
   const currency = input.currency === "ARS" ? "ARS" : "USD";
-  const purchaseCost = nonNegativeNumber(input.purchaseCost, "costo de compra");
+  const purchaseCost = Math.round(nonNegativeNumber(input.purchaseCost, "costo de compra") * 10_000) / 10_000;
   const minimumPurchase = nonNegativeNumber(input.minimumPurchase, "compra mínima");
   const leadTimeDays = nonNegativeInteger(input.leadTimeDays || 0, "plazo de entrega");
   const tracksStock = itemKind === "service" ? 0 : input.tracksStock === false ? 0 : 1;

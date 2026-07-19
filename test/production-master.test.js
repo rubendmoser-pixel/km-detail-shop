@@ -88,8 +88,8 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.deepEqual(supplier.materialIds, [createdMaterial.id]);
   const assignedMaterial = upsertProductionMaterial(db, { ...createdMaterial, primarySupplierId: supplier.id });
   assert.equal(assignedMaterial.primarySupplier.name, "Proveedor de prueba");
-  const editedMaterial = upsertProductionMaterial(db, { ...createdMaterial, purchaseCost: 27, active: false });
-  assert.equal(editedMaterial.purchaseCost, 27);
+  const editedMaterial = upsertProductionMaterial(db, { ...createdMaterial, purchaseCost: 27.123456, active: false });
+  assert.equal(editedMaterial.purchaseCost, 27.1235);
   assert.equal(editedMaterial.active, false);
   assert.throws(() => upsertProductionMaterial(db, { ...createdMaterial, id: undefined }), /código interno/i);
 
