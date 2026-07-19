@@ -1321,3 +1321,24 @@
   .production-cost-detail-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .production-profitability-flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Stock físico de productos terminados: vista de escritorio simple y auditable. */
+.production-product-stock-workspace { display: grid; gap: 16px; min-width: 0; }
+.production-product-stock-toolbar { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(220px, 320px); gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line, #34373e); }
+.production-product-stock-table { width: 100%; min-width: 0; table-layout: fixed; }
+.production-product-stock-table th:nth-child(1) { width: 27%; }
+.production-product-stock-table th:nth-child(2) { width: 14%; }
+.production-product-stock-table th:nth-child(3) { width: 11%; }
+.production-product-stock-table th:nth-child(4) { width: 12%; }
+.production-product-stock-table th:nth-child(5) { width: 11%; }
+.production-product-stock-table th:nth-child(6) { width: 12%; }
+.production-product-stock-table th:nth-child(7) { width: 13%; }
+.production-product-stock-table td { vertical-align: middle; overflow-wrap: anywhere; }
+.production-product-stock-table td:nth-child(n+3):nth-child(-n+5) { white-space: nowrap; }
+.production-product-stock-table tr.is-committed { background: rgba(218, 167, 48, .055); }
+.production-product-stock-table tr.is-shortage { background: rgba(213, 65, 79, .075); }
+.production-product-stock-actions { display: grid; gap: 7px; }
+.production-product-stock-actions .ghost-button { width: 100%; min-height: 38px; padding: 8px 10px; }
+.production-stock-negative { color: #ff9aa6; }
+.production-material-form.production-product-stock-form { grid-template-columns: minmax(290px, .55fr) minmax(0, 1.45fr); }
+.production-product-stock-note { margin-bottom: 16px; }

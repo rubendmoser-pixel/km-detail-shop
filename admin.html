@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=75" />
-    <link rel="stylesheet" href="./admin-production.css?v=44" />
+    <link rel="stylesheet" href="./admin-production.css?v=45" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -82,6 +82,7 @@
             <p class="admin-nav-group-title">Producción</p>
             <div class="admin-nav-group-items">
               <button type="button" data-admin-view="production" title="Planificación de producción"><span class="admin-tab-label">Planificación de producción</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-product-stock" title="Stock de productos"><span class="admin-tab-label">Stock de productos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-access" title="Operarios de producción"><span class="admin-tab-label">Operarios de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-commissions" title="Comisiones de producción"><span class="admin-tab-label">Comisiones de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
@@ -451,6 +452,31 @@
               <div id="productionCostDetailContent"></div>
             </section>
           </section>
+          <section class="production-product-stock-workspace production-desktop-only" data-production-panel="product-stock" hidden>
+            <div id="productionProductStockListPanel">
+              <div class="production-inventory-summary" id="productionProductStockSummary"></div>
+              <section class="production-material-list-panel">
+                <div class="production-product-stock-toolbar">
+                  <input id="productionProductStockSearch" type="search" placeholder="Buscar código KM o producto" aria-label="Buscar stock de productos">
+                  <select id="productionProductStockStatus" aria-label="Filtrar stock de productos"><option value="">Todos los productos</option><option value="available">Con disponibilidad</option><option value="committed">Stock comprometido</option><option value="empty">Sin stock</option><option value="initial_pending">Carga inicial pendiente</option></select>
+                </div>
+                <div class="orders-table-wrap"><table class="admin-table production-product-stock-table"><thead><tr><th>Producto</th><th>Ubicación</th><th>Stock físico</th><th>Comprometido</th><th>Disponible</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="productionProductStockList"></tbody></table></div>
+              </section>
+            </div>
+            <form class="production-material-form production-product-stock-form" id="productionProductStockForm" hidden>
+              <div class="production-material-form-heading"><div><p class="eyebrow" id="productionProductStockEyebrow">Carga inicial</p><h3 id="productionProductStockTitle">Stock del producto</h3></div><button class="ghost-button" id="closeProductionProductStock" type="button">Volver al listado</button></div>
+              <input name="itemId" type="hidden">
+              <input name="formMode" type="hidden" value="initial">
+              <fieldset><legend>Producto</legend><div class="production-recipe-identity" id="productionProductStockIdentity"></div></fieldset>
+              <fieldset><legend id="productionProductStockOperationLegend">Existencia física</legend>
+                <label><span id="productionProductStockQuantityLabel">Stock inicial (unidades)</span><input name="quantity" type="number" min="0" step="1" required></label>
+                <div class="production-stock-conversion" id="productionProductStockResult"></div>
+                <label class="wide"><span id="productionProductStockNotesLabel">Observación</span><input name="notes" maxlength="300" placeholder="Ej.: conteo físico inicial"></label>
+              </fieldset>
+              <div class="form-actions"><button class="primary-button" id="saveProductionProductStock" type="submit">Guardar stock inicial</button><button class="ghost-button" id="resetProductionProductStock" type="button">Restablecer</button></div>
+              <p class="form-message" id="productionProductStockMessage" role="status"></p>
+            </form>
+          </section>
           <section class="production-stock-workspace production-desktop-only" data-production-panel="stock" hidden>
             <div id="productionStockListPanel">
               <div id="productionInventoryStatus"></div>
@@ -510,7 +536,7 @@
             <div class="production-inventory-summary" id="productionMovementSummary"></div>
             <section class="production-material-list-panel">
               <div class="production-movement-toolbar">
-                <input id="productionMovementSearch" type="search" placeholder="Buscar código, insumo, proveedor u observación" aria-label="Buscar movimientos">
+                <input id="productionMovementSearch" type="search" placeholder="Buscar código, artículo, proveedor u observación" aria-label="Buscar movimientos">
                 <select id="productionMovementType" aria-label="Filtrar por tipo de movimiento">
                   <option value="">Todos los movimientos</option>
                   <option value="stock_receipt">Ingresos por compra</option>
@@ -518,6 +544,8 @@
                   <option value="intermediate_preparation">Preparaciones</option>
                   <option value="production_consumption">Consumos de fabricación</option>
                   <option value="stock_adjustment">Ajustes manuales</option>
+                  <option value="production_in">Ingresos de producción</option>
+                  <option value="order_dispatch">Salidas por despacho</option>
                 </select>
                 <select id="productionMovementDirection" aria-label="Filtrar por dirección">
                   <option value="">Entradas y salidas</option>
@@ -525,7 +553,7 @@
                   <option value="out">Solo salidas</option>
                 </select>
               </div>
-              <div class="orders-table-wrap"><table class="admin-table production-movement-table"><thead><tr><th>Fecha</th><th>Insumo</th><th>Movimiento</th><th>Cantidad</th><th>Proveedor / detalle</th><th>Saldo posterior</th></tr></thead><tbody id="productionMovementList"></tbody></table></div>
+              <div class="orders-table-wrap"><table class="admin-table production-movement-table"><thead><tr><th>Fecha</th><th>Artículo</th><th>Movimiento</th><th>Cantidad</th><th>Proveedor / detalle</th><th>Saldo posterior</th></tr></thead><tbody id="productionMovementList"></tbody></table></div>
             </section>
           </section>
           <section class="production-purchasing-workspace production-desktop-only" data-production-panel="purchasing" hidden>
@@ -617,6 +645,15 @@
             <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionStock" type="button">Actualizar</button></div>
           </div>
           <div id="productionStockMount"></div>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-product-stockView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Productos terminados</p><h1>Stock de productos</h1></div>
+            <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionProductStock" type="button">Actualizar</button></div>
+          </div>
+          <p class="admin-note production-product-stock-note">El stock físico aumenta con la producción confirmada y disminuye al despachar pedidos. La carga inicial se realiza una sola vez; luego usá ajustes por conteo.</p>
+          <div id="productionProductStockMount"></div>
         </section>
 
         <section class="admin-view production-desktop-only" id="production-stock-parametersView" hidden>
@@ -1137,7 +1174,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=109" defer></script>
-    <script src="./admin-production.js?v=40" defer></script>
+    <script src="./admin.js?v=110" defer></script>
+    <script src="./admin-production.js?v=41" defer></script>
   </body>
 </html>

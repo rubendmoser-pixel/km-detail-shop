@@ -502,12 +502,20 @@ export function getProductionInventory(db, { query = "", type = "" } = {}) {
   if (itemType) { clauses.push("i.item_type=?"); params.push(itemType); }
   if (search) { clauses.push("(i.item_code LIKE ? OR i.name LIKE ?)"); params.push(`%${search}%`, `%${search}%`); }
   const items = db.prepare(`SELECT i.id,i.item_code,i.name,i.item_type,i.item_kind,i.unit,i.product_id,i.minimum_stock,
-    COALESCE(b.quantity,0) AS quantity,b.updated_at,p.km_code
+    COALESCE(b.quantity,0) AS quantity,b.updated_at,p.km_code,p.warehouse_location,COALESCE(r.committed_quantity,0) AS committed_quantity,
+    EXISTS(SELECT 1 FROM inventory_movements im WHERE im.item_id=i.id AND im.movement_type='initial_stock') AS has_initial_stock
     FROM inventory_items i LEFT JOIN inventory_balances b ON b.item_id=i.id
-    LEFT JOIN products p ON p.id=i.product_id WHERE ${clauses.join(" AND ")}
+    LEFT JOIN products p ON p.id=i.product_id
+    LEFT JOIN (SELECT oi.product_id,SUM(CASE WHEN COALESCE(oi.confirmed_quantity,0)>0 THEN oi.confirmed_quantity ELSE oi.quantity END) AS committed_quantity
+      FROM order_items oi JOIN orders o ON o.id=oi.order_id
+      WHERE oi.line_status IN ('confirmed','partial') AND o.status!='cancelled' AND o.fulfillment_status IN ('pending','ready')
+      GROUP BY oi.product_id) r ON r.product_id=i.product_id WHERE ${clauses.join(" AND ")}
     ORDER BY i.item_type,i.item_code`).all(...params).map((row) => ({
       id: row.id, itemCode: row.item_code, name: row.name, itemType: row.item_type, itemKind: row.item_kind || row.item_type, unit: row.unit,
-      productId: row.product_id, kmCode: row.km_code || "", quantity: Number(row.quantity || 0), minimumStock: Number(row.minimum_stock || 0), updatedAt: row.updated_at || ""
+      productId: row.product_id, kmCode: row.km_code || "", warehouseLocation: row.warehouse_location || "",
+      quantity: Number(row.quantity || 0), committedQuantity: Number(row.committed_quantity || 0),
+      availableQuantity: Number(row.quantity || 0) - Number(row.committed_quantity || 0), minimumStock: Number(row.minimum_stock || 0),
+      hasInitialStock: Boolean(row.has_initial_stock), updatedAt: row.updated_at || ""
     }));
   const movements = db.prepare(`SELECT m.id,m.quantity_delta,m.movement_type,m.reference_type,m.reference_id,m.supplier_id,
     m.notes,m.balance_after,m.created_at,i.item_code,i.name,i.item_type,i.unit,s.name AS supplier_name,COALESCE(b.quantity,0) AS current_balance
@@ -676,26 +684,36 @@ export function saveProductionStockItemParameter(db, input = {}) {
 export function registerProductionInventoryEntry(db, input = {}, adminId) {
   const itemId = positiveId(input.itemId);
   const item = db.prepare(`SELECT id,item_code,name,item_kind,item_type,unit,purchase_unit,conversion_factor,
-    product_id,active,tracks_stock FROM inventory_items WHERE id=?`).get(itemId);
-  if (!item || item.product_id || !item.active || !item.tracks_stock) throw new NotFoundError("Insumo activo no encontrado.");
+    minimum_stock,product_id,active,tracks_stock FROM inventory_items WHERE id=?`).get(itemId);
+  if (!item || !item.active || !item.tracks_stock) throw new NotFoundError("Artículo activo no encontrado.");
+  const finishedProduct = Boolean(item.product_id) || item.item_type === "finished_product";
   const mode = ["purchase", "initial", "preparation"].includes(input.mode) ? input.mode : "";
   if (!mode) throw new ValidationError("Seleccioná el tipo de ingreso.");
+  if (finishedProduct && mode !== "initial") throw new ValidationError("Los productos terminados solo admiten carga inicial desde esta pantalla.");
+  if (finishedProduct && db.prepare("SELECT 1 FROM inventory_movements WHERE item_id=? AND movement_type='initial_stock' LIMIT 1").get(itemId)) {
+    throw new ValidationError("El stock inicial de este producto ya fue cargado. Usá Ajustar stock.");
+  }
   const intermediate = item.item_kind === "intermediate" || item.item_type === "intermediate";
   if (mode === "purchase" && intermediate) throw new ValidationError("Los intermedios se ingresan como preparación, no como compra.");
   if (mode === "preparation" && !intermediate) throw new ValidationError("La preparación solo corresponde a insumos intermedios.");
-  const enteredQuantity = positiveNumber(input.quantity, mode === "purchase" ? "cantidad comprada" : "cantidad ingresada");
-  const conversionFactor = mode === "preparation" ? 1 : positiveNumber(item.conversion_factor, "factor de conversión");
+  const enteredQuantity = mode === "initial"
+    ? nonNegativeNumber(input.quantity, "stock inicial")
+    : positiveNumber(input.quantity, mode === "purchase" ? "cantidad comprada" : "cantidad ingresada");
+  if (finishedProduct && !Number.isSafeInteger(enteredQuantity)) {
+    throw new ValidationError("El stock de productos debe expresarse en unidades enteras.");
+  }
+  const conversionFactor = finishedProduct || mode === "preparation" ? 1 : positiveNumber(item.conversion_factor, "factor de conversión");
   const stockQuantity = enteredQuantity * conversionFactor;
-  const minimumStock = nonNegativeNumber(input.minimumStock || 0, "stock mínimo");
+  const minimumStock = nonNegativeNumber(input.minimumStock ?? item.minimum_stock ?? 0, "stock mínimo");
   const notes = optionalText(input.notes, "observaciones", { max: 300 });
   let supplier = null;
-  if (input.supplierId) {
+  if (!finishedProduct && input.supplierId) {
     const supplierId = positiveId(input.supplierId);
     supplier = db.prepare(`SELECT s.id,s.name FROM production_supplier_items si JOIN production_suppliers s ON s.id=si.supplier_id
       WHERE si.item_id=? AND si.supplier_id=? AND si.active=1 AND s.active=1`).get(itemId, supplierId);
     if (!supplier) throw new ValidationError("El proveedor seleccionado no abastece este insumo.");
   }
-  if (mode === "purchase" && !supplier) {
+  if (!finishedProduct && mode === "purchase" && !supplier) {
     supplier = db.prepare(`SELECT s.id,s.name FROM production_supplier_items si JOIN production_suppliers s ON s.id=si.supplier_id
       WHERE si.item_id=? AND si.active=1 AND s.active=1 ORDER BY si.is_primary DESC,s.name LIMIT 1`).get(itemId) || null;
   }
@@ -704,7 +722,7 @@ export function registerProductionInventoryEntry(db, input = {}, adminId) {
   const newQuantity = mode === "initial" ? stockQuantity : current + stockQuantity;
   const delta = newQuantity - current;
   const movementType = mode === "purchase" ? "stock_receipt" : mode === "preparation" ? "intermediate_preparation" : "initial_stock";
-  const automaticNote = mode === "purchase" ? `Ingreso por compra${supplier ? ` a ${supplier.name}` : ""}` : mode === "preparation" ? "Preparación de intermedio" : "Carga inicial de stock";
+  const automaticNote = mode === "purchase" ? `Ingreso por compra${supplier ? ` a ${supplier.name}` : ""}` : mode === "preparation" ? "Preparación de intermedio" : finishedProduct ? "Carga inicial de stock de producto" : "Carga inicial de stock";
   const movementNotes = notes ? `${automaticNote} · ${notes}` : automaticNote;
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -726,8 +744,11 @@ export function registerProductionInventoryEntry(db, input = {}, adminId) {
 export function adjustProductionInventory(db, input = {}, adminId) {
   const itemId = positiveId(input.itemId);
   const item = db.prepare("SELECT id,item_code,name,unit,product_id,active,tracks_stock FROM inventory_items WHERE id=?").get(itemId);
-  if (!item || item.product_id || !item.active || !item.tracks_stock) throw new NotFoundError("Insumo activo no encontrado.");
+  if (!item || !item.active || !item.tracks_stock) throw new NotFoundError("Artículo activo no encontrado.");
   const quantity = nonNegativeNumber(input.quantity, "stock actual");
+  if (item.product_id && !Number.isSafeInteger(quantity)) {
+    throw new ValidationError("El stock de productos debe expresarse en unidades enteras.");
+  }
   const minimumStock = nonNegativeNumber(input.minimumStock || 0, "stock mínimo");
   const reason = requiredText(input.reason, "motivo del ajuste", { min: 3, max: 300 });
   ensureBalance(db, itemId);

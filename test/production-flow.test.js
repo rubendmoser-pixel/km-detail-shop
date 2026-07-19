@@ -5,8 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
-  approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
-  saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator, upsertProductionRecipe
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
+  registerProductionInventoryEntry, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator, upsertProductionRecipe
 } from "../server/services/production-service.js";
 
 test("production plan, daily report and admin confirmation update stock with traceability", async (t) => {
@@ -110,6 +110,16 @@ test("production plan, daily report and admin confirmation update stock with tra
 
   const finishedBalance = db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(product.id);
   assert.equal(finishedBalance.quantity, 5);
+  const finishedItem = getProductionInventory(db).items.find((item) => item.productId === product.id);
+  assert.equal(finishedItem.quantity, 5);
+  assert.equal(finishedItem.availableQuantity, 5);
+  assert.equal(finishedItem.hasInitialStock, false);
+  assert.throws(() => registerProductionInventoryEntry(db, { itemId: finishedItem.id, mode: "initial", quantity: 1.5 }, admin.id), /unidades enteras/);
+  registerProductionInventoryEntry(db, { itemId: finishedItem.id, mode: "initial", quantity: 12, notes: "Conteo inicial" }, admin.id);
+  assert.equal(getProductionInventory(db).items.find((item) => item.id === finishedItem.id).hasInitialStock, true);
+  assert.throws(() => registerProductionInventoryEntry(db, { itemId: finishedItem.id, mode: "initial", quantity: 14 }, admin.id), /ya fue cargado/);
+  adjustProductionInventory(db, { itemId: finishedItem.id, quantity: 9, reason: "Corrección de conteo" }, admin.id);
+  assert.equal(getProductionInventory(db).items.find((item) => item.id === finishedItem.id).quantity, 9);
   assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(raw.id).quantity, 88);
   assert.equal(db.prepare("SELECT balance_after FROM inventory_movements WHERE item_id=? ORDER BY id DESC LIMIT 1").get(raw.id).balance_after, 88);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM inventory_movements WHERE reference_type='production_report' AND reference_id=?").get(report.id).count, 2);
