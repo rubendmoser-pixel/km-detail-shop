@@ -1222,14 +1222,21 @@
 .production-cost-detail-meta > div.wide { grid-column: span 4; }
 .production-cost-detail-meta span { color: var(--muted, #aeb6c2); font-size: .76rem; }
 .production-cost-detail-meta strong { overflow-wrap: anywhere; }
+.production-cost-detail-meta small { color: #9fa8b6; font-size: .72rem; font-weight: 700; }
+.production-cost-share-note { margin: -4px 0 16px; color: #aeb6c2; font-size: .82rem; }
 .production-cost-warnings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; padding: 12px 14px; border: 1px solid #8c711f; border-radius: 10px; background: rgba(121, 94, 13, .18); }
 .production-cost-warnings strong { margin-right: 5px; color: #f0cd63; }
 .production-cost-warnings span { padding: 4px 8px; border-radius: 999px; background: rgba(240, 205, 99, .1); font-size: .8rem; }
 .production-cost-breakdown-table { width: 100%; table-layout: fixed; }
-.production-cost-breakdown-table th:first-child { width: 38%; }
-.production-cost-breakdown-table th:nth-child(2) { width: 17%; }
-.production-cost-breakdown-table th:nth-child(3), .production-cost-breakdown-table th:nth-child(4) { width: 16%; }
-.production-cost-breakdown-table th:nth-child(5) { width: 13%; }
+.production-cost-breakdown-table th:first-child { width: 30%; }
+.production-cost-breakdown-table th:nth-child(2) { width: 14%; }
+.production-cost-breakdown-table th:nth-child(3), .production-cost-breakdown-table th:nth-child(4) { width: 15%; }
+.production-cost-breakdown-table th:nth-child(5) { width: 12%; }
+.production-cost-breakdown-table th:nth-child(6) { width: 14%; }
+.production-intermediate-breakdown th:first-child { width: 34%; }
+.production-intermediate-breakdown th:nth-child(2), .production-intermediate-breakdown th:nth-child(3) { width: 16%; }
+.production-intermediate-breakdown th:nth-child(4) { width: 18%; }
+.production-intermediate-breakdown th:nth-child(5) { width: 16%; }
 
 @media (max-width: 1350px) {
   .production-cost-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
