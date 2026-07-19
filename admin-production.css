@@ -1002,4 +1002,45 @@
     color: #aeb4c1;
     font-size: .78rem;
   }
+
+  .production-commission-detail-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .production-commission-detail-table th:nth-child(1) { width: 11%; }
+  .production-commission-detail-table th:nth-child(2) { width: 15%; }
+  .production-commission-detail-table th:nth-child(3) { width: 38%; }
+  .production-commission-detail-table th:nth-child(4) { width: 9%; }
+  .production-commission-detail-table th:nth-child(5) { width: 13%; }
+  .production-commission-detail-table th:nth-child(6) { width: 14%; }
+
+  .production-commission-detail-table th,
+  .production-commission-detail-table td {
+    padding: 14px 16px;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+  }
+
+  .production-commission-detail-table td:nth-child(3) strong,
+  .production-commission-detail-table td:nth-child(3) span {
+    display: block;
+  }
+
+  .production-commission-detail-table td:nth-child(3) span {
+    margin-top: 4px;
+    color: #aeb4c1;
+    font-size: .78rem;
+    line-height: 1.35;
+  }
+
+  .production-commission-detail-table th:nth-child(n+4),
+  .production-commission-detail-table td:nth-child(n+4) {
+    text-align: right;
+  }
+
+  .production-commission-detail-note {
+    margin: 0;
+    padding: 16px 18px 18px;
+  }
 }
