@@ -1027,6 +1027,10 @@
     font-weight: 800;
   }
 
+  .production-purchasing-quantity-stack.is-neutral small {
+    color: #aeb4c1;
+  }
+
   .production-purchase-actions,
   .production-purchase-group-head {
     display: flex;
