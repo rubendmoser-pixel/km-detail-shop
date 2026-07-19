@@ -258,6 +258,7 @@ function bindAdminEvents() {
   on(adminEls.linearPricePercent, "input", renderLinearPricePreview);
   on(adminEls.linearPriceEffectiveDate, "change", renderLinearPricePreview);
   on(adminEls.saveLinearPrices, "click", saveLinearPriceUpdate);
+  on(adminEls.priceUpdateHistory, "click", openScheduledPriceList);
   on(adminEls.orderSearch, "input", debounce(loadOrders, 250));
   on(adminEls.logisticsOperatorForm, "submit", saveLogisticsOperator);
   on(byId("#reloadLogisticsOperators"), "click", loadLogisticsOperators);
@@ -1576,9 +1577,16 @@ function renderPriceUpdateHistory() {
           <p>${batch.changedCount || 0} modificados de ${batch.productCount || 0} productos - Implementa ${escapeAdmin(dateLabel)}</p>
           ${sample ? `<small>${sample}</small>` : ""}
         </div>
+        <button class="ghost-button" type="button" data-price-list-batch="${batch.id}">Generar lista PDF</button>
       </article>
     `;
   }).join("");
+}
+
+function openScheduledPriceList(event) {
+  const button = event.target.closest("[data-price-list-batch]");
+  if (!button) return;
+  window.open(`./price-update-list.html?batch=${encodeURIComponent(button.dataset.priceListBatch)}`, "_blank", "noopener,noreferrer");
 }
 
 async function loadProducts() {

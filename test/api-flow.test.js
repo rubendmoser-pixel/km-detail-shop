@@ -209,6 +209,24 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(images[0].isPrimary, true);
   assert.match(images[0].url, /^\/media\/products\/api001k-pad-de-prueba-api-imagen-1-/);
   assert.match(images[0].altText, /API001K - Pad de prueba API - Poliespumas - KM Detail Line/);
+  const scheduledPriceResponse = await fetch(`${baseUrl}/api/admin/price-updates/linear`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({ effectiveDate: "2099-08-01", percentBps: 1_000 })
+  });
+  assert.equal(scheduledPriceResponse.status, 201);
+  const scheduledBatch = (await scheduledPriceResponse.json()).batch;
+  const printableBatchResponse = await fetch(`${baseUrl}/api/admin/price-updates/${scheduledBatch.id}`, {
+    headers: { cookie: adminCookie }
+  });
+  assert.equal(printableBatchResponse.status, 200);
+  const printableBatch = (await printableBatchResponse.json()).batch;
+  assert.equal(printableBatch.items.length, 2);
+  const printableProduct = printableBatch.items.find((item) => item.productId === product.id);
+  assert.equal(printableProduct.newPriceCents, 110_000);
+  assert.equal(printableProduct.name, "Pad de prueba API");
+  assert.equal(printableProduct.familyName, "Poliespumas");
+  assert.equal(printableProduct.primaryImageUrl, images[0].url);
   const publicImageResponse = await fetch(`${baseUrl}${images[0].url}`);
   assert.equal(publicImageResponse.status, 200);
   assert.equal(publicImageResponse.headers.get("content-type"), "image/png");

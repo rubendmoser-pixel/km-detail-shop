@@ -103,6 +103,7 @@ import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
 import {
   applyDuePriceUpdates,
+  getPriceUpdateBatch,
   listPriceUpdateBatches,
   scheduleIndividualPriceUpdate,
   scheduleLinearPriceUpdate
@@ -902,6 +903,14 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/admin/price-updates") {
         applyDuePriceUpdates(db);
         return sendJson(response, 200, { batches: listPriceUpdateBatches(db) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/price-updates\/(\d+)$/);
+      if (request.method === "GET" && match) {
+        applyDuePriceUpdates(db);
+        const batch = getPriceUpdateBatch(db, Number(match[1]));
+        return batch
+          ? sendJson(response, 200, { batch })
+          : sendJson(response, 404, { error: "No encontramos la actualizacion de precios." });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/price-updates/individual") {
         const batch = scheduleIndividualPriceUpdate(db, await readJson(request), currentUser.id);

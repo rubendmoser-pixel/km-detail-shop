@@ -5451,9 +5451,22 @@ button.operation-row:hover {
 
 .price-linear-preview div,
 .price-history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   border: 1px solid var(--border);
   background: #111317;
   padding: 12px 14px;
+}
+
+.price-history-card > div {
+  min-width: 0;
+}
+
+.price-history-card > .ghost-button {
+  flex: 0 0 auto;
+  min-height: 42px;
 }
 
 .linear-summary {
@@ -5501,6 +5514,15 @@ button.operation-row:hover {
 
   .price-card {
     padding: 12px;
+  }
+
+  .price-history-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .price-history-card > .ghost-button {
+    width: 100%;
   }
 
   .customer-shipping-form {

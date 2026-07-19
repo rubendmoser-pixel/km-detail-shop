@@ -1,4 +1,5 @@
 import { ValidationError } from "../domain/validation.js";
+import { transaction } from "../db.js";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -84,8 +85,8 @@ export function applyDuePriceUpdates(db) {
     WHERE id = ?
   `);
 
-  const tx = db.transaction((batches) => {
-    for (const batch of batches) {
+  transaction(db, () => {
+    for (const batch of due) {
       const items = itemsStmt.all(batch.id);
       for (const item of items) {
         updateProduct.run(item.newPriceCents, batch.effectiveDate, item.productId);
@@ -93,7 +94,6 @@ export function applyDuePriceUpdates(db) {
       updateBatch.run(batch.id);
     }
   });
-  tx(due);
   return { applied: due.length };
 }
 
@@ -120,7 +120,7 @@ export function scheduleIndividualPriceUpdate(db, body = {}, createdBy = null) {
   }
 
   const changedCount = normalized.filter((item) => item.newPriceCents !== item.product.basePriceCents).length;
-  const tx = db.transaction(() => {
+  const batchId = transaction(db, () => {
     const batch = db.prepare(`
       INSERT INTO price_update_batches (type, effective_date, product_count, changed_count, created_by, note)
       VALUES ('individual', ?, ?, ?, ?, ?)
@@ -142,7 +142,7 @@ export function scheduleIndividualPriceUpdate(db, body = {}, createdBy = null) {
     return Number(batch.lastInsertRowid);
   });
 
-  return getPriceUpdateBatch(db, tx());
+  return getPriceUpdateBatch(db, batchId);
 }
 
 export function scheduleLinearPriceUpdate(db, body = {}, createdBy = null) {
@@ -151,7 +151,7 @@ export function scheduleLinearPriceUpdate(db, body = {}, createdBy = null) {
   const products = listActiveProducts(db);
   if (!products.length) throw new ValidationError("No hay productos activos para actualizar.");
 
-  const tx = db.transaction(() => {
+  const batchId = transaction(db, () => {
     const batch = db.prepare(`
       INSERT INTO price_update_batches (type, effective_date, percent_bps, product_count, changed_count, created_by, note)
       VALUES ('linear', ?, ?, ?, ?, ?, ?)
@@ -174,7 +174,7 @@ export function scheduleLinearPriceUpdate(db, body = {}, createdBy = null) {
     return Number(batch.lastInsertRowid);
   });
 
-  return getPriceUpdateBatch(db, tx());
+  return getPriceUpdateBatch(db, batchId);
 }
 
 export function getPriceUpdateBatch(db, id) {
@@ -187,13 +187,27 @@ export function getPriceUpdateBatch(db, id) {
   `).get(id);
   if (!row) return null;
   const items = db.prepare(`
-    SELECT product_id AS productId, km_code AS kmCode, old_price_cents AS oldPriceCents,
-      new_price_cents AS newPriceCents, variation_bps AS variationBps
-    FROM price_update_items
-    WHERE batch_id = ?
-    ORDER BY km_code ASC
+    SELECT pui.product_id AS productId, pui.km_code AS kmCode,
+      pui.old_price_cents AS oldPriceCents, pui.new_price_cents AS newPriceCents,
+      pui.variation_bps AS variationBps, p.ean13, p.name,
+      f.name AS familyName, p.web_sort_order AS webSortOrder,
+      pi.stored_filename AS primaryImageFilename
+    FROM price_update_items pui
+    JOIN products p ON p.id = pui.product_id
+    JOIN product_families f ON f.id = p.family_id
+    LEFT JOIN product_images pi ON pi.id = (
+      SELECT id FROM product_images
+      WHERE product_id = p.id
+      ORDER BY is_primary DESC, sort_order ASC, id ASC
+      LIMIT 1
+    )
+    WHERE pui.batch_id = ?
+    ORDER BY f.sort_order ASC, p.web_sort_order ASC, p.km_code ASC
   `).all(id);
-  return mapBatch(row, items);
+  return mapBatch(row, items.map((item) => ({
+    ...item,
+    primaryImageUrl: item.primaryImageFilename ? `/media/products/${item.primaryImageFilename}` : ""
+  })));
 }
 
 export function listPriceUpdateBatches(db) {
