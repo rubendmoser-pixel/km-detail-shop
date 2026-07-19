@@ -5166,12 +5166,50 @@ button.operation-row:hover {
   gap: 12px;
 }
 
+.price-profit-calculator {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(139, 226, 154, 0.35);
+  background: rgba(139, 226, 154, 0.06);
+}
+
+.price-profit-calculator > div,
+.price-profit-calculator label,
+.price-profit-input,
+.price-card-suggestion {
+  display: grid;
+  gap: 6px;
+}
+
+.price-profit-calculator span,
+.price-card-suggestion span {
+  color: var(--muted);
+}
+
+.price-profit-input {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.price-profit-input small {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.price-profit-pending {
+  color: #f5ca58;
+}
+
 .price-card {
   border: 1px solid var(--border);
   background: #111317;
   padding: 14px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+  grid-template-columns: minmax(0, 1fr) minmax(520px, 760px);
   gap: 16px;
   border-left: 6px solid #6b7280;
 }
@@ -5210,7 +5248,7 @@ button.operation-row:hover {
 
 .price-card-values {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   align-items: end;
 }
@@ -5273,6 +5311,7 @@ button.operation-row:hover {
   }
 
   .price-panel-head,
+  .price-profit-calculator,
   .price-card,
   .price-card-values,
   .price-linear-grid {

@@ -3,7 +3,7 @@ const adminState = {
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}, customerShippingAddresses: {}, editingCustomerShippingAddress: {},
-  priceProducts: [], priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
+  priceProducts: [], priceCosts: null, priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
   orderScope: "active", orderSearches: { active: "", history: "" }, logisticsOperators: []
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -193,7 +193,7 @@ const adminEls = Object.fromEntries([
   "productFormTitle", "productMessage", "closeProductForm", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
   "reloadPrices", "priceModeButtons", "individualPricePanel", "linearPricePanel", "priceEffectiveDate", "fillUnchangedPrices",
-  "clearPriceDraft", "saveIndividualPrices", "priceUpdateStats", "priceUpdateFilters", "priceUpdateList", "priceUpdateMessage",
+  "clearPriceDraft", "saveIndividualPrices", "priceUpdateStats", "priceUpdateFilters", "priceUpdateList", "priceUpdateMessage", "priceTargetProfit", "priceProfitConditions",
   "linearPriceEffectiveDate", "linearPricePercent", "linearPricePreview", "linearPriceMessage", "saveLinearPrices", "priceUpdateHistory",
   "salesRepPicker", "salesRepStatusFilter", "reloadSalesReps", "salesPanelNav", "salesRepAdminSummary", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "salesRepProfile", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
@@ -251,6 +251,7 @@ function bindAdminEvents() {
   on(adminEls.priceModeButtons, "click", handlePriceModeClick);
   on(adminEls.priceUpdateFilters, "click", handlePriceFilterClick);
   on(adminEls.priceUpdateList, "input", handlePriceUpdateChange);
+  on(adminEls.priceTargetProfit, "input", renderPriceUpdateTool);
   on(adminEls.fillUnchangedPrices, "click", fillUnchangedPriceDraft);
   on(adminEls.clearPriceDraft, "click", clearPriceDraft);
   on(adminEls.saveIndividualPrices, "click", saveIndividualPriceUpdate);
@@ -1292,12 +1293,14 @@ function getProductName(product) {
 }
 
 async function loadPriceUpdates() {
-  const [productsData, batchesData] = await Promise.all([
+  const [productsData, batchesData, costsData] = await Promise.all([
     adminApi("/api/admin/products?status=active"),
-    adminApi("/api/admin/price-updates")
+    adminApi("/api/admin/price-updates"),
+    adminApi("/api/admin/production/costs")
   ]);
   adminState.priceProducts = productsData.products || [];
   adminState.priceBatches = batchesData.batches || [];
+  adminState.priceCosts = costsData.costs || null;
   if (adminEls.priceEffectiveDate && !adminEls.priceEffectiveDate.value) adminEls.priceEffectiveDate.value = adminTodayIso();
   if (adminEls.linearPriceEffectiveDate && !adminEls.linearPriceEffectiveDate.value) adminEls.linearPriceEffectiveDate.value = adminTodayIso();
   renderPriceUpdatePage();
@@ -1387,6 +1390,14 @@ function renderPriceUpdateTool() {
     button.classList.toggle("active", button.dataset.priceFilter === adminState.priceFilter);
   });
   const products = adminState.priceProducts || [];
+  const costSettings = adminState.priceCosts?.settings || {};
+  const targetProfit = Number(adminEls.priceTargetProfit?.value ?? 60);
+  const validTarget = Number.isFinite(targetProfit) && targetProfit >= 0 && targetProfit < 100;
+  const discountPercent = Number(costSettings.maximumDiscountBps || 0) / 100;
+  const commissionPercent = Number(costSettings.maximumCommissionBps || 0) / 100;
+  if (adminEls.priceProfitConditions) adminEls.priceProfitConditions.textContent = validTarget
+    ? `Precio orientativo con ${formatAdminPercentBps(costSettings.maximumDiscountBps)} de bonificación máxima y ${formatAdminPercentBps(costSettings.maximumCommissionBps)} de comisión máxima. No completa el precio nuevo.`
+    : "Ingresá una rentabilidad entre 0% y 99,99%.";
   const filtered = products.filter((product) => {
     const state = priceDraftState(product);
     if (adminState.priceFilter === "pending") return !state.reviewed;
@@ -1398,6 +1409,13 @@ function renderPriceUpdateTool() {
   adminEls.priceUpdateList.innerHTML = filtered.map((product) => {
     const oldPriceCents = getProductBasePriceCents(product);
     const raw = adminState.priceDraft[String(product.id)] ?? "";
+    const cost = adminState.priceCosts?.products?.find((item) => Number(item.productId) === Number(product.id));
+    const commercialFactor = (1 - discountPercent / 100) * (1 - commissionPercent / 100);
+    const divisor = validTarget ? commercialFactor * (1 - targetProfit / 100) : 0;
+    const suggestedPrice = cost?.complete && divisor > 0 ? Math.ceil(Number(cost.totalCostArs || 0) / divisor) : null;
+    const suggestion = suggestedPrice === null
+      ? `<strong class="price-profit-pending">${cost?.complete ? "Revisar parámetros" : "Costo incompleto"}</strong>`
+      : `<strong>${adminMoney.format(suggestedPrice)}</strong><span>Costo ${adminMoney.format(Number(cost.totalCostArs || 0))}</span>`;
     return `
       <article class="${priceCardClass(product)}" data-product-id="${product.id}">
         <div class="price-card-main">
@@ -1406,6 +1424,7 @@ function renderPriceUpdateTool() {
         </div>
         <div class="price-card-values">
           <span><small>Actual</small>${adminMoney.format(oldPriceCents / 100)}</span>
+          <span class="price-card-suggestion"><small>Sugerido ${validTarget ? `${targetProfit.toLocaleString("es-AR", { maximumFractionDigits: 2 })}%` : ""}</small>${suggestion}</span>
           <label>
             <small>Nuevo precio</small>
             <input class="price-card-input" data-price-product-id="${product.id}" inputmode="decimal" value="${escapeAdmin(raw)}" placeholder="${formatAdminMoneyInput(oldPriceCents)}" />
