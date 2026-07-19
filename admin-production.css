@@ -1031,6 +1031,12 @@
     color: #aeb4c1;
   }
 
+  .production-purchasing-quantity-stack .production-purchasing-days {
+    margin-top: 2px;
+    color: #8f96a3;
+    font-weight: 600;
+  }
+
   .production-purchase-actions,
   .production-purchase-group-head {
     display: flex;
