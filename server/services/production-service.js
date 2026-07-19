@@ -917,22 +917,31 @@ export function createProductionCommissionSettlement(db, input = {}, adminId) {
   const entryIds = [...new Set(rawIds.map(positiveId))];
   if (!entryIds.length) throw new ValidationError("Seleccioná al menos una comisión pendiente.");
   const placeholders = entryIds.map(() => "?").join(",");
-  const entries = db.prepare(`SELECT id,operator_id,amount_cents FROM production_commission_entries
-    WHERE settlement_id IS NULL AND id IN (${placeholders}) ORDER BY id`).all(...entryIds);
-  if (entries.length !== entryIds.length) throw new ValidationError("Una de las comisiones ya fue liquidada o no existe.");
-  const operatorIds = new Set(entries.map((entry) => entry.operator_id));
-  if (operatorIds.size !== 1) throw new ValidationError("Generá una liquidación por cada operario.");
-  const totalCents = entries.reduce((total, entry) => total + Number(entry.amount_cents), 0);
   const notes = optionalText(input.notes, "notes", { max: 500 });
   db.exec("BEGIN IMMEDIATE");
   try {
+    const entries = db.prepare(`SELECT id,operator_id,amount_cents,settlement_id FROM production_commission_entries
+      WHERE id IN (${placeholders}) ORDER BY id`).all(...entryIds);
+    if (entries.length !== entryIds.length) throw new ValidationError("Una de las comisiones seleccionadas no existe. Actualizá el listado e intentá nuevamente.");
+    const existingSettlementIds = new Set(entries.filter((entry) => entry.settlement_id).map((entry) => entry.settlement_id));
+    const pendingEntries = entries.filter((entry) => !entry.settlement_id);
+    if (!pendingEntries.length && existingSettlementIds.size === 1) {
+      const settlementId = [...existingSettlementIds][0];
+      const operatorId = entries[0].operator_id;
+      db.exec("COMMIT");
+      return getProductionCommissionDashboard(db, { operatorId }).settlements.find((row) => row.id === settlementId);
+    }
+    if (existingSettlementIds.size) throw new ValidationError("Parte de la selección ya fue liquidada. Actualizá el listado antes de continuar.");
+    const operatorIds = new Set(pendingEntries.map((entry) => entry.operator_id));
+    if (operatorIds.size !== 1) throw new ValidationError("Generá una liquidación por cada operario.");
+    const totalCents = pendingEntries.reduce((total, entry) => total + Number(entry.amount_cents), 0);
     const settlement = db.prepare(`INSERT INTO production_commission_settlements(settlement_number,operator_id,total_cents,notes,settled_by)
       VALUES('TEMP',?,?,?,?) RETURNING id`).get([...operatorIds][0], totalCents, notes, adminId);
     const settlementNumber = `LCP-${String(settlement.id).padStart(6, "0")}`;
     db.prepare("UPDATE production_commission_settlements SET settlement_number=? WHERE id=?").run(settlementNumber, settlement.id);
     const result = db.prepare(`UPDATE production_commission_entries SET settlement_id=?
       WHERE settlement_id IS NULL AND id IN (${placeholders})`).run(settlement.id, ...entryIds);
-    if (result.changes !== entryIds.length) throw new ValidationError("No se pudieron liquidar todas las comisiones seleccionadas.");
+    if (result.changes !== entryIds.length) throw new ValidationError("La selección cambió mientras se procesaba. Actualizá el listado e intentá nuevamente.");
     db.exec("COMMIT");
     return getProductionCommissionDashboard(db, { operatorId: [...operatorIds][0] }).settlements.find((row) => row.id === settlement.id);
   } catch (error) { db.exec("ROLLBACK"); throw error; }

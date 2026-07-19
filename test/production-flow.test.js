@@ -99,6 +99,8 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.ok(commissions.pending.every((entry) => entry.amountArs === 200));
   const settlement = createProductionCommissionSettlement(db, { entryIds: [commissions.pending[0].id], notes: "Pago de prueba" }, admin.id);
   assert.equal(settlement.totalArs, 200);
+  const repeatedSettlement = createProductionCommissionSettlement(db, { entryIds: [commissions.pending[0].id], notes: "Reintento duplicado" }, admin.id);
+  assert.equal(repeatedSettlement.id, settlement.id);
   assert.equal(getProductionCommissionDashboard(db).pending.length, 1);
 
   const finishedBalance = db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(product.id);
