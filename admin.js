@@ -3,7 +3,7 @@ const adminState = {
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}, customerShippingAddresses: {}, editingCustomerShippingAddress: {},
-  priceProducts: [], priceCosts: null, priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
+  priceProducts: [], priceCosts: null, priceProfitTargets: {}, priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
   orderScope: "active", orderSearches: { active: "", history: "" }, logisticsOperators: []
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -193,7 +193,7 @@ const adminEls = Object.fromEntries([
   "productFormTitle", "productMessage", "closeProductForm", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
   "reloadPrices", "priceModeButtons", "individualPricePanel", "linearPricePanel", "priceEffectiveDate", "fillUnchangedPrices",
-  "clearPriceDraft", "saveIndividualPrices", "priceUpdateStats", "priceUpdateFilters", "priceUpdateList", "priceUpdateMessage", "priceTargetProfit", "priceProfitConditions",
+  "clearPriceDraft", "saveIndividualPrices", "priceUpdateStats", "priceUpdateFilters", "priceUpdateList", "priceUpdateMessage", "priceProfitConditions",
   "linearPriceEffectiveDate", "linearPricePercent", "linearPricePreview", "linearPriceMessage", "saveLinearPrices", "priceUpdateHistory",
   "salesRepPicker", "salesRepStatusFilter", "reloadSalesReps", "salesPanelNav", "salesRepAdminSummary", "salesRepForm", "salesRepFormTitle",
   "salesRepMessage", "salesRepsTableBody", "salesRepDashboard", "salesRepProfile", "commissionSalesRepFilter", "commissionNotes", "reloadCommissions",
@@ -251,7 +251,7 @@ function bindAdminEvents() {
   on(adminEls.priceModeButtons, "click", handlePriceModeClick);
   on(adminEls.priceUpdateFilters, "click", handlePriceFilterClick);
   on(adminEls.priceUpdateList, "input", handlePriceUpdateChange);
-  on(adminEls.priceTargetProfit, "input", renderPriceUpdateTool);
+  on(adminEls.priceUpdateList, "input", handlePriceProfitTargetChange);
   on(adminEls.fillUnchangedPrices, "click", fillUnchangedPriceDraft);
   on(adminEls.clearPriceDraft, "click", clearPriceDraft);
   on(adminEls.saveIndividualPrices, "click", saveIndividualPriceUpdate);
@@ -1391,13 +1391,8 @@ function renderPriceUpdateTool() {
   });
   const products = adminState.priceProducts || [];
   const costSettings = adminState.priceCosts?.settings || {};
-  const targetProfit = Number(adminEls.priceTargetProfit?.value ?? 60);
-  const validTarget = Number.isFinite(targetProfit) && targetProfit >= 0 && targetProfit < 100;
-  const discountPercent = Number(costSettings.maximumDiscountBps || 0) / 100;
-  const commissionPercent = Number(costSettings.maximumCommissionBps || 0) / 100;
-  if (adminEls.priceProfitConditions) adminEls.priceProfitConditions.textContent = validTarget
-    ? `Precio orientativo con ${formatAdminPercentBps(costSettings.maximumDiscountBps)} de bonificación máxima y ${formatAdminPercentBps(costSettings.maximumCommissionBps)} de comisión máxima. No completa el precio nuevo.`
-    : "Ingresá una rentabilidad entre 0% y 99,99%.";
+  const costByProduct = new Map((adminState.priceCosts?.products || []).map((item) => [Number(item.productId), item]));
+  if (adminEls.priceProfitConditions) adminEls.priceProfitConditions.textContent = `Cada tarjeta parte de 50% y puede modificarse. Se consideran ${formatAdminPercentBps(costSettings.maximumDiscountBps)} de bonificación máxima y ${formatAdminPercentBps(costSettings.maximumCommissionBps)} de comisión máxima.`;
   const filtered = products.filter((product) => {
     const state = priceDraftState(product);
     if (adminState.priceFilter === "pending") return !state.reviewed;
@@ -1409,13 +1404,8 @@ function renderPriceUpdateTool() {
   adminEls.priceUpdateList.innerHTML = filtered.map((product) => {
     const oldPriceCents = getProductBasePriceCents(product);
     const raw = adminState.priceDraft[String(product.id)] ?? "";
-    const cost = adminState.priceCosts?.products?.find((item) => Number(item.productId) === Number(product.id));
-    const commercialFactor = (1 - discountPercent / 100) * (1 - commissionPercent / 100);
-    const divisor = validTarget ? commercialFactor * (1 - targetProfit / 100) : 0;
-    const suggestedPrice = cost?.complete && divisor > 0 ? Math.ceil(Number(cost.totalCostArs || 0) / divisor) : null;
-    const suggestion = suggestedPrice === null
-      ? `<strong class="price-profit-pending">${cost?.complete ? "Revisar parámetros" : "Costo incompleto"}</strong>`
-      : `<strong>${adminMoney.format(suggestedPrice)}</strong><span>Costo ${adminMoney.format(Number(cost.totalCostArs || 0))}</span>`;
+    const cost = costByProduct.get(Number(product.id));
+    const targetProfit = priceProfitTarget(product.id);
     return `
       <article class="${priceCardClass(product)}" data-product-id="${product.id}">
         <div class="price-card-main">
@@ -1423,8 +1413,12 @@ function renderPriceUpdateTool() {
           <strong>${escapeAdmin(getProductName(product))}</strong>
         </div>
         <div class="price-card-values">
-          <span><small>Actual</small>${adminMoney.format(oldPriceCents / 100)}</span>
-          <span class="price-card-suggestion"><small>Sugerido ${validTarget ? `${targetProfit.toLocaleString("es-AR", { maximumFractionDigits: 2 })}%` : ""}</small>${suggestion}</span>
+          <span class="price-card-current"><small>Precio actual</small><strong>${adminMoney.format(oldPriceCents / 100)}</strong>${currentProfitMarkup(cost)}</span>
+          <label class="price-card-target">
+            <small>Rentabilidad objetivo</small>
+            <span><input data-price-profit-target="${product.id}" type="number" min="0" max="99.99" step="0.01" value="${escapeAdmin(targetProfit)}" inputmode="decimal" /><b>%</b></span>
+          </label>
+          <span class="price-card-suggestion" data-price-guidance="${product.id}">${priceSuggestionMarkup(cost, targetProfit, costSettings)}</span>
           <label>
             <small>Nuevo precio</small>
             <input class="price-card-input" data-price-product-id="${product.id}" inputmode="decimal" value="${escapeAdmin(raw)}" placeholder="${formatAdminMoneyInput(oldPriceCents)}" />
@@ -1433,6 +1427,40 @@ function renderPriceUpdateTool() {
       </article>
     `;
   }).join("") || `<p class="empty-state">No hay productos para este filtro.</p>`;
+}
+
+function priceProfitTarget(productId) {
+  return adminState.priceProfitTargets[String(productId)] ?? "50";
+}
+
+function currentProfitMarkup(cost) {
+  if (cost?.profitabilityPercent === null || cost?.profitabilityPercent === undefined) return '<span class="price-profit-pending">Utilidad actual pendiente</span>';
+  const percent = Number(cost.profitabilityPercent);
+  const tone = percent < 0 ? "is-negative" : "is-positive";
+  return `<span class="price-current-profit ${tone}">Utilidad actual ${percent.toLocaleString("es-AR", { maximumFractionDigits: 2 })}%</span>`;
+}
+
+function priceSuggestionMarkup(cost, targetProfit, settings) {
+  const rawTarget = String(targetProfit ?? "").trim();
+  const target = rawTarget ? Number(rawTarget) : Number.NaN;
+  const discount = Number(settings.maximumDiscountBps || 0) / 10_000;
+  const commission = Number(settings.maximumCommissionBps || 0) / 10_000;
+  const divisor = (1 - discount) * (1 - commission) * (1 - target / 100);
+  if (!Number.isFinite(target) || target < 0 || target >= 100) return '<small>Precio sugerido</small><strong class="price-profit-pending">Objetivo inválido</strong>';
+  if (!cost?.complete) return '<small>Precio sugerido</small><strong class="price-profit-pending">Costo incompleto</strong>';
+  if (divisor <= 0) return '<small>Precio sugerido</small><strong class="price-profit-pending">Revisar parámetros</strong>';
+  const suggestedPrice = Math.ceil(Number(cost.totalCostArs || 0) / divisor);
+  return `<small>Precio sugerido</small><strong>${adminMoney.format(suggestedPrice)}</strong><span>Costo ${adminMoney.format(Number(cost.totalCostArs || 0))}</span>`;
+}
+
+function handlePriceProfitTargetChange(event) {
+  const input = event.target.closest("[data-price-profit-target]");
+  if (!input) return;
+  const productId = String(input.dataset.priceProfitTarget);
+  adminState.priceProfitTargets[productId] = input.value;
+  const cost = adminState.priceCosts?.products?.find((item) => String(item.productId) === productId);
+  const guidance = input.closest(".price-card")?.querySelector(`[data-price-guidance="${productId}"]`);
+  if (guidance) guidance.innerHTML = priceSuggestionMarkup(cost, input.value, adminState.priceCosts?.settings || {});
 }
 
 function handlePriceUpdateChange(event) {

@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="./assets/app-admin-192.png" />
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=72" />
+    <link rel="stylesheet" href="./admin.css?v=73" />
     <link rel="stylesheet" href="./admin-production.css?v=43" />
   </head>
   <body class="admin-body">
@@ -829,13 +829,9 @@
             </div>
             <div class="price-profit-calculator">
               <div>
-                <strong>Calculadora informativa</strong>
-                <span id="priceProfitConditions">Calcula un precio orientativo sin completar el precio nuevo.</span>
+                <strong>Rentabilidad por producto</strong>
+                <span id="priceProfitConditions">Cada producto permite definir su propio objetivo sin completar el precio nuevo.</span>
               </div>
-              <label>
-                Rentabilidad objetivo
-                <span class="price-profit-input"><input id="priceTargetProfit" type="number" min="0" max="99.99" step="0.01" value="60" inputmode="decimal" /><small>%</small></span>
-              </label>
             </div>
             <div class="price-update-stats" id="priceUpdateStats"></div>
             <div class="price-filter-tabs" id="priceUpdateFilters">
@@ -1139,7 +1135,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=107" defer></script>
+    <script src="./admin.js?v=108" defer></script>
     <script src="./admin-production.js?v=39" defer></script>
   </body>
 </html>
