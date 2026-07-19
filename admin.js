@@ -2092,7 +2092,7 @@ function renderCustomerRow(customer) {
     <td>${customerClassBadge(customer.commercial_class)}</td>
     <td class="customer-payment-cell">${customerPaymentTableSummary(customer)}</td>
     <td>${escapeAdmin(customer.sales_rep_name || "Sin vendedor")}<span>${escapeAdmin(customerCommissionText(customer))}</span></td>
-    <td>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)}<span>${escapeAdmin(customer.postal_code || "")}</span></td>
+    <td class="customer-location-cell"><strong>${escapeAdmin(customer.province || "Sin provincia")}</strong><span>${escapeAdmin(customer.city || "Sin ciudad")}</span><small>${customer.postal_code ? `CP ${escapeAdmin(customer.postal_code)}` : "Sin código postal"}</small></td>
     <td class="customer-discount-cell">${customerDiscountTableSummary(customer)}</td>
     <td class="customer-last-order-cell">${customer.last_order_number ? `<strong>${escapeAdmin(customer.last_order_number)}</strong>${formatOrderListDate(customer.last_order_at)}` : `<span>Sin pedidos</span>`}</td>
     <td><button class="ghost-button row-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Editar"}</button></td>

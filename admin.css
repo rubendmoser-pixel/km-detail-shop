@@ -6402,6 +6402,27 @@ button.operation-row:hover {
     color: #aeb6c3;
     font-size: 0.75rem;
   }
+  #customersView .customer-location-cell {
+    line-height: 1.15;
+  }
+  #customersView .customer-location-cell strong,
+  #customersView .customer-location-cell span,
+  #customersView .customer-location-cell small {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  #customersView .customer-location-cell strong { font-size: 0.78rem; }
+  #customersView .customer-location-cell span {
+    margin-top: 4px;
+    color: #b8bec7;
+    font-size: 0.72rem;
+  }
+  #customersView .customer-location-cell small {
+    margin-top: 4px;
+    color: #7f8793;
+    font-size: 0.66rem;
+  }
   #customersView .customer-table td .customer-class-badge {
     width: 38px;
     min-width: 38px;
