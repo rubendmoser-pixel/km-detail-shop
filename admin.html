@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="./assets/app-admin-192.png" />
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=73" />
+    <link rel="stylesheet" href="./admin.css?v=74" />
     <link rel="stylesheet" href="./admin-production.css?v=43" />
   </head>
   <body class="admin-body">
@@ -834,17 +834,19 @@
               </div>
             </div>
             <div class="price-update-stats" id="priceUpdateStats"></div>
-            <div class="price-filter-tabs" id="priceUpdateFilters">
-              <button class="active" type="button" data-price-filter="all">Todos</button>
-              <button type="button" data-price-filter="pending">Pendientes</button>
-              <button type="button" data-price-filter="changed">Modificados</button>
-              <button type="button" data-price-filter="up">Suben</button>
-              <button type="button" data-price-filter="down">Bajan</button>
-            </div>
-            <div class="price-actions">
-              <button class="ghost-button" id="fillUnchangedPrices" type="button">Completar sin cambios</button>
-              <button class="ghost-button danger-soft" id="clearPriceDraft" type="button">Limpiar carga</button>
-              <button class="primary-action-button" id="saveIndividualPrices" type="button">Programar precios</button>
+            <div class="price-list-toolbar">
+              <div class="price-filter-tabs" id="priceUpdateFilters">
+                <button class="active" type="button" data-price-filter="all">Todos</button>
+                <button type="button" data-price-filter="pending">Pendientes</button>
+                <button type="button" data-price-filter="changed">Modificados</button>
+                <button type="button" data-price-filter="up">Suben</button>
+                <button type="button" data-price-filter="down">Bajan</button>
+              </div>
+              <div class="price-actions">
+                <button class="ghost-button" id="fillUnchangedPrices" type="button">Completar sin cambios</button>
+                <button class="ghost-button danger-soft" id="clearPriceDraft" type="button">Limpiar carga</button>
+                <button class="primary-action-button" id="saveIndividualPrices" type="button">Programar precios</button>
+              </div>
             </div>
             <p class="admin-message" id="priceUpdateMessage"></p>
             <div class="price-update-list" id="priceUpdateList"></div>
@@ -1135,7 +1137,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=108" defer></script>
+    <script src="./admin.js?v=109" defer></script>
     <script src="./admin-production.js?v=39" defer></script>
   </body>
 </html>

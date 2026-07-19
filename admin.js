@@ -1362,25 +1362,11 @@ function renderPriceUpdateStats() {
   const states = products.map(priceDraftState);
   const reviewed = states.filter((state) => state.reviewed).length;
   const changed = states.filter((state) => state.changed).length;
-  const up = states.filter((state) => state.up).length;
-  const down = states.filter((state) => state.down).length;
-  const changedBps = products.map((product, index) => {
-    const state = states[index];
-    if (!state.changed) return null;
-    const oldPrice = getProductBasePriceCents(product);
-    return oldPrice ? Math.round(((state.cents - oldPrice) / oldPrice) * 10000) : 0;
-  }).filter((value) => value !== null);
-  const averageBps = changedBps.length
-    ? Math.round(changedBps.reduce((sum, value) => sum + value, 0) / changedBps.length)
-    : 0;
   adminEls.priceUpdateStats.innerHTML = [
     ["Activos", products.length],
     ["Revisados", reviewed],
     ["Modificados", changed],
-    ["Pendientes", Math.max(0, products.length - reviewed)],
-    ["Suben", up],
-    ["Bajan", down],
-    ["Promedio", formatAdminPercentBps(averageBps)]
+    ["Pendientes", Math.max(0, products.length - reviewed)]
   ].map(([label, value]) => `<div><strong>${value}</strong><span>${label}</span></div>`).join("");
 }
 
