@@ -48,15 +48,22 @@ test("production master imports every validated recipe idempotently by KM code a
   const recipes = listProductionRecipes(db);
   assert.equal(recipes.length, 104);
   assert.ok(recipes.every((recipe) => recipe.complete));
+  assert.equal(recipes.find((recipe) => recipe.kmCode === "CP171K").productionCommissionArs, 120);
+  assert.equal(recipes.find((recipe) => recipe.kmCode === "CP271K").productionCommissionArs, 0);
+  assert.equal(recipes.find((recipe) => recipe.kmCode === "AB132K").productionCommissionArs, 80);
+  assert.equal(recipes.find((recipe) => recipe.kmCode === "AB136K").productionCommissionArs, 200);
+  assert.equal(recipes.find((recipe) => recipe.kmCode === "PX866K").ean13, "0764451541542");
   const cp171Recipe = recipes.find((recipe) => recipe.kmCode === "CP171K");
   const updatedRecipe = upsertProductionRecipe(db, {
     productId: cp171Recipe.productId, kmCode: cp171Recipe.kmCode, ean13: cp171Recipe.ean13,
-    productionMinutesPerUnit: 30,
+    productionMinutesPerUnit: 30, productionCommissionArs: 135.5,
     components: cp171Recipe.components.map((component, index) => ({ itemId: component.itemId, quantity: index ? component.quantity : component.quantity + 1 }))
   });
   assert.equal(updatedRecipe.components[0].quantity, cp171Recipe.components[0].quantity + 1);
+  assert.equal(updatedRecipe.productionCommissionArs, 135.5);
   synchronizeProductionMaster(db, { force: true });
   assert.equal(listProductionRecipes(db).find((recipe) => recipe.kmCode === "CP171K").productionMinutesPerUnit, 30);
+  assert.equal(listProductionRecipes(db).find((recipe) => recipe.kmCode === "CP171K").productionCommissionArs, 120);
   assert.throws(() => upsertProductionRecipe(db, {
     productId: cp171Recipe.productId, kmCode: cp171Recipe.kmCode, ean13: "9999999999999",
     components: cp171Recipe.components

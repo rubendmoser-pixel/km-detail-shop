@@ -12,12 +12,13 @@ export function listProductionOperators(db) {
 export function searchProductionProducts(db, query = "") {
   const search = String(query || "").trim().toUpperCase().slice(0, 30);
   if (!search) return [];
-  return db.prepare(`SELECT id,km_code,ean13,name,production_minutes_per_unit FROM products
+  return db.prepare(`SELECT id,km_code,ean13,name,production_minutes_per_unit,production_commission_cents FROM products
     WHERE active=1 AND UPPER(km_code) LIKE ?
     ORDER BY CASE WHEN UPPER(km_code)=? THEN 0 WHEN UPPER(km_code) LIKE ? THEN 1 ELSE 2 END,km_code
     LIMIT 12`).all(`%${search}%`, search, `${search}%`).map((row) => ({
       id: row.id, kmCode: row.km_code, ean13: row.ean13, name: row.name,
-      productionMinutesPerUnit: Number(row.production_minutes_per_unit || 0)
+      productionMinutesPerUnit: Number(row.production_minutes_per_unit || 0),
+      productionCommissionArs: Number(row.production_commission_cents || 0) / 100
     }));
 }
 
@@ -31,13 +32,13 @@ export function listProductionRecipes(db, { query = "", status = "" } = {}) {
   }
   if (status === "complete") clauses.push("EXISTS(SELECT 1 FROM product_bom bx WHERE bx.product_id=p.id AND bx.active=1)");
   if (status === "missing") clauses.push("NOT EXISTS(SELECT 1 FROM product_bom bx WHERE bx.product_id=p.id AND bx.active=1)");
-  return db.prepare(`SELECT p.id,p.km_code,p.ean13,p.name,p.production_minutes_per_unit FROM products p WHERE ${clauses.join(" AND ")}
+  return db.prepare(`SELECT p.id,p.km_code,p.ean13,p.name,p.production_minutes_per_unit,p.production_commission_cents FROM products p WHERE ${clauses.join(" AND ")}
     ORDER BY p.km_code COLLATE NOCASE`).all(...params).map((row) => publicRecipe(row, db));
 }
 
 export function upsertProductionRecipe(db, input = {}) {
   const productId = positiveId(input.productId);
-  const product = db.prepare("SELECT id,km_code,ean13,name,production_minutes_per_unit FROM products WHERE id=? AND active=1").get(productId);
+  const product = db.prepare("SELECT id,km_code,ean13,name,production_minutes_per_unit,production_commission_cents FROM products WHERE id=? AND active=1").get(productId);
   if (!product) throw new NotFoundError("Producto activo no encontrado.");
   const kmCode = requiredText(input.kmCode, "código KM", { min: 2, max: 40 }).toUpperCase();
   const ean13 = String(input.ean13 || "").replace(/\D/g, "");
@@ -50,6 +51,11 @@ export function upsertProductionRecipe(db, input = {}) {
   const productionMinutesPerUnit = hasProductionTime
     ? (minutesRaw ? positiveNumber(minutesRaw, "tiempo de fabricación") : 0)
     : Number(product.production_minutes_per_unit || 0);
+  const hasProductionCommission = Object.prototype.hasOwnProperty.call(input, "productionCommissionArs");
+  const commissionRaw = String(input.productionCommissionArs ?? "").trim();
+  const productionCommissionCents = hasProductionCommission
+    ? Math.round(nonNegativeNumber(commissionRaw || 0, "comisión de producción") * 100)
+    : Number(product.production_commission_cents || 0);
   const seen = new Set();
   const components = input.components.map((component) => {
     const itemId = positiveId(component.itemId);
@@ -61,12 +67,13 @@ export function upsertProductionRecipe(db, input = {}) {
   });
   db.exec("BEGIN IMMEDIATE");
   try {
-    db.prepare("UPDATE products SET production_minutes_per_unit=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(productionMinutesPerUnit, productId);
+    db.prepare("UPDATE products SET production_minutes_per_unit=?,production_commission_cents=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+      .run(productionMinutesPerUnit, productionCommissionCents, productId);
     db.prepare("DELETE FROM product_bom WHERE product_id=?").run(productId);
     const insert = db.prepare("INSERT INTO product_bom(product_id,component_item_id,quantity,active) VALUES(?,?,?,1)");
     for (const component of components) insert.run(productId, component.itemId, component.quantity);
     db.exec("COMMIT");
-    return publicRecipe({ ...product, production_minutes_per_unit: productionMinutesPerUnit }, db);
+    return publicRecipe({ ...product, production_minutes_per_unit: productionMinutesPerUnit, production_commission_cents: productionCommissionCents }, db);
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;
@@ -969,6 +976,7 @@ function publicRecipe(row, db) {
     }));
   return { productId: row.id, kmCode: row.km_code, ean13: row.ean13 || "", name: row.name,
     productionMinutesPerUnit: Number(row.production_minutes_per_unit || 0),
+    productionCommissionArs: Number(row.production_commission_cents || 0) / 100,
     complete: components.length > 0, componentCount: components.length, components };
 }
 function ensureBalance(db, itemId) { db.prepare("INSERT OR IGNORE INTO inventory_balances(item_id,quantity) VALUES(?,0)").run(itemId); }

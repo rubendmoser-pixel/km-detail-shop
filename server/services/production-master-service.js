@@ -61,9 +61,11 @@ export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath
       .map((item) => [item.item_code.toUpperCase(), item.id]));
     const deleteBom = db.prepare("DELETE FROM product_bom WHERE product_id=?");
     const insertBom = db.prepare("INSERT INTO product_bom(product_id,component_item_id,quantity,active) VALUES(?,?,?,1)");
+    const updateCommission = db.prepare("UPDATE products SET production_commission_cents=?,updated_at=CURRENT_TIMESTAMP WHERE id=?");
     let recipeLines = 0;
     for (const recipe of master.recipes) {
       const product = productByCode.get(recipe.kmCode.toUpperCase());
+      updateCommission.run(Math.round(Number(master.productionCommissionsArs[recipe.kmCode]) * 100), product.id);
       const quantities = new Map();
       for (const component of recipe.components) {
         const key = component.itemCode.toUpperCase();
@@ -128,10 +130,15 @@ function validateMasterShape(master) {
   if (sourceLines !== master.expectedSourceLines) throw new Error("El maestro no contiene la cantidad esperada de líneas de receta.");
   const codes = new Set(master.recipes.map((recipe) => recipe.kmCode.toUpperCase()));
   if (codes.size !== master.recipes.length) throw new Error("El maestro contiene códigos KM repetidos.");
+  if (!master.productionCommissionsArs || Object.keys(master.productionCommissionsArs).length !== master.recipes.length) {
+    throw new Error("El maestro no contiene una comisión de producción para cada producto.");
+  }
   for (const recipe of master.recipes) {
     if (!recipe.kmCode || !recipe.ean13 || !Array.isArray(recipe.components) || !recipe.components.length) {
       throw new Error(`La receta ${recipe.kmCode || "sin código"} está incompleta.`);
     }
+    const commission = Number(master.productionCommissionsArs[recipe.kmCode]);
+    if (!Number.isFinite(commission) || commission < 0) throw new Error(`La comisión de ${recipe.kmCode} no es válida.`);
     for (const component of recipe.components) {
       if (!component.itemCode || !Number.isFinite(Number(component.quantity)) || Number(component.quantity) <= 0) {
         throw new Error(`La receta ${recipe.kmCode} tiene un componente inválido.`);

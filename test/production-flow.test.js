@@ -34,11 +34,13 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.deepEqual(searchProductionProducts(db, "no-existe"), []);
   db.prepare("INSERT INTO inventory_balances(item_id,quantity) VALUES(?,100)").run(raw.id);
   const recipe = upsertProductionRecipe(db, {
-    productId: product.id, kmCode: "TEST-PROD", ean13: "7790000000001", productionMinutesPerUnit: 30,
+    productId: product.id, kmCode: "TEST-PROD", ean13: "7790000000001", productionMinutesPerUnit: 30, productionCommissionArs: 80,
     components: [{ itemId: raw.id, quantity: 2 }]
   });
   assert.equal(recipe.productionMinutesPerUnit, 30);
+  assert.equal(recipe.productionCommissionArs, 80);
   assert.equal(searchProductionProducts(db, "test-prod")[0].productionMinutesPerUnit, 30);
+  assert.equal(searchProductionProducts(db, "test-prod")[0].productionCommissionArs, 80);
 
   const configuredWeek = createProductionWeek(db, {
     weekStart: "2026-08-03",
