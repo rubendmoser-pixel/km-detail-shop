@@ -967,6 +967,108 @@
 }
 
 @media (min-width: 1100px) {
+  .production-purchasing-toolbar {
+    grid-template-columns: minmax(320px, 1fr) minmax(230px, .55fr) auto auto;
+    align-items: center;
+  }
+
+  .production-purchasing-table th:nth-child(1) { width: 4%; }
+  .production-purchasing-table th:nth-child(2) { width: 17%; }
+  .production-purchasing-table th:nth-child(3) { width: 9%; }
+  .production-purchasing-table th:nth-child(4) { width: 11%; }
+  .production-purchasing-table th:nth-child(5) { width: 11%; }
+  .production-purchasing-table th:nth-child(6) { width: 10%; }
+  .production-purchasing-table th:nth-child(7) { width: 12%; }
+  .production-purchasing-table th:nth-child(8) { width: 12%; }
+  .production-purchasing-table th:nth-child(9) { width: 14%; }
+
+  .production-purchasing-table input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .production-purchasing-table td:nth-child(2) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .production-purchasing-table td:nth-child(9) .status-badge {
+    display: inline-flex;
+    white-space: nowrap;
+  }
+
+  .production-purchase-actions,
+  .production-purchase-group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .production-purchase-preparation > .admin-note {
+    margin: 0;
+    padding: 0 18px 16px;
+  }
+
+  .production-purchase-groups {
+    display: grid;
+    gap: 16px;
+    padding: 0 16px 16px;
+  }
+
+  .production-purchase-group {
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.11);
+    border-radius: 10px;
+    background: #12151a;
+  }
+
+  .production-purchase-group-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.09);
+  }
+
+  .production-purchase-group-head > div {
+    display: grid;
+    gap: 4px;
+  }
+
+  .production-purchase-group-head span,
+  .production-purchase-group-head small {
+    color: #aeb4c1;
+  }
+
+  .production-purchase-group-head strong {
+    font-size: 1.15rem;
+  }
+
+  .production-purchase-preparation-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .production-purchase-preparation-table th:nth-child(1) { width: 34%; }
+  .production-purchase-preparation-table th:nth-child(2) { width: 15%; }
+  .production-purchase-preparation-table th:nth-child(3) { width: 16%; }
+  .production-purchase-preparation-table th:nth-child(4) { width: 20%; }
+  .production-purchase-preparation-table th:nth-child(5) { width: 15%; }
+
+  .production-purchase-preparation-table td:first-child strong,
+  .production-purchase-preparation-table td:first-child span {
+    display: block;
+  }
+
+  .production-purchase-preparation-table td:first-child span {
+    margin-top: 4px;
+    color: #aeb4c1;
+    font-size: .8rem;
+  }
+
+  .production-purchase-preparation-table input {
+    width: 130px;
+    max-width: 70%;
+  }
+
   .production-commission-history article {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
