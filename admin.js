@@ -3620,6 +3620,7 @@ async function loadSettings() {
   form.vatPercent.value = settings.vatBps / 100;
   form.whatsappNumber.value = settings.whatsappNumber;
   form.usdExchangeRate.value = settings.usdExchangeRate;
+  form.productionHourlyCostArs.value = settings.productionHourlyCostArs;
   renderPaymentAccounts();
 }
 
@@ -3754,7 +3755,8 @@ async function saveSettings(event) {
   const body = {
     vatBps: Math.round(Number(values.vatPercent) * 100),
     whatsappNumber: values.whatsappNumber,
-    usdExchangeRate: Number(values.usdExchangeRate)
+    usdExchangeRate: Number(values.usdExchangeRate),
+    productionHourlyCostArs: Number(values.productionHourlyCostArs)
   };
   setBusy(adminEls.settingsForm, true);
   try {

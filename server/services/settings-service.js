@@ -8,6 +8,7 @@ export function getCommercialSettings(db) {
     vatBps: Number(settings.vat_bps || 2100),
     whatsappNumber: settings.whatsapp_number || "",
     usdExchangeRate: Number(settings.usd_exchange_rate || 1400),
+    productionHourlyCostArs: Number(settings.production_hourly_cost_ars || 0),
     bank: publicBank(bank),
     paymentAccounts: listPaymentAccounts(db, { includeInactive: true })
   };
@@ -45,6 +46,16 @@ export function updateCommercialSettings(db, input, adminUserId) {
       INSERT INTO settings (key, value, updated_by) VALUES ('usd_exchange_rate', ?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
     `).run(String(exchangeRate), adminUserId);
+  }
+  if (input.productionHourlyCostArs !== undefined) {
+    const hourlyCost = Number(input.productionHourlyCostArs);
+    if (!Number.isFinite(hourlyCost) || hourlyCost < 0 || hourlyCost > 1_000_000_000) {
+      throw new ValidationError("Ingresá un costo por hora de producción válido, igual o mayor que cero.");
+    }
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_by) VALUES ('production_hourly_cost_ars', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
+    `).run(String(hourlyCost), adminUserId);
   }
   if (input.bank) {
     const bank = input.bank;

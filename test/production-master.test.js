@@ -95,9 +95,12 @@ test("production master imports every validated recipe idempotently by KM code a
 
   const admin = db.prepare("SELECT id FROM users WHERE role='admin'").get();
   assert.equal(getCommercialSettings(db).usdExchangeRate, 1400);
-  updateCommercialSettings(db, { usdExchangeRate: 1525.5 }, admin.id);
+  assert.equal(getCommercialSettings(db).productionHourlyCostArs, 0);
+  updateCommercialSettings(db, { usdExchangeRate: 1525.5, productionHourlyCostArs: 4850.75 }, admin.id);
   assert.equal(getCommercialSettings(db).usdExchangeRate, 1525.5);
+  assert.equal(getCommercialSettings(db).productionHourlyCostArs, 4850.75);
   assert.throws(() => updateCommercialSettings(db, { usdExchangeRate: 0 }, admin.id), /tipo de cambio/i);
+  assert.throws(() => updateCommercialSettings(db, { productionHourlyCostArs: -1 }, admin.id), /costo por hora/i);
   const cp171 = db.prepare("SELECT id FROM products WHERE km_code='CP171K'").get();
   const operator = await upsertProductionOperator(db, {
     name: "Operario Maestro", email: "operario-maestro@km-detail.com", portalPassword: "clave-produccion-2026"

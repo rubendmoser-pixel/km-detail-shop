@@ -1041,6 +1041,7 @@ function seedSettings(db, whatsappNumber) {
   insertSetting.run("vat_bps", "2100");
   insertSetting.run("whatsapp_number", whatsappNumber);
   insertSetting.run("usd_exchange_rate", "1400");
+  insertSetting.run("production_hourly_cost_ars", "0");
   insertSetting.run("inventory_initial_stock_loaded", "0");
   const insertProductionDay = db.prepare("INSERT OR IGNORE INTO production_work_schedule_defaults(weekday,enabled,planned_hours) VALUES(?,?,?)");
   for (let weekday = 1; weekday <= 7; weekday += 1) insertProductionDay.run(weekday, weekday <= 5 ? 1 : 0, weekday <= 5 ? 8 : 0);
