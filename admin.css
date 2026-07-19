@@ -6434,4 +6434,132 @@ button.operation-row:hover {
   #customersView .customer-detail-panel:not(:empty) {
     margin-top: 4px;
   }
+  #customersView .customer-table-stack {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    line-height: 1.18;
+  }
+  #customersView .customer-table-stack strong,
+  #customersView .customer-table-stack small {
+    display: block;
+    min-width: 0;
+  }
+  #customersView .customer-table-stack strong {
+    font-size: 0.78rem;
+    overflow-wrap: normal;
+  }
+  #customersView .customer-table-stack small {
+    color: #8f98a6;
+    font-size: 0.69rem;
+    white-space: nowrap;
+  }
+
+  /* Ficha de cliente: bloques y formularios con una escala visual uniforme. */
+  #customersView .customer-editor-card {
+    border-radius: 10px;
+  }
+  #customersView .customer-editor-overview {
+    gap: 14px;
+    padding: 18px;
+  }
+  #customersView .customer-editor-heading > div:first-child > strong {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+  #customersView .customer-editor-data {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+  #customersView .customer-editor-data > div {
+    min-height: 62px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+  #customersView .customer-editor-data dt { font-size: 0.66rem; }
+  #customersView .customer-editor-data dd { font-size: 0.8rem; line-height: 1.3; }
+  #customersView .customer-config-sections {
+    grid-auto-flow: dense;
+    gap: 14px;
+    padding: 16px;
+  }
+  #customersView .customer-config-card {
+    gap: 14px;
+    padding: 16px;
+    border-radius: 9px;
+  }
+  #customersView .customer-config-card:nth-child(3),
+  #customersView .customer-config-card:nth-child(7) {
+    grid-column: auto;
+  }
+  #customersView .customer-data-card,
+  #customersView .customer-shipping-card,
+  #customersView .customer-product-discount-card,
+  #customersView .customer-accounts-card {
+    grid-column: 1 / -1;
+  }
+  #customersView .customer-config-title {
+    min-height: 42px;
+    align-items: center;
+  }
+  #customersView .customer-config-title strong { font-size: 0.94rem; }
+  #customersView .customer-config-title small { font-size: 0.74rem; line-height: 1.35; }
+  #customersView .customer-config-card form {
+    gap: 10px;
+  }
+  #customersView .customer-config-card form label,
+  #customersView .customer-shipping-form label {
+    gap: 6px;
+    min-width: 0;
+    color: #a7a9ae;
+    font-size: 0.74rem;
+    font-weight: 800;
+  }
+  #customersView .customer-config-card form label > span,
+  #customersView .customer-shipping-form label > span {
+    min-height: 18px;
+    font-size: 0.74rem;
+    line-height: 1.2;
+  }
+  #customersView .customer-config-card form input:not([type="checkbox"]):not([type="radio"]),
+  #customersView .customer-config-card form select,
+  #customersView .customer-config-card form textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 9px 11px;
+    font-size: 0.86rem;
+  }
+  #customersView .customer-config-card form textarea { min-height: 78px; }
+  #customersView .customer-config-card form button {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+  }
+  #customersView .customer-data-form {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  #customersView .product-discount-form {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  #customersView .discount-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  #customersView .sales-assignment-form,
+  #customersView .customer-class-form,
+  #customersView .customer-payment-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #customersView .sales-summary {
+    min-height: 44px;
+    padding: 11px 12px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+  }
+  #customersView .customer-payment-account-option {
+    border-radius: 7px;
+    font-size: 0.8rem;
+  }
 }

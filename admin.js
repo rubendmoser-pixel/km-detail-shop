@@ -2090,10 +2090,10 @@ function renderCustomerRow(customer) {
     <td class="customer-table-primary"><strong>${escapeAdmin(customer.business_name)}</strong><span>${escapeAdmin(customer.tax_id)}</span><small>${escapeAdmin(customer.email)}</small></td>
     <td>${stateBadge(statusLabels[customer.approval_status] || customer.approval_status, customer.approval_status === "approved" ? "success" : customer.approval_status === "pending" ? "warning" : "neutral")}</td>
     <td>${customerClassBadge(customer.commercial_class)}</td>
-    <td><strong>${escapeAdmin(customerPaymentConditionText(customer))}</strong></td>
+    <td class="customer-payment-cell">${customerPaymentTableSummary(customer)}</td>
     <td>${escapeAdmin(customer.sales_rep_name || "Sin vendedor")}<span>${escapeAdmin(customerCommissionText(customer))}</span></td>
     <td>${escapeAdmin(customer.city)}, ${escapeAdmin(customer.province)}<span>${escapeAdmin(customer.postal_code || "")}</span></td>
-    <td>${escapeAdmin(customerDiscountText(customer))}</td>
+    <td class="customer-discount-cell">${customerDiscountTableSummary(customer)}</td>
     <td class="customer-last-order-cell">${customer.last_order_number ? `<strong>${escapeAdmin(customer.last_order_number)}</strong>${formatOrderListDate(customer.last_order_at)}` : `<span>Sin pedidos</span>`}</td>
     <td><button class="ghost-button row-button customer-action-button" type="button" data-view-customer="${customer.id}">${isSelected ? "Cerrar" : "Editar"}</button></td>
   </tr>`;
@@ -2162,7 +2162,7 @@ function renderCustomerDetail(customer) {
         </div>
       </section>
       <section class="customer-config-sections">
-        <div class="customer-config-card">
+        <div class="customer-config-card customer-data-card">
           <div class="customer-config-title">
             <span>1</span>
             <div><strong>Datos del cliente</strong><small>Datos comerciales, contacto y domicilio principal.</small></div>
@@ -2188,7 +2188,7 @@ function renderCustomerDetail(customer) {
           </form>
         </div>
         ${renderAdminShippingAddresses(customer)}
-        <div class="customer-config-card">
+        <div class="customer-config-card customer-discount-card">
           <div class="customer-config-title">
             <span>3</span>
             <div><strong>Descuentos globales</strong><small>Descuentos comerciales generales para toda la cuenta.</small></div>
@@ -2200,7 +2200,7 @@ function renderCustomerDetail(customer) {
             <button class="ghost-button" type="submit">Guardar descuentos</button>
           </form>
         </div>
-        <div class="customer-config-card">
+        <div class="customer-config-card customer-product-discount-card">
           <div class="customer-config-title">
             <span>4</span>
             <div><strong>Descuentos por productos</strong><small>Condiciones especiales adicionales por codigo KM.</small></div>
@@ -2218,7 +2218,7 @@ function renderCustomerDetail(customer) {
             ${renderCustomerProductDiscounts(customer)}
           </div>
         </div>
-        <div class="customer-config-card">
+        <div class="customer-config-card customer-sales-card">
           <div class="customer-config-title">
             <span>5</span>
             <div><strong>Asignacion vendedor y comisiones</strong><small>Vendedor asociado y porcentaje aplicado a la cuenta.</small></div>
@@ -2230,7 +2230,7 @@ function renderCustomerDetail(customer) {
             <button class="ghost-button" type="submit">Guardar vendedor</button>
           </form>
         </div>
-        <div class="customer-config-card">
+        <div class="customer-config-card customer-class-card">
           <div class="customer-config-title">
             <span>6</span>
             <div><strong>Categorizacion B/N</strong><small>Marca interna visible en pedidos y gestion comercial.</small></div>
@@ -2241,7 +2241,7 @@ function renderCustomerDetail(customer) {
             <button class="ghost-button" type="submit">Guardar</button>
           </form>
         </div>
-        <div class="customer-config-card">
+        <div class="customer-config-card customer-payment-card">
           <div class="customer-config-title">
             <span>7</span>
             <div><strong>Condicion de pago</strong><small>Condicion sugerida al recibir nuevos pedidos.</small></div>
@@ -2253,7 +2253,7 @@ function renderCustomerDetail(customer) {
             <button class="ghost-button" type="submit">Guardar condicion</button>
           </form>
         </div>
-        <div class="customer-config-card">
+        <div class="customer-config-card customer-accounts-card">
           <div class="customer-config-title">
             <span>8</span>
             <div><strong>Asignacion cuenta de cobro</strong><small>Cuentas habilitadas para transferencias de este cliente.</small></div>
@@ -2484,6 +2484,24 @@ function normalizeCustomerClass(value) {
 function customerClassBadge(value) {
   const letter = normalizeCustomerClass(value);
   return `<span class="customer-class-badge ${letter.toLowerCase()}">${letter}</span>`;
+}
+
+function customerPaymentTableSummary(customer) {
+  const condition = normalizeCustomerPaymentCondition(customer.payment_condition);
+  if (condition === "credit_account") {
+    return `<span class="customer-table-stack"><strong>Cuenta corriente</strong><small>${Number(customer.payment_terms_days || 15)} días</small></span>`;
+  }
+  return `<span class="customer-table-stack"><strong>Pago anticipado</strong><small>Sin plazo</small></span>`;
+}
+
+function customerDiscountTableSummary(customer) {
+  const discounts = [customer.discount_1_bps, customer.discount_2_bps, customer.discount_3_bps]
+    .filter((value) => Number(value || 0) > 0)
+    .map((value) => formatBps(value));
+  if (!discounts.length) return `<span class="customer-table-stack"><strong>Sin descuentos</strong><small>Condición general</small></span>`;
+  const firstLine = discounts.slice(0, 2).join(" + ");
+  const secondLine = discounts.length > 2 ? `+ ${discounts[2]}` : `${discounts.length} nivel${discounts.length === 1 ? "" : "es"}`;
+  return `<span class="customer-table-stack"><strong>${escapeAdmin(firstLine)}</strong><small>${escapeAdmin(secondLine)}</small></span>`;
 }
 
 async function loadAdminShippingAddresses(customerId, shouldRender = true) {
