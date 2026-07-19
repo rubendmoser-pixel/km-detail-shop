@@ -87,7 +87,7 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionWeek, getCurrentProductionDashboard, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
+  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
@@ -794,6 +794,12 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/reports") {
         return sendJson(response, 200, { reports: listProductionReports(db, { status: url.searchParams.get("status") || "" }) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/commissions") {
+        return sendJson(response, 200, { commissions: getProductionCommissionDashboard(db, { operatorId: Number(url.searchParams.get("operatorId") || 0) }) });
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/production/commission-settlements") {
+        return sendJson(response, 201, { settlement: createProductionCommissionSettlement(db, await readJson(request), currentUser.id) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/inventory") {
         return sendJson(response, 200, { inventory: getProductionInventory(db, { query: url.searchParams.get("q") || "", type: url.searchParams.get("type") || "" }) });

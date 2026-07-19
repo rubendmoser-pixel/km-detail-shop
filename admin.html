@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=31" />
+    <link rel="stylesheet" href="./admin-production.css?v=32" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -83,6 +83,7 @@
             <div class="admin-nav-group-items">
               <button type="button" data-admin-view="production" title="Planificación de producción"><span class="admin-tab-label">Planificación de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-access" title="Operarios de producción"><span class="admin-tab-label">Operarios de producción</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-commissions" title="Comisiones de producción"><span class="admin-tab-label">Comisiones de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-stock" title="Stock de insumos"><span class="admin-tab-label">Stock de insumos</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-stock-parameters" title="Parámetros de stock"><span class="admin-tab-label">Parámetros de stock</span></button>
@@ -523,12 +524,28 @@
               <div class="orders-table-wrap"><table class="admin-table production-purchasing-table"><thead><tr><th>Insumo</th><th>Stock</th><th>Para fabricar</th><th>Seguridad</th><th>Faltante</th><th>Sugerido</th><th>Proveedor</th><th>Estado</th></tr></thead><tbody id="productionPurchasingList"></tbody></table></div>
             </section>
           </section>
+          <section class="production-commission-workspace production-desktop-only" data-production-panel="commissions" hidden>
+            <div class="production-commission-summary" id="productionCommissionSummary"></div>
+            <form class="production-commission-settlement-form" id="productionCommissionSettlementForm">
+              <label><span>Operario</span><select id="productionCommissionOperator"><option value="">Todos los operarios</option></select></label>
+              <label><span>Nota de liquidación</span><input name="notes" maxlength="500" placeholder="Opcional"></label>
+              <button class="primary-button" type="submit">Liquidar seleccionadas</button>
+              <p class="form-message" id="productionCommissionMessage"></p>
+            </form>
+            <section class="production-material-list-panel"><div class="production-material-list-heading"><div><p class="eyebrow">Pendientes</p><h3>Comisiones generadas</h3></div><label class="production-commission-select-all"><input id="productionCommissionSelectAll" type="checkbox"> Seleccionar visibles</label></div><div class="orders-table-wrap"><table class="admin-table production-commission-table"><thead><tr><th></th><th>Fecha</th><th>Operario</th><th>Parte</th><th>Producto</th><th>Buenas</th><th>Valor/u.</th><th>Importe</th></tr></thead><tbody id="productionCommissionPending"></tbody></table></div></section>
+            <section class="production-material-list-panel"><div class="production-material-list-heading"><div><p class="eyebrow">Histórico</p><h3>Liquidaciones realizadas</h3></div></div><div class="production-commission-history" id="productionCommissionSettlements"></div></section>
+          </section>
           <section class="production-admin-panel production-access-panel" data-production-panel="access" hidden><div class="production-access-grid"><section class="production-access-list-card"><div class="production-access-card-head"><p class="eyebrow">Personal habilitado</p><h2>Operarios registrados</h2></div><div id="productionOperatorsList"></div></section><form class="production-access-form" id="productionOperatorForm"><div class="production-access-card-head"><p class="eyebrow">Ficha de acceso</p><h2>Nuevo operario</h2></div><input name="id" type="hidden"><label><span>Nombre</span><input name="name" required maxlength="160"></label><label><span>Email</span><input name="email" type="email" required maxlength="254"></label><label><span>Teléfono</span><input name="phone" maxlength="60"></label><label><span>Estado</span><select name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><label class="portal-access-option production-portal-switch"><input name="portalAccessEnabled" type="checkbox" checked><span><strong>Habilitar portal de producción</strong><small>Permite que el operario ingrese con su email y clave.</small></span></label><label><span>Clave</span><span class="password-control"><input id="productionOperatorPassword" name="portalPassword" type="password" minlength="10" maxlength="200" autocomplete="new-password"><button class="password-toggle" type="button" data-production-password>Ver</button></span></label><label><span>Repetir clave</span><input name="portalPasswordConfirmation" type="password" minlength="10" maxlength="200" autocomplete="new-password"></label><label><span>Observaciones</span><textarea name="notes" rows="2"></textarea></label><div class="form-actions"><button class="primary-button" type="submit">Guardar operario</button><button class="ghost-button" id="resetProductionOperator" type="button">Limpiar</button></div><p class="form-message" id="productionOperatorMessage"></p></form></div></section>
         </section>
 
         <section class="admin-view production-desktop-only" id="production-accessView" hidden>
           <div class="admin-titlebar"><div><p class="eyebrow">Accesos restringidos</p><h1>Operarios de producción</h1></div><div class="admin-toolbar"><a class="ghost-button" href="/api/admin/production/portal-entry" target="_blank" rel="noreferrer">Abrir portal de producción</a></div></div>
           <div id="productionAccessMount"></div>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-commissionsView" hidden>
+          <div class="admin-titlebar"><div><p class="eyebrow">Liquidación interna</p><h1>Comisiones de producción</h1></div><div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionCommissions" type="button">Actualizar</button></div></div>
+          <div id="productionCommissionsMount"></div>
         </section>
 
         <section class="admin-view production-desktop-only" id="production-materialsView" hidden>
@@ -1062,7 +1079,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=101" defer></script>
-    <script src="./admin-production.js?v=25" defer></script>
+    <script src="./admin.js?v=102" defer></script>
+    <script src="./admin-production.js?v=26" defer></script>
   </body>
 </html>

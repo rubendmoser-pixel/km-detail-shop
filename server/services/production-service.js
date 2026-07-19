@@ -248,7 +248,9 @@ export function listProductionPlans(db) {
 
 export function getCurrentProductionDashboard(db) {
   const plan = db.prepare(`SELECT id FROM production_plans WHERE status IN ('approved','in_progress') ORDER BY week_start DESC LIMIT 1`).get();
-  return { plan: plan ? getProductionPlan(db, plan.id) : null, reports: listProductionReports(db, { limit: 14 }) };
+  const operators = listProductionOperators(db).filter((operator) => operator.status === "active")
+    .map((operator) => ({ id: operator.id, name: operator.name }));
+  return { plan: plan ? getProductionPlan(db, plan.id) : null, reports: listProductionReports(db, { limit: 14 }), operators };
 }
 
 export function getProductionPlan(db, planId) {
@@ -365,6 +367,7 @@ export function saveDailyProductionReport(db, input = {}, operator) {
   const productionDate = validDate(input.productionDate, "fecha de producción");
   const notes = optionalText(input.notes, "notes", { max: 1500 });
   const items = normalizeReportItems(db, input.items);
+  const participantIds = normalizeReportParticipants(db, input.participantIds, operator.id);
   if (!items.length || !items.some((item) => item.goodQuantity || item.rejectedQuantity)) throw new ValidationError("Cargá al menos una cantidad fabricada o rechazada.");
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -384,6 +387,9 @@ export function saveDailyProductionReport(db, input = {}, operator) {
       SELECT id FROM production_plans WHERE status IN ('approved','in_progress') ORDER BY week_start DESC LIMIT 1))`).all(productionDate).map((row) => [row.product_id, row.id]));
     const insert = db.prepare(`INSERT INTO production_daily_report_items(report_id,plan_item_id,product_id,good_quantity,rejected_quantity,notes) VALUES(?,?,?,?,?,?)`);
     items.forEach((item) => insert.run(report.id, planItems.get(item.productId) || null, item.productId, item.goodQuantity, item.rejectedQuantity, item.notes));
+    db.prepare("DELETE FROM production_daily_report_participants WHERE report_id=?").run(report.id);
+    const insertParticipant = db.prepare("INSERT INTO production_daily_report_participants(report_id,operator_id) VALUES(?,?)");
+    participantIds.forEach((operatorId) => insertParticipant.run(report.id, operatorId));
     db.exec("COMMIT");
     return getProductionReport(db, report.id);
   } catch (error) { db.exec("ROLLBACK"); throw error; }
@@ -414,7 +420,7 @@ export function confirmDailyProductionReport(db, reportId, adminId) {
   db.exec("BEGIN IMMEDIATE");
   try {
     for (const row of items) {
-      const product = db.prepare("SELECT km_code,name FROM products WHERE id=?").get(row.product_id);
+      const product = db.prepare("SELECT km_code,name,production_commission_cents FROM products WHERE id=?").get(row.product_id);
       db.prepare(`INSERT OR IGNORE INTO inventory_items(item_code,name,item_type,unit,product_id) VALUES(?,?,'finished_product','unidad',?)`)
         .run(`PT-${product.km_code}`, product.name, row.product_id);
       const finished = db.prepare("SELECT id FROM inventory_items WHERE product_id=?").get(row.product_id);
@@ -425,6 +431,7 @@ export function confirmDailyProductionReport(db, reportId, adminId) {
         JOIN inventory_items i ON i.id=b.component_item_id WHERE b.product_id=? AND b.active=1 AND i.tracks_stock=1`).all(row.product_id);
       for (const component of bom) addMovement(db, component.component_item_id, -(component.quantity * attempted), "production_consumption", report.id, `Consumo ${report.report_number} / ${product.km_code}`, adminId);
     }
+    createProductionCommissionEntries(db, report, items);
     db.prepare(`UPDATE production_daily_reports SET status='confirmed',confirmed_by=?,confirmed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?`).run(adminId, report.id);
     db.prepare(`UPDATE production_plans SET status='in_progress',updated_at=CURRENT_TIMESTAMP WHERE id IN (
       SELECT DISTINCT pi.plan_id FROM production_daily_report_items ri JOIN production_plan_items pi ON pi.id=ri.plan_item_id WHERE ri.report_id=?)`).run(report.id);
@@ -867,6 +874,70 @@ export function upsertProductionMaterial(db, input = {}) {
   }
 }
 
+export function getProductionCommissionDashboard(db, { operatorId = 0 } = {}) {
+  backfillProductionCommissionEntries(db);
+  const selectedOperatorId = Number(operatorId || 0);
+  const filterSql = selectedOperatorId > 0 ? " AND e.operator_id=?" : "";
+  const params = selectedOperatorId > 0 ? [selectedOperatorId] : [];
+  const pending = db.prepare(`SELECT e.id,e.report_id,e.report_item_id,e.operator_id,e.product_id,e.good_quantity,
+    e.unit_commission_cents,e.amount_cents,e.created_at,r.report_number,r.production_date,o.name AS operator_name,
+    p.km_code,p.name AS product_name
+    FROM production_commission_entries e
+    JOIN production_daily_reports r ON r.id=e.report_id
+    JOIN production_operators o ON o.id=e.operator_id
+    JOIN products p ON p.id=e.product_id
+    WHERE e.settlement_id IS NULL${filterSql}
+    ORDER BY r.production_date,o.name COLLATE NOCASE,p.km_code`).all(...params).map(publicProductionCommissionEntry);
+  const settlements = db.prepare(`SELECT s.id,s.settlement_number,s.operator_id,s.total_cents,s.notes,s.settled_at,
+    o.name AS operator_name,COUNT(e.id) AS entry_count
+    FROM production_commission_settlements s JOIN production_operators o ON o.id=s.operator_id
+    LEFT JOIN production_commission_entries e ON e.settlement_id=s.id
+    WHERE 1=1${selectedOperatorId > 0 ? " AND s.operator_id=?" : ""}
+    GROUP BY s.id ORDER BY s.settled_at DESC LIMIT 100`).all(...params).map((row) => ({
+      id: row.id, settlementNumber: row.settlement_number, operatorId: row.operator_id, operatorName: row.operator_name,
+      totalArs: Number(row.total_cents || 0) / 100, notes: row.notes || "", settledAt: row.settled_at, entryCount: Number(row.entry_count || 0)
+    }));
+  const operatorSummary = db.prepare(`SELECT o.id,o.name,COALESCE(SUM(CASE WHEN e.settlement_id IS NULL THEN e.amount_cents ELSE 0 END),0) AS pending_cents
+    FROM production_operators o LEFT JOIN production_commission_entries e ON e.operator_id=o.id
+    GROUP BY o.id ORDER BY o.status='active' DESC,o.name COLLATE NOCASE`).all().map((row) => ({
+      operatorId: row.id, operatorName: row.name, pendingArs: Number(row.pending_cents || 0) / 100
+    }));
+  return {
+    pending, settlements, operatorSummary,
+    summary: {
+      pendingEntries: pending.length,
+      pendingArs: pending.reduce((total, entry) => total + entry.amountArs, 0),
+      settledArs: settlements.reduce((total, settlement) => total + settlement.totalArs, 0)
+    }
+  };
+}
+
+export function createProductionCommissionSettlement(db, input = {}, adminId) {
+  const rawIds = Array.isArray(input.entryIds) ? input.entryIds : [];
+  const entryIds = [...new Set(rawIds.map(positiveId))];
+  if (!entryIds.length) throw new ValidationError("Seleccioná al menos una comisión pendiente.");
+  const placeholders = entryIds.map(() => "?").join(",");
+  const entries = db.prepare(`SELECT id,operator_id,amount_cents FROM production_commission_entries
+    WHERE settlement_id IS NULL AND id IN (${placeholders}) ORDER BY id`).all(...entryIds);
+  if (entries.length !== entryIds.length) throw new ValidationError("Una de las comisiones ya fue liquidada o no existe.");
+  const operatorIds = new Set(entries.map((entry) => entry.operator_id));
+  if (operatorIds.size !== 1) throw new ValidationError("Generá una liquidación por cada operario.");
+  const totalCents = entries.reduce((total, entry) => total + Number(entry.amount_cents), 0);
+  const notes = optionalText(input.notes, "notes", { max: 500 });
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const settlement = db.prepare(`INSERT INTO production_commission_settlements(settlement_number,operator_id,total_cents,notes,settled_by)
+      VALUES('TEMP',?,?,?,?) RETURNING id`).get([...operatorIds][0], totalCents, notes, adminId);
+    const settlementNumber = `LCP-${String(settlement.id).padStart(6, "0")}`;
+    db.prepare("UPDATE production_commission_settlements SET settlement_number=? WHERE id=?").run(settlementNumber, settlement.id);
+    const result = db.prepare(`UPDATE production_commission_entries SET settlement_id=?
+      WHERE settlement_id IS NULL AND id IN (${placeholders})`).run(settlement.id, ...entryIds);
+    if (result.changes !== entryIds.length) throw new ValidationError("No se pudieron liquidar todas las comisiones seleccionadas.");
+    db.exec("COMMIT");
+    return getProductionCommissionDashboard(db, { operatorId: [...operatorIds][0] }).settlements.find((row) => row.id === settlement.id);
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+}
+
 export function listProductionReports(db, { status = "", limit = 60 } = {}) {
   const rows = status ? db.prepare("SELECT id FROM production_daily_reports WHERE status=? ORDER BY production_date DESC LIMIT ?").all(status, limit)
     : db.prepare("SELECT id FROM production_daily_reports ORDER BY production_date DESC LIMIT ?").all(limit);
@@ -877,9 +948,13 @@ export function getProductionReport(db, reportId) {
   const report = db.prepare(`SELECT r.*,o.name AS operator_name FROM production_daily_reports r JOIN production_operators o ON o.id=r.operator_id WHERE r.id=?`).get(positiveId(reportId));
   if (!report) throw new NotFoundError("Parte diario no encontrado.");
   const items = db.prepare(`SELECT ri.*,p.km_code,p.ean13,p.name FROM production_daily_report_items ri JOIN products p ON p.id=ri.product_id WHERE ri.report_id=? ORDER BY p.km_code`).all(report.id);
+  const participants = db.prepare(`SELECT o.id,o.name FROM production_daily_report_participants rp
+    JOIN production_operators o ON o.id=rp.operator_id WHERE rp.report_id=? ORDER BY o.name COLLATE NOCASE`).all(report.id);
+  const commissionTotalCents = Number(db.prepare("SELECT COALESCE(SUM(amount_cents),0) AS total FROM production_commission_entries WHERE report_id=?").get(report.id).total || 0);
   return { id: report.id, reportNumber: report.report_number, productionDate: report.production_date, status: report.status,
     notes: report.notes, returnReason: report.return_reason, operatorId: report.operator_id, operatorName: report.operator_name,
-    submittedAt: report.submitted_at, confirmedAt: report.confirmed_at,
+    submittedAt: report.submitted_at, confirmedAt: report.confirmed_at, participantIds: participants.map((participant) => participant.id), participants,
+    productionCommissionArs: commissionTotalCents / 100,
     items: items.map((row) => ({ id: row.id, productId: row.product_id, planItemId: row.plan_item_id, kmCode: row.km_code,
       ean13: row.ean13, name: row.name, goodQuantity: row.good_quantity, rejectedQuantity: row.rejected_quantity, notes: row.notes })) };
 }
@@ -967,6 +1042,60 @@ function publicSupplier(row, db) {
     materialIds: materials.map((material) => material.id), materials: materials.map((material) => ({ id: material.id,
       itemCode: material.item_code, name: material.name, primary: Boolean(material.is_primary) })) };
 }
+function normalizeReportParticipants(db, rawIds, fallbackOperatorId) {
+  const values = rawIds === undefined ? [fallbackOperatorId] : rawIds;
+  if (!Array.isArray(values) || !values.length) throw new ValidationError("Seleccioná al menos un operario que participó en la producción.");
+  const ids = [...new Set(values.map(positiveId))];
+  const placeholders = ids.map(() => "?").join(",");
+  const active = db.prepare(`SELECT id FROM production_operators WHERE status='active' AND id IN (${placeholders})`).all(...ids);
+  if (active.length !== ids.length) throw new ValidationError("Uno de los operarios seleccionados no está activo.");
+  return ids.sort((a, b) => a - b);
+}
+
+function createProductionCommissionEntries(db, report, items) {
+  let participantIds = db.prepare("SELECT operator_id FROM production_daily_report_participants WHERE report_id=? ORDER BY operator_id")
+    .all(report.id).map((row) => row.operator_id);
+  if (!participantIds.length) {
+    participantIds = [report.operator_id];
+    db.prepare("INSERT OR IGNORE INTO production_daily_report_participants(report_id,operator_id) VALUES(?,?)").run(report.id, report.operator_id);
+  }
+  const insert = db.prepare(`INSERT OR IGNORE INTO production_commission_entries(report_id,report_item_id,operator_id,product_id,good_quantity,unit_commission_cents,amount_cents)
+    VALUES(?,?,?,?,?,?,?)`);
+  for (const item of items) {
+    const goodQuantity = Number(item.good_quantity || 0);
+    if (!goodQuantity) continue;
+    const product = db.prepare("SELECT production_commission_cents FROM products WHERE id=?").get(item.product_id);
+    const unitCommissionCents = Number(product?.production_commission_cents || 0);
+    const totalCents = goodQuantity * unitCommissionCents;
+    if (!totalCents) continue;
+    const baseShare = Math.floor(totalCents / participantIds.length);
+    let remainder = totalCents - (baseShare * participantIds.length);
+    participantIds.forEach((operatorId) => {
+      const amountCents = baseShare + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder -= 1;
+      insert.run(report.id, item.id, operatorId, item.product_id, goodQuantity, unitCommissionCents, amountCents);
+    });
+  }
+}
+
+function backfillProductionCommissionEntries(db) {
+  const reports = db.prepare("SELECT * FROM production_daily_reports WHERE status='confirmed' ORDER BY id").all();
+  for (const report of reports) {
+    const items = db.prepare("SELECT * FROM production_daily_report_items WHERE report_id=?").all(report.id);
+    createProductionCommissionEntries(db, report, items);
+  }
+}
+
+function publicProductionCommissionEntry(row) {
+  return {
+    id: row.id, reportId: row.report_id, reportItemId: row.report_item_id, reportNumber: row.report_number,
+    productionDate: row.production_date, operatorId: row.operator_id, operatorName: row.operator_name,
+    productId: row.product_id, kmCode: row.km_code, productName: row.product_name, goodQuantity: Number(row.good_quantity),
+    unitCommissionArs: Number(row.unit_commission_cents || 0) / 100, amountArs: Number(row.amount_cents || 0) / 100,
+    createdAt: row.created_at
+  };
+}
+
 function publicRecipe(row, db) {
   const components = db.prepare(`SELECT i.id,i.item_code,i.name,i.item_kind,i.item_type,i.unit,b.quantity
     FROM product_bom b JOIN inventory_items i ON i.id=b.component_item_id

@@ -251,6 +251,37 @@ function migrate(db) {
       UNIQUE(report_id, product_id)
     );
 
+    CREATE TABLE IF NOT EXISTS production_daily_report_participants (
+      report_id INTEGER NOT NULL REFERENCES production_daily_reports(id) ON DELETE CASCADE,
+      operator_id INTEGER NOT NULL REFERENCES production_operators(id),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(report_id, operator_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS production_commission_settlements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      settlement_number TEXT NOT NULL UNIQUE,
+      operator_id INTEGER NOT NULL REFERENCES production_operators(id),
+      total_cents INTEGER NOT NULL CHECK (total_cents >= 0),
+      notes TEXT NOT NULL DEFAULT '',
+      settled_by INTEGER NOT NULL REFERENCES users(id),
+      settled_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS production_commission_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_id INTEGER NOT NULL REFERENCES production_daily_reports(id),
+      report_item_id INTEGER NOT NULL REFERENCES production_daily_report_items(id),
+      operator_id INTEGER NOT NULL REFERENCES production_operators(id),
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      good_quantity INTEGER NOT NULL CHECK (good_quantity > 0),
+      unit_commission_cents INTEGER NOT NULL CHECK (unit_commission_cents >= 0),
+      amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
+      settlement_id INTEGER REFERENCES production_commission_settlements(id),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(report_item_id, operator_id)
+    );
+
     CREATE TABLE IF NOT EXISTS inventory_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       item_code TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -991,6 +1022,8 @@ function migrate(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_plans_week ON production_plans(week_start, status);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_plan_days_plan_date ON production_plan_days(plan_id, work_date);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_reports_status_date ON production_daily_reports(status, production_date DESC);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_production_commissions_pending ON production_commission_entries(operator_id, settlement_id, created_at);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_production_commission_settlements_operator ON production_commission_settlements(operator_id, settled_at DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_inventory_movements_item_date ON inventory_movements(item_id, created_at DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_orders_logistics_queue ON orders(fulfillment_status, logistics_status, logistics_operator_id);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_payment_accounts_active ON payment_accounts(active, sort_order, name);");

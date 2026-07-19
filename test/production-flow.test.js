@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import {
-  approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionWeek, getCurrentProductionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
+  approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
   saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator, upsertProductionRecipe
 } from "../server/services/production-service.js";
 
@@ -59,6 +59,9 @@ test("production plan, daily report and admin confirmation update stock with tra
     name: "Operario Produccion", email: "produccion@km-detail.com", portalPassword: "clave-produccion-2026", portalAccessEnabled: true
   });
   const session = await loginProductionOperator(db, { email: operator.email, password: "clave-produccion-2026" });
+  const secondOperator = await upsertProductionOperator(db, {
+    name: "Segundo Operario", email: "produccion-dos@km-detail.com", portalPassword: "clave-produccion-2026", portalAccessEnabled: true
+  });
   assert.equal(session.operator.id, operator.id);
 
   const plan = saveProductionPlan(db, { weekStart: "2026-07-13", items: [{ productId: product.id, targetQuantity: 10 }] }, admin.id);
@@ -80,7 +83,8 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.equal(getCurrentProductionDashboard(db).plan.items[0].remainingQuantity, 10);
 
   const report = saveDailyProductionReport(db, {
-    productionDate: "2026-07-17", items: [{ productId: product.id, goodQuantity: 5, rejectedQuantity: 1 }]
+    productionDate: "2026-07-17", participantIds: [operator.id, secondOperator.id],
+    items: [{ productId: product.id, goodQuantity: 5, rejectedQuantity: 1 }]
   }, session.operator);
   submitDailyProductionReport(db, report.id, session.operator);
   const preview = getProductionReportImpact(db, report.id);
@@ -89,6 +93,13 @@ test("production plan, daily report and admin confirmation update stock with tra
   const result = confirmDailyProductionReport(db, report.id, admin.id);
   assert.equal(result.report.status, "confirmed");
   assert.deepEqual(result.warnings, []);
+  assert.equal(result.report.productionCommissionArs, 400);
+  const commissions = getProductionCommissionDashboard(db);
+  assert.equal(commissions.pending.length, 2);
+  assert.ok(commissions.pending.every((entry) => entry.amountArs === 200));
+  const settlement = createProductionCommissionSettlement(db, { entryIds: [commissions.pending[0].id], notes: "Pago de prueba" }, admin.id);
+  assert.equal(settlement.totalArs, 200);
+  assert.equal(getProductionCommissionDashboard(db).pending.length, 1);
 
   const finishedBalance = db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(product.id);
   assert.equal(finishedBalance.quantity, 5);
