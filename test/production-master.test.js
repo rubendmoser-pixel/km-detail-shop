@@ -129,6 +129,20 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.equal(cp171Cost.laborCostArs, 30 / 60 * 4850.75);
   assert.equal(cp171Cost.commissionArs, 120);
   assert.equal(cp171Cost.totalCostArs, cp171Cost.materialCostArs + cp171Cost.laborCostArs + cp171Cost.commissionArs);
+  const cp171ListCents = Math.round(cp171Cost.listPriceArs * 100);
+  const expectedMaximumDiscountCents = Math.round(cp171ListCents * 2750 / 10_000);
+  const expectedDiscountedCents = cp171ListCents - expectedMaximumDiscountCents;
+  const expectedMaximumCommissionCents = Math.round(expectedDiscountedCents * 1225 / 10_000);
+  const expectedNetRevenueArs = (expectedDiscountedCents - expectedMaximumCommissionCents) / 100;
+  assert.equal(cp171Cost.maximumDiscountArs, expectedMaximumDiscountCents / 100);
+  assert.equal(cp171Cost.maximumSalesCommissionArs, expectedMaximumCommissionCents / 100);
+  assert.equal(cp171Cost.netCommercialRevenueArs, expectedNetRevenueArs);
+  assert.equal(cp171Cost.profitabilityArs, expectedNetRevenueArs - cp171Cost.totalCostArs);
+  assert.equal(cp171Cost.profitabilityPercent, cp171Cost.profitabilityArs / expectedNetRevenueArs * 100);
+  const expectedProfitabilityLevel = cp171Cost.profitabilityPercent < 15 ? "below_minimum"
+    : cp171Cost.profitabilityPercent < 25 ? "minimum"
+      : cp171Cost.profitabilityPercent < 35 ? "medium" : "maximum";
+  assert.equal(cp171Cost.profitabilityLevel, expectedProfitabilityLevel);
   const cp171 = db.prepare("SELECT id FROM products WHERE km_code='CP171K'").get();
   const operator = await upsertProductionOperator(db, {
     name: "Operario Maestro", email: "operario-maestro@km-detail.com", portalPassword: "clave-produccion-2026"

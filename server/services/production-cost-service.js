@@ -120,13 +120,25 @@ export function getProductionCosts(db) {
     if (hourlyCostArs <= 0) missing.push("Falta el costo por hora de producción");
     const uniqueMissing = unique(missing);
     const totalCostArs = materialCostArs + laborCostArs + commissionArs;
-    const listPriceArs = Number(product.base_price_cents || 0) / 100;
+    const listPriceCents = Number(product.base_price_cents || 0);
+    const listPriceArs = listPriceCents / 100;
+    const maximumDiscountCents = Math.round(listPriceCents * Number(settings.maximumDiscountBps || 0) / 10_000);
+    const priceAfterMaximumDiscountCents = listPriceCents - maximumDiscountCents;
+    const maximumSalesCommissionCents = Math.round(priceAfterMaximumDiscountCents * Number(settings.maximumCommissionBps || 0) / 10_000);
+    const netCommercialRevenueArs = (priceAfterMaximumDiscountCents - maximumSalesCommissionCents) / 100;
     const complete = uniqueMissing.length === 0;
+    const profitabilityArs = complete ? netCommercialRevenueArs - totalCostArs : null;
+    const profitabilityPercent = complete && netCommercialRevenueArs > 0 ? profitabilityArs / netCommercialRevenueArs * 100 : null;
+    const profitabilityLevel = classifyProfitability(profitabilityPercent, settings, complete, netCommercialRevenueArs);
     const result = {
       productId, kmCode: product.km_code, ean13: product.ean13 || "", name: product.name,
       listPriceArs, productionMinutesPerUnit: minutes, hourlyCostArs, materialCostArs, laborCostArs,
       commissionArs, totalCostArs, marginArs: complete ? listPriceArs - totalCostArs : null,
       marginPercent: complete && listPriceArs > 0 ? (listPriceArs - totalCostArs) / listPriceArs * 100 : null,
+      maximumDiscountArs: maximumDiscountCents / 100,
+      priceAfterMaximumDiscountArs: priceAfterMaximumDiscountCents / 100,
+      maximumSalesCommissionArs: maximumSalesCommissionCents / 100,
+      netCommercialRevenueArs, profitabilityArs, profitabilityPercent, profitabilityLevel,
       complete, missing: uniqueMissing, components
     };
     productMemo.set(productId, result);
@@ -146,7 +158,15 @@ export function getProductionCosts(db) {
   const completeProducts = productCosts.filter((product) => product.complete);
   return {
     generatedAt: new Date().toISOString(),
-    settings: { usdExchangeRate: exchangeRate, productionHourlyCostArs: hourlyCostArs },
+    settings: {
+      usdExchangeRate: exchangeRate,
+      productionHourlyCostArs: hourlyCostArs,
+      maximumDiscountBps: settings.maximumDiscountBps,
+      maximumCommissionBps: settings.maximumCommissionBps,
+      profitMarginMinimumBps: settings.profitMarginMinimumBps,
+      profitMarginMediumBps: settings.profitMarginMediumBps,
+      profitMarginMaximumBps: settings.profitMarginMaximumBps
+    },
     summary: {
       products: productCosts.length,
       complete: completeProducts.length,
@@ -171,3 +191,15 @@ function groupRows(rows, key) {
 
 function missingCost(message) { return { unitCostArs: 0, complete: false, missing: [message], source: "missing" }; }
 function unique(values) { return [...new Set(values.filter(Boolean))]; }
+function classifyProfitability(percent, settings, complete, netRevenue) {
+  if (!complete) return "cost_incomplete";
+  if (netRevenue <= 0) return "no_net_revenue";
+  const minimum = Number(settings.profitMarginMinimumBps || 0) / 100;
+  const medium = Number(settings.profitMarginMediumBps || 0) / 100;
+  const maximum = Number(settings.profitMarginMaximumBps || 0) / 100;
+  if (minimum === 0 && medium === 0 && maximum === 0) return "parameters_pending";
+  if (percent < minimum) return "below_minimum";
+  if (percent < medium) return "minimum";
+  if (percent < maximum) return "medium";
+  return "maximum";
+}

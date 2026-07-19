@@ -1223,6 +1223,16 @@
 .production-cost-detail-meta span { color: var(--muted, #aeb6c2); font-size: .76rem; }
 .production-cost-detail-meta strong { overflow-wrap: anywhere; }
 .production-cost-detail-meta small { color: #9fa8b6; font-size: .72rem; font-weight: 700; }
+.production-profitability-panel { display: grid; gap: 14px; margin: 0 0 18px; padding: 16px; border: 1px solid #45415f; border-radius: 12px; background: linear-gradient(135deg, rgba(122, 114, 255, .1), rgba(17, 20, 25, .96)); }
+.production-profitability-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.production-profitability-heading > div { display: grid; gap: 4px; }
+.production-profitability-heading > div span { color: #aaa5e8; font-size: .76rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.production-profitability-flow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.production-profitability-flow > div { display: grid; align-content: start; gap: 6px; min-width: 0; padding: 11px; border: 1px solid #343743; border-radius: 9px; background: #15181d; }
+.production-profitability-flow span { color: #aeb6c2; font-size: .72rem; line-height: 1.25; }
+.production-profitability-flow strong { overflow-wrap: anywhere; font-size: .94rem; }
+.production-profitability-flow .result { border-color: #7470d9; background: rgba(116, 112, 217, .13); }
+.production-profitability-panel > p { margin: 0; color: #aeb6c2; font-size: .78rem; }
 .production-cost-share-note { margin: -4px 0 16px; color: #aeb6c2; font-size: .82rem; }
 .production-cost-warnings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; padding: 12px 14px; border: 1px solid #8c711f; border-radius: 10px; background: rgba(121, 94, 13, .18); }
 .production-cost-warnings strong { margin-right: 5px; color: #f0cd63; }
@@ -1241,4 +1251,5 @@
 @media (max-width: 1350px) {
   .production-cost-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .production-cost-detail-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .production-profitability-flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
