@@ -723,6 +723,152 @@
   }
 }
 
+/* Pedidos: normalización profesional exclusiva para escritorio. */
+@media (min-width: 1100px) {
+  #ordersView { min-width: 0; }
+
+  #ordersView .admin-titlebar {
+    gap: 16px 22px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #2f3238;
+  }
+
+  #ordersView .admin-titlebar h1 {
+    font-size: clamp(1.75rem, 2vw, 2.2rem);
+  }
+
+  #ordersView .order-scope-tabs {
+    padding: 4px;
+  }
+
+  #ordersView .order-scope-tabs button {
+    min-height: 40px;
+    padding: 7px 13px;
+  }
+
+  #ordersView .admin-toolbar {
+    gap: 10px;
+  }
+
+  #ordersView .admin-toolbar input,
+  #ordersView .admin-toolbar select,
+  #ordersView .admin-toolbar button {
+    min-height: 46px;
+  }
+
+  #ordersView .order-ops-grid {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  #ordersView .order-ops-card {
+    min-height: 98px;
+    gap: 5px;
+    padding: 12px 14px;
+    border-radius: 8px;
+  }
+
+  #ordersView .order-ops-card strong {
+    font-size: 1.65rem;
+  }
+
+  #ordersView > .orders-table-wrap {
+    border-radius: 10px;
+    background: #111214;
+  }
+
+  #ordersView .orders-list-table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background: #101114;
+  }
+
+  #ordersView .orders-list-table td {
+    min-width: 0;
+    height: 72px;
+    white-space: normal;
+    vertical-align: middle;
+  }
+
+  #ordersView .orders-list-table .order-code-cell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  #ordersView .orders-list-table .order-code-cell strong,
+  #ordersView .orders-list-table .order-customer-cell strong {
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+  }
+
+  #ordersView .orders-list-table .order-list-next-action {
+    min-width: 0;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  #ordersView .orders-list-table .state-badge {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  #ordersView .orders-list-table .row-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #ordersView .order-detail-panel {
+    gap: 18px;
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  #ordersView .order-detail-header {
+    padding-bottom: 14px;
+    border-bottom: 1px solid #34363b;
+  }
+
+  #ordersView .order-detail-header h2 {
+    margin-top: 3px;
+    font-size: 1.45rem;
+  }
+
+  #ordersView .order-detail-grid,
+  #ordersView .order-next-step,
+  #ordersView .order-detail-actions,
+  #ordersView .availability-form,
+  #ordersView .fulfillment-form,
+  #ordersView .advanced-order-panel {
+    border-radius: 9px;
+  }
+}
+
+@media (min-width: 1440px) {
+  #ordersView .orders-list-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  #ordersView .orders-list-table th:nth-child(1) { width: 14%; }
+  #ordersView .orders-list-table th:nth-child(2) { width: 14%; }
+  #ordersView .orders-list-table th:nth-child(3) { width: 14%; }
+  #ordersView .orders-list-table th:nth-child(4) { width: 21%; }
+  #ordersView .orders-list-table th:nth-child(5) { width: 13%; }
+  #ordersView .orders-list-table th:nth-child(6) { width: 10%; }
+  #ordersView .orders-list-table th:nth-child(7) { width: 8%; }
+  #ordersView .orders-list-table th:nth-child(8) { width: 6%; }
+
+  #ordersView .orders-list-table td:nth-child(6),
+  #ordersView .orders-list-table td:nth-child(7) {
+    white-space: nowrap;
+  }
+}
+
 /* Arquitectura de escritorio: navegación organizada por áreas de negocio */
 .admin-nav-group,
 .admin-nav-group-items {
@@ -6162,4 +6308,26 @@ button.operation-row:hover {
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   }
+}
+
+/* Ajuste final del listado de Pedidos para monitores de escritorio amplios. */
+@media (min-width: 1440px) {
+  #ordersView .orders-list-table { width: 100%; min-width: 0; table-layout: fixed; }
+  #ordersView .orders-list-table th:nth-child(1) { width: 14%; }
+  #ordersView .orders-list-table th:nth-child(2) { width: 14%; }
+  #ordersView .orders-list-table th:nth-child(3) { width: 14%; }
+  #ordersView .orders-list-table th:nth-child(4) { width: 21%; }
+  #ordersView .orders-list-table th:nth-child(5) { width: 13%; }
+  #ordersView .orders-list-table th:nth-child(6) { width: 10%; }
+  #ordersView .orders-list-table th:nth-child(7) { width: 8%; }
+  #ordersView .orders-list-table th:nth-child(8) { width: 6%; }
+  #ordersView .orders-list-table td { min-width: 0; height: 72px; white-space: normal; vertical-align: middle; }
+  #ordersView .orders-list-table .order-code-cell { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  #ordersView .orders-list-table .order-code-cell strong,
+  #ordersView .orders-list-table .order-customer-cell strong { overflow-wrap: anywhere; line-height: 1.3; }
+  #ordersView .orders-list-table .order-list-next-action { min-width: 0; padding-block: 12px; line-height: 1.3; }
+  #ordersView .orders-list-table .state-badge { max-width: 100%; white-space: normal; text-align: center; line-height: 1.2; }
+  #ordersView .orders-list-table .row-button { width: 100%; min-width: 0; }
+  #ordersView .orders-list-table td:nth-child(6),
+  #ordersView .orders-list-table td:nth-child(7) { white-space: nowrap; }
 }
