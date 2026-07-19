@@ -1189,19 +1189,23 @@
 /* Costos industriales: vista exclusiva de escritorio, compacta y auditable. */
 .production-costs-workspace { display: grid; gap: 18px; min-width: 0; }
 .production-cost-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.production-cost-summary > div { display: grid; gap: 7px; min-width: 0; padding: 16px 18px; border: 1px solid var(--line, #34373e); border-radius: 12px; background: var(--panel-soft, #15181d); }
+.production-cost-summary > div { display: grid; gap: 5px; min-width: 0; padding: 12px 16px; border: 1px solid var(--line, #34373e); border-radius: 12px; background: var(--panel-soft, #15181d); }
 .production-cost-summary span { color: var(--muted, #aeb6c2); font-size: .82rem; }
-.production-cost-summary strong { font-size: 1.28rem; }
+.production-cost-summary strong { font-size: 1.12rem; }
 .production-cost-tabs { display: flex; gap: 8px; padding: 6px; border: 1px solid var(--line, #34373e); border-radius: 12px; background: var(--panel-soft, #15181d); }
 .production-cost-tabs button { min-height: 46px; padding: 0 22px; border: 0; border-radius: 9px; background: transparent; color: var(--text, #f4f4f6); font: inherit; font-weight: 800; cursor: pointer; }
 .production-cost-tabs button.is-active { background: linear-gradient(135deg, #c9c4ff, #8580ff); color: #08080b; }
 .production-cost-toolbar { display: grid; grid-template-columns: minmax(320px, 1fr) 260px; gap: 12px; margin-bottom: 14px; }
-.production-cost-table { width: 100%; min-width: 1220px; table-layout: fixed; }
-.production-cost-table th:nth-child(1) { width: 22%; }
-.production-cost-table th:nth-child(2), .production-cost-table th:nth-child(3), .production-cost-table th:nth-child(4) { width: 10%; }
-.production-cost-table th:nth-child(5), .production-cost-table th:nth-child(6), .production-cost-table th:nth-child(7) { width: 11%; }
-.production-cost-table th:nth-child(8) { width: 10%; }
-.production-cost-table th:nth-child(9) { width: 8%; }
+.production-cost-table { width: 100%; min-width: 0; table-layout: fixed; }
+.production-cost-table th:nth-child(1) { width: 25%; }
+.production-cost-table th:nth-child(2) { width: 11%; }
+.production-cost-table th:nth-child(3) { width: 12%; }
+.production-cost-table th:nth-child(4) { width: 10%; }
+.production-cost-table th:nth-child(5) { width: 13%; }
+.production-cost-table th:nth-child(6) { width: 17%; }
+.production-cost-table th:nth-child(7) { width: 12%; }
+.production-cost-action { display: grid; justify-items: start; gap: 8px; }
+.production-cost-action .ghost-button { min-width: 72px; padding-inline: 14px; }
 .production-cost-table td, .production-intermediate-cost-table td { vertical-align: middle; overflow-wrap: anywhere; }
 .production-cost-table td > span, .production-intermediate-cost-table td > span, .production-cost-breakdown-table td > span { display: block; margin-top: 4px; color: var(--muted, #aeb6c2); font-size: .8rem; line-height: 1.25; }
 .production-intermediate-cost-table { width: 100%; table-layout: fixed; }
