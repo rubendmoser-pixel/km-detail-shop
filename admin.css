@@ -6583,4 +6583,104 @@ button.operation-row:hover {
     border-radius: 7px;
     font-size: 0.8rem;
   }
+
+  /* Cuenta corriente: lectura financiera compacta y consistente en PC. */
+  #accountsView .admin-titlebar {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.55fr) minmax(520px, 1.45fr);
+    align-items: end;
+  }
+  #accountsView .admin-toolbar {
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) auto;
+  }
+  #accountsView .admin-toolbar > * {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+  #accountsView .current-account-actions button {
+    min-height: 86px;
+    padding: 12px 14px;
+    border-radius: 9px;
+  }
+  #accountsView .current-account-actions strong { font-size: 1.45rem; }
+  #accountsView .current-account-actions span { font-size: 0.72rem; }
+  #accountsView .current-account-actions small { font-size: 0.78rem; }
+  #accountsView .current-account-detail {
+    gap: 14px;
+    padding: 18px;
+    border-radius: 10px;
+  }
+  #accountsView .current-account-detail-header h3 {
+    font-size: 1.35rem;
+    line-height: 1.2;
+  }
+  #accountsView .current-account-detail-header p { font-size: 0.84rem; }
+  #accountsView .current-account-detail-grid span {
+    min-height: 78px;
+    justify-content: center;
+    padding: 12px 14px;
+  }
+  #accountsView .current-account-detail-grid strong { font-size: 0.98rem; }
+  #accountsView .current-account-detail-grid em { font-size: 0.78rem; }
+  #accountsView .current-account-payment-form {
+    grid-template-columns: minmax(150px, 0.7fr) minmax(170px, 0.8fr) minmax(210px, 1fr) minmax(250px, 1.2fr) auto;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid #34363b;
+    border-radius: 9px;
+    background: rgba(8, 9, 12, 0.28);
+  }
+  #accountsView .current-account-payment-form label {
+    min-width: 0;
+    font-size: 0.76rem;
+  }
+  #accountsView .current-account-payment-form input,
+  #accountsView .current-account-payment-form select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 11px;
+    font-size: 0.84rem;
+  }
+  #accountsView .current-account-payment-form .toolbar-create-button {
+    min-height: 44px;
+    padding-inline: 15px;
+    font-size: 0.84rem;
+  }
+  #accountsView .current-account-detail-tools { margin-top: 0; }
+  #accountsView .current-account-history-toggle {
+    min-height: 42px;
+    font-size: 0.8rem;
+  }
+  #accountsView .current-account-history { margin-top: 0; }
+  #accountsView .current-account-history-row {
+    min-height: 66px;
+    align-items: center;
+    padding: 12px 14px;
+  }
+  #accountsView .current-account-history-row strong { font-size: 0.86rem; }
+  #accountsView .current-account-history-row small { font-size: 0.72rem; }
+  #accountsView .current-account-panel {
+    padding: 16px;
+    border-radius: 10px;
+  }
+  #accountsView .current-account-head,
+  #accountsView .current-account-row {
+    grid-template-columns: minmax(190px, 1.4fr) minmax(150px, 1fr) repeat(3, minmax(105px, 0.72fr)) minmax(130px, 0.85fr) 68px;
+    gap: 9px;
+  }
+  #accountsView .current-account-row {
+    min-height: 72px;
+    padding: 11px 12px;
+    border-radius: 8px;
+  }
+  #accountsView .current-account-row strong { font-size: 0.84rem; }
+  #accountsView .current-account-row small { font-size: 0.68rem; line-height: 1.25; }
+  #accountsView .current-account-row em {
+    min-height: 34px;
+    padding-inline: 10px;
+    font-size: 0.78rem;
+  }
 }

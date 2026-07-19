@@ -4564,9 +4564,15 @@ const currentAccountPaymentMethods = [
   ["e_check", "E-cheq"]
 ];
 
+const currentAccountPaymentHistoryLabels = {
+  approved_receipt: "Comprobante aprobado",
+  mercadopago: "Mercado Pago",
+  previous_credit: "Pago registrado"
+};
+
 function currentAccountPaymentMethodLabel(method) {
   const entry = currentAccountPaymentMethods.find(([value]) => value === method);
-  return entry ? entry[1] : method || "Sin metodo";
+  return entry ? entry[1] : currentAccountPaymentHistoryLabels[method] || method || "Sin metodo";
 }
 
 function findCurrentAccountRow(dashboard, orderId) {

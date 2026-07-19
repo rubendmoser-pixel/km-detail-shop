@@ -11,6 +11,7 @@ import { createEmailService } from "../server/services/email-service.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
 import { setCustomerPaymentAccounts, upsertPaymentAccount } from "../server/services/payment-account-service.js";
+import { getAdminOperationDashboard } from "../server/services/admin-report-service.js";
 
 test("active product promotion is applied and reserved in order items", async (t) => {
   const databasePath = path.join(os.tmpdir(), `km-detail-promo-${Date.now()}.sqlite`);
@@ -211,6 +212,11 @@ test("confirmed order preserves price, discounts, VAT and bank snapshot", async 
   assert.equal(partial.paidCents, 5_000_000);
   assert.equal(partial.balanceCents, 7_196_800);
   assert.equal(partial.paymentDueDate, "2026-07-02");
+  const accountDashboard = getAdminOperationDashboard(db);
+  const accountRow = accountDashboard.currentAccounts.open.find((entry) => entry.id === order.id);
+  assert.equal(accountRow.accountPayments.length, 1);
+  assert.equal(accountRow.accountPayments[0].method, "approved_receipt");
+  assert.equal(accountRow.accountPayments[0].amountCents, 5_000_000);
 
   const credit = authorizeOrderCredit(db, order.id, {
     paymentDueDate: "2026-07-02",

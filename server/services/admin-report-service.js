@@ -22,13 +22,7 @@ export function getAdminOperationDashboard(db) {
     WHERE o.status <> 'cancelled'
   `).all();
 
-  const accountPayments = tableExists(db, "account_payments")
-    ? db.prepare(`
-      SELECT id, order_id, amount_cents, method, reference, note, created_at
-      FROM account_payments
-      ORDER BY created_at DESC, id DESC
-    `).all()
-    : [];
+  const accountPayments = listCurrentAccountPayments(db);
   const accountPaymentsByOrder = groupAccountPayments(accountPayments);
 
   const now = new Date();
@@ -156,6 +150,19 @@ function topProducts(items) {
 
 function mapCurrentAccountOrder(order, accountPaymentsByOrder = new Map()) {
   const today = isoDate(new Date());
+  const paidCents = Number(order.paid_cents || 0);
+  const accountPayments = [...(accountPaymentsByOrder.get(Number(order.id)) || [])];
+  const detailedPaidCents = accountPayments.reduce((total, payment) => total + Number(payment.amountCents || 0), 0);
+  if (paidCents > detailedPaidCents) {
+    accountPayments.push({
+      id: `previous-${order.id}`,
+      amountCents: paidCents - detailedPaidCents,
+      method: "previous_credit",
+      reference: "",
+      note: "Acreditación anterior sin detalle individual",
+      createdAt: ""
+    });
+  }
   return {
     id: order.id,
     orderNumber: order.order_number,
@@ -164,13 +171,55 @@ function mapCurrentAccountOrder(order, accountPaymentsByOrder = new Map()) {
     salesRepEmail: order.sales_rep_email || "",
     paymentStatus: order.payment_status,
     totalCents: Number(order.total_cents || 0),
-    paidCents: Number(order.paid_cents || 0),
+    paidCents,
     balanceCents: Number(order.balance_cents || 0),
     dueDate: order.payment_due_date || "",
     daysToDue: order.payment_due_date ? daysBetween(today, order.payment_due_date) : null,
     createdAt: order.created_at,
-    accountPayments: accountPaymentsByOrder.get(Number(order.id)) || []
+    accountPayments
   };
+}
+
+function listCurrentAccountPayments(db) {
+  const payments = [];
+  if (tableExists(db, "account_payments")) {
+    payments.push(...db.prepare(`
+      SELECT id, order_id, amount_cents, method, reference, note, created_at
+      FROM account_payments
+    `).all().map((payment) => ({ ...payment, id: `account-${payment.id}` })));
+  }
+  if (tableExists(db, "payment_receipts")) {
+    payments.push(...db.prepare(`
+      SELECT id, order_id, amount_cents, original_filename, review_reason,
+             COALESCE(reviewed_at, created_at) AS payment_date
+      FROM payment_receipts
+      WHERE status = 'accepted' AND amount_cents > 0
+    `).all().map((payment) => ({
+      id: `receipt-${payment.id}`,
+      order_id: payment.order_id,
+      amount_cents: payment.amount_cents,
+      method: "approved_receipt",
+      reference: payment.original_filename || "",
+      note: payment.review_reason || "Comprobante aprobado",
+      created_at: payment.payment_date || ""
+    })));
+  }
+  if (tableExists(db, "mercadopago_payments")) {
+    payments.push(...db.prepare(`
+      SELECT id, order_id, amount_cents, payment_id, status_detail, updated_at, created_at
+      FROM mercadopago_payments
+      WHERE status = 'approved' AND amount_cents > 0
+    `).all().map((payment) => ({
+      id: `mercadopago-${payment.id}`,
+      order_id: payment.order_id,
+      amount_cents: payment.amount_cents,
+      method: "mercadopago",
+      reference: payment.payment_id || "",
+      note: payment.status_detail || "Pago acreditado automáticamente",
+      created_at: payment.updated_at || payment.created_at || ""
+    })));
+  }
+  return payments.sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
 }
 
 function tableExists(db, table) {
