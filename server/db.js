@@ -309,6 +309,20 @@ function migrate(db) {
       UNIQUE(product_id, component_item_id)
     );
 
+    CREATE TABLE IF NOT EXISTS inventory_item_recipes (
+      item_id INTEGER PRIMARY KEY REFERENCES inventory_items(id) ON DELETE CASCADE,
+      output_quantity REAL NOT NULL CHECK (output_quantity > 0),
+      notes TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_item_recipe_components (
+      item_id INTEGER NOT NULL REFERENCES inventory_item_recipes(item_id) ON DELETE CASCADE,
+      component_item_id INTEGER NOT NULL REFERENCES inventory_items(id),
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      PRIMARY KEY (item_id, component_item_id)
+    );
+
     CREATE TABLE IF NOT EXISTS inventory_movements (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       item_id INTEGER NOT NULL REFERENCES inventory_items(id),

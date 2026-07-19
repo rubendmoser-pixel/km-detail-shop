@@ -7,6 +7,7 @@ import { openDatabase, transaction } from "../server/db.js";
 import { upsertProduct } from "../server/services/product-service.js";
 import { updateOrderFulfillment } from "../server/services/order-service.js";
 import { synchronizeProductionMaster } from "../server/services/production-master-service.js";
+import { getProductionCosts } from "../server/services/production-cost-service.js";
 import { getCommercialSettings, updateCommercialSettings } from "../server/services/settings-service.js";
 import {
   adjustProductionInventory, approveProductionPlan, confirmDailyProductionReport, getProductionInventory, getProductionReportImpact, getProductionStockParameters, getProductionSuggestions, listProductionMaterials,
@@ -101,6 +102,19 @@ test("production master imports every validated recipe idempotently by KM code a
   assert.equal(getCommercialSettings(db).productionHourlyCostArs, 4850.75);
   assert.throws(() => updateCommercialSettings(db, { usdExchangeRate: 0 }, admin.id), /tipo de cambio/i);
   assert.throws(() => updateCommercialSettings(db, { productionHourlyCostArs: -1 }, admin.id), /costo por hora/i);
+  const costs = getProductionCosts(db);
+  const bushingCost = costs.intermediates.find((item) => item.itemCode === "INT-BUJE");
+  const plateCost = costs.intermediates.find((item) => item.itemCode === "INT-PLACA");
+  assert.ok(Math.abs(bushingCost.unitCostArs - (7.2 * 1525.5 / 185)) < 0.000001);
+  assert.ok(Math.abs(plateCost.unitCostArs - ((52 * 1.5 * 1525.5 / 1000) + bushingCost.unitCostArs + 380)) < 0.000001);
+  assert.ok(bushingCost.complete);
+  assert.ok(plateCost.complete);
+  const cp171Cost = costs.products.find((product) => product.kmCode === "CP171K");
+  assert.ok(cp171Cost.complete);
+  assert.equal(cp171Cost.productionMinutesPerUnit, 30);
+  assert.equal(cp171Cost.laborCostArs, 30 / 60 * 4850.75);
+  assert.equal(cp171Cost.commissionArs, 120);
+  assert.equal(cp171Cost.totalCostArs, cp171Cost.materialCostArs + cp171Cost.laborCostArs + cp171Cost.commissionArs);
   const cp171 = db.prepare("SELECT id FROM products WHERE km_code='CP171K'").get();
   const operator = await upsertProductionOperator(db, {
     name: "Operario Maestro", email: "operario-maestro@km-detail.com", portalPassword: "clave-produccion-2026"

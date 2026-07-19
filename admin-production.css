@@ -1186,3 +1186,48 @@
     padding: 16px 18px 18px;
   }
 }
+/* Costos industriales: vista exclusiva de escritorio, compacta y auditable. */
+.production-costs-workspace { display: grid; gap: 18px; min-width: 0; }
+.production-cost-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.production-cost-summary > div { display: grid; gap: 7px; min-width: 0; padding: 16px 18px; border: 1px solid var(--line, #34373e); border-radius: 12px; background: var(--panel-soft, #15181d); }
+.production-cost-summary span { color: var(--muted, #aeb6c2); font-size: .82rem; }
+.production-cost-summary strong { font-size: 1.28rem; }
+.production-cost-tabs { display: flex; gap: 8px; padding: 6px; border: 1px solid var(--line, #34373e); border-radius: 12px; background: var(--panel-soft, #15181d); }
+.production-cost-tabs button { min-height: 46px; padding: 0 22px; border: 0; border-radius: 9px; background: transparent; color: var(--text, #f4f4f6); font: inherit; font-weight: 800; cursor: pointer; }
+.production-cost-tabs button.is-active { background: linear-gradient(135deg, #c9c4ff, #8580ff); color: #08080b; }
+.production-cost-toolbar { display: grid; grid-template-columns: minmax(320px, 1fr) 260px; gap: 12px; margin-bottom: 14px; }
+.production-cost-table { width: 100%; min-width: 1220px; table-layout: fixed; }
+.production-cost-table th:nth-child(1) { width: 22%; }
+.production-cost-table th:nth-child(2), .production-cost-table th:nth-child(3), .production-cost-table th:nth-child(4) { width: 10%; }
+.production-cost-table th:nth-child(5), .production-cost-table th:nth-child(6), .production-cost-table th:nth-child(7) { width: 11%; }
+.production-cost-table th:nth-child(8) { width: 10%; }
+.production-cost-table th:nth-child(9) { width: 8%; }
+.production-cost-table td, .production-intermediate-cost-table td { vertical-align: middle; overflow-wrap: anywhere; }
+.production-cost-table td > span, .production-intermediate-cost-table td > span, .production-cost-breakdown-table td > span { display: block; margin-top: 4px; color: var(--muted, #aeb6c2); font-size: .8rem; line-height: 1.25; }
+.production-intermediate-cost-table { width: 100%; table-layout: fixed; }
+.production-intermediate-cost-table th:first-child { width: 32%; }
+.production-intermediate-cost-table th:nth-child(2), .production-intermediate-cost-table th:nth-child(3) { width: 18%; }
+.production-intermediate-cost-table th:nth-child(4) { width: 20%; }
+.production-intermediate-cost-table th:nth-child(5) { width: 12%; }
+.cost-positive { color: #91efb1; }
+.cost-negative { color: #ff9aa6; }
+.cost-pending { color: #f0cd63 !important; font-weight: 800; }
+.production-cost-detail { padding: 20px; }
+.production-cost-detail-meta { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+.production-cost-detail-meta > div { display: grid; gap: 5px; min-width: 0; padding: 13px; border: 1px solid var(--line, #34373e); border-radius: 10px; background: var(--panel-soft, #15181d); }
+.production-cost-detail-meta > div.wide { grid-column: span 4; }
+.production-cost-detail-meta span { color: var(--muted, #aeb6c2); font-size: .76rem; }
+.production-cost-detail-meta strong { overflow-wrap: anywhere; }
+.production-cost-warnings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; padding: 12px 14px; border: 1px solid #8c711f; border-radius: 10px; background: rgba(121, 94, 13, .18); }
+.production-cost-warnings strong { margin-right: 5px; color: #f0cd63; }
+.production-cost-warnings span { padding: 4px 8px; border-radius: 999px; background: rgba(240, 205, 99, .1); font-size: .8rem; }
+.production-cost-breakdown-table { width: 100%; table-layout: fixed; }
+.production-cost-breakdown-table th:first-child { width: 38%; }
+.production-cost-breakdown-table th:nth-child(2) { width: 17%; }
+.production-cost-breakdown-table th:nth-child(3), .production-cost-breakdown-table th:nth-child(4) { width: 16%; }
+.production-cost-breakdown-table th:nth-child(5) { width: 13%; }
+
+@media (max-width: 1350px) {
+  .production-cost-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .production-cost-detail-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

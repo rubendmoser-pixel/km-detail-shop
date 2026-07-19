@@ -9,6 +9,7 @@ export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath
   const currentVersion = db.prepare("SELECT value FROM settings WHERE key='production_master_version'").get()?.value || "";
   if (!force && currentVersion === master.version) {
     synchronizeSuppliers(db, master);
+    synchronizeIntermediateRecipes(db);
     return masterStatus(db, master, true);
   }
 
@@ -79,11 +80,33 @@ export function synchronizeProductionMaster(db, { masterPath = defaultMasterPath
     }
     db.prepare(`INSERT INTO settings(key,value) VALUES('production_master_version',?)
       ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(master.version);
+    synchronizeIntermediateRecipes(db);
     db.exec("COMMIT");
     return { ...masterStatus(db, master, false), recipeLines };
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;
+  }
+}
+
+function synchronizeIntermediateRecipes(db) {
+  const formulas = [
+    { itemCode: "INT-PEG-ESP", output: 9773.19587628866, notes: "Lote de 9.480 g con peso específico 0,97", components: [["MP-E530", 9000], ["MP-DBP", 80], ["MP-HOSTAPUR", 200], ["MP-TYLOSE", 200]] },
+    { itemCode: "INT-CEMENTO", output: 1000, notes: "Mezcla preparada al usar en relación 4:1", components: [["MP-CEMENTO", 800], ["MP-DILUYENTE", 200]] },
+    { itemCode: "INT-BUJE", output: 185, notes: "Una barra, descontando 15 cm de desperdicio", components: [["MP-BARRA-AL", 1]] },
+    { itemCode: "INT-PLACA", output: 1, notes: "ABS, buje y servicio de inyección por placa", components: [["MP-ABS", 52], ["INT-BUJE", 1], ["SRV-INYECCION", 1]] }
+  ];
+  const item = db.prepare("SELECT id FROM inventory_items WHERE item_code=? COLLATE NOCASE");
+  const insertRecipe = db.prepare("INSERT OR IGNORE INTO inventory_item_recipes(item_id,output_quantity,notes) VALUES(?,?,?)");
+  const insertComponent = db.prepare("INSERT OR IGNORE INTO inventory_item_recipe_components(item_id,component_item_id,quantity) VALUES(?,?,?)");
+  for (const formula of formulas) {
+    const parent = item.get(formula.itemCode);
+    if (!parent) continue;
+    insertRecipe.run(parent.id, formula.output, formula.notes);
+    for (const [componentCode, quantity] of formula.components) {
+      const component = item.get(componentCode);
+      if (component) insertComponent.run(parent.id, component.id, quantity);
+    }
   }
 }
 

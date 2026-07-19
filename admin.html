@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=71" />
-    <link rel="stylesheet" href="./admin-production.css?v=39" />
+    <link rel="stylesheet" href="./admin-production.css?v=40" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -90,6 +90,7 @@
               <button class="production-desktop-only" type="button" data-admin-view="production-movements" title="Movimientos de stock"><span class="admin-tab-label">Movimientos de stock</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-purchasing" title="Necesidades de compra"><span class="admin-tab-label">Necesidades de compra</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-recipes" title="Recetas"><span class="admin-tab-label">Recetas</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-costs" title="Costos de producción"><span class="admin-tab-label">Costos de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-suppliers" title="Proveedores"><span class="admin-tab-label">Proveedores</span></button>
             </div>
           </div>
@@ -432,6 +433,24 @@
               <p class="form-message" id="productionRecipeMessage" role="status"></p>
             </form>
           </section>
+          <section class="production-costs-workspace production-desktop-only" data-production-panel="costs" hidden>
+            <div class="production-cost-summary" id="productionCostSummary"></div>
+            <nav class="production-cost-tabs" aria-label="Contenido de costos">
+              <button class="is-active" type="button" data-production-cost-tab="products">Productos</button>
+              <button type="button" data-production-cost-tab="intermediates">Intermedios</button>
+            </nav>
+            <section data-production-cost-panel="products">
+              <div class="production-cost-toolbar"><input id="productionCostSearch" type="search" placeholder="Buscar código KM o producto" aria-label="Buscar costos"><select id="productionCostStatus"><option value="">Todos</option><option value="complete">Costos completos</option><option value="incomplete">Faltan datos</option></select></div>
+              <div class="orders-table-wrap"><table class="admin-table production-cost-table"><thead><tr><th>Producto</th><th>Materiales</th><th>Mano de obra</th><th>Comisión</th><th>Costo industrial</th><th>Precio lista</th><th>Margen</th><th>Estado</th><th>Detalle</th></tr></thead><tbody id="productionCostProductList"></tbody></table></div>
+            </section>
+            <section data-production-cost-panel="intermediates" hidden>
+              <div class="orders-table-wrap"><table class="admin-table production-intermediate-cost-table"><thead><tr><th>Intermedio</th><th>Rendimiento</th><th>Costo unitario</th><th>Composición</th><th>Estado</th></tr></thead><tbody id="productionCostIntermediateList"></tbody></table></div>
+            </section>
+            <section class="production-material-list-panel production-cost-detail" id="productionCostDetail" hidden>
+              <div class="production-material-list-heading"><div><p class="eyebrow">Composición del costo</p><h3 id="productionCostDetailTitle">Detalle</h3></div><button class="ghost-button" id="closeProductionCostDetail" type="button">Cerrar</button></div>
+              <div id="productionCostDetailContent"></div>
+            </section>
+          </section>
           <section class="production-stock-workspace production-desktop-only" data-production-panel="stock" hidden>
             <div id="productionStockListPanel">
               <div id="productionInventoryStatus"></div>
@@ -581,6 +600,15 @@
             <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionRecipes" type="button">Actualizar</button></div>
           </div>
           <div id="productionRecipesMount"></div>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-costsView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Valor de reposición actual</p><h1>Costos de producción</h1></div>
+            <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionCosts" type="button">Actualizar</button></div>
+          </div>
+          <p class="admin-note production-cost-note">Costo industrial por unidad: materiales e intermedios + horas-persona efectivas + comisión de producción. No incluye IVA, comisión de ventas, descuentos ni envío.</p>
+          <div id="productionCostsMount"></div>
         </section>
 
         <section class="admin-view production-desktop-only" id="production-stockView" hidden>
@@ -1092,7 +1120,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=103" defer></script>
-    <script src="./admin-production.js?v=34" defer></script>
+    <script src="./admin.js?v=104" defer></script>
+    <script src="./admin-production.js?v=35" defer></script>
   </body>
 </html>
