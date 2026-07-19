@@ -1082,16 +1082,72 @@
     font-size: 1.15rem;
   }
 
+  .production-purchase-grand-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 15px 17px;
+    border: 1px solid rgba(139,226,174,.35);
+    border-left: 4px solid #8be2ae;
+    border-radius: 10px;
+    background: rgba(73,151,103,.1);
+  }
+
+  .production-purchase-grand-total > div,
+  .production-purchase-provider-total {
+    display: grid;
+    gap: 3px;
+  }
+
+  .production-purchase-grand-total span,
+  .production-purchase-provider-total span {
+    color: #aeb4c1;
+    font-size: .76rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .production-purchase-grand-total strong {
+    color: #9af0ba;
+    font-size: 1.35rem;
+  }
+
+  .production-purchase-grand-total small {
+    color: #aeb4c1;
+    text-align: right;
+  }
+
+  .production-purchase-group-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .production-purchase-provider-total {
+    min-width: 185px;
+    padding-right: 18px;
+    border-right: 1px solid rgba(255,255,255,.11);
+    text-align: right;
+  }
+
+  .production-purchase-provider-total strong {
+    color: #9af0ba;
+    font-size: 1rem;
+  }
+
   .production-purchase-preparation-table {
     width: 100%;
     table-layout: fixed;
   }
 
-  .production-purchase-preparation-table th:nth-child(1) { width: 34%; }
-  .production-purchase-preparation-table th:nth-child(2) { width: 15%; }
-  .production-purchase-preparation-table th:nth-child(3) { width: 16%; }
-  .production-purchase-preparation-table th:nth-child(4) { width: 20%; }
-  .production-purchase-preparation-table th:nth-child(5) { width: 15%; }
+  .production-purchase-preparation-table th:nth-child(1) { width: 25%; }
+  .production-purchase-preparation-table th:nth-child(2) { width: 12%; }
+  .production-purchase-preparation-table th:nth-child(3) { width: 13%; }
+  .production-purchase-preparation-table th:nth-child(4) { width: 18%; }
+  .production-purchase-preparation-table th:nth-child(5) { width: 14%; }
+  .production-purchase-preparation-table th:nth-child(6) { width: 18%; }
 
   .production-purchase-preparation-table td:first-child strong,
   .production-purchase-preparation-table td:first-child span {
@@ -1107,6 +1163,18 @@
   .production-purchase-preparation-table input {
     width: 130px;
     max-width: 70%;
+  }
+
+  .production-purchase-unit-cost {
+    display: block;
+    margin-top: 4px;
+    color: #aeb4c1;
+    font-size: .74rem;
+  }
+
+  .production-purchase-cost-pending {
+    color: #f2cf63;
+    font-size: .82rem;
   }
 
   .production-commission-history article {
