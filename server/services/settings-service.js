@@ -11,6 +11,9 @@ export function getCommercialSettings(db) {
     productionHourlyCostArs: Number(settings.production_hourly_cost_ars || 0),
     maximumDiscountBps: Number(settings.maximum_discount_bps ?? 3000),
     maximumCommissionBps: Number(settings.maximum_commission_bps ?? 10000),
+    profitMarginMinimumBps: Number(settings.profit_margin_minimum_bps ?? 0),
+    profitMarginMediumBps: Number(settings.profit_margin_medium_bps ?? 0),
+    profitMarginMaximumBps: Number(settings.profit_margin_maximum_bps ?? 0),
     bank: publicBank(bank),
     paymentAccounts: listPaymentAccounts(db, { includeInactive: true })
   };
@@ -26,6 +29,13 @@ export function getPublicSettings(db) {
 }
 
 export function updateCommercialSettings(db, input, adminUserId) {
+  const currentSettings = getCommercialSettings(db);
+  const profitMarginMinimumBps = basisPoints(Number(input.profitMarginMinimumBps ?? currentSettings.profitMarginMinimumBps), "profitMarginMinimumBps");
+  const profitMarginMediumBps = basisPoints(Number(input.profitMarginMediumBps ?? currentSettings.profitMarginMediumBps), "profitMarginMediumBps");
+  const profitMarginMaximumBps = basisPoints(Number(input.profitMarginMaximumBps ?? currentSettings.profitMarginMaximumBps), "profitMarginMaximumBps");
+  if (profitMarginMinimumBps > profitMarginMediumBps || profitMarginMediumBps > profitMarginMaximumBps) {
+    throw new ValidationError("Los márgenes deben respetar el orden: mínimo, medio y máximo.", { field: "profitMargins", code: "order" });
+  }
   if (input.vatBps !== undefined) {
     basisPoints(input.vatBps, "vatBps");
     db.prepare(`
@@ -73,6 +83,24 @@ export function updateCommercialSettings(db, input, adminUserId) {
       INSERT INTO settings (key, value, updated_by) VALUES ('maximum_commission_bps', ?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
     `).run(String(maximumCommissionBps), adminUserId);
+  }
+  if (input.profitMarginMinimumBps !== undefined) {
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_by) VALUES ('profit_margin_minimum_bps', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
+    `).run(String(profitMarginMinimumBps), adminUserId);
+  }
+  if (input.profitMarginMediumBps !== undefined) {
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_by) VALUES ('profit_margin_medium_bps', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
+    `).run(String(profitMarginMediumBps), adminUserId);
+  }
+  if (input.profitMarginMaximumBps !== undefined) {
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_by) VALUES ('profit_margin_maximum_bps', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
+    `).run(String(profitMarginMaximumBps), adminUserId);
   }
   if (input.bank) {
     const bank = input.bank;

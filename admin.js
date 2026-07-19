@@ -3623,6 +3623,9 @@ async function loadSettings() {
   form.productionHourlyCostArs.value = settings.productionHourlyCostArs;
   form.maximumDiscountPercent.value = settings.maximumDiscountBps / 100;
   form.maximumCommissionPercent.value = settings.maximumCommissionBps / 100;
+  form.profitMarginMinimumPercent.value = settings.profitMarginMinimumBps / 100;
+  form.profitMarginMediumPercent.value = settings.profitMarginMediumBps / 100;
+  form.profitMarginMaximumPercent.value = settings.profitMarginMaximumBps / 100;
   if (adminEls.salesRepForm?.elements.defaultCommission) adminEls.salesRepForm.elements.defaultCommission.max = String(settings.maximumCommissionBps / 100);
   renderPaymentAccounts();
 }
@@ -3761,7 +3764,10 @@ async function saveSettings(event) {
     usdExchangeRate: Number(values.usdExchangeRate),
     productionHourlyCostArs: Number(values.productionHourlyCostArs),
     maximumDiscountBps: Math.round(Number(values.maximumDiscountPercent) * 100),
-    maximumCommissionBps: Math.round(Number(values.maximumCommissionPercent) * 100)
+    maximumCommissionBps: Math.round(Number(values.maximumCommissionPercent) * 100),
+    profitMarginMinimumBps: Math.round(Number(values.profitMarginMinimumPercent) * 100),
+    profitMarginMediumBps: Math.round(Number(values.profitMarginMediumPercent) * 100),
+    profitMarginMaximumBps: Math.round(Number(values.profitMarginMaximumPercent) * 100)
   };
   setBusy(adminEls.settingsForm, true);
   try {
