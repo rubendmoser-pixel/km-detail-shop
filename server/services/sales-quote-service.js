@@ -130,11 +130,11 @@ export function createProspectSalesQuote(db, salesRep, input = {}) {
   const phone = input.phone ? normalizeProspectPhone(input.phone, "phone") : "";
   const city = optionalText(input.city, "city", { max: 120 });
   const province = optionalText(input.province, "province", { max: 120 });
+  const settings = getCommercialSettings(db);
   const discountBps = basisPoints(Number(input.discountBps || 0), "discountBps");
-  if (discountBps > 3000) throw new ValidationError("El descuento para un cliente potencial no puede superar el 30%.", { field: "discountBps", code: "range", max: 3000 });
+  if (discountBps > settings.maximumDiscountBps) throw new ValidationError(`El descuento para un cliente potencial no puede superar el ${settings.maximumDiscountBps / 100}%.`, { field: "discountBps", code: "range", max: settings.maximumDiscountBps });
   const notes = optionalText(input.notes, "notes", { max: 1000 });
   const validUntil = optionalDate(input.validUntil, "validUntil");
-  const settings = getCommercialSettings(db);
 
   return transaction(db, () => {
     const productQuery = db.prepare("SELECT * FROM products WHERE id = ? AND active = 1");

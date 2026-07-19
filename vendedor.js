@@ -915,6 +915,10 @@ function prospectDiscountPercent() {
   return Number(nodes.prospectDiscount?.value || 0);
 }
 
+function maximumProspectDiscountPercent() {
+  return Number(state.dashboard?.commercialLimits?.maximumDiscountBps ?? 3000) / 100;
+}
+
 function validateQuoteData(showMessage = true) {
   if (state.mode !== "quote") return true;
   let message = "";
@@ -928,7 +932,7 @@ function validateQuoteData(showMessage = true) {
     else if (whatsappDigits.length < 8 || whatsappDigits.length > 15) message = "Ingresa un WhatsApp valido de entre 8 y 15 digitos.";
     else if (nodes.prospectEmail?.value && !nodes.prospectEmail.checkValidity()) message = "Revisa el email ingresado o dejalo vacio.";
     else if (!Number.isFinite(discount) || discount < 0) message = "El descuento no puede ser menor que 0%.";
-    else if (discount > 30) message = "El descuento maximo permitido es 30%. Ingresa un valor menor para continuar.";
+    else if (discount > maximumProspectDiscountPercent()) message = `El descuento maximo permitido es ${maximumProspectDiscountPercent()}%. Ingresa un valor menor para continuar.`;
   }
   if (showMessage) setFormMessage(nodes.quoteDataMessage, message, message ? "error" : "");
   return !message;
@@ -1175,6 +1179,7 @@ function renderOrderItems() {
 function renderDashboard(payload) {
   state.salesRep = payload.salesRep;
   state.dashboard = payload.dashboard;
+  if (nodes.prospectDiscount) nodes.prospectDiscount.max = String(maximumProspectDiscountPercent());
   if (!state.summaryDateFrom && state.dashboard?.period?.from) state.summaryDateFrom = dateKey(state.dashboard.period.from);
   if (!state.summaryDateTo && state.dashboard?.period?.to) state.summaryDateTo = dateKey(state.dashboard.period.to);
   if (nodes.summaryDateFrom) nodes.summaryDateFrom.value = state.summaryDateFrom;
@@ -1510,8 +1515,9 @@ nodes.quoteAudienceButtons?.forEach((button) => {
 
 nodes.prospectDiscount?.addEventListener("input", () => {
   const discount = prospectDiscountPercent();
-  const message = discount > 30
-    ? "El descuento maximo permitido es 30%. Ingresa un valor menor para continuar."
+  const maximumDiscount = maximumProspectDiscountPercent();
+  const message = discount > maximumDiscount
+    ? `El descuento maximo permitido es ${maximumDiscount}%. Ingresa un valor menor para continuar.`
     : discount < 0 ? "El descuento no puede ser menor que 0%." : "";
   nodes.prospectDiscountMessage.textContent = message;
   nodes.prospectDiscount.setAttribute("aria-invalid", message ? "true" : "false");

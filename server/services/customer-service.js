@@ -1,6 +1,7 @@
 import { transaction } from "../db.js";
 import { ValidationError, NotFoundError, basisPoints, normalizeEmail, optionalText, requiredText } from "../domain/validation.js";
 import { hashPassword } from "../security.js";
+import { getCommercialSettings } from "./settings-service.js";
 import {
   ARGENTINA_PROVINCES,
   CUSTOMER_TYPES,
@@ -81,7 +82,7 @@ export async function createAdminCustomer(db, input = {}, adminUserId) {
     notes: optionalText(input.notes, "notes", { max: 2000 })
   };
   const salesRepId = normalizeOptionalSalesRep(db, input.salesRepId);
-  const salesCommissionBps = normalizeOptionalCommission(input.commissionBps);
+  const salesCommissionBps = normalizeOptionalCommission(db, input.commissionBps);
   const commercialClass = normalizeCommercialClass(input.commercialClass || "B");
   const paymentCondition = normalizeCustomerPaymentCondition(input.paymentCondition || "advance_payment");
   const paymentTermsDays = paymentCondition === "credit_account" ? normalizeCustomerPaymentTermsDays(input.paymentTermsDays || 15) : 0;
@@ -385,9 +386,12 @@ function normalizeOptionalSalesRep(db, value) {
   return id;
 }
 
-function normalizeOptionalCommission(value) {
+function normalizeOptionalCommission(db, value) {
   if (value === undefined || value === null || value === "") return null;
-  return basisPoints(Number(value), "commissionBps");
+  const commissionBps = basisPoints(Number(value), "commissionBps");
+  const maximum = getCommercialSettings(db).maximumCommissionBps;
+  if (commissionBps > maximum) throw new ValidationError(`La comisión no puede superar el ${maximum / 100}%.`, { field: "commissionBps", code: "range", max: maximum });
+  return commissionBps;
 }
 
 function normalizeCommercialClass(value) {

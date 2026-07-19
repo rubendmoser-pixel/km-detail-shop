@@ -12,6 +12,7 @@ import {
   normalizePostalCode
 } from "./auth-service.js";
 import { ensureSeedAddress, validateShippingAddress } from "./shipping-address-service.js";
+import { getCommercialSettings } from "./settings-service.js";
 
 const SALES_REP_STATUSES = new Set(["active", "inactive"]);
 
@@ -341,6 +342,7 @@ export async function upsertSalesRep(db, input = {}) {
   const bankCbu = optionalText(input.bankCbu, "bankCbu", { max: 40 });
   const bankAlias = optionalText(input.bankAlias, "bankAlias", { max: 80 });
   const defaultCommissionBps = basisPoints(Math.round(Number(input.defaultCommissionBps || 0)), "defaultCommissionBps");
+  validateMaximumCommission(db, defaultCommissionBps);
   const status = optionalText(input.status, "status", { max: 20 }) || "active";
   if (!SALES_REP_STATUSES.has(status)) throw new ValidationError("El estado del vendedor no es válido.", { field: "status", code: "invalid" });
   const notes = optionalText(input.notes, "notes", { max: 1000 });
@@ -576,9 +578,14 @@ export function getSalesRepPortalDashboard(db, salesRepId) {
   const generatedCommission = monthOrders
     .reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0);
   const monthTotal = monthOrders.reduce((total, order) => total + Number(order.total_cents || 0), 0);
+  const commercialSettings = getCommercialSettings(db);
   return {
     generatedAt: new Date().toISOString(),
     salesRepId: id,
+    commercialLimits: {
+      maximumDiscountBps: commercialSettings.maximumDiscountBps,
+      maximumCommissionBps: commercialSettings.maximumCommissionBps
+    },
     period: { from: monthStart, to: today },
     summary: {
       customerCount: customers.length,
@@ -809,6 +816,7 @@ export function assignSalesRepToCustomer(db, customerId, input = {}) {
   const commissionBps = input.commissionBps === null || input.commissionBps === undefined || input.commissionBps === ""
     ? null
     : basisPoints(Math.round(Number(input.commissionBps)), "commissionBps");
+  if (commissionBps !== null) validateMaximumCommission(db, commissionBps);
   const updated = db.prepare(`
     UPDATE customers
     SET sales_rep_id = ?, sales_commission_bps = ?, updated_at = CURRENT_TIMESTAMP
@@ -817,6 +825,13 @@ export function assignSalesRepToCustomer(db, customerId, input = {}) {
   `).get(salesRepId, commissionBps, customerId);
   if (!updated) throw new NotFoundError("Cliente no encontrado");
   return updated;
+}
+
+function validateMaximumCommission(db, commissionBps) {
+  const maximum = getCommercialSettings(db).maximumCommissionBps;
+  if (commissionBps > maximum) {
+    throw new ValidationError(`La comisión no puede superar el ${maximum / 100}%.`, { field: "commissionBps", code: "range", max: maximum });
+  }
 }
 
 export function resolveCustomerSalesRep(db, customerId) {

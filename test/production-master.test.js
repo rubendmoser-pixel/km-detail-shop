@@ -97,11 +97,17 @@ test("production master imports every validated recipe idempotently by KM code a
   const admin = db.prepare("SELECT id FROM users WHERE role='admin'").get();
   assert.equal(getCommercialSettings(db).usdExchangeRate, 1400);
   assert.equal(getCommercialSettings(db).productionHourlyCostArs, 0);
-  updateCommercialSettings(db, { usdExchangeRate: 1525.5, productionHourlyCostArs: 4850.75 }, admin.id);
+  assert.equal(getCommercialSettings(db).maximumDiscountBps, 3000);
+  assert.equal(getCommercialSettings(db).maximumCommissionBps, 10000);
+  updateCommercialSettings(db, { usdExchangeRate: 1525.5, productionHourlyCostArs: 4850.75, maximumDiscountBps: 2750, maximumCommissionBps: 1225 }, admin.id);
   assert.equal(getCommercialSettings(db).usdExchangeRate, 1525.5);
   assert.equal(getCommercialSettings(db).productionHourlyCostArs, 4850.75);
+  assert.equal(getCommercialSettings(db).maximumDiscountBps, 2750);
+  assert.equal(getCommercialSettings(db).maximumCommissionBps, 1225);
   assert.throws(() => updateCommercialSettings(db, { usdExchangeRate: 0 }, admin.id), /tipo de cambio/i);
   assert.throws(() => updateCommercialSettings(db, { productionHourlyCostArs: -1 }, admin.id), /costo por hora/i);
+  assert.throws(() => updateCommercialSettings(db, { maximumDiscountBps: 10001 }, admin.id), /descuento máximo/i);
+  assert.throws(() => updateCommercialSettings(db, { maximumCommissionBps: -1 }, admin.id), /comisión máxima/i);
   const costs = getProductionCosts(db);
   const bushingCost = costs.intermediates.find((item) => item.itemCode === "INT-BUJE");
   const plateCost = costs.intermediates.find((item) => item.itemCode === "INT-PLACA");

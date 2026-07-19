@@ -3621,6 +3621,9 @@ async function loadSettings() {
   form.whatsappNumber.value = settings.whatsappNumber;
   form.usdExchangeRate.value = settings.usdExchangeRate;
   form.productionHourlyCostArs.value = settings.productionHourlyCostArs;
+  form.maximumDiscountPercent.value = settings.maximumDiscountBps / 100;
+  form.maximumCommissionPercent.value = settings.maximumCommissionBps / 100;
+  if (adminEls.salesRepForm?.elements.defaultCommission) adminEls.salesRepForm.elements.defaultCommission.max = String(settings.maximumCommissionBps / 100);
   renderPaymentAccounts();
 }
 
@@ -3756,12 +3759,15 @@ async function saveSettings(event) {
     vatBps: Math.round(Number(values.vatPercent) * 100),
     whatsappNumber: values.whatsappNumber,
     usdExchangeRate: Number(values.usdExchangeRate),
-    productionHourlyCostArs: Number(values.productionHourlyCostArs)
+    productionHourlyCostArs: Number(values.productionHourlyCostArs),
+    maximumDiscountBps: Math.round(Number(values.maximumDiscountPercent) * 100),
+    maximumCommissionBps: Math.round(Number(values.maximumCommissionPercent) * 100)
   };
   setBusy(adminEls.settingsForm, true);
   try {
     const { settings } = await adminApi("/api/admin/settings", { method: "PATCH", body });
     adminState.settings = settings;
+    if (adminEls.salesRepForm?.elements.defaultCommission) adminEls.salesRepForm.elements.defaultCommission.max = String(settings.maximumCommissionBps / 100);
     adminEls.settingsMessage.textContent = "Configuracion guardada.";
   } catch (error) {
     adminEls.settingsMessage.textContent = error.message;

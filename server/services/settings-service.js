@@ -9,6 +9,8 @@ export function getCommercialSettings(db) {
     whatsappNumber: settings.whatsapp_number || "",
     usdExchangeRate: Number(settings.usd_exchange_rate || 1400),
     productionHourlyCostArs: Number(settings.production_hourly_cost_ars || 0),
+    maximumDiscountBps: Number(settings.maximum_discount_bps ?? 3000),
+    maximumCommissionBps: Number(settings.maximum_commission_bps ?? 10000),
     bank: publicBank(bank),
     paymentAccounts: listPaymentAccounts(db, { includeInactive: true })
   };
@@ -18,7 +20,8 @@ export function getPublicSettings(db) {
   const settings = getCommercialSettings(db);
   return {
     vatBps: settings.vatBps,
-    whatsappNumber: settings.whatsappNumber
+    whatsappNumber: settings.whatsappNumber,
+    maximumDiscountBps: settings.maximumDiscountBps
   };
 }
 
@@ -56,6 +59,20 @@ export function updateCommercialSettings(db, input, adminUserId) {
       INSERT INTO settings (key, value, updated_by) VALUES ('production_hourly_cost_ars', ?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
     `).run(String(hourlyCost), adminUserId);
+  }
+  if (input.maximumDiscountBps !== undefined) {
+    const maximumDiscountBps = basisPoints(Number(input.maximumDiscountBps), "maximumDiscountBps");
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_by) VALUES ('maximum_discount_bps', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
+    `).run(String(maximumDiscountBps), adminUserId);
+  }
+  if (input.maximumCommissionBps !== undefined) {
+    const maximumCommissionBps = basisPoints(Number(input.maximumCommissionBps), "maximumCommissionBps");
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_by) VALUES ('maximum_commission_bps', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP, updated_by = excluded.updated_by
+    `).run(String(maximumCommissionBps), adminUserId);
   }
   if (input.bank) {
     const bank = input.bank;
