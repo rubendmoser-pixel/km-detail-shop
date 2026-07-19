@@ -2831,7 +2831,7 @@ async function loadOrders() {
       <td data-label="Origen">${orderOriginBadge(order)}</td>
       <td class="order-list-next-action ${escapeAdmin(nextAction.tone)}" data-label="Próxima acción"><strong>${escapeAdmin(nextAction.short)}</strong></td>
       <td data-label="Pago">${stateBadge(paymentStatusText(order.payment_status), paymentStateClasses[order.payment_status])}</td>
-      <td data-label="Total">${adminMoney.format(order.total_cents / 100)}</td><td data-label="Fecha">${formatDate(order.created_at)}</td>
+      <td data-label="Total">${adminMoney.format(order.total_cents / 100)}</td><td data-label="Fecha">${formatOrderListDate(order.created_at)}</td>
       <td data-label="Detalle"><button class="ghost-button row-button" type="button" data-view-order="${order.id}">Ver</button></td></tr>`;
   }).join("") : `<tr><td colspan="8">${adminState.orderScope === "history" ? "No hay pedidos históricos para esta búsqueda." : "No hay pedidos activos para este filtro."}</td></tr>`;
 }
@@ -4715,6 +4715,16 @@ function formatDate(value) {
   if (!value) return "";
   const normalized = /z$/i.test(String(value)) ? String(value) : `${value}Z`;
   return new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(normalized));
+}
+
+function formatOrderListDate(value) {
+  if (!value) return "";
+  const normalized = /z$/i.test(String(value)) ? String(value) : `${value}Z`;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return escapeAdmin(String(value));
+  const day = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" }).format(date);
+  const time = new Intl.DateTimeFormat("es-AR", { timeStyle: "short" }).format(date);
+  return `<span class="order-list-date"><strong>${escapeAdmin(day)}</strong><small>${escapeAdmin(time)}</small></span>`;
 }
 
 function formatAdminDate(value) {

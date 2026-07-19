@@ -6330,4 +6330,16 @@ button.operation-row:hover {
   #ordersView .orders-list-table .row-button { width: 100%; min-width: 0; }
   #ordersView .orders-list-table td:nth-child(6),
   #ordersView .orders-list-table td:nth-child(7) { white-space: nowrap; }
+  #ordersView .orders-list-table .order-list-date {
+    display: grid;
+    gap: 3px;
+    line-height: 1.15;
+  }
+  #ordersView .orders-list-table .order-list-date strong,
+  #ordersView .orders-list-table .order-list-date small {
+    display: block;
+    white-space: nowrap;
+  }
+  #ordersView .orders-list-table .order-list-date strong { font-size: 0.82rem; }
+  #ordersView .orders-list-table .order-list-date small { color: #9ea3aa; font-size: 0.72rem; }
 }
