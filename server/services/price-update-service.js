@@ -191,7 +191,8 @@ export function getPriceUpdateBatch(db, id) {
       pui.old_price_cents AS oldPriceCents, pui.new_price_cents AS newPriceCents,
       pui.variation_bps AS variationBps, p.ean13, p.name,
       f.name AS familyName, p.web_sort_order AS webSortOrder,
-      pi.stored_filename AS primaryImageFilename
+      pi.stored_filename AS primaryImageFilename,
+      pi2.stored_filename AS secondaryImageFilename
     FROM price_update_items pui
     JOIN products p ON p.id = pui.product_id
     JOIN product_families f ON f.id = p.family_id
@@ -201,12 +202,19 @@ export function getPriceUpdateBatch(db, id) {
       ORDER BY is_primary DESC, sort_order ASC, id ASC
       LIMIT 1
     )
+    LEFT JOIN product_images pi2 ON pi2.id = (
+      SELECT id FROM product_images
+      WHERE product_id = p.id
+      ORDER BY is_primary DESC, sort_order ASC, id ASC
+      LIMIT 1 OFFSET 1
+    )
     WHERE pui.batch_id = ?
     ORDER BY f.sort_order ASC, p.web_sort_order ASC, p.km_code ASC
   `).all(id);
   return mapBatch(row, items.map((item) => ({
     ...item,
-    primaryImageUrl: item.primaryImageFilename ? `/media/products/${item.primaryImageFilename}` : ""
+    primaryImageUrl: item.primaryImageFilename ? `/media/products/${item.primaryImageFilename}` : "",
+    secondaryImageUrl: item.secondaryImageFilename ? `/media/products/${item.secondaryImageFilename}` : ""
   })));
 }
 

@@ -209,6 +209,19 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(images[0].isPrimary, true);
   assert.match(images[0].url, /^\/media\/products\/api001k-pad-de-prueba-api-imagen-1-/);
   assert.match(images[0].altText, /API001K - Pad de prueba API - Poliespumas - KM Detail Line/);
+  const secondImageResponse = await fetch(`${baseUrl}/api/admin/products/${product.id}/images`, {
+    method: "POST",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      originalFilename: "api-product-detail.png",
+      mimeType: "image/png",
+      dataBase64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/axl5LkAAAAASUVORK5CYII="
+    })
+  });
+  assert.equal(secondImageResponse.status, 201);
+  const productImages = (await secondImageResponse.json()).images;
+  assert.equal(productImages.length, 2);
+  assert.equal(productImages[0].isPrimary, true);
   const scheduledPriceResponse = await fetch(`${baseUrl}/api/admin/price-updates/linear`, {
     method: "POST",
     headers: jsonHeaders(adminCookie),
@@ -226,7 +239,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(printableProduct.newPriceCents, 110_000);
   assert.equal(printableProduct.name, "Pad de prueba API");
   assert.equal(printableProduct.familyName, "Poliespumas");
-  assert.equal(printableProduct.primaryImageUrl, images[0].url);
+  assert.equal(printableProduct.primaryImageUrl, productImages[0].url);
+  assert.equal(printableProduct.secondaryImageUrl, productImages[1].url);
   const publicImageResponse = await fetch(`${baseUrl}${images[0].url}`);
   assert.equal(publicImageResponse.status, 200);
   assert.equal(publicImageResponse.headers.get("content-type"), "image/png");
@@ -326,7 +340,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(products.products[0].basePriceCents, 100_000);
   assert.equal(products.products[0].finalPriceCents, 50_400);
   assert.equal(products.products[0].primaryImageUrl, images[0].url);
-  assert.equal(products.products[0].images.length, 1);
+  assert.equal(products.products[0].images.length, 2);
   assert.equal(products.products[0].images[0].url, images[0].url);
   const salesCookie = await salesLoginCookie(baseUrl, "vendedor-api@km-detail.com", "sales-portal-password-456");
   const sellerAddresses = await getJson(`${baseUrl}/api/sales/customers/${registration.customer.id}/shipping-addresses`, salesCookie);

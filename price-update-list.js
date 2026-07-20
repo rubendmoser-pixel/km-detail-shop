@@ -26,22 +26,22 @@ async function load() {
 function renderDocument(batch) {
   const items = Array.isArray(batch.items) ? batch.items : [];
   if (!items.length) return renderError("La programación seleccionada no contiene productos.");
-  const pages = chunk(items, productsPerPage);
+  const pages = familyPages(items);
   const effectiveDate = formatDate(batch.effectiveDate);
   document.title = `KM Detail Line - Lista de precios ${effectiveDate.replaceAll("/", "-")}`;
-  root.innerHTML = pages.map((itemsOnPage, index) => pageMarkup({
-    batch,
-    items: itemsOnPage,
+  root.innerHTML = pages.map((page, index) => pageMarkup({
+    familyName: page.familyName,
+    items: page.items,
     pageNumber: index + 1,
     pageCount: pages.length,
     effectiveDate
   })).join("");
-  summary.textContent = `${items.length} productos · Vigencia ${effectiveDate}`;
+  summary.textContent = `${items.length} productos · ${new Set(items.map((item) => item.familyName)).size} familias · Vigencia ${effectiveDate}`;
   actions.hidden = false;
   printButton.addEventListener("click", printWhenImagesAreReady, { once: false });
 }
 
-function pageMarkup({ batch, items, pageNumber, pageCount, effectiveDate }) {
+function pageMarkup({ familyName, items, pageNumber, pageCount, effectiveDate }) {
   return `
     <section class="price-sheet">
       <header class="sheet-header">
@@ -51,9 +51,9 @@ function pageMarkup({ batch, items, pageNumber, pageCount, effectiveDate }) {
         </div>
         <div class="validity"><span>Vigencia desde</span><strong>${escapeHtml(effectiveDate)}</strong><small>Precios de lista + IVA</small></div>
       </header>
-      <div class="sheet-intro">
-        <p>Actualización programada de precios KM Detail Line.</p>
-        <span>${batch.type === "linear" ? `Actualización general ${formatPercent(batch.percentBps)}` : "Actualización de lista"}</span>
+      <div class="family-heading">
+        <span>Familia</span>
+        <strong>${escapeHtml(familyName || "KM Detail Line")}</strong>
       </div>
       <div class="product-grid">
         ${items.map(productCard).join("")}
@@ -67,16 +67,16 @@ function pageMarkup({ batch, items, pageNumber, pageCount, effectiveDate }) {
 }
 
 function productCard(item) {
-  const image = item.primaryImageUrl
-    ? `<img src="${escapeHtml(item.primaryImageUrl)}" alt="${escapeHtml(item.name || item.kmCode)}">`
+  const images = [item.primaryImageUrl, item.secondaryImageUrl].filter(Boolean);
+  const imageMarkup = images.length
+    ? images.map((url, index) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(item.name || item.kmCode)} - imagen ${index + 1}">`).join("")
     : `<div class="image-placeholder"><span>KM</span><small>Sin imagen activa</small></div>`;
   return `
     <article class="product-card">
-      <div class="product-image">${image}</div>
+      <div class="product-images ${images.length === 1 ? "single" : ""}">${imageMarkup}</div>
       <div class="product-copy">
         <div class="product-code"><strong>${escapeHtml(item.kmCode)}</strong>${item.ean13 ? `<small>EAN ${escapeHtml(item.ean13)}</small>` : ""}</div>
         <h2>${escapeHtml(item.name || "Producto KM")}</h2>
-        <p>${escapeHtml(item.familyName || "KM Detail Line")}</p>
         <div class="product-price"><span>Precio de lista</span><strong>${formatMoney(item.newPriceCents)}</strong><small>+ IVA</small></div>
       </div>
     </article>
@@ -108,6 +108,18 @@ function chunk(values, size) {
   return pages;
 }
 
+function familyPages(items) {
+  const families = new Map();
+  for (const item of items) {
+    const familyName = item.familyName || "KM Detail Line";
+    if (!families.has(familyName)) families.set(familyName, []);
+    families.get(familyName).push(item);
+  }
+  return [...families].flatMap(([familyName, familyItems]) => (
+    chunk(familyItems, productsPerPage).map((pageItems) => ({ familyName, items: pageItems }))
+  ));
+}
+
 function formatMoney(cents) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 2 }).format(Number(cents || 0) / 100);
 }
@@ -115,10 +127,6 @@ function formatMoney(cents) {
 function formatDate(value) {
   const [year, month, day] = String(value || "").slice(0, 10).split("-");
   return year && month && day ? `${day}/${month}/${year}` : String(value || "-");
-}
-
-function formatPercent(bps) {
-  return `${(Number(bps || 0) / 100).toLocaleString("es-AR", { maximumFractionDigits: 2 })}%`;
 }
 
 function escapeHtml(value) {
