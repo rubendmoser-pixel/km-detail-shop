@@ -13,7 +13,7 @@ const PRODUCT_UPLOAD_TARGET_BYTES = 900 * 1024;
 const PRODUCT_UPLOAD_MAX_DIMENSION = 1600;
 const PRODUCT_UPLOAD_WEBP_QUALITY = 0.82;
 const PRODUCT_UPLOAD_JPEG_QUALITY = 0.86;
-const adminViews = new Set(["customers", "sales", "logistics", "production", "production-access", "production-commissions", "production-materials", "production-product-stock", "production-stock", "production-stock-parameters", "production-movements", "production-purchasing", "production-recipes", "production-costs", "production-suppliers", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "emails", "security", "analytics", "operation"]);
+const adminViews = new Set(["customers", "sales", "logistics", "production", "production-access", "production-commissions", "production-materials", "production-product-stock", "production-stock", "production-stock-parameters", "production-movements", "production-purchasing", "production-recipes", "production-costs", "production-suppliers", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "backups", "emails", "security", "analytics", "operation"]);
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -92,6 +92,7 @@ const ADMIN_ICON_PATHS = {
   shield: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>`,
   activity: `<path d="M3 12h4l3-9 4 18 3-9h4"/>`,
   "layout-dashboard": `<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>`,
+  database: `<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>`,
   refresh: `<path d="M21 12a9 9 0 0 0-15.2-6.5L3 8M3 3v5h5M3 12a9 9 0 0 0 15.2 6.5L21 16M16 16h5v5"/>`,
   plus: `<path d="M12 5v14M5 12h14"/>`,
   save: `<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/>`,
@@ -104,7 +105,7 @@ const ADMIN_ICON_PATHS = {
 
 const ADMIN_VIEW_ICONS = {
   customers: "users", sales: "user-round", logistics: "truck", production: "package", "production-access": "users", "production-commissions": "coins", "production-materials": "package", "production-product-stock": "package", "production-stock": "package", "production-stock-parameters": "settings", "production-movements": "activity", "production-purchasing": "clipboard-list", "production-recipes": "clipboard-list", "production-costs": "coins", "production-suppliers": "building", commissions: "coins", distributors: "building",
-  products: "package", prices: "tags", orders: "clipboard-list", accounts: "wallet", settings: "settings",
+  products: "package", prices: "tags", orders: "clipboard-list", accounts: "wallet", settings: "settings", backups: "database",
   emails: "mail", security: "shield", analytics: "activity", operation: "layout-dashboard"
 };
 
@@ -202,7 +203,7 @@ const adminEls = Object.fromEntries([
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
   "logisticsOperatorsList", "logisticsOperatorForm", "logisticsOperatorFormTitle", "logisticsOperatorMessage",
-  "analyticsDays", "analyticsDashboard", "operationDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
+  "analyticsDays", "analyticsDashboard", "operationDashboard", "backupDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -319,6 +320,8 @@ function bindAdminEvents() {
   on(adminEls.currentAccountDashboard, "submit", handleCurrentAccountSubmit);
   on(byId("#reloadOperationDashboard"), "click", loadOperationDashboard);
   on(adminEls.operationDashboard, "click", handleOperationDashboardClick);
+  on(byId("#reloadBackups"), "click", loadOperationDashboard);
+  on(adminEls.backupDashboard, "click", handleBackupDashboardClick);
   on(adminEls.deleteTestOrdersForm, "submit", deleteTestOrders);
   on(document, "click", (event) => {
     if (adminEls.adminNavToggle?.getAttribute("aria-expanded") !== "true") return;
@@ -3967,6 +3970,7 @@ async function loadOperationDashboard() {
   adminState.operationDashboard = dashboard;
   renderOperationDashboard(dashboard);
   renderCurrentAccountDashboard(dashboard);
+  renderBackupDashboard(dashboard);
 }
 
 async function loadAnalyticsDashboard() {
@@ -4221,7 +4225,6 @@ function renderOperationDashboard(dashboard) {
   }
   const summary = dashboard.summary || {};
   const currentAccounts = dashboard.currentAccounts || {};
-  const storage = dashboard.storage || {};
   adminEls.operationDashboard.innerHTML = `
     <div class="operation-metrics">
       ${metricCard("Pedidos activos", summary.activeOrders || 0, "En curso operativo")}
@@ -4256,11 +4259,25 @@ function renderOperationDashboard(dashboard) {
         <div class="panel-heading"><p class="eyebrow">Productos</p><h3>Mas vendidos</h3></div>
         ${renderProductRankRows(dashboard.products || [])}
       </section>
-      <section class="operation-panel wide">
-        <div class="panel-heading"><p class="eyebrow">Sistema</p><h3>Respaldo y datos</h3></div>
-        ${renderStorageStatus(storage)}
-      </section>
     </div>
+  `;
+}
+
+function renderBackupDashboard(dashboard = adminState.operationDashboard) {
+  if (!adminEls.backupDashboard) return;
+  if (!dashboard) {
+    adminEls.backupDashboard.innerHTML = `<p class="admin-note">No hay información de almacenamiento disponible.</p>`;
+    return;
+  }
+  adminEls.backupDashboard.innerHTML = `
+    <section class="operation-panel backup-panel">
+      <div class="panel-heading">
+        <p class="eyebrow">Estado del sistema</p>
+        <h2>Respaldo de datos y archivos</h2>
+        <p>Generá una copia completa para guardarla fuera del servidor y revisá la persistencia de Railway.</p>
+      </div>
+      ${renderStorageStatus(dashboard.storage || {})}
+    </section>
   `;
 }
 
@@ -4355,20 +4372,20 @@ function formatFileSize(bytes) {
 }
 
 function handleOperationDashboardClick(event) {
-  const downloadButton = event.target.closest("[data-download-backup]");
-  if (downloadButton && adminEls.operationDashboard.contains(downloadButton)) {
-    downloadExternalBackup(downloadButton);
-    return;
-  }
-  const pruneButton = event.target.closest("[data-prune-backups]");
-  if (pruneButton && adminEls.operationDashboard.contains(pruneButton)) {
-    pruneBackups(pruneButton);
-    return;
-  }
   const button = event.target.closest("[data-dashboard-order]");
   if (!button || !adminEls.operationDashboard.contains(button)) return;
   showAdminView("orders");
   openOrderDetail(Number(button.dataset.dashboardOrder), button);
+}
+
+function handleBackupDashboardClick(event) {
+  const downloadButton = event.target.closest("[data-download-backup]");
+  if (downloadButton && adminEls.backupDashboard.contains(downloadButton)) {
+    downloadExternalBackup(downloadButton);
+    return;
+  }
+  const pruneButton = event.target.closest("[data-prune-backups]");
+  if (pruneButton && adminEls.backupDashboard.contains(pruneButton)) pruneBackups(pruneButton);
 }
 
 async function downloadExternalBackup(button) {
@@ -4415,7 +4432,7 @@ async function pruneBackups(button) {
       ...adminState.operationDashboard,
       storage: result.storage
     };
-    renderOperationDashboard(adminState.operationDashboard);
+    renderBackupDashboard(adminState.operationDashboard);
     showAdminToast(`Backups eliminados: ${result.deleted?.length || 0}. Espacio liberado: ${formatFileSize(result.deletedBytes || 0)}.`);
   } catch (error) {
     showAdminToast(error.message);
