@@ -6906,3 +6906,117 @@ button.operation-row:hover {
     font-size: 0.78rem;
   }
 }
+
+/* Comisiones comerciales: vista operativa compacta para escritorio. */
+@media (min-width: 1100px) {
+  #commissionsView { min-width: 0; }
+  #commissionsView .admin-titlebar {
+    grid-template-columns: minmax(235px, 0.34fr) minmax(0, 1.66fr);
+    gap: 22px;
+    margin-bottom: 18px;
+  }
+  #commissionsView .admin-titlebar h1 {
+    margin: 2px 0 0;
+    font-size: clamp(1.55rem, 1.65vw, 1.95rem);
+    line-height: 1.08;
+  }
+  #commissionsView .admin-toolbar {
+    grid-template-columns: minmax(190px, 0.58fr) minmax(260px, 1fr) auto auto;
+    gap: 10px;
+  }
+  #commissionsView .commission-panel {
+    gap: 14px;
+    margin-top: 0;
+    padding: 20px;
+    overflow: hidden;
+    border-color: rgba(183, 184, 255, 0.22);
+    border-radius: var(--admin-radius-md);
+    background: linear-gradient(180deg, rgba(18, 20, 24, 0.98), rgba(13, 15, 18, 0.98));
+  }
+  #commissionsView .commission-panel > .panel-heading h3 {
+    margin: 2px 0 0;
+    font-size: 1.3rem;
+    line-height: 1.15;
+  }
+  #commissionsView .commission-summary { gap: 12px; }
+  #commissionsView .commission-summary > div {
+    min-height: 82px;
+    align-content: center;
+    padding: 13px 16px;
+    border-radius: var(--admin-radius-sm);
+    background: linear-gradient(180deg, rgba(29, 31, 37, 0.98), rgba(20, 22, 26, 0.98));
+  }
+  #commissionsView .commission-summary strong { font-size: 1.35rem; }
+  #commissionsView .commission-select-all {
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: var(--admin-radius-sm);
+    background: rgba(127, 133, 255, 0.06);
+  }
+  #commissionsView .commission-order-list { gap: 9px; }
+  #commissionsView .commission-order-card {
+    grid-template-columns: minmax(170px, 0.58fr) minmax(0, 3.42fr);
+    gap: 14px;
+    align-items: stretch;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--admin-radius-sm);
+    background: rgba(23, 25, 30, 0.94);
+  }
+  #commissionsView .commission-order-check {
+    min-width: 0;
+    padding: 14px 16px;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(127, 133, 255, 0.06);
+  }
+  #commissionsView .commission-order-check span { min-width: 0; }
+  #commissionsView .commission-order-check strong,
+  #commissionsView .commission-order-check small { overflow-wrap: anywhere; }
+  #commissionsView .commission-order-main {
+    grid-template-columns: minmax(150px, 1.1fr) minmax(170px, 1.2fr) minmax(115px, 0.75fr) minmax(115px, 0.75fr);
+    gap: 0;
+    min-width: 0;
+  }
+  #commissionsView .commission-order-main > div {
+    min-height: 78px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 12px 14px;
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+    background: transparent;
+  }
+  #commissionsView .commission-order-main > div:first-child { border-left: 0; }
+  #commissionsView .commission-order-main strong {
+    font-size: 0.9rem;
+    line-height: 1.25;
+  }
+  #commissionsView .commission-order-main small {
+    margin-top: 3px;
+    overflow-wrap: anywhere;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  #commissionsView .commission-settlements {
+    gap: 12px;
+    margin-top: 6px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  #commissionsView .commission-settlements .operation-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  #commissionsView .commission-settlements .operation-row {
+    min-width: 0;
+    min-height: 66px;
+    padding: 12px 14px;
+    border-radius: var(--admin-radius-sm);
+  }
+  #commissionsView .commission-settlements .operation-row span { min-width: 0; }
+}
