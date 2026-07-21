@@ -5750,6 +5750,104 @@ button.operation-row:hover {
     gap: 22px;
   }
 
+  #salesView .admin-titlebar {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.48fr) minmax(640px, 1.52fr);
+    gap: 22px;
+    align-items: end;
+  }
+
+  #salesView .admin-toolbar {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(170px, 0.62fr) auto;
+  }
+
+  #salesView .admin-toolbar > * {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  #salesView .sales-admin-summary {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  #salesView .sales-admin-summary > div {
+    min-height: 86px;
+    padding: 13px 15px;
+    border-radius: var(--admin-radius-sm);
+    background: linear-gradient(180deg, rgba(28, 30, 35, 0.98), rgba(20, 22, 26, 0.98));
+  }
+
+  #salesView .sales-admin-summary strong {
+    font-size: 1.42rem;
+  }
+
+  #salesView .sales-admin-layout {
+    grid-template-columns: minmax(480px, 0.86fr) minmax(700px, 1.34fr);
+    gap: 22px;
+  }
+
+  #salesView .sales-rep-admin-list,
+  #salesView .sales-rep-form {
+    min-width: 0;
+    border-radius: var(--admin-radius-md);
+    background: linear-gradient(180deg, rgba(18, 20, 24, 0.98), rgba(13, 15, 18, 0.98));
+  }
+
+  #salesView .sales-rep-admin-list {
+    padding: 18px;
+  }
+
+  #salesView .sales-rep-admin-card {
+    padding: 16px;
+    border-radius: var(--admin-radius-sm);
+    background: rgba(24, 26, 31, 0.94);
+  }
+
+  #salesView .sales-rep-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #salesView .sales-rep-card-grid > div {
+    min-width: 0;
+    border-radius: 8px;
+  }
+
+  #salesView .sales-rep-card-actions .ghost-button {
+    min-height: 42px;
+  }
+
+  #salesView .sales-rep-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+    padding: 20px;
+  }
+
+  #salesView .sales-rep-form .form-heading,
+  #salesView .sales-rep-form .form-actions,
+  #salesView .sales-rep-form .form-message {
+    grid-column: 1 / -1;
+  }
+
+  #salesView .sales-rep-form input,
+  #salesView .sales-rep-form select,
+  #salesView .sales-rep-form textarea {
+    min-width: 0;
+  }
+
+  #salesView .sales-rep-form fieldset {
+    gap: 14px 16px;
+    padding: 16px;
+    border-radius: var(--admin-radius-sm);
+    background: rgba(17, 19, 23, 0.72);
+  }
+
+  #salesView .sales-rep-form .portal-access-option {
+    border-radius: var(--admin-radius-sm);
+  }
+
   #salesView .sales-rep-card-grid,
   #logisticsView .sales-rep-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
