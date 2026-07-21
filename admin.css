@@ -7020,3 +7020,147 @@ button.operation-row:hover {
   }
   #commissionsView .commission-settlements .operation-row span { min-width: 0; }
 }
+
+/* Equipo de logistica: listado y ficha compactos para escritorio. */
+@media (min-width: 1100px) {
+  #logisticsView { min-width: 0; }
+
+  #logisticsView .admin-titlebar {
+    grid-template-columns: minmax(320px, 0.72fr) auto;
+    align-items: end;
+    gap: 22px;
+    margin-bottom: 18px;
+  }
+
+  #logisticsView .admin-titlebar h1 {
+    margin: 2px 0 0;
+    font-size: clamp(1.55rem, 1.65vw, 1.95rem);
+    line-height: 1.08;
+  }
+
+  #logisticsView .admin-toolbar {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: end;
+    gap: 10px;
+  }
+
+  #logisticsView .admin-toolbar .ghost-button,
+  #logisticsView .admin-toolbar .secondary-button {
+    min-height: 52px;
+    padding: 0 20px;
+    white-space: nowrap;
+  }
+
+  #logisticsView .sales-admin-layout {
+    grid-template-columns: minmax(390px, 0.72fr) minmax(0, 1.28fr);
+    align-items: start;
+    gap: 22px;
+  }
+
+  #logisticsView .sales-rep-admin-list,
+  #logisticsView .sales-rep-form {
+    min-width: 0;
+    padding: 20px;
+    overflow: hidden;
+    border-color: rgba(183, 184, 255, 0.22);
+    border-radius: var(--admin-radius-md);
+    background: linear-gradient(180deg, rgba(18, 20, 24, 0.98), rgba(13, 15, 18, 0.98));
+  }
+
+  #logisticsView .panel-heading h3,
+  #logisticsView .form-heading h2 {
+    margin: 2px 0 0;
+    font-size: 1.3rem;
+    line-height: 1.15;
+  }
+
+  #logisticsView .sales-rep-list { gap: 10px; }
+
+  #logisticsView .sales-rep-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    min-height: 96px;
+    padding: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--admin-radius-sm);
+    background: linear-gradient(180deg, rgba(29, 31, 37, 0.98), rgba(21, 23, 27, 0.98));
+  }
+
+  #logisticsView .sales-rep-card > div {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+  }
+
+  #logisticsView .sales-rep-card strong,
+  #logisticsView .sales-rep-card span,
+  #logisticsView .sales-rep-card small {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  #logisticsView .sales-rep-card strong {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  #logisticsView .sales-rep-card span {
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  #logisticsView .sales-rep-card small {
+    color: #aeb7c8;
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+  #logisticsView .sales-rep-card .ghost-button {
+    min-width: 112px;
+    min-height: 44px;
+    padding: 0 16px;
+    white-space: nowrap;
+  }
+
+  #logisticsView .sales-rep-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+    row-gap: 14px;
+  }
+
+  #logisticsView .sales-rep-form > .form-heading,
+  #logisticsView .sales-rep-form > .wide,
+  #logisticsView .sales-rep-form > .form-actions,
+  #logisticsView .sales-rep-form > .form-message {
+    grid-column: 1 / -1;
+  }
+
+  #logisticsView .sales-rep-form label,
+  #logisticsView .sales-rep-form input,
+  #logisticsView .sales-rep-form select,
+  #logisticsView .sales-rep-form textarea,
+  #logisticsView .password-control {
+    min-width: 0;
+  }
+
+  #logisticsView .portal-access-option {
+    min-height: 56px;
+    padding: 13px 15px;
+    border-radius: var(--admin-radius-sm);
+    background: rgba(127, 133, 255, 0.06);
+  }
+
+  #logisticsView .form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 4px;
+  }
+}
