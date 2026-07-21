@@ -7164,3 +7164,203 @@ button.operation-row:hover {
     padding-top: 4px;
   }
 }
+
+/* Configuracion: parametros globales y cuentas de cobro para escritorio. */
+@media (min-width: 1100px) {
+  #settingsView { min-width: 0; }
+
+  #settingsView .admin-titlebar {
+    grid-template-columns: minmax(320px, 0.72fr) auto;
+    align-items: end;
+    gap: 22px;
+    margin-bottom: 18px;
+  }
+
+  #settingsView .admin-titlebar h1 {
+    margin: 2px 0 0;
+    font-size: clamp(1.55rem, 1.65vw, 1.95rem);
+    line-height: 1.08;
+  }
+
+  #settingsView .admin-toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  #settingsView .admin-toolbar .ghost-button {
+    min-height: 52px;
+    padding-inline: 20px;
+  }
+
+  #settingsForm {
+    max-width: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  #settingsForm fieldset {
+    min-width: 0;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 14px;
+    padding: 20px;
+    overflow: hidden;
+    border-color: rgba(183, 184, 255, 0.22);
+    border-radius: var(--admin-radius-md);
+    background: linear-gradient(180deg, rgba(18, 20, 24, 0.98), rgba(13, 15, 18, 0.98));
+  }
+
+  #settingsForm legend {
+    padding: 0 10px;
+    color: #f4f5f7;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+  }
+
+  #settingsForm label,
+  #settingsForm input {
+    min-width: 0;
+  }
+
+  #settingsForm .admin-note {
+    margin: 0;
+    padding: 11px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--admin-radius-sm);
+    color: #aeb5c1;
+    background: rgba(127, 133, 255, 0.05);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  #settingsForm > .primary-button,
+  #settingsForm > .form-message {
+    grid-column: 1 / -1;
+  }
+
+  #settingsForm > .primary-button {
+    min-height: 52px;
+    min-width: 220px;
+    margin-top: 2px;
+    padding-inline: 22px;
+  }
+
+  #settingsForm > .form-message {
+    min-height: 22px;
+    margin: -8px 0 0;
+  }
+
+  #paymentAccountForm {
+    max-width: none;
+    gap: 14px;
+    margin-top: 26px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(183, 184, 255, 0.22);
+    border-radius: var(--admin-radius-md);
+    background: linear-gradient(180deg, rgba(18, 20, 24, 0.98), rgba(13, 15, 18, 0.98));
+  }
+
+  #paymentAccountForm fieldset {
+    min-width: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    padding: 0;
+    border: 0;
+  }
+
+  #paymentAccountForm legend {
+    margin-bottom: 16px;
+    padding: 0;
+    color: #f4f5f7;
+    font-size: 1.25rem;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  #paymentAccountForm label,
+  #paymentAccountForm input,
+  #paymentAccountForm select,
+  #paymentAccountForm textarea {
+    min-width: 0;
+  }
+
+  #paymentAccountForm .checkbox-label {
+    display: flex;
+    align-items: center;
+    align-self: end;
+    gap: 10px;
+    min-height: 52px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--admin-radius-sm);
+    color: #f3f4f5;
+    background: rgba(127, 133, 255, 0.05);
+  }
+
+  #paymentAccountForm .checkbox-label input {
+    width: 20px;
+    min-height: 20px;
+    margin: 0;
+  }
+
+  #paymentAccountForm .form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 2px;
+  }
+
+  #paymentAccountForm .form-actions button {
+    min-height: 48px;
+    padding-inline: 20px;
+  }
+
+  #paymentAccountForm > .form-message {
+    min-height: 22px;
+    margin: -4px 0 0;
+  }
+
+  #settingsView .payment-account-list {
+    max-width: none;
+    margin-top: 14px;
+  }
+
+  #settingsView .payment-account-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  #settingsView .payment-account-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-width: 0;
+    min-height: 88px;
+    padding: 15px 16px;
+    overflow: hidden;
+    border-color: rgba(255, 255, 255, 0.1);
+    border-radius: var(--admin-radius-sm);
+    background: linear-gradient(180deg, rgba(29, 31, 37, 0.98), rgba(21, 23, 27, 0.98));
+  }
+
+  #settingsView .payment-account-card > div,
+  #settingsView .payment-account-card strong,
+  #settingsView .payment-account-card span,
+  #settingsView .payment-account-card small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  #settingsView .payment-account-card strong { font-size: 0.98rem; }
+  #settingsView .payment-account-card span { font-size: 0.8rem; }
+  #settingsView .payment-account-card small { font-size: 0.75rem; }
+
+  #settingsView .payment-account-card .row-button {
+    min-width: 104px;
+    min-height: 44px;
+    padding-inline: 15px;
+    white-space: nowrap;
+  }
+}
