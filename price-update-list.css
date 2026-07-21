@@ -10,15 +10,15 @@ body { margin: 0; color: #101114; font-family: Arial, Helvetica, sans-serif; }
 .price-sheet:last-child { page-break-after: auto; break-after: auto; }
 .sheet-header { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding-bottom: 7mm; border-bottom: 3px solid #111317; }
 .brand { display: flex; align-items: center; gap: 16px; }
-.brand img { width: 42mm; height: auto; }
+.brand img { width: 42mm; height: auto; filter: brightness(0); }
 .brand p, .validity span, .product-code small, .product-price span, .product-price small, .sheet-footer { color: #59616c; font-size: 8.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .brand p, .brand h1 { margin: 0; }
 .brand h1 { margin-top: 3px; font-size: 25px; letter-spacing: -.03em; }
 .validity { min-width: 54mm; padding: 10px 13px; color: #fff; text-align: right; background: #101114; border-left: 5px solid #d7c74b; }
 .validity span, .validity small { display: block; color: #dfe3e7; }
 .validity strong { display: block; margin: 4px 0; font-size: 18px; }
-.family-heading { display: flex; align-items: baseline; gap: 10px; padding: 4mm 0 3mm; }
-.family-heading span { color: #727983; font-size: 8px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.family-heading { display: flex; align-items: baseline; gap: 10px; margin: 3mm 0; padding: 2.5mm 3.5mm; color: #fff; background: #111317; border-left: 5px solid #d7c74b; border-radius: 3px; }
+.family-heading span { color: #d7c74b; font-size: 8px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
 .family-heading strong { font-size: 15px; }
 .product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(5, 39mm); align-content: start; gap: 3mm; }
 .product-card { display: grid; grid-template-columns: 38mm minmax(0, 1fr); height: 39mm; min-height: 0; overflow: hidden; background: #fff; border: 2px solid #111317; border-radius: 3px; break-inside: avoid; }
