@@ -46,7 +46,7 @@ function pageMarkup({ familyName, items, pageNumber, pageCount, effectiveDate })
     <section class="price-sheet">
       <header class="sheet-header">
         <div class="brand">
-          <img src="./assets/km-logo-solid-black.png" alt="KM Detail Line">
+          <img src="./assets/km-logo-solid-black-v2.png" alt="KM Detail Line">
           <div><p>Información comercial</p><h1>Lista de precios</h1></div>
         </div>
         <div class="validity"><span>Vigencia desde</span><strong>${escapeHtml(effectiveDate)}</strong><small>Precios de lista + IVA</small></div>
