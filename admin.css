@@ -5963,10 +5963,10 @@ button.operation-row:hover {
     table-layout: fixed;
   }
 
-  #distributorsView .admin-table th:nth-child(1) { width: 22%; }
-  #distributorsView .admin-table th:nth-child(2) { width: 19%; }
-  #distributorsView .admin-table th:nth-child(3) { width: 25%; }
-  #distributorsView .admin-table th:nth-child(4) { width: 13%; }
+  #distributorsView .admin-table th:nth-child(1) { width: 20%; }
+  #distributorsView .admin-table th:nth-child(2) { width: 18%; }
+  #distributorsView .admin-table th:nth-child(3) { width: 23%; }
+  #distributorsView .admin-table th:nth-child(4) { width: 18%; }
   #distributorsView .admin-table th:nth-child(5) { width: 21%; }
 
   #distributorsView .admin-table td {
@@ -5982,8 +5982,18 @@ button.operation-row:hover {
   }
 
   #distributorsView .distributor-actions-cell {
-    display: grid;
-    gap: 8px;
+    vertical-align: middle;
+  }
+
+  #distributorsView .admin-table td:nth-child(4) .state-badge {
+    display: inline-flex;
+    max-width: 100%;
+    padding: 5px 7px;
+    justify-content: center;
+    white-space: normal;
+    text-align: center;
+    font-size: 0.62rem;
+    line-height: 1.1;
   }
 
   #distributorsView .distributor-actions-cell .small-button {
