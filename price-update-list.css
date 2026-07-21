@@ -10,7 +10,7 @@ body { margin: 0; color: #101114; font-family: Arial, Helvetica, sans-serif; }
 .price-sheet:last-child { page-break-after: auto; break-after: auto; }
 .sheet-header { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding-bottom: 7mm; border-bottom: 3px solid #111317; }
 .brand { display: flex; align-items: center; gap: 16px; }
-.brand img { width: 42mm; height: auto; filter: brightness(0); }
+.brand img { width: 42mm; height: auto; }
 .brand p, .validity span, .product-code small, .product-price span, .product-price small, .sheet-footer { color: #59616c; font-size: 8.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .brand p, .brand h1 { margin: 0; }
 .brand h1 { margin-top: 3px; font-size: 25px; letter-spacing: -.03em; }
@@ -32,7 +32,7 @@ body { margin: 0; color: #101114; font-family: Arial, Helvetica, sans-serif; }
 .image-placeholder small { font-size: 7px; }
 .product-copy { display: flex; min-width: 0; flex-direction: column; padding: 2.6mm 3mm; }
 .product-code { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
-.product-code strong { font-size: 13px; }
+.product-code strong { flex: none; padding: 1mm 1.8mm; color: #fff; font-size: 15px; font-weight: 900; line-height: 1; letter-spacing: .02em; background: #111317; border-radius: 2px; }
 .product-code small { font-size: 6.7px; letter-spacing: .02em; }
 .product-copy h2 { display: -webkit-box; overflow: hidden; margin: 2.2mm 0 1mm; font-size: 10px; line-height: 1.2; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 .product-price { display: grid; grid-template-columns: 1fr auto; align-items: end; margin-top: auto; padding-top: 2mm; border-top: 1px solid #dfe2e6; }
