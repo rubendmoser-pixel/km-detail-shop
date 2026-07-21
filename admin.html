@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="./assets/app-admin-192.png" />
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=83" />
+    <link rel="stylesheet" href="./admin.css?v=84" />
     <link rel="stylesheet" href="./admin-production.css?v=47" />
   </head>
   <body class="admin-body">
@@ -742,12 +742,15 @@
               </div>
               <p class="form-message" id="distributorMessage" role="status"></p>
             </form>
-            <div class="orders-table-wrap">
-              <table class="admin-table">
-                <thead><tr><th>Distribuidor</th><th>Zona</th><th>Contacto</th><th>Publicacion</th><th>Acciones</th></tr></thead>
-                <tbody id="distributorsTableBody"></tbody>
-              </table>
-            </div>
+            <section class="distributor-list-panel">
+              <div class="panel-heading"><p class="eyebrow">Listado</p><h2>Red de distribuidores</h2></div>
+              <div class="orders-table-wrap">
+                <table class="admin-table">
+                  <thead><tr><th>Distribuidor</th><th>Zona</th><th>Contacto</th><th>Publicacion</th><th>Acciones</th></tr></thead>
+                  <tbody id="distributorsTableBody"></tbody>
+                </table>
+              </div>
+            </section>
           </div>
         </section>
 

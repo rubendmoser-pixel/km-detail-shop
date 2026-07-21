@@ -5190,8 +5190,7 @@ button.operation-row:hover {
   }
 
   #distributorsView .distributor-actions-cell {
-    display: grid;
-    gap: 8px;
+    vertical-align: middle;
   }
 
   #distributorsView .distributor-actions-cell .small-button,
@@ -5892,23 +5891,106 @@ button.operation-row:hover {
   }
 
   #distributorsView .distributor-admin-layout {
-    grid-template-columns: minmax(410px, 0.62fr) minmax(760px, 1.38fr);
+    grid-template-columns: minmax(470px, 0.72fr) minmax(760px, 1.28fr);
     gap: 22px;
+    align-items: start;
+  }
+
+  #distributorsView #distributorForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+    min-width: 0;
+    padding: 20px;
+    border-radius: var(--admin-radius-md);
+    background: linear-gradient(180deg, rgba(18, 20, 24, 0.98), rgba(13, 15, 18, 0.98));
+  }
+
+  #distributorsView #distributorForm .form-heading,
+  #distributorsView #distributorForm .form-actions,
+  #distributorsView #distributorForm .form-message {
+    grid-column: 1 / -1;
+  }
+
+  #distributorsView #distributorForm input,
+  #distributorsView #distributorForm select,
+  #distributorsView #distributorForm textarea {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #distributorsView #distributorForm .checkbox-label {
+    min-height: 52px;
+    padding: 12px 14px;
+    border: 1px solid rgba(183, 184, 255, 0.24);
+    border-radius: var(--admin-radius-sm);
+    background: rgba(127, 133, 255, 0.07);
+  }
+
+  #distributorsView .distributor-list-panel {
+    display: grid;
+    gap: 0;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-md);
+    background: rgba(16, 18, 22, 0.98);
+  }
+
+  #distributorsView .distributor-list-panel > .panel-heading {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--admin-border);
+  }
+
+  #distributorsView .distributor-list-panel .panel-heading h2 {
+    margin: 2px 0 0;
+    font-size: 1.25rem;
   }
 
   #distributorsView .orders-table-wrap {
     min-width: 0;
+    overflow: visible;
+    border: 0;
   }
 
   #distributorsView .admin-table {
     width: 100%;
-    min-width: 850px;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  #distributorsView .admin-table th:nth-child(1) { width: 22%; }
+  #distributorsView .admin-table th:nth-child(2) { width: 19%; }
+  #distributorsView .admin-table th:nth-child(3) { width: 27%; }
+  #distributorsView .admin-table th:nth-child(4) { width: 13%; }
+  #distributorsView .admin-table th:nth-child(5) { width: 19%; }
+
+  #distributorsView .admin-table td {
+    vertical-align: top;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   #distributorsView .admin-table th,
   #distributorsView .admin-table td {
     padding-right: 12px;
     padding-left: 12px;
+  }
+
+  #distributorsView .distributor-actions-cell {
+    display: grid;
+    gap: 8px;
+  }
+
+  #distributorsView .distributor-actions-cell .small-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    margin: 0;
+    padding: 7px 9px;
+  }
+
+  #distributorsView .distributor-actions-cell .small-button + .small-button {
+    margin-top: 8px;
   }
 
   #pricesView .admin-titlebar {
