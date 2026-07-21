@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="./assets/app-admin-192.png" />
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=90" />
+    <link rel="stylesheet" href="./admin.css?v=91" />
     <link rel="stylesheet" href="./admin-production.css?v=47" />
   </head>
   <body class="admin-body">
@@ -1159,11 +1159,17 @@
 
         <section class="admin-view" id="operationView" hidden>
           <div class="admin-titlebar">
-            <div><p class="eyebrow">Operacion</p><h1>Tablero comercial</h1></div>
+            <div><p class="eyebrow">Información gerencial</p><h1>Tablero mensual</h1></div>
             <div class="admin-toolbar">
+              <label class="dashboard-month-field"><span>Mes analizado</span><input id="operationMonth" type="month" /></label>
               <button class="ghost-button toolbar-refresh-button" id="reloadOperationDashboard" type="button">Actualizar</button>
             </div>
           </div>
+          <nav class="dashboard-report-tabs" id="operationReportTabs" aria-label="Secciones del tablero">
+            <button type="button" data-operation-tab="summary">Resumen mensual</button>
+            <button type="button" data-operation-tab="articles">Artículos</button>
+            <button type="button" data-operation-tab="profit">Utilidad</button>
+          </nav>
           <div class="operation-dashboard" id="operationDashboard"></div>
           <form class="settings-form" id="deleteTestOrdersForm">
             <fieldset>
@@ -1188,7 +1194,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=117" defer></script>
+    <script src="./admin.js?v=118" defer></script>
     <script src="./admin-production.js?v=41" defer></script>
   </body>
 </html>

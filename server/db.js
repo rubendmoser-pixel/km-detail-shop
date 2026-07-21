@@ -846,6 +846,12 @@ function migrate(db) {
 
   const migration = db.prepare("SELECT version FROM schema_migrations WHERE version = ?").get(SCHEMA_VERSION);
   ensureColumn(db, "order_items", "confirmed_quantity", "INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_quantity >= 0)");
+  ensureColumn(db, "order_items", "industrial_unit_cost_cents", "INTEGER");
+  ensureColumn(db, "order_items", "industrial_material_cost_cents", "INTEGER");
+  ensureColumn(db, "order_items", "industrial_labor_cost_cents", "INTEGER");
+  ensureColumn(db, "order_items", "industrial_production_commission_cents", "INTEGER");
+  ensureColumn(db, "order_items", "industrial_cost_complete", "INTEGER NOT NULL DEFAULT 0 CHECK (industrial_cost_complete IN (0, 1))");
+  ensureColumn(db, "order_items", "industrial_cost_snapshot_at", "TEXT");
   ensureColumn(db, "order_items", "confirmed_subtotal_net_cents", "INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_subtotal_net_cents >= 0)");
   ensureColumn(db, "order_items", "line_status", "TEXT NOT NULL DEFAULT 'pending_confirmation'");
   ensureColumn(db, "order_items", "availability_note", "TEXT NOT NULL DEFAULT ''");

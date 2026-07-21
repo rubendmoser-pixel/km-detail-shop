@@ -1063,7 +1063,7 @@ export function createApp({
         });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/operation/dashboard") {
-        return sendJson(response, 200, { dashboard: getAdminOperationDashboard(db) });
+        return sendJson(response, 200, { dashboard: getAdminOperationDashboard(db, { month: url.searchParams.get("month") }) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/analytics/dashboard") {
         return sendJson(response, 200, { dashboard: getAnalyticsDashboard(db, { days: url.searchParams.get("days") }) });

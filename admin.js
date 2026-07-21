@@ -2,7 +2,7 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}, customerShippingAddresses: {}, editingCustomerShippingAddress: {},
+  operationDashboard: null, operationMonth: new Date().toISOString().slice(0, 7), operationTab: "summary", operationProductSearch: "", analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}, customerShippingAddresses: {}, editingCustomerShippingAddress: {},
   priceProducts: [], priceCosts: null, priceProfitTargets: {}, priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
   orderScope: "active", orderSearches: { active: "", history: "" }, logisticsOperators: []
 };
@@ -203,7 +203,7 @@ const adminEls = Object.fromEntries([
   "emailSearch", "emailStats", "emailConfigStatus", "emailsTableBody",
   "securitySearch", "securityStats", "securityTableBody", "currentAccountSearch", "currentAccountDashboard",
   "logisticsOperatorsList", "logisticsOperatorForm", "logisticsOperatorFormTitle", "logisticsOperatorMessage",
-  "analyticsDays", "analyticsDashboard", "operationDashboard", "backupDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
+  "analyticsDays", "analyticsDashboard", "operationDashboard", "operationMonth", "operationReportTabs", "backupDashboard", "deleteTestOrdersForm", "deleteTestOrdersMessage", "adminToast"
 ].map((id) => [id, document.querySelector(`#${id}`)]));
 
 async function initAdmin() {
@@ -319,7 +319,10 @@ function bindAdminEvents() {
   on(adminEls.currentAccountDashboard, "click", handleCurrentAccountClick);
   on(adminEls.currentAccountDashboard, "submit", handleCurrentAccountSubmit);
   on(byId("#reloadOperationDashboard"), "click", loadOperationDashboard);
+  on(adminEls.operationMonth, "change", () => { adminState.operationMonth = adminEls.operationMonth.value; loadOperationDashboard(); });
+  on(adminEls.operationReportTabs, "click", (event) => { const button=event.target.closest("[data-operation-tab]"); if(!button)return; adminState.operationTab=button.dataset.operationTab; renderOperationDashboard(adminState.operationDashboard); });
   on(adminEls.operationDashboard, "click", handleOperationDashboardClick);
+  on(adminEls.operationDashboard, "input", debounce((event) => { if(!event.target.matches("[data-operation-product-search]"))return; adminState.operationProductSearch=event.target.value; renderOperationDashboard(adminState.operationDashboard); adminEls.operationDashboard.querySelector("[data-operation-product-search]")?.focus(); }, 180));
   on(byId("#reloadBackups"), "click", loadOperationDashboard);
   on(adminEls.backupDashboard, "click", handleBackupDashboardClick);
   on(adminEls.deleteTestOrdersForm, "submit", deleteTestOrders);
@@ -3966,7 +3969,8 @@ async function deleteTestOrders(event) {
 }
 
 async function loadOperationDashboard() {
-  const { dashboard } = await adminApi("/api/admin/operation/dashboard");
+  if (adminEls.operationMonth && !adminEls.operationMonth.value) adminEls.operationMonth.value = adminState.operationMonth;
+  const { dashboard } = await adminApi(`/api/admin/operation/dashboard?month=${encodeURIComponent(adminState.operationMonth)}`);
   adminState.operationDashboard = dashboard;
   renderOperationDashboard(dashboard);
   renderCurrentAccountDashboard(dashboard);
@@ -4223,45 +4227,28 @@ function renderOperationDashboard(dashboard) {
     adminEls.operationDashboard.innerHTML = `<p class="admin-note">No hay datos operativos disponibles.</p>`;
     return;
   }
-  const summary = dashboard.summary || {};
-  const currentAccounts = dashboard.currentAccounts || {};
-  adminEls.operationDashboard.innerHTML = `
-    <div class="operation-metrics">
-      ${metricCard("Pedidos activos", summary.activeOrders || 0, "En curso operativo")}
-      ${metricCard("Ventas del mes", adminMoney.format((summary.monthTotalCents || 0) / 100), "Total confirmado")}
-      ${metricCard("Cobrado del mes", adminMoney.format((summary.monthPaidCents || 0) / 100), "Pagos acreditados")}
-      ${metricCard("Saldo abierto", adminMoney.format((summary.openBalanceCents || 0) / 100), "Cuenta corriente y pagos pendientes")}
-      ${metricCard("Vencido", adminMoney.format((summary.overdueBalanceCents || 0) / 100), "Requiere seguimiento")}
-      ${metricCard("Por despachar", summary.pendingDispatch || 0, "Pedidos listos")}
+  const report=dashboard.monthlyReport||{}; const articles=report.articles||{}; const finance=report.finance||{};
+  if(adminEls.operationMonth) adminEls.operationMonth.value=report.month||adminState.operationMonth;
+  adminEls.operationReportTabs?.querySelectorAll("[data-operation-tab]").forEach((button)=>button.classList.toggle("active",button.dataset.operationTab===adminState.operationTab));
+  if(adminState.operationTab==="articles") { adminEls.operationDashboard.innerHTML=renderMonthlyArticles(report); return; }
+  if(adminState.operationTab==="profit") { adminEls.operationDashboard.innerHTML=renderMonthlyProfit(report); return; }
+  adminEls.operationDashboard.innerHTML=`
+    <section class="dashboard-section-head"><div><p class="eyebrow">Actividad de ${escapeHtml(report.label||"")}</p><h2>Movimiento de artículos</h2></div><p>Las unidades cobradas corresponden a pedidos pagados completamente durante el mes.</p></section>
+    <div class="operation-metrics dashboard-article-metrics">
+      ${metricCard("Vendidos",articles.sold||0,"Disponibilidad confirmada")}${metricCard("Producidos",articles.produced||0,"Partes aprobados")}${metricCard("Despachados",articles.dispatched||0,"Salida de stock")}${metricCard("Entregados",articles.delivered||0,"Recepción confirmada")}${metricCard("Cobrados",articles.paid||0,"Pedidos totalmente pagados")}
     </div>
-    <div class="operation-layout">
-      <section class="operation-panel">
-        <div class="panel-heading"><p class="eyebrow">Cuenta corriente</p><h3>Saldos abiertos</h3></div>
-        ${renderAccountRows(currentAccounts.open || [])}
-      </section>
-      <section class="operation-panel">
-        <div class="panel-heading"><p class="eyebrow">Vencimientos</p><h3>Alertas comerciales</h3></div>
-        <div class="operation-alerts">
-          <div><span>Vencen pronto</span><strong>${adminMoney.format((summary.dueSoonBalanceCents || 0) / 100)}</strong></div>
-          <div><span>Vencidos</span><strong>${adminMoney.format((summary.overdueBalanceCents || 0) / 100)}</strong></div>
-        </div>
-        ${renderAccountRows([...(currentAccounts.overdue || []), ...(currentAccounts.dueSoon || [])].slice(0, 8))}
-      </section>
-      <section class="operation-panel">
-        <div class="panel-heading"><p class="eyebrow">Clientes</p><h3>Ranking del mes</h3></div>
-        ${renderRankRows(dashboard.sales?.byCustomer || [], "businessName", "totalCents")}
-      </section>
-      <section class="operation-panel">
-        <div class="panel-heading"><p class="eyebrow">Vendedores</p><h3>Comisiones del mes</h3></div>
-        ${renderSalesRepRows(dashboard.sales?.bySalesRep || [])}
-      </section>
-      <section class="operation-panel wide">
-        <div class="panel-heading"><p class="eyebrow">Productos</p><h3>Mas vendidos</h3></div>
-        ${renderProductRankRows(dashboard.products || [])}
-      </section>
-    </div>
-  `;
+    <section class="dashboard-section-head"><div><p class="eyebrow">Resultado económico</p><h2>Resumen del mes</h2></div><p>Importes netos sin IVA. La utilidad descuenta costo industrial y comisión comercial real.</p></section>
+    <div class="operation-metrics dashboard-finance-metrics">
+      ${metricCard("Ventas netas",moneyCents(finance.netSalesCents),"Sin IVA y con descuentos reales")}${metricCard("Cobros",moneyCents(finance.collectionsCents),"Incluye cobros parciales")}${metricCard("Saldo generado",moneyCents(finance.balanceGeneratedCents),"Pendiente de ventas del mes")}${metricCard("Costo industrial",moneyCents(finance.industrialCostCents),"Materiales, trabajo y comisión de producción")}${metricCard("Comisiones de venta",moneyCents(finance.salesCommissionCents),"Comisión comercial real")}${metricCard("Utilidad",moneyCents(finance.utilityCents),formatPercent(finance.marginPercent)+" sobre venta neta")}
+    </div>`;
 }
+
+function renderMonthlyArticles(report){const products=(report.products||[]).filter((row)=>{const q=adminState.operationProductSearch.toLowerCase();return !q||`${row.kmCode} ${row.productName} ${row.familyName}`.toLowerCase().includes(q);});return `<section class="dashboard-section-head"><div><p class="eyebrow">Detalle de ${escapeHtml(report.label||"")}</p><h2>Artículos por producto</h2></div><input class="dashboard-product-search" type="search" data-operation-product-search placeholder="Buscar código, producto o familia" value="${escapeHtml(adminState.operationProductSearch)}"></section><div class="dashboard-table-wrap"><div class="dashboard-product-table dashboard-product-head"><span>Producto</span><span>Vendidos</span><span>Producidos</span><span>Despachados</span><span>Entregados</span><span>Cobrados</span></div>${products.length?products.map((row)=>`<div class="dashboard-product-table"><span><strong>${escapeHtml(row.kmCode)}</strong><small>${escapeHtml(row.productName)}</small><em>${escapeHtml(row.familyName)}</em></span><b>${row.sold}</b><b>${row.produced}</b><b>${row.dispatched}</b><b>${row.delivered}</b><b>${row.paid}</b></div>`).join(""):`<p class="admin-note">No hay artículos para mostrar.</p>`}</div>`;}
+
+function renderMonthlyProfit(report){const finance=report.finance||{};const trend=report.trend||[];const max=Math.max(1,...trend.map((row)=>Math.max(row.netSalesCents,row.industrialCostCents)));return `<div class="operation-metrics dashboard-profit-summary">${metricCard("Utilidad mensual",moneyCents(finance.utilityCents),formatPercent(finance.marginPercent)+" de margen")}${metricCard("Venta neta",moneyCents(finance.netSalesCents),"Base del cálculo")}${metricCard("Costos + comisiones",moneyCents(Number(finance.industrialCostCents||0)+Number(finance.salesCommissionCents||0)),"Egresos asociados")}</div><section class="operation-panel dashboard-trend-panel"><div class="panel-heading"><p class="eyebrow">Evolución</p><h3>Ventas, costos y utilidad — 12 meses</h3></div><div class="dashboard-trend">${trend.map((row)=>`<div class="dashboard-trend-month"><div class="dashboard-bars"><i style="height:${Math.max(2,row.netSalesCents/max*100)}%" title="Venta ${moneyCents(row.netSalesCents)}"></i><i style="height:${Math.max(2,row.industrialCostCents/max*100)}%" title="Costo ${moneyCents(row.industrialCostCents)}"></i></div><strong>${escapeHtml(row.label.split(" de ")[0].slice(0,3))}</strong><small>${formatPercent(row.marginPercent)}</small></div>`).join("")}</div><div class="dashboard-legend"><span>Venta neta</span><span>Costo industrial</span></div></section><div class="dashboard-table-wrap"><div class="dashboard-profit-table dashboard-product-head"><span>Producto</span><span>Venta neta</span><span>Costo</span><span>Comisión</span><span>Utilidad</span><span>Margen</span></div>${(report.products||[]).filter((row)=>row.sold).map((row)=>`<div class="dashboard-profit-table"><span><strong>${escapeHtml(row.kmCode)}</strong><small>${escapeHtml(row.productName)}</small></span><b>${moneyCents(row.netSalesCents)}</b><b>${moneyCents(row.industrialCostCents)}</b><b>${moneyCents(row.salesCommissionCents)}</b><b class="${row.utilityCents<0?'negative':'positive'}">${moneyCents(row.utilityCents)}</b><b>${formatPercent(row.marginPercent)}</b></div>`).join("")}</div>`;}
+
+function moneyCents(value){return adminMoney.format(Number(value||0)/100)}
+function formatPercent(value){return value===null||value===undefined?"Sin datos":`${Number(value).toLocaleString("es-AR",{minimumFractionDigits:1,maximumFractionDigits:1})}%`}
 
 function renderBackupDashboard(dashboard = adminState.operationDashboard) {
   if (!adminEls.backupDashboard) return;

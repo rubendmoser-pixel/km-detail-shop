@@ -10,6 +10,7 @@ import { getCommercialSettings } from "./settings-service.js";
 import { getShippingAddress } from "./shipping-address-service.js";
 import { activeCustomerProductSpecialDiscount, activeProductPromotion } from "./product-service.js";
 import { normalizePaymentSnapshot, resolvePaymentAccountsForCustomer } from "./payment-account-service.js";
+import { getProductionCosts } from "./production-cost-service.js";
 
 const RECEIPT_MIME_EXTENSIONS = new Map([
   ["application/pdf", ".pdf"],
@@ -397,11 +398,15 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
 
   return transaction(db, () => {
     const currentItems = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
+    const costsByProduct = new Map(getProductionCosts(db).products.map((cost) => [Number(cost.productId), cost]));
     const currentById = new Map(currentItems.map((item) => [item.id, item]));
     let requiresCustomerAcceptance = false;
     const updateItem = db.prepare(`
       UPDATE order_items SET confirmed_quantity = ?, confirmed_subtotal_net_cents = ?,
-        line_status = ?, availability_note = ?
+        line_status = ?, availability_note = ?, industrial_unit_cost_cents = ?,
+        industrial_material_cost_cents = ?, industrial_labor_cost_cents = ?,
+        industrial_production_commission_cents = ?, industrial_cost_complete = ?,
+        industrial_cost_snapshot_at = CURRENT_TIMESTAMP
       WHERE id = ? AND order_id = ?
     `);
     let confirmedSubtotalNetCents = 0;
@@ -413,9 +418,18 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
       const confirmedSubtotal = item.final_unit_price_cents * confirmedQuantity;
       const lineStatus = lineStatusFor(item.quantity, confirmedQuantity, itemInput.lineStatus);
       const note = optionalText(itemInput.availabilityNote, "availabilityNote", { max: 500 });
+      const cost = costsByProduct.get(Number(item.product_id));
       if (confirmedQuantity !== item.quantity) requiresCustomerAcceptance = true;
       confirmedSubtotalNetCents += confirmedSubtotal;
-      updateItem.run(confirmedQuantity, confirmedSubtotal, lineStatus, note, item.id, orderId);
+      updateItem.run(
+        confirmedQuantity, confirmedSubtotal, lineStatus, note,
+        cost ? Math.round(Number(cost.totalCostArs || 0) * 100) : null,
+        cost ? Math.round(Number(cost.materialCostArs || 0) * 100) : null,
+        cost ? Math.round(Number(cost.laborCostArs || 0) * 100) : null,
+        cost ? Math.round(Number(cost.commissionArs || 0) * 100) : null,
+        cost?.complete ? 1 : 0,
+        item.id, orderId
+      );
     }
     const vatCents = Math.round(confirmedSubtotalNetCents * order.vat_bps / 10_000);
     const totalCents = confirmedSubtotalNetCents + vatCents;
