@@ -321,25 +321,21 @@ export function renderProductPage(product) {
       [product.name, url]
     ]),
     {
-      "@type": "Product",
-      "@id": `${url}#product`,
-      name: product.name,
-      sku: product.kmCode,
-      gtin13: product.ean13,
-      brand: { "@type": "Brand", name: "KM Detail Line" },
-      manufacturer: { "@id": `${SITE_URL}/#organization` },
-      category: product.family?.name,
-      description,
-      image: gallery.map((item) => absoluteUrl(item.url)).filter(Boolean),
+      "@type": "WebPage",
+      "@id": `${url}#webpage`,
       url,
-      additionalProperty: specs.map(([name, value]) => ({
-        "@type": "PropertyValue",
-        name,
-        value
-      })),
-      audience: {
-        "@type": "BusinessAudience",
-        audienceType: "Usuarios profesionales de pulido automotriz, chapa-pintura, repintado y detailing"
+      name: title,
+      description,
+      isPartOf: { "@id": `${SITE_URL}/#website` },
+      primaryImageOfPage: image ? {
+        "@type": "ImageObject",
+        url: image
+      } : undefined,
+      about: {
+        "@type": "Thing",
+        name: `${product.kmCode} - ${product.name}`,
+        identifier: [product.kmCode, product.ean13].filter(Boolean),
+        category: product.family?.name
       }
     },
     relatedProducts.length ? {

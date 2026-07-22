@@ -253,7 +253,9 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(publicProductPageResponse.status, 200);
   const publicProductPage = await publicProductPageResponse.text();
   assert.match(publicProductPage, /<title>API001K \| Pad de prueba API \| KM Detail Line<\/title>/);
-  assert.match(publicProductPage, /"@type":"Product"/);
+  assert.match(publicProductPage, /"@type":"WebPage"/);
+  assert.doesNotMatch(publicProductPage, /"@type":"Product"/);
+  assert.doesNotMatch(publicProductPage, /"offers"/);
   assert.match(publicProductPage, /Productos relacionados/);
   assert.match(publicProductPage, /Pad relacionado API/);
   assert.match(publicProductPage, /"@type":"ItemList"/);
