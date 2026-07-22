@@ -21,18 +21,19 @@ async function load() {
 
 function renderLabel(label) {
   const location = label.warehouseLocation?.trim() || "SIN UBICACI&Oacute;N ASIGNADA";
+  const locationSizeClass = label.warehouseLocation && location.length > 12 ? "compact" : "";
+  const codeSizeClass = String(label.kmCode || "").length > 9 ? "compact" : "";
   const images = Array.isArray(label.images) ? label.images.slice(0, 2) : [];
   const imageMarkup = images.length
     ? images.map((image, index) => `<figure><img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.altText || `${label.name} - imagen ${index + 1}`)}"></figure>`).join("")
     : `<div class="image-placeholder"><span>Sin im&aacute;genes activas</span></div>`;
   root.innerHTML = `
     <article class="location-sheet">
-      <section class="location-block ${label.warehouseLocation ? "" : "missing"}">
-        <span>Ubicaci&oacute;n en dep&oacute;sito</span>
+      <section class="location-block ${label.warehouseLocation ? locationSizeClass : "missing"}">
         <h1>${escapeHtml(location)}</h1>
       </section>
       <section class="product-block">
-        <div class="code-line"><span>C&oacute;digo KM</span><strong>${escapeHtml(label.kmCode)}</strong></div>
+        <div class="code-line ${codeSizeClass}"><strong>${escapeHtml(label.kmCode)}</strong></div>
         <div class="secondary-details">
           <div class="product-description"><span>Producto</span><h2>${escapeHtml(label.name)}</h2>${label.measure ? `<p class="measure">${escapeHtml(label.measure)}</p>` : ""}</div>
           <div class="product-meta">
