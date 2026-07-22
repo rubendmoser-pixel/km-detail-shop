@@ -1658,7 +1658,7 @@ function renderProducts() {
   }
   adminEls.productsTableBody.innerHTML = adminState.products.length ? adminState.products.map((product) => `
     <tr data-product-id="${product.id}">
-      <td data-label="KM"><strong>${escapeAdmin(product.kmCode)}</strong>${adminPromotionBadge(product.promotion?.current)}<br><span>${escapeAdmin(product.ean13)}</span></td>
+      <td class="product-km-cell" data-label="KM"><strong>${escapeAdmin(product.kmCode)}</strong><br><span>${escapeAdmin(product.ean13)}</span>${product.promotion?.current?.active && product.promotion.current.bps ? `<br>${adminPromotionBadge(product.promotion.current)}` : ""}</td>
       <td data-label="Producto">${escapeAdmin(product.name)}${product.measure ? `<br><span>${escapeAdmin(product.measure)}</span>` : ""}${product.warehouseLocation ? `<br><span>Ubicacion: ${escapeAdmin(product.warehouseLocation)}</span>` : ""}</td>
       <td data-label="Familia">${escapeAdmin(product.family.name)}</td>
       <td data-label="Precio lista">${adminMoney.format(product.basePriceCents / 100)}</td>
