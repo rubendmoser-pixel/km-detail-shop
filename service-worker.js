@@ -1,9 +1,9 @@
-const CACHE_NAME = "km-detail-shop-v87";
+const CACHE_NAME = "km-detail-shop-v88";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=71",
-  "./app.js?v=94",
+  "./styles.css?v=72",
+  "./app.js?v=96",
   "./assets/km-hero-detailing.png",
   "./assets/km-empresa.png",
   "./assets/km-distribuidores.png",
@@ -28,14 +28,18 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => Promise.allSettled(ASSETS.map((asset) => cache.add(asset))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-    )
+    ).then(() => self.clients.claim())
   );
 });
 
@@ -46,10 +50,17 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(event.request));
     return;
   }
+  const refreshShell = event.request.mode === "navigate" || /\.(?:css|js)$/.test(url.pathname);
   event.respondWith(
-    fetch(event.request).then((response) => {
-      const copy = response.clone();
-      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+    fetch(event.request, refreshShell ? { cache: "no-store" } : undefined).then(async (response) => {
+      if (!response.ok && refreshShell) {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+      }
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+      }
       return response;
     }).catch(() => caches.match(event.request))
   );
