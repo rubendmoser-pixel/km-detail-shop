@@ -162,7 +162,17 @@ export function clearProductionSessionCookie({ secure = false } = {}) {
   return productionSessionCookie("", { secure, maxAgeSeconds: 0 });
 }
 
-export function serveStatic(response, projectRoot, pathname) {
+export function analyticsSessionCookie(token, { secure = false, maxAgeSeconds = 1_800 } = {}) {
+  return [
+    `km_analytics_session=${encodeURIComponent(token)}`,
+    "Path=/",
+    "SameSite=Lax",
+    `Max-Age=${maxAgeSeconds}`,
+    secure ? "Secure" : ""
+  ].filter(Boolean).join("; ");
+}
+
+export function serveStatic(response, projectRoot, pathname, extraHeaders = {}) {
   const requested = pathname === "/" ? "/index.html" : pathname;
   const decoded = decodeURIComponent(requested);
   const seoLandingPage = renderSeoLandingPage(decoded);
@@ -172,7 +182,8 @@ export function serveStatic(response, projectRoot, pathname) {
       "content-type": "text/html; charset=utf-8",
       "content-length": content.length,
       "cache-control": "no-cache",
-      ...SEO_SECURITY_HEADERS
+      ...SEO_SECURITY_HEADERS,
+      ...extraHeaders
     });
     response.end(content);
     return true;
@@ -191,7 +202,8 @@ export function serveStatic(response, projectRoot, pathname) {
     "content-type": MIME_TYPES[path.extname(target).toLowerCase()] || "application/octet-stream",
     "content-length": content.length,
     "cache-control": requested === "/index.html" || routeMeta ? "no-cache" : "public, max-age=3600",
-    ...SECURITY_HEADERS
+    ...SECURITY_HEADERS,
+    ...extraHeaders
   });
   response.end(content);
   return true;

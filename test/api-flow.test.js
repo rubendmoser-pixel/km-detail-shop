@@ -80,6 +80,11 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const seoPage = await seoPageResponse.text();
   assert.match(seoPage, /<title>Pads de espuma para pulido \| KM Detail Line<\/title>/);
   assert.match(seoPage, /<h1>Pads de espuma para pulido<\/h1>/);
+  assert.match(seoPageResponse.headers.get("set-cookie") || "", /km_analytics_session=/);
+  const seoVisit = db.prepare("SELECT event_type, path, session_id FROM analytics_events WHERE path = ? ORDER BY id DESC LIMIT 1").get("/pads-de-espuma-para-pulido");
+  assert.equal(seoVisit.event_type, "page_view");
+  assert.equal(seoVisit.path, "/pads-de-espuma-para-pulido");
+  assert.ok(seoVisit.session_id);
 
   const publicSettings = await getJson(`${baseUrl}/api/public-settings`);
   assert.equal(publicSettings.settings.vatBps, 2100);

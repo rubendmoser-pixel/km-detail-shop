@@ -217,6 +217,10 @@ export const seoLandingPages = new Map([
   }]
 ]);
 
+export function isServerRenderedSeoPath(pathname) {
+  return seoLandingPages.has(pathname);
+}
+
 export function renderSeoLandingPage(pathname) {
   const page = seoLandingPages.get(pathname);
   if (!page) return null;

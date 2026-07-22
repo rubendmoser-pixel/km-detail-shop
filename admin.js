@@ -4056,11 +4056,15 @@ function renderAnalyticsDashboard(dashboard) {
     return;
   }
   const summary = dashboard.summary || {};
+  const latestHumanVisit = summary.latestHumanVisitAt ? formatAdminDate(summary.latestHumanVisitAt) : "Sin registros";
   adminEls.analyticsDashboard.innerHTML = `
     <div class="operation-metrics">
-      ${metricCard("Sesiones", summary.sessions || 0, `Periodo ${dashboard.days || 30} dias`)}
-      ${metricCard("Anonimos", summary.anonymousSessions || 0, "Sin cuenta identificada")}
+      ${metricCard("Sesiones de personas", summary.humanSessions || 0, `Periodo ${dashboard.days || 30} días`)}
+      ${metricCard("Visitantes anónimos", summary.anonymousSessions || 0, "Sin cuenta identificada")}
       ${metricCard("Clientes activos", summary.activeCustomers || 0, "Cuentas que navegaron")}
+      ${metricCard("Robots y vistas previas", summary.botSessions || 0, "Separados del público real")}
+      ${metricCard("Páginas vistas", summary.pageViews || 0, "Navegación registrada")}
+      ${metricCard("Última visita", latestHumanVisit, "Última persona registrada")}
       ${metricCard("Abrieron acceso", summary.accountOpens || 0, "Login o solicitud")}
       ${metricCard("Solicitudes", summary.registrationSubmits || 0, "Altas enviadas")}
       ${metricCard("Vistas productos", summary.productViews || 0, "Fichas e imagenes")}
@@ -4122,7 +4126,7 @@ function renderAnalyticsVisitorRows(rows) {
       ${rows.slice(0, 30).map((row) => `
         <div class="operation-row static analytics-visitor-row">
           <span>
-            <strong>${escapeAdmin(row.identity || "Visitante anonimo")}</strong>
+            <strong>${escapeAdmin(row.isBot ? "Robot / vista previa" : (row.identity || "Visitante anónimo"))}</strong>
             <small>${escapeAdmin(row.source || "Directo")} | ${escapeAdmin(row.device || "Sin dato")} | ${escapeAdmin(row.browser || "Sin navegador")} | IP ${escapeAdmin(row.ipAddress || "-")}</small>
             <small>Entrada ${escapeAdmin(row.entryPath || "/")} | Ultima ${escapeAdmin(row.lastPath || "/")}</small>
           </span>

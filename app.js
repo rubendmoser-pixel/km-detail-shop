@@ -1814,6 +1814,7 @@ function trackSearchResult(query, resultCount) {
 }
 
 function trackAnalytics(eventType, metadata = {}, extra = {}) {
+  state.analyticsSessionId = readAnalyticsSessionId();
   const payload = {
     eventType,
     sessionId: state.analyticsSessionId,
@@ -2005,10 +2006,25 @@ function debounce(callback, waitMs) {
 
 function readAnalyticsSessionId() {
   const storageKey = "kmAnalyticsSessionId";
-  const existing = localStorage.getItem(storageKey);
-  if (existing) return existing;
-  const id = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  localStorage.setItem(storageKey, id);
+  const timeoutMs = 30 * 60 * 1000;
+  const now = Date.now();
+  let stored = null;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) stored = raw.startsWith("{") ? JSON.parse(raw) : { id: raw, lastSeen: 0 };
+  } catch {
+    stored = null;
+  }
+  const cookieId = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("km_analytics_session="))?.split("=").slice(1).join("=");
+  const decodedCookieId = cookieId ? decodeURIComponent(cookieId) : "";
+  const storedIsActive = stored?.id && now - Number(stored.lastSeen || 0) <= timeoutMs;
+  const id = decodedCookieId || (storedIsActive ? stored.id : (crypto.randomUUID?.() || `${now}-${Math.random().toString(16).slice(2)}`));
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({ id, lastSeen: now }));
+  } catch {
+    // La cookie mantiene la sesion aunque el navegador bloquee el almacenamiento local.
+  }
+  document.cookie = `km_analytics_session=${encodeURIComponent(id)}; Path=/; SameSite=Lax; Max-Age=1800${location.protocol === "https:" ? "; Secure" : ""}`;
   return id;
 }
 

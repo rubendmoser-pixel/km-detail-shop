@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { ZipArchive } from "archiver";
 import { ValidationError, publicErrorMessage } from "./domain/validation.js";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
@@ -81,7 +82,7 @@ import {
 } from "./services/sales-rep-service.js";
 import { createProspectSalesQuote, createSalesQuote, getSalesQuote, listProspectQuoteProducts, listSalesQuotesForSalesRep, markSalesQuoteConverted, markSalesQuoteShared } from "./services/sales-quote-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
-import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, clearLogisticsSessionCookie, clearProductionSessionCookie, clearSalesRepSessionCookie, clearSessionCookie, logisticsSessionCookie, parseCookies, productionSessionCookie, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
+import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, analyticsSessionCookie, clearLogisticsSessionCookie, clearProductionSessionCookie, clearSalesRepSessionCookie, clearSessionCookie, logisticsSessionCookie, parseCookies, productionSessionCookie, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import {
   authenticateLogisticsOperator, claimLogisticsOrder, confirmLogisticsAvailability, dispatchLogisticsOrder,
   getLogisticsOrder, listLogisticsOperators, listLogisticsOrders, loginLogisticsOperator, logoutLogisticsOperator,
@@ -98,7 +99,7 @@ import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
 import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
 import { createRateLimiter } from "./rate-limit.js";
-import { renderProductPage, renderSitemap } from "./seo-pages.js";
+import { isServerRenderedSeoPath, renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
@@ -1108,13 +1109,24 @@ export function createApp({
       match = url.pathname.match(/^\/producto\/([a-z0-9-]+)$/);
       if (request.method === "GET" && match) {
         applyDuePriceUpdates(db);
-        const productPage = renderProductPage(getPublicProductBySlug(db, match[1]));
+        const product = getPublicProductBySlug(db, match[1]);
+        const productPage = renderProductPage(product);
         if (productPage) {
+          const analyticsSessionId = resolveServerAnalyticsSessionId(cookies.km_analytics_session);
+          recordServerAnalyticsEvent(db, request, currentUser, {
+            eventType: "page_view",
+            sessionId: analyticsSessionId,
+            productId: product?.id,
+            path: url.pathname,
+            referrer: request.headers.referer || "",
+            metadata: { source: "server", pageType: "product" }
+          });
           response.writeHead(200, {
             "content-type": "text/html; charset=utf-8",
             "content-length": Buffer.byteLength(productPage),
             "cache-control": "no-cache",
-            ...SEO_SECURITY_HEADERS
+            ...SEO_SECURITY_HEADERS,
+            "set-cookie": analyticsSessionCookie(analyticsSessionId, { secure: config.secureCookies })
           });
           response.end(productPage);
           return;
@@ -1123,7 +1135,19 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/" && String(request.headers.host || "").split(":")[0].toLowerCase() === "produccion.km-detail.com") {
         url.pathname = "/produccion.html";
       }
-      if (request.method === "GET" && serveStatic(response, projectRoot, url.pathname)) return;
+      let staticHeaders = {};
+      if (request.method === "GET" && isServerRenderedSeoPath(url.pathname)) {
+        const analyticsSessionId = resolveServerAnalyticsSessionId(cookies.km_analytics_session);
+        recordServerAnalyticsEvent(db, request, currentUser, {
+          eventType: "page_view",
+          sessionId: analyticsSessionId,
+          path: url.pathname,
+          referrer: request.headers.referer || "",
+          metadata: { source: "server", pageType: "seo" }
+        });
+        staticHeaders = { "set-cookie": analyticsSessionCookie(analyticsSessionId, { secure: config.secureCookies }) };
+      }
+      if (request.method === "GET" && serveStatic(response, projectRoot, url.pathname, staticHeaders)) return;
       return sendJson(response, 404, { error: "No encontramos el recurso solicitado." });
     } catch (error) {
       const statusCode = error.statusCode || 500;
@@ -1138,6 +1162,11 @@ export function createApp({
       });
     }
   };
+}
+
+function resolveServerAnalyticsSessionId(value) {
+  const normalized = String(value || "").trim();
+  return /^[A-Za-z0-9-]{20,80}$/.test(normalized) ? normalized : randomUUID();
 }
 
 function sendBackupArchive(response, backup) {

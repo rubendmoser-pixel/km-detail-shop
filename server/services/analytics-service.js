@@ -14,6 +14,7 @@ const ALLOWED_EVENTS = new Set([
   "registration_submitted"
 ]);
 const MAX_EVENTS_PER_REQUEST = 20;
+const BOT_USER_AGENT = /bot|crawler|spider|preview|facebookexternalhit|whatsapp/i;
 
 export function recordAnalyticsEvents(db, request, currentUser, input) {
   const events = Array.isArray(input?.events) ? input.events : [input];
@@ -58,11 +59,15 @@ export function getAnalyticsDashboard(db, { days = 30 } = {}) {
     GROUP BY event_type
   `).all(sinceModifier);
   const count = (type) => eventCounts.find((event) => event.eventType === type)?.count || 0;
-  const sessions = db.prepare(`
-    SELECT COUNT(DISTINCT session_id) AS count
+  const sessionAudience = db.prepare(`
+    SELECT session_id AS sessionId, MAX(user_agent) AS userAgent
     FROM analytics_events
     WHERE created_at >= datetime('now', ?) AND session_id <> ''
-  `).get(sinceModifier)?.count || 0;
+    GROUP BY session_id
+  `).all(sinceModifier);
+  const sessions = sessionAudience.length;
+  const botSessions = sessionAudience.filter((row) => isBotUserAgent(row.userAgent)).length;
+  const humanSessions = sessions - botSessions;
   const activeCustomers = db.prepare(`
     SELECT COUNT(DISTINCT customer_id) AS count
     FROM analytics_events
@@ -82,6 +87,12 @@ export function getAnalyticsDashboard(db, { days = 30 } = {}) {
       WHERE created_at >= datetime('now', ?) AND session_id <> ''
       GROUP BY session_id
       HAVING hasCustomer = 0
+        AND LOWER(MAX(user_agent)) NOT LIKE '%bot%'
+        AND LOWER(MAX(user_agent)) NOT LIKE '%crawler%'
+        AND LOWER(MAX(user_agent)) NOT LIKE '%spider%'
+        AND LOWER(MAX(user_agent)) NOT LIKE '%preview%'
+        AND LOWER(MAX(user_agent)) NOT LIKE '%facebookexternalhit%'
+        AND LOWER(MAX(user_agent)) NOT LIKE '%whatsapp%'
     )
   `).get(sinceModifier)?.count || 0;
   const identifiedSessions = db.prepare(`
@@ -256,10 +267,32 @@ export function getAnalyticsDashboard(db, { days = 30 } = {}) {
     ...row,
     metadata: parseJson(row.metadataJson)
   }));
+  const latestVisitAt = db.prepare(`
+    SELECT created_at AS createdAt
+    FROM analytics_events
+    WHERE event_type = 'page_view'
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `).get()?.createdAt || null;
+  const latestHumanVisitAt = db.prepare(`
+    SELECT created_at AS createdAt
+    FROM analytics_events
+    WHERE event_type = 'page_view'
+      AND LOWER(user_agent) NOT LIKE '%bot%'
+      AND LOWER(user_agent) NOT LIKE '%crawler%'
+      AND LOWER(user_agent) NOT LIKE '%spider%'
+      AND LOWER(user_agent) NOT LIKE '%preview%'
+      AND LOWER(user_agent) NOT LIKE '%facebookexternalhit%'
+      AND LOWER(user_agent) NOT LIKE '%whatsapp%'
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `).get()?.createdAt || null;
   return {
     days: normalizedDays,
     summary: {
       sessions,
+      humanSessions,
+      botSessions,
       anonymousSessions,
       identifiedSessions,
       activeCustomers,
@@ -271,7 +304,9 @@ export function getAnalyticsDashboard(db, { days = 30 } = {}) {
       ordersCreated,
       priceListDownloads: count("price_list_download"),
       accountOpens: count("account_open"),
-      registrationSubmits: count("registration_submitted")
+      registrationSubmits: count("registration_submitted"),
+      latestVisitAt,
+      latestHumanVisitAt
     },
     visitorSessions,
     sources,
@@ -294,10 +329,15 @@ function enrichVisitorSession(row) {
     identity: row.businessName || "Visitante anonimo",
     isKnown: Boolean(row.customerId),
     source: sourceLabel(row.referrer),
+    isBot: isBotUserAgent(userAgent),
     device: deviceLabel(userAgent),
     browser: browserLabel(userAgent),
     ipAddress: row.ipAddress || "-"
   };
+}
+
+function isBotUserAgent(userAgent = "") {
+  return BOT_USER_AGENT.test(String(userAgent || ""));
 }
 
 function aggregateSources(rows) {
