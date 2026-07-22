@@ -13,7 +13,7 @@ const PRODUCT_UPLOAD_TARGET_BYTES = 900 * 1024;
 const PRODUCT_UPLOAD_MAX_DIMENSION = 1600;
 const PRODUCT_UPLOAD_WEBP_QUALITY = 0.82;
 const PRODUCT_UPLOAD_JPEG_QUALITY = 0.86;
-const adminViews = new Set(["customers", "sales", "logistics", "production", "production-access", "production-commissions", "production-materials", "production-product-stock", "production-stock", "production-stock-parameters", "production-movements", "production-purchasing", "production-recipes", "production-costs", "production-suppliers", "commissions", "distributors", "products", "prices", "orders", "unfulfilled-demand", "accounts", "settings", "backups", "emails", "security", "analytics", "operation"]);
+const adminViews = new Set(["customers", "sales", "logistics", "production", "production-access", "production-commissions", "production-materials", "production-product-stock", "production-valuation", "production-stock", "production-stock-parameters", "production-movements", "production-purchasing", "production-recipes", "production-costs", "production-suppliers", "commissions", "distributors", "products", "prices", "orders", "unfulfilled-demand", "accounts", "settings", "backups", "emails", "security", "analytics", "operation"]);
 const UNFULFILLED_REASON_LABELS = {
   finished_stock_shortage: "Falta de producto terminado",
   material_shortage: "Falta de insumos para fabricar",
@@ -114,7 +114,7 @@ const ADMIN_ICON_PATHS = {
 
 const ADMIN_VIEW_ICONS = {
   customers: "users", sales: "user-round", logistics: "truck", production: "package", "production-access": "users", "production-commissions": "coins", "production-materials": "package", "production-product-stock": "package", "production-stock": "package", "production-stock-parameters": "settings", "production-movements": "activity", "production-purchasing": "clipboard-list", "production-recipes": "clipboard-list", "production-costs": "coins", "production-suppliers": "building", commissions: "coins", distributors: "building",
-  products: "package", prices: "tags", orders: "clipboard-list", "unfulfilled-demand": "activity", accounts: "wallet", settings: "settings", backups: "database",
+  products: "package", prices: "tags", orders: "clipboard-list", "unfulfilled-demand": "activity", "production-valuation": "coins", accounts: "wallet", settings: "settings", backups: "database",
   emails: "mail", security: "shield", analytics: "activity", operation: "layout-dashboard"
 };
 

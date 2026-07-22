@@ -51,7 +51,7 @@ import {
   upsertProduct
 } from "./services/product-service.js";
 import { getCommercialSettings, getPublicSettings, updateCommercialSettings } from "./services/settings-service.js";
-import { getProductionCosts } from "./services/production-cost-service.js";
+import { getInventoryValuation, getProductionCosts } from "./services/production-cost-service.js";
 import {
   listCustomerPaymentAccountAssignments,
   setCustomerPaymentAccounts,
@@ -803,6 +803,9 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/admin/production/costs") {
         return sendJson(response, 200, { costs: getProductionCosts(db) });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/production/inventory-valuation") {
+        return sendJson(response, 200, { valuation: getInventoryValuation(db) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/production/commission-settlements") {
         return sendJson(response, 201, { settlement: createProductionCommissionSettlement(db, await readJson(request), currentUser.id) });

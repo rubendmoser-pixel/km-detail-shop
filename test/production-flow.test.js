@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
+import { getInventoryValuation } from "../server/services/production-cost-service.js";
 import {
   adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
   registerProductionInventoryEntry, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator, upsertProductionRecipe
@@ -121,6 +122,15 @@ test("production plan, daily report and admin confirmation update stock with tra
   adjustProductionInventory(db, { itemId: finishedItem.id, quantity: 9, reason: "Corrección de conteo" }, admin.id);
   assert.equal(getProductionInventory(db).items.find((item) => item.id === finishedItem.id).quantity, 9);
   assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(raw.id).quantity, 88);
+  db.prepare("UPDATE inventory_items SET currency='ARS',purchase_cost=2,conversion_factor=1 WHERE id=?").run(raw.id);
+  db.prepare("UPDATE settings SET value='100' WHERE key='production_hourly_cost_ars'").run();
+  const valuation = getInventoryValuation(db);
+  assert.equal(valuation.summary.rawMaterialsValueArs, 176);
+  assert.equal(valuation.summary.finishedProductsValueArs, 1206);
+  assert.equal(valuation.summary.totalInventoryValueArs, 1382);
+  assert.equal(valuation.groups.finishedProducts[0].unitCostArs, 134);
+  assert.equal(valuation.groups.finishedProducts[0].availableQuantity, 9);
+  assert.equal(valuation.summary.incompleteItems, 0);
   assert.equal(db.prepare("SELECT balance_after FROM inventory_movements WHERE item_id=? ORDER BY id DESC LIMIT 1").get(raw.id).balance_after, 88);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM inventory_movements WHERE reference_type='production_report' AND reference_id=?").get(report.id).count, 2);
   assert.equal(getCurrentProductionDashboard(db).plan.items[0].remainingQuantity, 5);

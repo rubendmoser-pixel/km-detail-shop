@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
     <link rel="stylesheet" href="./admin.css?v=93" />
-    <link rel="stylesheet" href="./admin-production.css?v=47" />
+    <link rel="stylesheet" href="./admin-production.css?v=48" />
   </head>
   <body class="admin-body">
     <header class="admin-header">
@@ -84,6 +84,7 @@
             <div class="admin-nav-group-items">
               <button type="button" data-admin-view="production" title="Planificación de producción"><span class="admin-tab-label">Planificación de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-product-stock" title="Stock de productos"><span class="admin-tab-label">Stock de productos</span></button>
+              <button class="production-desktop-only" type="button" data-admin-view="production-valuation" title="Inventario valorizado"><span class="admin-tab-label">Inventario valorizado</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-access" title="Operarios de producción"><span class="admin-tab-label">Operarios de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-commissions" title="Comisiones de producción"><span class="admin-tab-label">Comisiones de producción</span></button>
               <button class="production-desktop-only" type="button" data-admin-view="production-materials" title="Insumos"><span class="admin-tab-label">Insumos</span></button>
@@ -454,6 +455,25 @@
               <div id="productionCostDetailContent"></div>
             </section>
           </section>
+          <section class="production-valuation-workspace production-desktop-only" data-production-panel="valuation" hidden>
+            <div class="production-valuation-summary" id="productionValuationSummary"></div>
+            <div class="production-valuation-context" id="productionValuationContext"></div>
+            <nav class="production-cost-tabs production-valuation-tabs" aria-label="Tipos de inventario valorizado">
+              <button class="is-active" type="button" data-production-valuation-tab="rawMaterials">Insumos</button>
+              <button type="button" data-production-valuation-tab="intermediates">Intermedios</button>
+              <button type="button" data-production-valuation-tab="finishedProducts">Productos terminados</button>
+            </nav>
+            <div class="production-valuation-toolbar"><input id="productionValuationSearch" type="search" placeholder="Buscar código o nombre" aria-label="Buscar inventario valorizado"><select id="productionValuationStatus" aria-label="Filtrar inventario valorizado"><option value="">Todos</option><option value="with_stock">Con stock</option><option value="incomplete">Costo incompleto</option><option value="negative">Saldo negativo</option></select></div>
+            <section data-production-valuation-panel="rawMaterials">
+              <div class="orders-table-wrap"><table class="admin-table production-valuation-table"><thead><tr><th>Insumo</th><th>Stock físico</th><th>Costo unitario</th><th>Valor valorizado</th><th>Proveedor</th><th>Estado</th></tr></thead><tbody id="productionValuationRawList"></tbody></table></div>
+            </section>
+            <section data-production-valuation-panel="intermediates" hidden>
+              <div class="orders-table-wrap"><table class="admin-table production-valuation-table"><thead><tr><th>Intermedio</th><th>Stock físico</th><th>Costo unitario</th><th>Valor valorizado</th><th>Origen</th><th>Estado</th></tr></thead><tbody id="productionValuationIntermediateList"></tbody></table></div>
+            </section>
+            <section data-production-valuation-panel="finishedProducts" hidden>
+              <div class="orders-table-wrap"><table class="admin-table production-valuation-product-table"><thead><tr><th>Producto</th><th>Stock físico</th><th>Comprometido</th><th>Disponible</th><th>Costo industrial</th><th>Valor físico</th><th>Valor disponible</th><th>Estado</th></tr></thead><tbody id="productionValuationProductList"></tbody></table></div>
+            </section>
+          </section>
           <section class="production-product-stock-workspace production-desktop-only" data-production-panel="product-stock" hidden>
             <div id="productionProductStockListPanel">
               <div class="production-inventory-summary" id="productionProductStockSummary"></div>
@@ -639,6 +659,15 @@
           </div>
           <p class="admin-note production-cost-note">Costo industrial por unidad: materiales e intermedios + horas-persona efectivas + comisión de producción. No incluye IVA, comisión de ventas, descuentos ni envío.</p>
           <div id="productionCostsMount"></div>
+        </section>
+
+        <section class="admin-view production-desktop-only" id="production-valuationView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Capital inmovilizado actual</p><h1>Inventario valorizado</h1></div>
+            <div class="admin-toolbar"><button class="ghost-button toolbar-refresh-button" id="reloadProductionValuation" type="button">Actualizar</button></div>
+          </div>
+          <p class="admin-note">Valorización informativa a costo actual de reposición. Los saldos comprometidos siguen formando parte del stock físico hasta el despacho.</p>
+          <div id="productionValuationMount"></div>
         </section>
 
         <section class="admin-view production-desktop-only" id="production-stockView" hidden>
@@ -1216,7 +1245,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=120" defer></script>
-    <script src="./admin-production.js?v=42" defer></script>
+    <script src="./admin.js?v=121" defer></script>
+    <script src="./admin-production.js?v=43" defer></script>
   </body>
 </html>

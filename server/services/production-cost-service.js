@@ -146,6 +146,14 @@ export function getProductionCosts(db) {
   }
 
   const productCosts = products.map((product) => calculateProduct(product.id));
+  const materials = items.filter((item) => item.active && !item.product_id).map((item) => {
+    const cost = calculateItem(item.id);
+    return {
+      itemId: item.id, itemCode: item.item_code, name: item.name, itemKind: item.item_kind || item.item_type,
+      unit: item.unit, unitCostArs: cost.unitCostArs, complete: cost.complete, missing: cost.missing,
+      source: cost.source
+    };
+  });
   const intermediates = items.filter((item) => item.active && itemRecipes.has(item.id)).map((item) => {
     const cost = calculateItem(item.id);
     const recipe = itemRecipes.get(item.id);
@@ -175,7 +183,77 @@ export function getProductionCosts(db) {
       averageMarginPercent: completeProducts.length ? completeProducts.reduce((total, product) => total + product.marginPercent, 0) / completeProducts.length : null
     },
     products: productCosts,
+    materials,
     intermediates
+  };
+}
+
+export function getInventoryValuation(db) {
+  const costs = getProductionCosts(db);
+  const itemCosts = new Map((costs.materials || []).map((item) => [Number(item.itemId), item]));
+  const productCosts = new Map((costs.products || []).map((product) => [Number(product.productId), product]));
+  const rows = db.prepare(`
+    SELECT i.id,i.item_code,i.name,i.item_type,i.item_kind,i.unit,i.product_id,
+      COALESCE(b.quantity,0) AS quantity,b.updated_at,p.km_code,p.warehouse_location,
+      COALESCE(r.committed_quantity,0) AS committed_quantity,
+      ps.name AS primary_supplier
+    FROM inventory_items i
+    LEFT JOIN inventory_balances b ON b.item_id=i.id
+    LEFT JOIN products p ON p.id=i.product_id
+    LEFT JOIN (
+      SELECT oi.product_id,SUM(CASE WHEN COALESCE(oi.confirmed_quantity,0)>0 THEN oi.confirmed_quantity ELSE oi.quantity END) AS committed_quantity
+      FROM order_items oi JOIN orders o ON o.id=oi.order_id
+      WHERE oi.line_status IN ('confirmed','partial') AND o.status!='cancelled' AND o.fulfillment_status IN ('pending','ready')
+      GROUP BY oi.product_id
+    ) r ON r.product_id=i.product_id
+    LEFT JOIN production_supplier_items psi ON psi.item_id=i.id AND psi.active=1 AND psi.is_primary=1
+    LEFT JOIN production_suppliers ps ON ps.id=psi.supplier_id
+    WHERE i.active=1 AND i.tracks_stock=1
+    ORDER BY i.product_id IS NOT NULL,i.item_kind,i.item_code COLLATE NOCASE
+  `).all().map((row) => {
+    const quantity = Number(row.quantity || 0);
+    const committedQuantity = Number(row.committed_quantity || 0);
+    const availableQuantity = quantity - committedQuantity;
+    const cost = row.product_id ? productCosts.get(Number(row.product_id)) : itemCosts.get(Number(row.id));
+    const unitCostArs = Number(row.product_id ? cost?.totalCostArs : cost?.unitCostArs || 0);
+    const complete = Boolean(cost?.complete);
+    const category = row.product_id
+      ? "finished_products"
+      : (cost?.source === "intermediate_recipe" || row.item_kind === "intermediate" || row.item_type === "intermediate")
+        ? "intermediates"
+        : "raw_materials";
+    return {
+      itemId: row.id, productId: row.product_id || null, itemCode: row.product_id ? row.km_code : row.item_code,
+      name: row.name, category, unit: row.unit, quantity, committedQuantity, availableQuantity,
+      unitCostArs, physicalValueArs: Math.max(0, quantity) * unitCostArs,
+      availableValueArs: Math.max(0, availableQuantity) * unitCostArs,
+      committedValueArs: Math.max(0, Math.min(Math.max(0, quantity), committedQuantity)) * unitCostArs,
+      shortageQuantity: Math.max(0, committedQuantity - Math.max(0, quantity)),
+      complete, missing: cost?.missing || ["Costo no disponible"], primarySupplier: row.primary_supplier || "Sin proveedor",
+      warehouseLocation: row.warehouse_location || "Sin ubicación", updatedAt: row.updated_at || ""
+    };
+  });
+  const groups = {
+    rawMaterials: rows.filter((row) => row.category === "raw_materials"),
+    intermediates: rows.filter((row) => row.category === "intermediates"),
+    finishedProducts: rows.filter((row) => row.category === "finished_products")
+  };
+  const valueOf = (items, field = "physicalValueArs") => items.reduce((total, item) => total + Number(item[field] || 0), 0);
+  const latestStockUpdate = rows.map((row) => row.updatedAt).filter(Boolean).sort().at(-1) || "";
+  return {
+    generatedAt: new Date().toISOString(),
+    settings: { usdExchangeRate: costs.settings.usdExchangeRate },
+    summary: {
+      rawMaterialsValueArs: valueOf(groups.rawMaterials),
+      intermediatesValueArs: valueOf(groups.intermediates),
+      finishedProductsValueArs: valueOf(groups.finishedProducts),
+      finishedProductsAvailableValueArs: valueOf(groups.finishedProducts, "availableValueArs"),
+      totalInventoryValueArs: valueOf(rows),
+      incompleteItems: rows.filter((row) => row.quantity > 0 && !row.complete).length,
+      negativeBalances: rows.filter((row) => row.quantity < 0).length,
+      latestStockUpdate
+    },
+    groups
   };
 }
 
