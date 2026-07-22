@@ -222,10 +222,11 @@ export function isServerRenderedSeoPath(pathname) {
   return seoLandingPages.has(pathname);
 }
 
-export function renderSeoLandingPage(pathname) {
+export function renderSeoLandingPage(pathname, products = []) {
   const page = seoLandingPages.get(pathname);
   if (!page) return null;
   const url = `${SITE_URL}${pathname}`;
+  const featuredProducts = landingProductsForPath(pathname, products).slice(0, 16);
   const graph = [
     organizationSchema(),
     websiteSchema(),
@@ -245,7 +246,19 @@ export function renderSeoLandingPage(pathname) {
       inLanguage: "es-AR",
       keywords: page.keywords.join(", ")
     },
-    faqSchema(page.faq)
+    faqSchema(page.faq),
+    featuredProducts.length ? {
+      "@type": "ItemList",
+      "@id": `${url}#products`,
+      name: `Productos relacionados con ${page.heading}`,
+      numberOfItems: featuredProducts.length,
+      itemListElement: featuredProducts.map((product, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${SITE_URL}${product.publicUrl}`,
+        name: `${product.kmCode} - ${product.name}`
+      }))
+    } : null
   ].filter(Boolean);
 
   return layout({
@@ -266,17 +279,50 @@ export function renderSeoLandingPage(pathname) {
             </div>
             <div class="company-story">
               ${page.sections.map((section) => `<article><strong>${escapeHtml(section.title)}</strong><p>${escapeHtml(section.body)}</p></article>`).join("")}
-              <article class="seo-keyword-card">
-                <strong>Busquedas relacionadas</strong>
-                <p>${page.keywords.map(escapeHtml).join(" | ")}</p>
-              </article>
             </div>
+            ${renderLandingProducts(featuredProducts, page.heading)}
             ${renderFaq(page.faq)}
             ${renderSeoLinks(pathname)}
           </div>
         </div>
       </section>`
   });
+}
+
+function landingProductsForPath(pathname, products = []) {
+  const matchers = {
+    "/panos-para-pulir-autos": (family) => /^Pad(?:s)?\b/i.test(family),
+    "/gorros-de-lana-para-pulidora": (family) => /^Pad lana\b/i.test(family),
+    "/pads-de-espuma-para-pulido": (family) => /poliespuma|roto-orbital/i.test(family),
+    "/backings-para-pulidora": (family) => /^Backing\b/i.test(family),
+    "/tacos-de-lijado-automotriz": (family) => /^Tacos$/i.test(family)
+  };
+  const matcher = matchers[pathname];
+  if (!matcher) return products;
+  return products.filter((product) => matcher(String(product.family?.name || "")));
+}
+
+function renderLandingProducts(products = [], heading = "") {
+  if (!products.length) return "";
+  return `<section class="seo-landing-products" aria-label="Productos de ${escapeHtml(heading)}">
+    <div class="seo-product-family-heading">
+      <div>
+        <p class="eyebrow">Catalogo tecnico</p>
+        <h2>Productos de esta linea</h2>
+      </div>
+      <a href="/productos">Ver catalogo completo</a>
+    </div>
+    <div class="seo-product-directory-grid">
+      ${products.map((product) => `<a class="seo-product-directory-card" href="${escapeHtml(product.publicUrl)}">
+        <img src="${escapeHtml(product.primaryImageUrl || "/assets/km-linea-profesional.png")}" alt="${escapeHtml(product.name)}" loading="lazy" />
+        <span class="product-code">${escapeHtml(product.kmCode)}</span>
+        <strong>${escapeHtml(product.name)}</strong>
+        <small>${escapeHtml([product.family?.name, product.measure, product.attachmentSystem].filter(Boolean).join(" · "))}</small>
+        ${product.ean13 ? `<small>EAN ${escapeHtml(product.ean13)}</small>` : ""}
+        <span class="seo-product-directory-action">Ver ficha tecnica</span>
+      </a>`).join("")}
+    </div>
+  </section>`;
 }
 
 export function renderProductPage(product) {
@@ -527,7 +573,7 @@ function layout({ title, description, url, image, schemaGraph, main }) {
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="/styles.css?v=70" />
+    <link rel="stylesheet" href="/styles.css?v=71" />
     <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": schemaGraph })}</script>
   </head>
   <body>

@@ -99,7 +99,7 @@ import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
 import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
 import { createRateLimiter } from "./rate-limit.js";
-import { isServerRenderedSeoPath, renderProductDirectoryPage, renderProductPage, renderSitemap } from "./seo-pages.js";
+import { isServerRenderedSeoPath, renderProductDirectoryPage, renderProductPage, renderSeoLandingPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
@@ -1158,6 +1158,7 @@ export function createApp({
       }
       let staticHeaders = {};
       if (request.method === "GET" && isServerRenderedSeoPath(url.pathname)) {
+        const landingPage = renderSeoLandingPage(url.pathname, listPublicProductsForSeo(db));
         const analyticsSessionId = resolveServerAnalyticsSessionId(cookies.km_analytics_session);
         recordServerAnalyticsEvent(db, request, currentUser, {
           eventType: "page_view",
@@ -1166,7 +1167,15 @@ export function createApp({
           referrer: request.headers.referer || "",
           metadata: { source: "server", pageType: "seo" }
         });
-        staticHeaders = { "set-cookie": analyticsSessionCookie(analyticsSessionId, { secure: config.secureCookies }) };
+        response.writeHead(200, {
+          "content-type": "text/html; charset=utf-8",
+          "content-length": Buffer.byteLength(landingPage),
+          "cache-control": "no-cache",
+          ...SEO_SECURITY_HEADERS,
+          "set-cookie": analyticsSessionCookie(analyticsSessionId, { secure: config.secureCookies })
+        });
+        response.end(landingPage);
+        return;
       }
       if (request.method === "GET" && serveStatic(response, projectRoot, url.pathname, staticHeaders)) return;
       return sendJson(response, 404, { error: "No encontramos el recurso solicitado." });

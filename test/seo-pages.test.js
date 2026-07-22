@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { renderProductDirectoryPage, renderSitemap } from "../server/seo-pages.js";
+import { renderProductDirectoryPage, renderSeoLandingPage, renderSitemap } from "../server/seo-pages.js";
 
 const products = [
   {
@@ -22,6 +22,20 @@ test("product directory exposes crawlable product and family links", () => {
   assert.match(html, /<h2>Familia SEO<\/h2>/);
   assert.match(html, /href="\/producto\/seo001k-producto-seo"/);
   assert.match(html, /"numberOfItems":1/);
+});
+
+test("technical landing pages link relevant products without exposing prices", () => {
+  const html = renderSeoLandingPage("/pads-de-espuma-para-pulido", [{
+    ...products[0],
+    ean13: "7790000000001",
+    family: { name: "Pad poliespuma con velcro" }
+  }]);
+  assert.match(html, /Productos de esta linea/);
+  assert.match(html, /href="\/producto\/seo001k-producto-seo"/);
+  assert.match(html, /EAN 7790000000001/);
+  assert.match(html, /"@type":"ItemList"/);
+  assert.doesNotMatch(html, /"@type":"Product"/);
+  assert.doesNotMatch(html, /"offers"|priceCurrency|Precio/);
 });
 
 test("sitemap uses real product modification dates instead of today's date", () => {

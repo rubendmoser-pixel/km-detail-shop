@@ -4098,6 +4098,21 @@ textarea,
   gap: 24px;
 }
 
+.seo-landing-products {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.seo-landing-products .seo-product-family-heading > a {
+  margin-left: auto;
+  color: var(--blue);
+  font-weight: 750;
+  text-decoration: none;
+}
+
 .seo-discovery-section {
   grid-template-columns: minmax(260px, 0.8fr) minmax(420px, 1.2fr);
   align-items: start;
