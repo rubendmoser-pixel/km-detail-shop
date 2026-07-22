@@ -5115,13 +5115,13 @@ button.operation-row:hover {
   }
 
   #productsView .product-table td[data-label="Producto"],
-  #productsView .product-table td[data-label="Editar"],
+  #productsView .product-table td[data-label="Acciones"],
   #productsView .product-table td[colspan] {
     grid-template-columns: 1fr;
   }
 
   #productsView .product-table td[data-label="Producto"]::before,
-  #productsView .product-table td[data-label="Editar"]::before,
+  #productsView .product-table td[data-label="Acciones"]::before,
   #productsView .product-table td[colspan]::before {
     display: none;
   }
@@ -6213,11 +6213,11 @@ button.operation-row:hover {
   }
 
   #productsView .product-table th:nth-child(1) { width: 16%; }
-  #productsView .product-table th:nth-child(2) { width: 38%; }
-  #productsView .product-table th:nth-child(3) { width: 16%; }
+  #productsView .product-table th:nth-child(2) { width: 37%; }
+  #productsView .product-table th:nth-child(3) { width: 15%; }
   #productsView .product-table th:nth-child(4) { width: 11%; }
   #productsView .product-table th:nth-child(5) { width: 9%; }
-  #productsView .product-table th:nth-child(6) { width: 10%; }
+  #productsView .product-table th:nth-child(6) { width: 12%; }
 
   #productsView .product-table td {
     overflow-wrap: anywhere;
@@ -6248,7 +6248,7 @@ button.operation-row:hover {
   }
 
   #productsView .product-row-actions {
-    min-width: 138px;
+    min-width: 0;
   }
 
   #productsView .product-form {
