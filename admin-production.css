@@ -1276,6 +1276,11 @@
 .production-cost-action .ghost-button { min-width: 72px; padding-inline: 14px; }
 .production-cost-table td, .production-intermediate-cost-table td { vertical-align: middle; overflow-wrap: anywhere; }
 .production-cost-table td > span, .production-intermediate-cost-table td > span, .production-cost-breakdown-table td > span { display: block; margin-top: 4px; color: var(--muted, #aeb6c2); font-size: .8rem; line-height: 1.25; }
+.production-cost-table .production-cost-profitability { display: grid; gap: 2px; white-space: normal; }
+.production-cost-table .production-cost-profitability b { font: inherit; }
+.production-cost-table .production-cost-profitability.cost-positive b { color: #91efb1; }
+.production-cost-table .production-cost-profitability.cost-negative b { color: #ff9aa6; }
+.production-cost-table .production-cost-profitability small { color: var(--muted, #aeb6c2); font-size: .76rem; line-height: 1.2; }
 .production-intermediate-cost-table { width: 100%; table-layout: fixed; }
 .production-intermediate-cost-table th:first-child { width: 32%; }
 .production-intermediate-cost-table th:nth-child(2), .production-intermediate-cost-table th:nth-child(3) { width: 18%; }
