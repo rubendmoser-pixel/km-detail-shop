@@ -24,28 +24,24 @@ function renderLabel(label) {
   const images = Array.isArray(label.images) ? label.images.slice(0, 2) : [];
   const imageMarkup = images.length
     ? images.map((image, index) => `<figure><img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.altText || `${label.name} - imagen ${index + 1}`)}"></figure>`).join("")
-    : `<div class="image-placeholder"><img src="./assets/km-logo-solid-black-v2.png" alt="KM Detail Line"><span>Sin im&aacute;genes activas</span></div>`;
+    : `<div class="image-placeholder"><span>Sin im&aacute;genes activas</span></div>`;
   root.innerHTML = `
     <article class="location-sheet">
-      <header class="sheet-header">
-        <img src="./assets/km-logo-solid-black-v2.png" alt="KM Detail Line">
-        <div><span>Identificaci&oacute;n interna</span><strong>Ubicaci&oacute;n de producto</strong></div>
-      </header>
       <section class="location-block ${label.warehouseLocation ? "" : "missing"}">
         <span>Ubicaci&oacute;n en dep&oacute;sito</span>
         <h1>${escapeHtml(location)}</h1>
       </section>
       <section class="product-block">
         <div class="code-line"><span>C&oacute;digo KM</span><strong>${escapeHtml(label.kmCode)}</strong></div>
-        <h2>${escapeHtml(label.name)}</h2>
-        ${label.measure ? `<p class="measure">${escapeHtml(label.measure)}</p>` : ""}
-        <div class="product-meta">
-          <div><span>EAN</span><strong>${escapeHtml(label.ean13 || "Sin EAN")}</strong></div>
-          <div><span>Familia</span><strong>${escapeHtml(label.familyName || "-")}</strong></div>
+        <div class="secondary-details">
+          <div class="product-description"><span>Producto</span><h2>${escapeHtml(label.name)}</h2>${label.measure ? `<p class="measure">${escapeHtml(label.measure)}</p>` : ""}</div>
+          <div class="product-meta">
+            <div><span>EAN</span><strong>${escapeHtml(label.ean13 || "Sin EAN")}</strong></div>
+            <div><span>Familia</span><strong>${escapeHtml(label.familyName || "-")}</strong></div>
+          </div>
         </div>
       </section>
       <section class="product-images ${images.length === 1 ? "single" : ""}">${imageMarkup}</section>
-      <footer><span>KM Detail Line</span><strong>Etiqueta interna de dep&oacute;sito</strong></footer>
     </article>`;
   document.title = `${label.kmCode} - Etiqueta de dep&oacute;sito`;
   summary.textContent = `${label.kmCode} · ${label.warehouseLocation?.trim() || "SIN UBICACI\u00d3N ASIGNADA"}`;
