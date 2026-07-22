@@ -1204,7 +1204,10 @@ function renderCustomerOrder(order) {
   const visibleItems = items.filter((item) => order.status === "order_created" || item.confirmedQuantity > 0).slice(0, 5);
   const unavailableItems = items.filter((item) => item.lineStatus === "unavailable" || item.lineStatus === "cancelled");
   const statusClass = purchaseStatusClass(order);
-  const itemCount = items.reduce((sum, item) => sum + (Number(item.confirmedQuantity) > 0 ? Number(item.confirmedQuantity) : Number(item.quantity || 0)), 0);
+  const availabilityReviewed = order.status !== "order_created";
+  const itemCount = items.reduce((sum, item) => sum + (availabilityReviewed
+    ? Number(item.confirmedQuantity || 0)
+    : Number(item.quantity || 0)), 0);
   const canConfirmReceived = fulfillment.status === "shipped";
   const customerState = customerOrderState(order);
   return `
@@ -1244,7 +1247,7 @@ function renderCustomerOrder(order) {
             <strong>${order.status === "order_created" ? "Articulos solicitados" : "Articulos confirmados"}</strong>
             ${visibleItems.length ? visibleItems.map(renderPurchaseLine).join("") : `<span>Pendiente de confirmacion comercial.</span>`}
             ${items.length > visibleItems.length ? `<span>+ ${items.length - visibleItems.length} articulo${items.length - visibleItems.length === 1 ? "" : "s"} mas</span>` : ""}
-            ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
+            ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.unfulfilledReasonLabel ? ` · ${escapeHtml(item.unfulfilledReasonLabel)}` : ""}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
           </div>
           <div class="purchase-actions">
             ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Aceptar disponibilidad</button>` : ""}
@@ -1280,7 +1283,9 @@ function isCreditAccountOrder(order = {}) {
 function renderPurchaseLine(item) {
   const quantity = item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity;
   const suffix = item.confirmedQuantity > 0 && item.confirmedQuantity !== item.quantity ? ` de ${item.quantity}` : "";
-  return `<span>${quantity}${suffix} x ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}</span>`;
+  const difference = item.confirmedQuantity > 0 && item.confirmedQuantity < item.quantity
+    ? ` · No confirmado: ${item.quantity - item.confirmedQuantity}${item.unfulfilledReasonLabel ? ` (${escapeHtml(item.unfulfilledReasonLabel)})` : ""}` : "";
+  return `<span>${quantity}${suffix} x ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${difference}</span>`;
 }
 
 function renderBankSummary(bank = {}) {

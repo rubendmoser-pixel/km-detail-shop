@@ -1,5 +1,11 @@
 import nodemailer from "nodemailer";
 
+const UNFULFILLED_REASON_LABELS = {
+  finished_stock_shortage: "Falta de producto terminado", material_shortage: "Falta de insumos para fabricar",
+  production_delay: "Produccion demorada", discontinued: "Producto discontinuado",
+  commercial_agreement: "Cantidad corregida por acuerdo comercial", order_error: "Error en el pedido", other: "Otro motivo"
+};
+
 export function createEmailService({ db, config, pushService = null }) {
   const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
   const provider = config.emailProvider === "resend" ? "resend" : "smtp";
@@ -281,12 +287,14 @@ export function createEmailService({ db, config, pushService = null }) {
     const customerConfirmedLines = confirmed.length ? confirmed.flatMap((item, index) => [
       `${index + 1}. ${item.km_code} - ${item.product_name}`,
       `   Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity}`,
+      item.confirmed_quantity < item.quantity ? `   No confirmado: ${item.quantity - item.confirmed_quantity} (${UNFULFILLED_REASON_LABELS[item.unfulfilled_reason_code] || "Sin clasificar"})` : "",
       `   Subtotal neto: ${money.format(item.confirmed_subtotal_net_cents / 100)}`,
       item.availability_note ? `   Observacion: ${item.availability_note}` : ""
     ]).filter(Boolean) : ["No hay articulos disponibles para despacho en esta confirmacion."];
     const unavailableLines = unavailable.flatMap((item, index) => [
       `${index + 1}. ${item.km_code} - ${item.product_name}`,
       `   Cantidad solicitada: ${item.quantity}`,
+      `   Motivo: ${UNFULFILLED_REASON_LABELS[item.unfulfilled_reason_code] || "Sin clasificar"}`,
       item.availability_note ? `   Observacion: ${item.availability_note}` : ""
     ]).filter(Boolean);
     queue("order_availability_customer", order.email, `Pedido ${order.order_number}: disponibilidad confirmada`, [

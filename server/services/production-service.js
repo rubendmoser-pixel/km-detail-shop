@@ -572,7 +572,9 @@ export function getProductionSuggestions(db) {
       COALESCE(SUM(CASE WHEN o.fulfillment_status IN ('shipped','delivered') AND o.status!='cancelled'
         AND COALESCE(o.updated_at,o.created_at)>=datetime('now','-90 days') THEN CASE WHEN oi.confirmed_quantity>0 THEN oi.confirmed_quantity ELSE oi.quantity END ELSE 0 END),0) AS delivered_quantity,
       COALESCE(SUM(CASE WHEN o.status IN ('availability_confirmed','confirmed','in_preparation','ready')
-        AND COALESCE(o.fulfillment_status,'pending') IN ('pending','ready') THEN oi.confirmed_quantity ELSE 0 END),0) AS pending_quantity
+        AND COALESCE(o.fulfillment_status,'pending') IN ('pending','ready') THEN oi.confirmed_quantity ELSE 0 END),0) AS pending_quantity,
+      COALESCE(SUM(CASE WHEN oi.line_status IN ('partial','unavailable','cancelled')
+        THEN MAX(0,oi.quantity-oi.confirmed_quantity) ELSE 0 END),0) AS unfulfilled_quantity
     FROM products p JOIN inventory_items i ON i.product_id=p.id AND i.active=1 AND i.tracks_stock=1
     LEFT JOIN inventory_balances b ON b.item_id=i.id
     LEFT JOIN order_items oi ON oi.product_id=p.id LEFT JOIN orders o ON o.id=oi.order_id
@@ -581,6 +583,7 @@ export function getProductionSuggestions(db) {
     const deliveredQuantity = Number(row.delivered_quantity || 0);
     const dailyDemand = observationDays ? deliveredQuantity / observationDays : 0;
     const pendingQuantity = Number(row.pending_quantity || 0);
+    const unfulfilledQuantity = Number(row.unfulfilled_quantity || 0);
     const safetyDays = row.safety_days === null ? productSafetyDays : Number(row.safety_days);
     const minimumBatch = Math.max(1, Number(row.minimum_batch || 1));
     const stock = Number(row.stock || 0);
@@ -589,7 +592,7 @@ export function getProductionSuggestions(db) {
     const suggestedQuantity = shortage > 0 ? Math.ceil(shortage / minimumBatch) * minimumBatch : 0;
     return {
       productId: row.product_id, itemId: row.item_id, kmCode: row.km_code, name: row.name, stock,
-      deliveredQuantity, pendingQuantity, dailyDemand, observationDays, safetyDays, targetStock,
+      deliveredQuantity, pendingQuantity, unfulfilledQuantity, dailyDemand, observationDays, safetyDays, targetStock,
       minimumBatch, suggestedQuantity,
       reason: suggestedQuantity ? (pendingQuantity > stock ? "pending_orders" : "safety_stock") : (dailyDemand || pendingQuantity ? "covered" : "collecting_data")
     };

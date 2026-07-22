@@ -7445,3 +7445,25 @@ button.operation-row:hover {
     padding-inline: 18px;
   }
 }
+
+/* Demanda no atendida: lectura administrativa compacta en PC y tarjetas en teléfono. */
+.unfulfilled-demand-summary { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:18px 0; }
+.unfulfilled-demand-summary > div { min-width:0; padding:16px; border:1px solid #343941; border-radius:12px; background:#17191d; }
+.unfulfilled-demand-summary span,.unfulfilled-demand-table small { display:block; color:#aeb4bd; font-size:.78rem; line-height:1.35; }
+.unfulfilled-demand-summary strong { display:block; margin-top:7px; font-size:1.35rem; }
+.unfulfilled-demand-table { width:100%; table-layout:fixed; }
+.unfulfilled-demand-table th:nth-child(1){width:17%}.unfulfilled-demand-table th:nth-child(2){width:20%}
+.unfulfilled-demand-table th:nth-child(3),.unfulfilled-demand-table th:nth-child(4),.unfulfilled-demand-table th:nth-child(5),.unfulfilled-demand-table th:nth-child(6){width:8%}
+.unfulfilled-demand-table th:nth-child(7){width:12%}.unfulfilled-demand-table th:nth-child(8){width:19%}
+.unfulfilled-demand-table td { vertical-align:middle; overflow-wrap:anywhere; }
+.unfulfilled-demand-table .unfulfilled-quantity { color:#ff9c9c; }
+.unfulfilled-demand-table .compact-button { margin-top:7px; padding:7px 10px; min-height:0; font-size:.76rem; }
+.unfulfilled-demand-toolbar { grid-template-columns:minmax(240px,1fr) repeat(3,minmax(150px,auto)) auto; }
+.availability-table select { min-width:170px; }
+@media(max-width:900px){
+  .unfulfilled-demand-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.unfulfilled-demand-toolbar{grid-template-columns:1fr}
+  .unfulfilled-demand-table,.unfulfilled-demand-table tbody,.unfulfilled-demand-table tr,.unfulfilled-demand-table td{display:block;width:100%}
+  .unfulfilled-demand-table thead{display:none}.unfulfilled-demand-table tr{margin-bottom:12px;padding:10px;border:1px solid #343941;border-radius:10px}
+  .unfulfilled-demand-table td{display:grid;grid-template-columns:42% minmax(0,1fr);gap:10px;padding:9px}
+  .unfulfilled-demand-table td::before{content:attr(data-label);color:#aeb4bd;font-size:.72rem;font-weight:800;text-transform:uppercase}
+}

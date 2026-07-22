@@ -4,7 +4,7 @@ const adminState = {
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
   operationDashboard: null, operationMonth: new Date().toISOString().slice(0, 7), operationTab: "summary", operationProductSearch: "", analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}, customerShippingAddresses: {}, editingCustomerShippingAddress: {},
   priceProducts: [], priceCosts: null, priceProfitTargets: {}, priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
-  orderScope: "active", orderSearches: { active: "", history: "" }, logisticsOperators: []
+  orderScope: "active", orderSearches: { active: "", history: "" }, logisticsOperators: [], unfulfilledDemand: null
 };
 const adminMoney = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const PRODUCT_UPLOAD_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -13,7 +13,16 @@ const PRODUCT_UPLOAD_TARGET_BYTES = 900 * 1024;
 const PRODUCT_UPLOAD_MAX_DIMENSION = 1600;
 const PRODUCT_UPLOAD_WEBP_QUALITY = 0.82;
 const PRODUCT_UPLOAD_JPEG_QUALITY = 0.86;
-const adminViews = new Set(["customers", "sales", "logistics", "production", "production-access", "production-commissions", "production-materials", "production-product-stock", "production-stock", "production-stock-parameters", "production-movements", "production-purchasing", "production-recipes", "production-costs", "production-suppliers", "commissions", "distributors", "products", "prices", "orders", "accounts", "settings", "backups", "emails", "security", "analytics", "operation"]);
+const adminViews = new Set(["customers", "sales", "logistics", "production", "production-access", "production-commissions", "production-materials", "production-product-stock", "production-stock", "production-stock-parameters", "production-movements", "production-purchasing", "production-recipes", "production-costs", "production-suppliers", "commissions", "distributors", "products", "prices", "orders", "unfulfilled-demand", "accounts", "settings", "backups", "emails", "security", "analytics", "operation"]);
+const UNFULFILLED_REASON_LABELS = {
+  finished_stock_shortage: "Falta de producto terminado",
+  material_shortage: "Falta de insumos para fabricar",
+  production_delay: "Producción demorada",
+  discontinued: "Producto discontinuado",
+  commercial_agreement: "Cantidad corregida por acuerdo comercial",
+  order_error: "Error en el pedido",
+  other: "Otro motivo"
+};
 const statusLabels = {
   pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado",
   suspended: "Suspendido", inactive: "Inactivo"
@@ -105,7 +114,7 @@ const ADMIN_ICON_PATHS = {
 
 const ADMIN_VIEW_ICONS = {
   customers: "users", sales: "user-round", logistics: "truck", production: "package", "production-access": "users", "production-commissions": "coins", "production-materials": "package", "production-product-stock": "package", "production-stock": "package", "production-stock-parameters": "settings", "production-movements": "activity", "production-purchasing": "clipboard-list", "production-recipes": "clipboard-list", "production-costs": "coins", "production-suppliers": "building", commissions: "coins", distributors: "building",
-  products: "package", prices: "tags", orders: "clipboard-list", accounts: "wallet", settings: "settings", backups: "database",
+  products: "package", prices: "tags", orders: "clipboard-list", "unfulfilled-demand": "activity", accounts: "wallet", settings: "settings", backups: "database",
   emails: "mail", security: "shield", analytics: "activity", operation: "layout-dashboard"
 };
 
@@ -186,6 +195,7 @@ const adminEls = Object.fromEntries([
   "adminWorkspace", "adminNavToggle", "adminTabs", "customerSearch", "customerStatusFilter", "customerStats", "customerList", "toggleCustomerCreate",
   "customerCreatePanel", "customerCreateForm", "customerCreateMessage", "cancelCustomerCreate", "ordersTableBody",
   "orderSearch", "orderStageFilter", "orderPaymentFilter", "orderOpsStats", "orderScopeTabs", "activeOrdersCount", "historyOrdersCount",
+  "unfulfilledDemandSearch", "unfulfilledDemandFrom", "unfulfilledDemandTo", "unfulfilledDemandReason", "reloadUnfulfilledDemand", "unfulfilledDemandSummary", "unfulfilledDemandList",
   "orderDetailPanel", "orderDetailTitle", "orderDetailSummary", "orderDetailActions", "orderNextStep", "orderItemsBody",
   "orderHistoryPanel",
   "availabilityForm", "availabilityPaymentCondition", "availabilityTermsField", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
@@ -271,6 +281,17 @@ function bindAdminEvents() {
   on(adminEls.orderPaymentFilter, "change", loadOrders);
   on(byId("#reloadOrders"), "click", loadOrders);
   on(adminEls.ordersTableBody, "click", handleOrdersTableClick);
+  on(adminEls.unfulfilledDemandSearch, "input", debounce(loadUnfulfilledDemand, 250));
+  on(adminEls.unfulfilledDemandFrom, "change", loadUnfulfilledDemand);
+  on(adminEls.unfulfilledDemandTo, "change", loadUnfulfilledDemand);
+  on(adminEls.unfulfilledDemandReason, "change", loadUnfulfilledDemand);
+  on(adminEls.reloadUnfulfilledDemand, "click", loadUnfulfilledDemand);
+  on(adminEls.unfulfilledDemandList, "click", (event) => {
+    const button = event.target.closest("[data-demand-order]");
+    if (!button) return;
+    showAdminView("orders");
+    openOrderDetail(Number(button.dataset.demandOrder));
+  });
   on(byId("#closeOrderDetail"), "click", closeOrderDetail);
   on(adminEls.availabilityForm, "submit", saveAvailability);
   on(adminEls.availabilityPaymentCondition, "change", syncAvailabilityPaymentFields);
@@ -406,6 +427,7 @@ async function enterWorkspace() {
     ["productos", loadProducts],
     ["precios", loadPriceUpdates],
     ["pedidos", loadOrders],
+    ["demanda no atendida", loadUnfulfilledDemand],
     ["operarios", loadLogisticsOperators],
     ["configuracion", loadSettings],
     ["emails", loadEmails],
@@ -460,6 +482,7 @@ function showAdminView(view, updateHash = true) {
   });
   if (targetView === "commissions") loadSalesCommissions().catch((error) => showAdminToast(error.message));
   if (targetView === "prices" && !adminState.priceProducts.length) loadPriceUpdates().catch((error) => showAdminToast(error.message));
+  if (targetView === "unfulfilled-demand") loadUnfulfilledDemand().catch((error) => showAdminToast(error.message));
 }
 
 async function loadCustomers() {
@@ -2868,6 +2891,40 @@ async function loadOrders() {
   }).join("") : `<tr><td colspan="8">${adminState.orderScope === "history" ? "No hay pedidos históricos para esta búsqueda." : "No hay pedidos activos para este filtro."}</td></tr>`;
 }
 
+async function loadUnfulfilledDemand() {
+  if (!adminEls.unfulfilledDemandList) return;
+  const params = new URLSearchParams();
+  if (adminEls.unfulfilledDemandSearch?.value.trim()) params.set("q", adminEls.unfulfilledDemandSearch.value.trim());
+  if (adminEls.unfulfilledDemandFrom?.value) params.set("from", adminEls.unfulfilledDemandFrom.value);
+  if (adminEls.unfulfilledDemandTo?.value) params.set("to", adminEls.unfulfilledDemandTo.value);
+  if (adminEls.unfulfilledDemandReason?.value) params.set("reason", adminEls.unfulfilledDemandReason.value);
+  const report = await adminApi(`/api/admin/unfulfilled-demand${params.toString() ? `?${params}` : ""}`);
+  adminState.unfulfilledDemand = report;
+  if (adminEls.unfulfilledDemandReason && adminEls.unfulfilledDemandReason.options.length === 1) {
+    adminEls.unfulfilledDemandReason.insertAdjacentHTML("beforeend", report.reasons.map((reason) => `<option value="${escapeAdmin(reason.code)}">${escapeAdmin(reason.label)}</option>`).join(""));
+  }
+  const summary = report.summary || {};
+  adminEls.unfulfilledDemandSummary.innerHTML = [
+    ["Líneas afectadas", summary.affectedLines || 0],
+    ["Unidades solicitadas", summary.requestedUnits || 0],
+    ["Unidades no atendidas", summary.unfulfilledUnits || 0],
+    ["Cumplimiento", `${Number(summary.fulfillmentPercent || 0).toLocaleString("es-AR", { maximumFractionDigits: 1 })}%`],
+    ["Valor potencial", adminMoney.format(Number(summary.unfulfilledValueCents || 0) / 100)]
+  ].map(([label, value]) => `<div><span>${escapeAdmin(label)}</span><strong>${escapeAdmin(value)}</strong></div>`).join("");
+  adminEls.unfulfilledDemandList.innerHTML = report.rows.length ? report.rows.map((row) => `
+    <tr>
+      <td data-label="Pedido / cliente"><strong>${escapeAdmin(row.orderNumber)}</strong><small>${escapeAdmin(row.customer)} · ${formatDate(row.date)}</small><button class="ghost-button compact-button" type="button" data-demand-order="${row.orderId}">Ver pedido</button></td>
+      <td data-label="Producto"><strong>${escapeAdmin(row.kmCode)}</strong><small>${escapeAdmin(row.productName)} · ${escapeAdmin(row.family)}</small></td>
+      <td data-label="Solicitado">${row.requestedQuantity} u.</td>
+      <td data-label="Confirmado">${row.confirmedQuantity} u.</td>
+      <td class="unfulfilled-quantity" data-label="No atendido"><strong>${row.unfulfilledQuantity} u.</strong></td>
+      <td data-label="Cumplimiento">${Number(row.fulfillmentPercent || 0).toLocaleString("es-AR", { maximumFractionDigits: 1 })}%</td>
+      <td data-label="Valor potencial">${adminMoney.format(row.unfulfilledValueCents / 100)}</td>
+      <td data-label="Motivo"><strong>${escapeAdmin(row.reasonLabel)}</strong>${row.note ? `<small>${escapeAdmin(row.note)}</small>` : ""}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="8">No hay diferencias de disponibilidad para estos filtros.</td></tr>`;
+}
+
 function orderStageText(stage) {
   return orderStageLabels[stage] || "En seguimiento";
 }
@@ -3051,6 +3108,7 @@ function renderOrderDetail() {
       <td data-label="Disponible"><input class="confirmed-qty-input" name="confirmedQuantity-${item.id}" type="number" min="0" max="${item.quantity}" step="1" value="${item.confirmedQuantity || 0}" /></td>
       <td data-label="Precio final">${adminMoney.format(item.finalUnitPriceCents / 100)}</td>
       <td data-label="Subtotal" data-confirmed-subtotal>${adminMoney.format((item.confirmedSubtotalNetCents || 0) / 100)}</td>
+      <td data-label="Motivo diferencia"><select name="unfulfilledReasonCode-${item.id}" aria-label="Motivo de cantidad no confirmada">${unfulfilledReasonOptions(item.unfulfilledReasonCode || "")}</select></td>
       <td data-label="Nota"><input name="availabilityNote-${item.id}" value="${escapeAdmin(item.availabilityNote || "")}" placeholder="${item.confirmedQuantity ? "" : "Motivo si no disponible"}" /></td>
     </tr>
   `).join("");
@@ -3065,6 +3123,10 @@ function renderOrderDetail() {
   adminEls.orderStatusForm.elements.paymentStatus.value = order.paymentStatus;
   adminEls.orderStatusForm.elements.reason.value = "";
   adminEls.orderStatusMessage.textContent = "";
+}
+
+function unfulfilledReasonOptions(selected = "") {
+  return `<option value="">No corresponde</option>${Object.entries(UNFULFILLED_REASON_LABELS).map(([code, label]) => `<option value="${code}" ${selected === code ? "selected" : ""}>${escapeAdmin(label)}</option>`).join("")}`;
 }
 
 function renderOrderSummary(order) {
@@ -3616,6 +3678,7 @@ async function saveAvailability(event) {
   const items = adminState.selectedOrder.items.map((item) => ({
     id: item.id,
     confirmedQuantity: Number(values[`confirmedQuantity-${item.id}`] || 0),
+    unfulfilledReasonCode: values[`unfulfilledReasonCode-${item.id}`] || "",
     availabilityNote: values[`availabilityNote-${item.id}`] || ""
   }));
   setBusy(adminEls.availabilityForm, true);
@@ -3631,6 +3694,7 @@ async function saveAvailability(event) {
     });
     adminState.selectedOrder = order;
     await loadOrders();
+    await loadUnfulfilledDemand();
     await loadOperationDashboard();
     renderOrderDetail();
     adminEls.availabilityMessage.textContent = "Disponibilidad confirmada y email enviado.";

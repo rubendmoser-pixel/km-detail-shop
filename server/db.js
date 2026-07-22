@@ -855,6 +855,7 @@ function migrate(db) {
   ensureColumn(db, "order_items", "confirmed_subtotal_net_cents", "INTEGER NOT NULL DEFAULT 0 CHECK (confirmed_subtotal_net_cents >= 0)");
   ensureColumn(db, "order_items", "line_status", "TEXT NOT NULL DEFAULT 'pending_confirmation'");
   ensureColumn(db, "order_items", "availability_note", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "order_items", "unfulfilled_reason_code", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "order_items", "warehouse_location", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "order_items", "special_discount_bps", "INTEGER NOT NULL DEFAULT 0 CHECK (special_discount_bps BETWEEN 0 AND 10000)");
   ensureColumn(db, "order_items", "special_discount_note", "TEXT NOT NULL DEFAULT ''");

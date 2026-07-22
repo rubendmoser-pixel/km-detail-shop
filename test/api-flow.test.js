@@ -594,6 +594,18 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const logisticsQueue = await getJson(`${baseUrl}/api/logistics/orders`, logisticsCookie);
   assert.equal(logisticsQueue.orders.find((order) => order.id === orderPayload.order.id).stage, "review_availability");
   assert.equal("totalCents" in logisticsQueue.orders[0], false);
+  const missingReasonResponse = await fetch(`${baseUrl}/api/logistics/orders/${orderPayload.order.id}/availability`, {
+    method: "PATCH",
+    headers: jsonHeaders(logisticsCookie),
+    body: JSON.stringify({
+      items: adminOrderDetail.order.items.map((item, index) => ({
+        id: item.id,
+        confirmedQuantity: index === 0 ? item.quantity - 1 : item.quantity
+      }))
+    })
+  });
+  assert.equal(missingReasonResponse.status, 400);
+  assert.match((await missingReasonResponse.json()).error, /motivo.*cantidad no confirmada/i);
   const availabilityResponse = await fetch(`${baseUrl}/api/logistics/orders/${orderPayload.order.id}/availability`, {
     method: "PATCH",
     headers: jsonHeaders(logisticsCookie),
@@ -603,10 +615,12 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
       items: [{
         id: adminOrderDetail.order.items[0].id,
         confirmedQuantity: 1,
+        unfulfilledReasonCode: "finished_stock_shortage",
         availabilityNote: "Se despacha una unidad ahora"
       }, {
         id: adminOrderDetail.order.items[1].id,
         confirmedQuantity: 3,
+        unfulfilledReasonCode: "production_delay",
         availabilityNote: "Se despachan tres unidades ahora"
       }]
     })
@@ -625,6 +639,12 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(availabilityOrder.totalCents, 225_641);
   assert.equal(availabilityOrder.salesRep.commissionCents, 6527);
   assert.equal(availabilityOrder.modifiedAcceptanceRequired, true);
+  assert.equal(availabilityOrder.items[0].unfulfilledReasonLabel, "Falta de producto terminado");
+  const unfulfilledDemandResponse = await fetch(`${baseUrl}/api/admin/unfulfilled-demand`, { headers: { cookie: adminCookie } });
+  assert.equal(unfulfilledDemandResponse.status, 200);
+  const unfulfilledDemand = await unfulfilledDemandResponse.json();
+  assert.equal(unfulfilledDemand.summary.unfulfilledUnits, 3);
+  assert.equal(unfulfilledDemand.rows.some((row) => row.orderNumber === orderPayload.order.orderNumber && row.reasonCode === "finished_stock_shortage"), true);
   const awaitingAcceptanceOrders = await getJson(`${baseUrl}/api/admin/orders?stage=awaiting_acceptance`, adminCookie);
   assert.equal(awaitingAcceptanceOrders.orders.some((order) => order.id === orderPayload.order.id), true);
   db.prepare("UPDATE orders SET payment_status = 'credit_account' WHERE id = ?").run(orderPayload.order.id);

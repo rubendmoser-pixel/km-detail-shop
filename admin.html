@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="./assets/app-admin-192.png" />
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=91" />
+    <link rel="stylesheet" href="./admin.css?v=92" />
     <link rel="stylesheet" href="./admin-production.css?v=47" />
   </head>
   <body class="admin-body">
@@ -67,6 +67,7 @@
             <p class="admin-nav-group-title">Pedidos y finanzas</p>
             <div class="admin-nav-group-items">
               <button type="button" data-admin-view="orders" title="Pedidos"><span class="admin-tab-label">Pedidos</span></button>
+              <button type="button" data-admin-view="unfulfilled-demand" title="Demanda no atendida"><span class="admin-tab-label">Demanda no atendida</span></button>
               <button type="button" data-admin-view="accounts" title="Cuenta corriente"><span class="admin-tab-label">Cuenta corriente</span></button>
               <button type="button" data-admin-view="logistics" title="Equipo de logística"><span class="admin-tab-label">Equipo de logística</span></button>
             </div>
@@ -974,7 +975,7 @@
             <section class="order-history-panel" id="orderHistoryPanel"></section>
             <form class="availability-form" id="availabilityForm">
               <div class="panel-heading"><p class="eyebrow">Disponibilidad</p><h3>Confirmar articulos disponibles</h3></div>
-              <div class="orders-table-wrap"><table class="admin-table availability-table mobile-card-table"><thead><tr><th>KM</th><th>Producto</th><th>Pedido</th><th>Disponible</th><th>Precio final</th><th>Subtotal confirmado</th><th>Nota</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
+              <div class="orders-table-wrap"><table class="admin-table availability-table mobile-card-table"><thead><tr><th>KM</th><th>Producto</th><th>Pedido</th><th>Disponible</th><th>Precio final</th><th>Subtotal confirmado</th><th>Motivo diferencia</th><th>Nota</th></tr></thead><tbody id="orderItemsBody"></tbody></table></div>
               <div class="availability-payment-row">
                 <label><span>Forma de pago</span><select name="paymentCondition" id="availabilityPaymentCondition">
                   <option value="advance_payment">Pago anticipado</option>
@@ -1039,6 +1040,27 @@
               </form>
             </details>
           </section>
+        </section>
+
+        <section class="admin-view" id="unfulfilled-demandView" hidden>
+          <div class="admin-titlebar">
+            <div><p class="eyebrow">Pedidos y disponibilidad</p><h1>Demanda no atendida</h1></div>
+            <div class="admin-toolbar unfulfilled-demand-toolbar">
+              <input id="unfulfilledDemandSearch" type="search" placeholder="Buscar pedido, cliente o producto" />
+              <input id="unfulfilledDemandFrom" type="date" aria-label="Desde" />
+              <input id="unfulfilledDemandTo" type="date" aria-label="Hasta" />
+              <select id="unfulfilledDemandReason" aria-label="Motivo"><option value="">Todos los motivos</option></select>
+              <button class="ghost-button toolbar-refresh-button" id="reloadUnfulfilledDemand" type="button">Actualizar</button>
+            </div>
+          </div>
+          <p class="admin-note">Registra la diferencia definitiva entre las unidades solicitadas por el cliente y las confirmadas por KM. Es información comercial y productiva; no modifica automáticamente la planificación.</p>
+          <div class="unfulfilled-demand-summary" id="unfulfilledDemandSummary"></div>
+          <div class="orders-table-wrap">
+            <table class="admin-table unfulfilled-demand-table mobile-card-table">
+              <thead><tr><th>Pedido / cliente</th><th>Producto</th><th>Solicitado</th><th>Confirmado</th><th>No atendido</th><th>Cumplimiento</th><th>Valor potencial</th><th>Motivo</th></tr></thead>
+              <tbody id="unfulfilledDemandList"></tbody>
+            </table>
+          </div>
         </section>
 
         <section class="admin-view" id="accountsView" hidden>
@@ -1194,7 +1216,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=119" defer></script>
-    <script src="./admin-production.js?v=41" defer></script>
+    <script src="./admin.js?v=120" defer></script>
+    <script src="./admin-production.js?v=42" defer></script>
   </body>
 </html>

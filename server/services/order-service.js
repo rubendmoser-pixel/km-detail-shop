@@ -70,6 +70,15 @@ const MANUAL_ACCOUNT_PAYMENT_LABELS = {
   physical_check: "Cheque fisico",
   e_check: "E-cheq"
 };
+const UNFULFILLED_REASON_LABELS = {
+  finished_stock_shortage: "Falta de producto terminado",
+  material_shortage: "Falta de insumos para fabricar",
+  production_delay: "Producción demorada",
+  discontinued: "Producto discontinuado",
+  commercial_agreement: "Cantidad corregida por acuerdo comercial",
+  order_error: "Error en el pedido",
+  other: "Otro motivo"
+};
 
 export function createOrder(db, customerId, input = {}) {
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("Order requires at least one item");
@@ -403,7 +412,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
     let requiresCustomerAcceptance = false;
     const updateItem = db.prepare(`
       UPDATE order_items SET confirmed_quantity = ?, confirmed_subtotal_net_cents = ?,
-        line_status = ?, availability_note = ?, industrial_unit_cost_cents = ?,
+        line_status = ?, availability_note = ?, unfulfilled_reason_code = ?, industrial_unit_cost_cents = ?,
         industrial_material_cost_cents = ?, industrial_labor_cost_cents = ?,
         industrial_production_commission_cents = ?, industrial_cost_complete = ?,
         industrial_cost_snapshot_at = CURRENT_TIMESTAMP
@@ -418,11 +427,12 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
       const confirmedSubtotal = item.final_unit_price_cents * confirmedQuantity;
       const lineStatus = lineStatusFor(item.quantity, confirmedQuantity, itemInput.lineStatus);
       const note = optionalText(itemInput.availabilityNote, "availabilityNote", { max: 500 });
+      const unfulfilledReasonCode = normalizeUnfulfilledReason(itemInput.unfulfilledReasonCode, confirmedQuantity < item.quantity, note);
       const cost = costsByProduct.get(Number(item.product_id));
       if (confirmedQuantity !== item.quantity) requiresCustomerAcceptance = true;
       confirmedSubtotalNetCents += confirmedSubtotal;
       updateItem.run(
-        confirmedQuantity, confirmedSubtotal, lineStatus, note,
+        confirmedQuantity, confirmedSubtotal, lineStatus, note, unfulfilledReasonCode,
         cost ? Math.round(Number(cost.totalCostArs || 0) * 100) : null,
         cost ? Math.round(Number(cost.materialCostArs || 0) * 100) : null,
         cost ? Math.round(Number(cost.laborCostArs || 0) * 100) : null,
@@ -920,6 +930,66 @@ function consumeFinishedProductStock(db, orderId, actorUserId) {
   }
 }
 
+export function getUnfulfilledDemandReport(db, filters = {}) {
+  const clauses = ["oi.confirmed_quantity < oi.quantity", "oi.line_status IN ('partial','unavailable','cancelled')"];
+  const params = [];
+  const from = String(filters.from || "").trim();
+  const to = String(filters.to || "").trim();
+  const reason = String(filters.reason || "").trim();
+  const search = String(filters.q || "").trim();
+  if (from) { clauses.push("date(COALESCE(o.updated_at,o.created_at)) >= date(?)"); params.push(from); }
+  if (to) { clauses.push("date(COALESCE(o.updated_at,o.created_at)) <= date(?)"); params.push(to); }
+  if (reason) { clauses.push("oi.unfulfilled_reason_code = ?"); params.push(reason); }
+  if (search) {
+    const q = `%${search}%`;
+    clauses.push("(o.order_number LIKE ? OR c.business_name LIKE ? OR oi.km_code LIKE ? OR oi.product_name LIKE ?)");
+    params.push(q, q, q, q);
+  }
+  const rows = db.prepare(`
+    SELECT o.id AS order_id,o.order_number,o.created_at,o.updated_at,c.business_name,
+      COALESCE(sr.name,o.sales_rep_name,'') AS sales_rep_name,
+      oi.id AS order_item_id,oi.product_id,oi.km_code,oi.product_name,oi.quantity,
+      oi.confirmed_quantity,oi.final_unit_price_cents,oi.unfulfilled_reason_code,oi.availability_note,
+      COALESCE(f.name,'Sin familia') AS family_name
+    FROM order_items oi
+    JOIN orders o ON o.id=oi.order_id
+    JOIN customers c ON c.id=o.customer_id
+    LEFT JOIN sales_reps sr ON sr.id=o.sales_rep_id
+    LEFT JOIN products p ON p.id=oi.product_id
+    LEFT JOIN product_families f ON f.id=p.family_id
+    WHERE ${clauses.join(" AND ")}
+    ORDER BY COALESCE(o.updated_at,o.created_at) DESC,o.id DESC,oi.id
+  `).all(...params).map((row) => {
+    const requestedQuantity = Number(row.quantity || 0);
+    const confirmedQuantity = Number(row.confirmed_quantity || 0);
+    const unfulfilledQuantity = Math.max(0, requestedQuantity - confirmedQuantity);
+    return {
+      orderId: row.order_id, orderNumber: row.order_number, date: row.updated_at || row.created_at,
+      customer: row.business_name, salesRep: row.sales_rep_name || "Sin vendedor",
+      orderItemId: row.order_item_id, productId: row.product_id, kmCode: row.km_code,
+      productName: row.product_name, family: row.family_name,
+      requestedQuantity, confirmedQuantity, unfulfilledQuantity,
+      fulfillmentPercent: requestedQuantity ? confirmedQuantity * 100 / requestedQuantity : 0,
+      unfulfilledValueCents: unfulfilledQuantity * Number(row.final_unit_price_cents || 0),
+      reasonCode: row.unfulfilled_reason_code || "unclassified",
+      reasonLabel: UNFULFILLED_REASON_LABELS[row.unfulfilled_reason_code] || "Sin clasificar",
+      note: row.availability_note || ""
+    };
+  });
+  const requestedUnits = rows.reduce((sum, row) => sum + row.requestedQuantity, 0);
+  const confirmedUnits = rows.reduce((sum, row) => sum + row.confirmedQuantity, 0);
+  const unfulfilledUnits = rows.reduce((sum, row) => sum + row.unfulfilledQuantity, 0);
+  return {
+    generatedAt: new Date().toISOString(), rows,
+    summary: {
+      affectedLines: rows.length, requestedUnits, confirmedUnits, unfulfilledUnits,
+      fulfillmentPercent: requestedUnits ? confirmedUnits * 100 / requestedUnits : 100,
+      unfulfilledValueCents: rows.reduce((sum, row) => sum + row.unfulfilledValueCents, 0)
+    },
+    reasons: Object.entries(UNFULFILLED_REASON_LABELS).map(([code, label]) => ({ code, label }))
+  };
+}
+
 export function acceptModifiedOrder(db, orderId, customerId, userId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ? AND customer_id = ?").get(orderId, customerId);
   if (!order) throw new NotFoundError("Order not found");
@@ -1057,6 +1127,18 @@ function lineStatusFor(orderedQuantity, confirmedQuantity, requestedStatus = "")
   if (confirmedQuantity === 0) return "unavailable";
   if (confirmedQuantity < orderedQuantity) return "partial";
   return "confirmed";
+}
+
+function normalizeUnfulfilledReason(value, required, note = "") {
+  if (!required) return "";
+  const code = String(value || "").trim();
+  if (!UNFULFILLED_REASON_LABELS[code]) {
+    throw new ValidationError("Seleccioná el motivo de la cantidad no confirmada.");
+  }
+  if (code === "other" && !String(note || "").trim()) {
+    throw new ValidationError("Escribí una observación cuando seleccionás Otro motivo.");
+  }
+  return code;
 }
 
 function normalizePackageCount(value) {
@@ -1444,7 +1526,9 @@ function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments 
       subtotalNetCents: item.subtotal_net_cents,
       confirmedSubtotalNetCents: item.confirmed_subtotal_net_cents || 0,
       lineStatus: item.line_status || "pending_confirmation",
-      availabilityNote: item.availability_note || ""
+      availabilityNote: item.availability_note || "",
+      unfulfilledReasonCode: item.unfulfilled_reason_code || "",
+      unfulfilledReasonLabel: UNFULFILLED_REASON_LABELS[item.unfulfilled_reason_code] || ""
     }))
   };
 }

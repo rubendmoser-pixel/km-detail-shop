@@ -28,6 +28,7 @@ import {
   createShippingLabels,
   deleteTestOrders,
   getOrder,
+  getUnfulfilledDemandReport,
   getPaymentReceiptFile,
   listAdminOrders,
   countAdminOrderScopes,
@@ -951,6 +952,15 @@ export function createApp({
           }),
           scopes: countAdminOrderScopes(db)
         });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/unfulfilled-demand") {
+        requireAdmin(currentUser);
+        return sendJson(response, 200, getUnfulfilledDemandReport(db, {
+          q: url.searchParams.get("q") || "",
+          from: url.searchParams.get("from") || "",
+          to: url.searchParams.get("to") || "",
+          reason: url.searchParams.get("reason") || ""
+        }));
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/availability$/);
       if (request.method === "PATCH" && match) {
