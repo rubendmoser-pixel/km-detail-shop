@@ -1,0 +1,45 @@
+* { box-sizing: border-box; }
+html, body { background: #dfe3e7; }
+body { margin: 0; color: #08090b; font-family: Arial, Helvetica, sans-serif; }
+.screen-actions { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; color: #f5f6f7; background: #08090b; }
+.screen-actions[hidden] { display: none; }
+.screen-actions a, .screen-actions button { min-height: 42px; padding: 10px 15px; color: #f5f6f7; font-weight: 800; text-decoration: none; background: #17191d; border: 1px solid #626873; border-radius: 6px; }
+.screen-actions button { cursor: pointer; color: #090a0c; background: linear-gradient(135deg, #beb5ff, #7e72ef); border-color: #d4ceff; }
+.screen-actions span { font-size: 14px; font-weight: 700; }
+.location-sheet { display: grid; grid-template-rows: auto auto auto 1fr auto; width: 210mm; height: 297mm; margin: 18px auto; overflow: hidden; padding: 12mm; background: #fff; box-shadow: 0 20px 60px rgba(0, 0, 0, .18); page-break-inside: avoid; break-inside: avoid; }
+.sheet-header { display: flex; align-items: center; gap: 8mm; padding-bottom: 7mm; border-bottom: 1.4mm solid #0a0b0d; }
+.sheet-header img { width: 47mm; height: auto; }
+.sheet-header div { display: grid; gap: 2mm; padding-left: 7mm; border-left: 1mm solid #d7c74b; }
+.sheet-header span, .location-block span, .code-line span, .product-meta span, footer { color: #59616c; font-size: 9pt; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.sheet-header strong { font-size: 22pt; }
+.location-block { display: grid; place-items: center; min-height: 58mm; margin-top: 7mm; padding: 7mm; color: #fff; text-align: center; background: #08090b; border-left: 3mm solid #d7c74b; }
+.location-block span { color: #d7c74b; }
+.location-block h1 { max-width: 100%; margin: 3mm 0 0; overflow-wrap: anywhere; font-size: 49pt; line-height: 1; letter-spacing: .025em; }
+.location-block.missing { color: #ffb2b8; border-color: #d94d58; }
+.location-block.missing h1 { font-size: 32pt; }
+.product-block { padding: 8mm 1mm 5mm; }
+.code-line { display: flex; align-items: center; justify-content: space-between; gap: 8mm; }
+.code-line strong { padding: 3mm 5mm; color: #fff; font-size: 35pt; line-height: 1; background: #08090b; border-radius: 2mm; }
+.product-block h2 { margin: 5mm 0 1mm; font-size: 23pt; line-height: 1.12; text-transform: uppercase; }
+.measure { margin: 0; color: #555c65; font-size: 15pt; font-weight: 700; }
+.product-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 6mm; padding-top: 5mm; border-top: .4mm solid #b8bdc5; }
+.product-meta div { display: grid; gap: 2mm; }
+.product-meta strong { font-size: 15pt; }
+.product-images { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5mm; min-height: 0; padding: 5mm; background: #08090b; border: 1.4mm solid #08090b; }
+.product-images.single { grid-template-columns: 1fr; }
+.product-images figure { display: grid; place-items: center; min-width: 0; min-height: 0; margin: 0; overflow: hidden; background: #08090b; border: .4mm solid #30343a; }
+.product-images img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #08090b; }
+.image-placeholder { display: grid; place-items: center; align-content: center; gap: 8mm; color: #9da3ab; text-align: center; }
+.image-placeholder img { width: 68mm; height: auto; padding: 7mm; filter: invert(1); }
+.image-placeholder span { font-size: 14pt; font-weight: 800; text-transform: uppercase; }
+footer { display: flex; justify-content: space-between; padding-top: 4mm; border-top: .4mm solid #b8bdc5; }
+footer strong { color: #08090b; }
+.error { max-width: 720px; margin: 60px auto; padding: 30px; background: #fff; box-shadow: 0 16px 45px rgba(0, 0, 0, .15); }
+.error a { color: #473dc0; font-weight: 800; }
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  html, body { background: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .screen-actions { display: none !important; }
+  .location-sheet { width: 210mm; height: 297mm; margin: 0; padding: 12mm; box-shadow: none; }
+  .location-block, .product-images, .product-images figure, .product-images img, .code-line strong { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}

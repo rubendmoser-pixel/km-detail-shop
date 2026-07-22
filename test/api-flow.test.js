@@ -227,6 +227,17 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   const productImages = (await secondImageResponse.json()).images;
   assert.equal(productImages.length, 2);
   assert.equal(productImages[0].isPrimary, true);
+  const locationLabelResponse = await fetch(`${baseUrl}/api/admin/products/${product.id}/location-label`, {
+    headers: { cookie: adminCookie }
+  });
+  assert.equal(locationLabelResponse.status, 200);
+  const locationLabel = (await locationLabelResponse.json()).label;
+  assert.equal(locationLabel.kmCode, "API001K");
+  assert.equal(locationLabel.ean13, "7791234567890");
+  assert.equal(locationLabel.warehouseLocation, "A-03-02");
+  assert.deepEqual(locationLabel.images.map((image) => image.url), productImages.map((image) => image.url));
+  assert.equal("basePriceCents" in locationLabel, false);
+  assert.equal((await fetch(`${baseUrl}/api/admin/products/${product.id}/location-label`)).status, 401);
   const scheduledPriceResponse = await fetch(`${baseUrl}/api/admin/price-updates/linear`, {
     method: "POST",
     headers: jsonHeaders(adminCookie),

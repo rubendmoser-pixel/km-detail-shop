@@ -242,6 +242,29 @@ export function listProductImages(db, productId) {
   `).all(productId).map(productImage);
 }
 
+export function getAdminProductLocationLabel(db, productId) {
+  const id = Number(productId);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("productId is invalid");
+  const row = db.prepare(`
+    SELECT p.id, p.km_code, p.ean13, p.name, p.measure, p.warehouse_location,
+           f.name AS family_name
+    FROM products p
+    JOIN product_families f ON f.id = p.family_id
+    WHERE p.id = ?
+  `).get(id);
+  if (!row) throw new NotFoundError("Product not found");
+  return {
+    productId: row.id,
+    kmCode: row.km_code,
+    ean13: row.ean13 || "",
+    name: row.name,
+    measure: row.measure || "",
+    familyName: row.family_name || "",
+    warehouseLocation: row.warehouse_location || "",
+    images: listProductImages(db, id).slice(0, 2).map(({ url, altText }) => ({ url, altText }))
+  };
+}
+
 export function addProductImage(db, productId, input, uploadsPath) {
   const product = ensureProduct(db, productId);
   const originalFilename = requiredText(input.originalFilename, "originalFilename", { max: 180 });

@@ -42,6 +42,7 @@ import {
 import {
   addProductImage,
   deleteProductImage,
+  getAdminProductLocationLabel,
   getPublicProductBySlug,
   listAdminProducts,
   listPublicProductsForSeo,
@@ -904,6 +905,10 @@ export function createApp({
             search: url.searchParams.get("q") || ""
           })
         });
+      }
+      match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/location-label$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { label: getAdminProductLocationLabel(db, Number(match[1])) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/price-updates") {
         applyDuePriceUpdates(db);

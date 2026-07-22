@@ -3245,6 +3245,30 @@
   min-width: 94px;
 }
 
+.product-row-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.product-row-actions .product-label-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 132px;
+  padding-inline: 9px;
+  color: #c9f0ff;
+  text-align: center;
+  text-decoration: none;
+  border-color: #356b86;
+  background: #101d25;
+}
+
+.product-row-actions .product-label-button .admin-ui-icon {
+  width: 17px;
+  height: 17px;
+}
+
 .admin-empty-cell {
   color: #cfd3da;
   padding: 22px;
@@ -6221,6 +6245,10 @@ button.operation-row:hover {
     width: 100%;
     min-width: 0;
     padding-inline: 8px;
+  }
+
+  #productsView .product-row-actions {
+    min-width: 138px;
   }
 
   #productsView .product-form {

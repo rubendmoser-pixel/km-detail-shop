@@ -1663,7 +1663,7 @@ function renderProducts() {
       <td data-label="Familia">${escapeAdmin(product.family.name)}</td>
       <td data-label="Precio lista">${adminMoney.format(product.basePriceCents / 100)}</td>
       <td data-label="Estado"><span class="status-badge ${product.active ? "approved" : "suspended"}">${product.active ? "Activo" : "Inactivo"}</span>${product.imageCount ? `<br><span>${product.imageCount} img.</span>` : ""}</td>
-      <td data-label="Editar"><button class="ghost-button row-button toolbar-create-button" type="button" data-edit-product="${product.id}">Editar</button></td>
+      <td data-label="Acciones"><div class="product-row-actions"><a class="ghost-button row-button product-label-button" href="./product-location-label.html?product=${product.id}" target="_blank" rel="noopener">${adminIconSvg("tags")}Etiqueta dep&oacute;sito</a><button class="ghost-button row-button toolbar-create-button" type="button" data-edit-product="${product.id}">Editar</button></div></td>
     </tr>
   `).join("") : `<tr><td class="admin-empty-cell" colspan="6">No hay productos para este filtro.</td></tr>`;
   adminEls.productsTableBody.querySelectorAll("[data-edit-product]").forEach((button) => button.addEventListener("click", editProduct));
