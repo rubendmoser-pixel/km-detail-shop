@@ -512,6 +512,8 @@ function publicProduct(row, images = []) {
     compatibleMachine: row.compatible_machine,
     recommendedUse: row.recommended_use,
     technicalDescription: row.technical_description,
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
     imageFilename: row.image_filename,
     primaryImageUrl: images[0]?.url || (row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : ""),
     images,

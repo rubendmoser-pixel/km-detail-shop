@@ -1,5 +1,6 @@
 const SITE_URL = "https://www.km-detail.com";
 const DEFAULT_IMAGE = `${SITE_URL}/assets/km-linea-profesional.png`;
+const SITE_CONTENT_UPDATED_AT = "2026-07-22";
 
 export const seoLandingPages = new Map([
   ["/fabricante-km-detail-line", {
@@ -393,27 +394,116 @@ export function renderProductPage(product) {
   });
 }
 
+export function renderProductDirectoryPage(products = []) {
+  const url = `${SITE_URL}/productos`;
+  const groups = new Map();
+  products.forEach((product) => {
+    const familyName = product.family?.name || "Otros productos";
+    if (!groups.has(familyName)) groups.set(familyName, []);
+    groups.get(familyName).push(product);
+  });
+  const itemList = products.map((product, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    url: `${SITE_URL}${product.publicUrl}`,
+    name: `${product.kmCode} - ${product.name}`
+  }));
+  const graph = [
+    organizationSchema(),
+    websiteSchema(),
+    breadcrumbSchema([
+      ["Inicio", SITE_URL],
+      ["Productos", url]
+    ]),
+    {
+      "@type": "CollectionPage",
+      "@id": `${url}#webpage`,
+      url,
+      name: "Productos profesionales KM Detail Line",
+      description: "Catalogo publico de productos profesionales KM Detail Line organizado por familias tecnicas.",
+      isPartOf: { "@id": `${SITE_URL}/#website` },
+      about: { "@id": `${SITE_URL}/#organization` },
+      mainEntity: {
+        "@type": "ItemList",
+        numberOfItems: itemList.length,
+        itemListElement: itemList
+      },
+      inLanguage: "es-AR"
+    }
+  ];
+  const families = [...groups.entries()].map(([familyName, familyProducts]) => `
+    <section class="seo-product-family">
+      <div class="seo-product-family-heading">
+        <p class="eyebrow">Familia</p>
+        <h2>${escapeHtml(familyName)}</h2>
+        <span>${familyProducts.length} producto${familyProducts.length === 1 ? "" : "s"}</span>
+      </div>
+      <div class="seo-product-directory-grid">
+        ${familyProducts.map((product) => `
+          <a class="seo-product-directory-card" href="${escapeHtml(product.publicUrl)}">
+            ${product.primaryImageUrl ? `<img src="${escapeHtml(product.primaryImageUrl)}" alt="${escapeHtml(product.images?.[0]?.altText || product.name)}" loading="lazy" />` : ""}
+            <span class="product-code">${escapeHtml(product.kmCode)}</span>
+            <strong>${escapeHtml(product.name)}</strong>
+            <small>${escapeHtml([product.measure, product.attachmentSystem].filter(Boolean).join(" · "))}</small>
+            <span class="seo-product-directory-action">Ver ficha tecnica</span>
+          </a>`).join("")}
+      </div>
+    </section>`).join("");
+
+  return layout({
+    title: "Productos profesionales | KM Detail Line",
+    description: "Catalogo publico de productos KM Detail Line para pulido automotriz, chapa-pintura, repintado y detailing profesional.",
+    url,
+    image: DEFAULT_IMAGE,
+    schemaGraph: graph,
+    main: `
+      <section class="section seo-product-directory">
+        <div class="seo-product-directory-intro">
+          <p class="eyebrow">Catalogo publico</p>
+          <h1>Productos profesionales KM Detail Line</h1>
+          <p class="section-lead">Consulta la linea activa por familia, codigo KM y especificacion tecnica. Cada producto dispone de una ficha publica individual.</p>
+          <div class="meta-line">
+            <span class="tag">${products.length} productos activos</span>
+            <a class="primary-link" href="/#catalogo">Abrir catalogo operativo</a>
+          </div>
+        </div>
+        ${families || `<p>No hay productos publicos disponibles.</p>`}
+      </section>`
+  });
+}
+
 export function renderSitemap(products = []) {
-  const today = new Date().toISOString().slice(0, 10);
   const urls = [
-    ["https://www.km-detail.com/", "weekly", "1.0"],
-    ["https://www.km-detail.com/empresa", "monthly", "0.7"],
-    ["https://www.km-detail.com/productos", "weekly", "0.9"],
-    ["https://www.km-detail.com/catalogo-2026", "monthly", "0.8"],
-    ["https://www.km-detail.com/distribuidores", "monthly", "0.8"],
-    ["https://www.km-detail.com/contacto", "monthly", "0.6"],
-    ...[...seoLandingPages.keys()].map((path) => [`${SITE_URL}${path}`, "monthly", "0.8"]),
-    ...products.map((product) => [`${SITE_URL}${product.publicUrl}`, "monthly", "0.7"]),
-    ["https://www.km-detail.com/assets/catalogo-km-detail-2026.pdf", "monthly", "0.5"]
+    ["https://www.km-detail.com/", "weekly", "1.0", SITE_CONTENT_UPDATED_AT],
+    ["https://www.km-detail.com/empresa", "monthly", "0.7", SITE_CONTENT_UPDATED_AT],
+    ["https://www.km-detail.com/productos", "weekly", "0.9", latestProductModification(products) || SITE_CONTENT_UPDATED_AT],
+    ["https://www.km-detail.com/catalogo-2026", "monthly", "0.8", SITE_CONTENT_UPDATED_AT],
+    ["https://www.km-detail.com/distribuidores", "monthly", "0.8", SITE_CONTENT_UPDATED_AT],
+    ["https://www.km-detail.com/contacto", "monthly", "0.6", SITE_CONTENT_UPDATED_AT],
+    ...[...seoLandingPages.keys()].map((path) => [`${SITE_URL}${path}`, "monthly", "0.8", SITE_CONTENT_UPDATED_AT]),
+    ...products.map((product) => [`${SITE_URL}${product.publicUrl}`, "monthly", "0.7", productModificationDate(product)]),
+    ["https://www.km-detail.com/assets/catalogo-km-detail-2026.pdf", "monthly", "0.5", SITE_CONTENT_UPDATED_AT]
   ];
   const unique = [...new Map(urls.map((item) => [item[0], item])).values()];
   const productsByUrl = new Map(products.map((product) => [`${SITE_URL}${product.publicUrl}`, product]));
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${unique.map(([loc, changefreq, priority]) => {
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${unique.map(([loc, changefreq, priority, lastmod]) => {
     const product = productsByUrl.get(loc);
     const images = product?.images?.length ? product.images.slice(0, 6) : [];
     const imageNodes = images.map((item) => `    <image:image>\n      <image:loc>${escapeXml(absoluteUrl(item.url))}</image:loc>\n      <image:title>${escapeXml(item.altText || product.name)}</image:title>\n    </image:image>`).join("\n");
-    return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>${imageNodes ? `\n${imageNodes}` : ""}\n  </url>`;
+    return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ""}\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>${imageNodes ? `\n${imageNodes}` : ""}\n  </url>`;
   }).join("\n")}\n</urlset>\n`;
+}
+
+function productModificationDate(product) {
+  const candidates = [product.updatedAt, product.createdAt, ...(product.images || []).flatMap((image) => [image.updatedAt, image.createdAt])]
+    .map((value) => String(value || "").slice(0, 10))
+    .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value))
+    .sort();
+  return candidates.at(-1) || "";
+}
+
+function latestProductModification(products = []) {
+  return products.map(productModificationDate).filter(Boolean).sort().at(-1) || "";
 }
 
 function layout({ title, description, url, image, schemaGraph, main }) {
@@ -441,7 +531,7 @@ function layout({ title, description, url, image, schemaGraph, main }) {
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="/styles.css?v=38" />
+    <link rel="stylesheet" href="/styles.css?v=70" />
     <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": schemaGraph })}</script>
   </head>
   <body>

@@ -99,7 +99,7 @@ import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
 import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
 import { createRateLimiter } from "./rate-limit.js";
-import { isServerRenderedSeoPath, renderProductPage, renderSitemap } from "./seo-pages.js";
+import { isServerRenderedSeoPath, renderProductDirectoryPage, renderProductPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList } from "./services/price-list-service.js";
@@ -1106,6 +1106,27 @@ export function createApp({
       }
 
       if (url.pathname.startsWith("/api/")) return sendJson(response, 404, { error: "La función solicitada no está disponible." });
+      if (request.method === "GET" && url.pathname === "/productos") {
+        applyDuePriceUpdates(db);
+        const analyticsSessionId = resolveServerAnalyticsSessionId(cookies.km_analytics_session);
+        const productDirectory = renderProductDirectoryPage(listPublicProductsForSeo(db));
+        recordServerAnalyticsEvent(db, request, currentUser, {
+          eventType: "page_view",
+          sessionId: analyticsSessionId,
+          path: url.pathname,
+          referrer: request.headers.referer || "",
+          metadata: { source: "server", pageType: "product_directory" }
+        });
+        response.writeHead(200, {
+          "content-type": "text/html; charset=utf-8",
+          "content-length": Buffer.byteLength(productDirectory),
+          "cache-control": "no-cache",
+          ...SEO_SECURITY_HEADERS,
+          "set-cookie": analyticsSessionCookie(analyticsSessionId, { secure: config.secureCookies })
+        });
+        response.end(productDirectory);
+        return;
+      }
       match = url.pathname.match(/^\/producto\/([a-z0-9-]+)$/);
       if (request.method === "GET" && match) {
         applyDuePriceUpdates(db);

@@ -258,6 +258,13 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.match(publicProductPage, /Pad relacionado API/);
   assert.match(publicProductPage, /"@type":"ItemList"/);
   assert.match(publicProductPage, /EAN/);
+  const productDirectoryResponse = await fetch(`${baseUrl}/productos`);
+  assert.equal(productDirectoryResponse.status, 200);
+  const productDirectory = await productDirectoryResponse.text();
+  assert.match(productDirectory, /Productos profesionales KM Detail Line/);
+  assert.match(productDirectory, /2 productos activos/);
+  assert.match(productDirectory, /href="\/producto\/api001k-pad-de-prueba-api"/);
+  assert.match(productDirectory, /"@type":"ItemList"/);
   const sitemapResponse = await fetch(`${baseUrl}/sitemap.xml`);
   assert.equal(sitemapResponse.status, 200);
   const sitemap = await sitemapResponse.text();
