@@ -27,7 +27,7 @@ const catalogPages = [
   "24_TACOS-DE-LIJADO-PRODUCTOS.png",
   "25_CATALOGO-DE-PRODUCTOS-2026.png"
 ];
-const PRODUCT_PAGE_SIZE = 24;
+const PRODUCT_PAGE_SIZE = 26;
 
 const routeSections = new Map([
   ["/empresa", "empresa"],
