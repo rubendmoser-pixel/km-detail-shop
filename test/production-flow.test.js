@@ -161,6 +161,8 @@ test("unplanned production consumes its full recipe without advancing the weekly
     VALUES('PLAN-001','7790000000100','Producto planificado','producto-planificado',?,1000,'2026-07-01') RETURNING id`).get(family.id);
   const extra = db.prepare(`INSERT INTO products(km_code,ean13,name,slug,family_id,base_price_cents,price_effective_from)
     VALUES('EXTRA-001','7790000000101','Producto aprovechado','producto-aprovechado',?,1000,'2026-07-01') RETURNING id`).get(family.id);
+  const extraSecond = db.prepare(`INSERT INTO products(km_code,ean13,name,slug,family_id,base_price_cents,price_effective_from)
+    VALUES('EXTRA-002','7790000000102','Segundo producto aprovechado','segundo-producto-aprovechado',?,1000,'2026-07-01') RETURNING id`).get(family.id);
   const raw = db.prepare(`INSERT INTO inventory_items(item_code,name,item_type,unit) VALUES('MP-EXTRA','Materia prima compartida','raw_material','unidad') RETURNING id`).get();
   db.prepare("INSERT INTO inventory_balances(item_id,quantity) VALUES(?,100)").run(raw.id);
   upsertProductionRecipe(db, {
@@ -170,6 +172,10 @@ test("unplanned production consumes its full recipe without advancing the weekly
   upsertProductionRecipe(db, {
     productId: extra.id, kmCode: "EXTRA-001", ean13: "7790000000101", productionCommissionArs: 25,
     components: [{ itemId: raw.id, quantity: 4 }]
+  });
+  upsertProductionRecipe(db, {
+    productId: extraSecond.id, kmCode: "EXTRA-002", ean13: "7790000000102", productionCommissionArs: 10,
+    components: [{ itemId: raw.id, quantity: 2 }]
   });
   const operator = await upsertProductionOperator(db, {
     name: "Operario adicional", email: "extra@km-detail.com", portalPassword: "clave-produccion-2026", portalAccessEnabled: true
@@ -184,22 +190,24 @@ test("unplanned production consumes its full recipe without advancing the weekly
     productionDate: "2026-07-16",
     items: [
       { productId: planned.id, goodQuantity: 2, rejectedQuantity: 0 },
-      { productId: extra.id, goodQuantity: 3, rejectedQuantity: 1, notes: "Aprovechamiento de sobrante" }
+      { productId: extra.id, goodQuantity: 3, rejectedQuantity: 1, notes: "Aprovechamiento de sobrante" },
+      { productId: extraSecond.id, goodQuantity: 5, rejectedQuantity: 0, notes: "Segunda producción adicional" }
     ]
   }, session.operator);
   const unplannedItem = report.items.find((item) => item.productId === extra.id);
   assert.equal(unplannedItem.planItemId, null);
   assert.equal(unplannedItem.notes, "Aprovechamiento de sobrante");
+  assert.equal(report.items.find((item) => item.productId === extraSecond.id).planItemId, null);
   submitDailyProductionReport(db, report.id, session.operator);
   confirmDailyProductionReport(db, report.id, admin.id);
 
-  assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(raw.id).quantity, 82);
+  assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(raw.id).quantity, 72);
   assert.equal(db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(extra.id).quantity, 3);
   const updated = getCurrentProductionDashboard(db).plan;
   assert.equal(updated.items[0].producedQuantity, 2);
   assert.equal(updated.items[0].remainingQuantity, 8);
-  assert.equal(updated.summary.unplannedProducedQuantity, 3);
-  assert.equal(updated.summary.actualProducedQuantity, 5);
+  assert.equal(updated.summary.unplannedProducedQuantity, 8);
+  assert.equal(updated.summary.actualProducedQuantity, 10);
   const commissions = getProductionCommissionDashboard(db).pending.filter((entry) => entry.productId === extra.id);
   assert.equal(commissions.length, 1);
   assert.equal(commissions[0].amountArs, 75);
