@@ -335,8 +335,8 @@ textarea:focus {
 
 .seller-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  border: 1px solid var(--line);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
 }
 
 .seller-summary-tools {
@@ -419,6 +419,101 @@ textarea:focus {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 800;
+}
+
+.seller-overview-card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 10.5rem;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(183, 184, 255, 0.22);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(145deg, rgba(183, 184, 255, 0.09), transparent 50%),
+    rgba(23, 26, 29, 0.92);
+}
+
+.seller-overview-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--action);
+}
+
+.seller-overview-sales::before {
+  background: var(--blue);
+}
+
+.seller-overview-commission::before {
+  background: var(--green);
+}
+
+.seller-overview-portfolio::before {
+  background: var(--gold);
+}
+
+.seller-overview-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.seller-overview-label svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.seller-overview-card > strong {
+  color: var(--text);
+  font-size: clamp(1.55rem, 2.4vw, 2rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.seller-overview-card > strong em {
+  color: var(--dim);
+  font-size: 0.92rem;
+  font-style: normal;
+}
+
+.seller-overview-card > small {
+  color: var(--dim);
+}
+
+.seller-overview-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(183, 184, 255, 0.14);
+}
+
+.seller-overview-breakdown > span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.seller-overview-breakdown small {
+  color: var(--dim);
+  font-size: 0.72rem;
+}
+
+.seller-overview-breakdown b {
+  color: var(--text);
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
 }
 
 .seller-grid {
@@ -1894,6 +1989,14 @@ textarea:focus-visible {
   .dashboard-heading h1,
   h1 {
     font-size: 1.75rem;
+  }
+
+  .seller-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .seller-overview-card {
+    min-height: 9.5rem;
   }
 
   .seller-card,

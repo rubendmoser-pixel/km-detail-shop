@@ -168,6 +168,8 @@ const SELLER_ICON_PATHS = {
   menu: `<path d="M4 6h16M4 12h16M4 18h16"/>`,
   x: `<path d="M18 6 6 18M6 6l12 12"/>`,
   "layout-dashboard": `<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>`,
+  "trending-up": `<path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/>`,
+  "circle-dollar-sign": `<circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 18V6"/>`,
   "shopping-bag": `<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0"/>`,
   "clipboard-list": `<rect width="14" height="18" x="5" y="3" rx="2"/><path d="M9 3V1h6v2M9 11h6M9 15h6"/>`,
   users: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3.1a4 4 0 0 1 0 7.8M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>`,
@@ -197,10 +199,11 @@ function setSellerNavOpen(open) {
 }
 
 function closeExpandedSellerContent({ keepRequest = false } = {}) {
-  const hadCustomers = Boolean(state.openCustomerAddressesId);
+  const hadCustomers = Boolean(state.openCustomerAddressesId || state.openCustomerPriceListsId);
   const hadOrders = Boolean(state.openOrderId);
   const hadQuotes = Boolean(state.openQuoteId);
   state.openCustomerAddressesId = null;
+  state.openCustomerPriceListsId = null;
   state.editingCustomerAddressId = null;
   state.openOrderId = null;
   state.openQuoteId = null;
@@ -481,6 +484,7 @@ function summaryForPeriod(dashboard = {}) {
     .reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0);
   return {
     ...summary,
+    periodOrderCount: orders.length,
     generatedSalesCents: orders.reduce((total, order) => total + Number(order.total_cents || 0), 0),
     generatedCommissionCents: orders.reduce((total, order) => total + Number(order.sales_commission_cents || 0), 0),
     commissionToSettleCents,
@@ -532,19 +536,33 @@ function renderSession() {
 }
 
 function renderStats(summary = {}) {
-  const stats = [
-    ["Ventas generadas", money(summary.generatedSalesCents ?? summary.monthTotalCents ?? 0)],
-    ["Comisiones generadas", money(summary.generatedCommissionCents || 0)],
-    ["Comisiones a liquidar", money(summary.commissionToSettleCents ?? summary.pendingCommissionCents ?? 0)],
-    ["Comisiones liquidadas", money(summary.settledCommissionCents || 0)],
-    ["Saldo pendiente de liquidacion", money(summary.settlementBalanceCents ?? summary.pendingCommissionCents ?? 0)]
-  ];
-  nodes.stats.innerHTML = stats.map(([label, value]) => `
-    <article class="seller-stat commission-stat">
-      <strong>${escapeHtml(value)}</strong>
-      <span>${escapeHtml(label)}</span>
+  const periodOrders = Number(summary.periodOrderCount ?? summary.monthOrders ?? 0);
+  const customerCount = Number(summary.customerCount || 0);
+  const approvedCustomers = Number(summary.approvedCustomerCount || 0);
+  nodes.stats.innerHTML = `
+    <article class="seller-overview-card seller-overview-sales">
+      <div class="seller-overview-label">${iconSvg("trending-up")}<span>Ventas del período</span></div>
+      <strong>${escapeHtml(money(summary.generatedSalesCents ?? summary.monthTotalCents ?? 0))}</strong>
+      <small>${periodOrders} ${periodOrders === 1 ? "pedido generado" : "pedidos generados"}</small>
     </article>
-  `).join("");
+    <article class="seller-overview-card seller-overview-commission">
+      <div class="seller-overview-label">${iconSvg("circle-dollar-sign")}<span>Comisión generada</span></div>
+      <strong>${escapeHtml(money(summary.generatedCommissionCents || 0))}</strong>
+      <div class="seller-overview-breakdown">
+        <span><small>Pendiente</small><b>${escapeHtml(money(summary.commissionToSettleCents ?? summary.pendingCommissionCents ?? 0))}</b></span>
+        <span><small>Liquidada</small><b>${escapeHtml(money(summary.settledCommissionCents || 0))}</b></span>
+      </div>
+    </article>
+    <article class="seller-overview-card seller-overview-portfolio">
+      <div class="seller-overview-label">${iconSvg("users")}<span>Cartera actual</span></div>
+      <strong>${approvedCustomers} <em>de ${customerCount}</em></strong>
+      <small>clientes activos sobre asignados</small>
+      <div class="seller-overview-breakdown">
+        <span><small>Pedidos abiertos</small><b>${Number(summary.openOrders || 0)}</b></span>
+        <span><small>Saldo por cobrar</small><b>${escapeHtml(money(summary.balanceCents || 0))}</b></span>
+      </div>
+    </article>
+  `;
 }
 
 function renderSellerView() {
