@@ -22,6 +22,29 @@ export function createCustomerPriceList(db, user, { publicBaseUrl = "https://www
   };
 }
 
+export function createScheduledPriceList(batch) {
+  const effectiveDate = String(batch?.effectiveDate || "").slice(0, 10);
+  const rows = (batch?.items || []).map((item) => [
+    item.familyName || "KM Detail Line",
+    item.kmCode || "",
+    item.name || "",
+    item.measure || "",
+    item.ean13 || "",
+    centsToPesos(item.newPriceCents),
+    "+ IVA"
+  ]);
+  const files = scheduledWorkbookFiles({
+    effectiveDate,
+    rows
+  });
+
+  return {
+    buffer: createZip(files),
+    filename: `Lista-precios-KM-${effectiveDate || "programada"}.xlsx`,
+    contentType: XLSX_MIME
+  };
+}
+
 function productPriceRow(product) {
   const discounts = (product.discountsBps || []).filter(Boolean).map(formatBps).join(" + ");
   const specialDiscount = product.specialDiscount?.active ? `Precio especial ${formatBps(product.specialDiscount.bps)}` : "";
@@ -59,6 +82,64 @@ function workbookFiles({ title, customerName, generatedDate, rows }) {
     { name: "xl/styles.xml", data: stylesXml() },
     { name: "xl/worksheets/sheet1.xml", data: sheetXml(sheetRows, lastRow) }
   ];
+}
+
+function scheduledWorkbookFiles({ effectiveDate, rows }) {
+  const title = "KM Detail Line - Lista de precios";
+  const headers = ["Familia", "Código KM", "Producto", "Medida", "EAN", "Precio de lista", "IVA"];
+  const sheetRows = [
+    scheduledRow([title], 1, 1),
+    scheduledRow([`Vigencia desde: ${formatDate(effectiveDate)}`], 2, 2),
+    scheduledRow(["Precios de lista en pesos argentinos expresados + IVA."], 3, 2),
+    scheduledRow([], 4, 0),
+    scheduledRow(headers, 5, 3),
+    ...rows.map((values, index) => scheduledRow(values, index + 6, 0))
+  ];
+  const lastRow = rows.length + 5;
+  return [
+    { name: "[Content_Types].xml", data: contentTypesXml() },
+    { name: "_rels/.rels", data: relsXml() },
+    { name: "docProps/app.xml", data: appXml() },
+    { name: "docProps/core.xml", data: coreXml(effectiveDate || new Date().toISOString().slice(0, 10)) },
+    { name: "xl/workbook.xml", data: workbookXml() },
+    { name: "xl/_rels/workbook.xml.rels", data: workbookRelsXml() },
+    { name: "xl/styles.xml", data: stylesXml() },
+    { name: "xl/worksheets/sheet1.xml", data: scheduledSheetXml(sheetRows, lastRow) }
+  ];
+}
+
+function scheduledRow(values, rowNumber, style) {
+  return `<row r="${rowNumber}">${values.map((value, index) => scheduledCell(index, rowNumber, value, style, index)).join("")}</row>`;
+}
+
+function scheduledCell(columnIndex, rowNumber, value, rowStyle, indexInRow) {
+  const ref = `${columnName(columnIndex)}${rowNumber}`;
+  if (columnIndex === 5 && typeof value === "number") {
+    return `<c r="${ref}" s="4"><v>${value.toFixed(2)}</v></c>`;
+  }
+  const style = rowStyle
+    ? ` s="${rowStyle}"`
+    : columnIndex === 4
+      ? " s=\"6\""
+      : indexInRow === 0
+        ? " s=\"5\""
+        : "";
+  return `<c r="${ref}" t="inlineStr"${style}><is><t>${xmlEscape(value ?? "")}</t></is></c>`;
+}
+
+function scheduledSheetXml(sheetRows, lastRow) {
+  return xmlHeader(`worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"`) + `
+  <sheetViews><sheetView workbookViewId="0"><pane ySplit="5" topLeftCell="A6" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+  <cols>
+    <col min="1" max="1" width="28" customWidth="1"/><col min="2" max="2" width="15" customWidth="1"/>
+    <col min="3" max="3" width="58" customWidth="1"/><col min="4" max="4" width="22" customWidth="1"/>
+    <col min="5" max="5" width="18" customWidth="1"/><col min="6" max="6" width="20" customWidth="1"/>
+    <col min="7" max="7" width="12" customWidth="1"/>
+  </cols>
+  <sheetData>${sheetRows.join("")}</sheetData>
+  <mergeCells count="3"><mergeCell ref="A1:G1"/><mergeCell ref="A2:G2"/><mergeCell ref="A3:G3"/></mergeCells>
+  <autoFilter ref="A5:G${Math.max(lastRow, 5)}"/>
+  </worksheet>`;
 }
 
 function row(values, rowNumber, style) {
@@ -99,13 +180,14 @@ function stylesXml() {
   <fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF111315"/></patternFill></fill></fills>
   <borders count="2"><border/><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"><color rgb="FFDDDDDD"/></bottom></border></borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-  <cellXfs count="6">
+  <cellXfs count="7">
     <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0"/>
     <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0"/>
     <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>
     <xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFill="1"/>
     <xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"/>
     <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0"/>
+    <xf numFmtId="49" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"/>
   </cellXfs>
 </styleSheet>`;
 }
@@ -249,6 +331,11 @@ function centsToPesos(cents) {
 
 function formatBps(bps) {
   return `${(Number(bps || 0) / 100).toFixed(2).replace(/\.00$/, "")}%`;
+}
+
+function formatDate(value) {
+  const [year, month, day] = String(value || "").split("-");
+  return year && month && day ? `${day}/${month}/${year}` : String(value || "");
 }
 
 function filenamePart(value) {

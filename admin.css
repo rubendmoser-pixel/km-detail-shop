@@ -5497,7 +5497,13 @@ button.operation-row:hover {
   min-width: 0;
 }
 
-.price-history-card > .ghost-button {
+.price-history-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.price-history-actions .ghost-button {
   flex: 0 0 auto;
   min-height: 42px;
 }
@@ -5554,7 +5560,12 @@ button.operation-row:hover {
     flex-direction: column;
   }
 
-  .price-history-card > .ghost-button {
+  .price-history-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .price-history-actions .ghost-button {
     width: 100%;
   }
 

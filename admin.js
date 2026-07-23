@@ -1606,13 +1606,26 @@ function renderPriceUpdateHistory() {
           <p>${batch.changedCount || 0} modificados de ${batch.productCount || 0} productos - Implementa ${escapeAdmin(dateLabel)}</p>
           ${sample ? `<small>${sample}</small>` : ""}
         </div>
-        <button class="ghost-button" type="button" data-price-list-batch="${batch.id}">Generar lista PDF</button>
+        <div class="price-history-actions">
+          <button class="ghost-button" type="button" data-price-list-batch="${batch.id}">Generar lista PDF</button>
+          <button class="ghost-button" type="button" data-price-list-xlsx="${batch.id}">Descargar Excel</button>
+        </div>
       </article>
     `;
   }).join("");
 }
 
 function openScheduledPriceList(event) {
+  const excelButton = event.target.closest("[data-price-list-xlsx]");
+  if (excelButton) {
+    const link = document.createElement("a");
+    link.href = `/api/admin/price-updates/${encodeURIComponent(excelButton.dataset.priceListXlsx)}/list.xlsx`;
+    link.download = "";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return;
+  }
   const button = event.target.closest("[data-price-list-batch]");
   if (!button) return;
   window.open(`./price-update-list.html?batch=${encodeURIComponent(button.dataset.priceListBatch)}`, "_blank", "noopener,noreferrer");

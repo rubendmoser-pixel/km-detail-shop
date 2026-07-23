@@ -103,7 +103,7 @@ import { createRateLimiter } from "./rate-limit.js";
 import { isServerRenderedSeoPath, renderProductDirectoryPage, renderProductPage, renderSeoLandingPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
-import { createCustomerPriceList } from "./services/price-list-service.js";
+import { createCustomerPriceList, createScheduledPriceList } from "./services/price-list-service.js";
 import {
   applyDuePriceUpdates,
   getPriceUpdateBatch,
@@ -913,6 +913,22 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/admin/price-updates") {
         applyDuePriceUpdates(db);
         return sendJson(response, 200, { batches: listPriceUpdateBatches(db) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/price-updates\/(\d+)\/list\.xlsx$/);
+      if (request.method === "GET" && match) {
+        applyDuePriceUpdates(db);
+        const batch = getPriceUpdateBatch(db, Number(match[1]));
+        if (!batch) return sendJson(response, 404, { error: "No encontramos la actualizacion de precios." });
+        const priceList = createScheduledPriceList(batch);
+        response.writeHead(200, {
+          "content-type": priceList.contentType,
+          "content-disposition": `attachment; filename="${priceList.filename}"`,
+          "content-length": priceList.buffer.length,
+          "cache-control": "no-store",
+          ...SECURITY_HEADERS
+        });
+        response.end(priceList.buffer);
+        return;
       }
       match = url.pathname.match(/^\/api\/admin\/price-updates\/(\d+)$/);
       if (request.method === "GET" && match) {

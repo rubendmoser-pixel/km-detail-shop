@@ -189,7 +189,7 @@ export function getPriceUpdateBatch(db, id) {
   const items = db.prepare(`
     SELECT pui.product_id AS productId, pui.km_code AS kmCode,
       pui.old_price_cents AS oldPriceCents, pui.new_price_cents AS newPriceCents,
-      pui.variation_bps AS variationBps, p.ean13, p.name,
+      pui.variation_bps AS variationBps, p.ean13, p.name, p.measure,
       f.name AS familyName, p.web_sort_order AS webSortOrder,
       pi.stored_filename AS primaryImageFilename,
       pi2.stored_filename AS secondaryImageFilename

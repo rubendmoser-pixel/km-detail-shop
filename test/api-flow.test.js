@@ -255,8 +255,22 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(printableProduct.newPriceCents, 110_000);
   assert.equal(printableProduct.name, "Pad de prueba API");
   assert.equal(printableProduct.familyName, "Poliespumas");
+  assert.equal("measure" in printableProduct, true);
   assert.equal(printableProduct.primaryImageUrl, productImages[0].url);
   assert.equal(printableProduct.secondaryImageUrl, productImages[1].url);
+  const blockedScheduledExcelResponse = await fetch(`${baseUrl}/api/admin/price-updates/${scheduledBatch.id}/list.xlsx`);
+  assert.equal(blockedScheduledExcelResponse.status, 401);
+  const scheduledExcelResponse = await fetch(`${baseUrl}/api/admin/price-updates/${scheduledBatch.id}/list.xlsx`, {
+    headers: { cookie: adminCookie }
+  });
+  assert.equal(scheduledExcelResponse.status, 200);
+  assert.equal(
+    scheduledExcelResponse.headers.get("content-type"),
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  assert.match(scheduledExcelResponse.headers.get("content-disposition"), /Lista-precios-KM-2099-08-01\.xlsx/);
+  const scheduledExcelBuffer = Buffer.from(await scheduledExcelResponse.arrayBuffer());
+  assert.equal(scheduledExcelBuffer.subarray(0, 2).toString(), "PK");
   const publicImageResponse = await fetch(`${baseUrl}${images[0].url}`);
   assert.equal(publicImageResponse.status, 200);
   assert.equal(publicImageResponse.headers.get("content-type"), "image/png");
