@@ -919,7 +919,7 @@ export function createApp({
         applyDuePriceUpdates(db);
         const batch = getPriceUpdateBatch(db, Number(match[1]));
         if (!batch) return sendJson(response, 404, { error: "No encontramos la actualizacion de precios." });
-        const priceList = createScheduledPriceList(batch);
+        const priceList = await createScheduledPriceList(batch);
         response.writeHead(200, {
           "content-type": priceList.contentType,
           "content-disposition": `attachment; filename="${priceList.filename}"`,
