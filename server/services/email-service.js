@@ -381,6 +381,26 @@ export function createEmailService({ db, config, pushService = null }) {
     ].filter(Boolean).join("\n"));
   }
 
+  function queueSellerPriceListCustomer({ recipient, salesRepName, effectiveDate, pdfUrl, excelUrl }) {
+    queue("seller_price_list_customer", recipient, "Lista de precios | KM Detail Line", [
+      "Hola,",
+      "",
+      `${salesRepName || "Nuestro equipo comercial"} te comparte la lista oficial de precios de KM Detail Line.`,
+      effectiveDate ? `Vigencia: ${formatDateForEmail(effectiveDate)}` : "",
+      "Los valores corresponden a precios de lista expresados en pesos argentinos + IVA.",
+      "",
+      "Ver o guardar en PDF:",
+      pdfUrl,
+      "",
+      "Descargar en Excel:",
+      excelUrl,
+      "",
+      "Estos enlaces son privados y tienen una vigencia de 30 días.",
+      "",
+      "Ante cualquier consulta, podés responder este correo o comunicarte con tu vendedor."
+    ]);
+  }
+
   function quoteDiscountText(quote) {
     const discounts = [quote.discount1Bps, quote.discount2Bps, quote.discount3Bps]
       .map((value) => Number(value || 0))
@@ -1047,6 +1067,7 @@ export function createEmailService({ db, config, pushService = null }) {
     queuePaymentDueReminders,
     queueOrderFulfillmentUpdated,
     queueSalesQuoteCustomer,
+    queueSellerPriceListCustomer,
     flush,
     verify,
     sendTest,

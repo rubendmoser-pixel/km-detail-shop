@@ -407,6 +407,44 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   );
   assert.equal(Buffer.from(await sellerPriceListExcel.arrayBuffer()).subarray(0, 2).toString(), "PK");
+  const emailPriceListShareResponse = await fetch(`${baseUrl}/api/sales/price-lists/${scheduledBatch.id}/share`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({ channel: "email", recipient: "compras@cliente.com" })
+  });
+  assert.equal(emailPriceListShareResponse.status, 200);
+  const emailPriceListShare = await emailPriceListShareResponse.json();
+  assert.match(emailPriceListShare.message, /enviada/i);
+  assert.match(emailPriceListShare.pdfUrl, /price-update-list\.html/);
+  assert.match(emailPriceListShare.excelUrl, /list\.xlsx/);
+  const queuedPriceListEmail = db.prepare(`
+    SELECT recipient, event_type AS eventType, text_body AS textBody
+    FROM email_outbox
+    WHERE event_type = 'seller_price_list_customer'
+    ORDER BY id DESC LIMIT 1
+  `).get();
+  assert.equal(queuedPriceListEmail.recipient, "compras@cliente.com");
+  assert.match(queuedPriceListEmail.textBody, /Descargar en Excel/);
+  const whatsappPriceListShareResponse = await fetch(`${baseUrl}/api/sales/price-lists/${scheduledBatch.id}/share`, {
+    method: "POST",
+    headers: jsonHeaders(salesCookie),
+    body: JSON.stringify({ channel: "whatsapp", recipient: "+54 9 341 555-0101" })
+  });
+  assert.equal(whatsappPriceListShareResponse.status, 200);
+  const whatsappPriceListShare = await whatsappPriceListShareResponse.json();
+  assert.equal(whatsappPriceListShare.recipient, "5493415550101");
+  assert.match(whatsappPriceListShare.whatsappText, /PDF/);
+  const sharedPdfApiUrl = new URL(whatsappPriceListShare.pdfUrl);
+  const sharedPriceListDetail = await fetch(
+    `${baseUrl}/api/shared/price-lists/${scheduledBatch.id}?token=${encodeURIComponent(sharedPdfApiUrl.searchParams.get("share"))}`
+  );
+  assert.equal(sharedPriceListDetail.status, 200);
+  assert.equal((await sharedPriceListDetail.json()).batch.items.length, 2);
+  const sharedExcelUrl = new URL(whatsappPriceListShare.excelUrl);
+  const sharedPriceListExcel = await fetch(`${baseUrl}${sharedExcelUrl.pathname}${sharedExcelUrl.search}`);
+  assert.equal(sharedPriceListExcel.status, 200);
+  assert.equal(Buffer.from(await sharedPriceListExcel.arrayBuffer()).subarray(0, 2).toString(), "PK");
+  assert.equal((await fetch(`${baseUrl}/api/shared/price-lists/${scheduledBatch.id}?token=invalid`)).status, 404);
   const sellerAddresses = await getJson(`${baseUrl}/api/sales/customers/${registration.customer.id}/shipping-addresses`, salesCookie);
   assert.equal(sellerAddresses.addresses.length, 1);
   assert.equal(sellerAddresses.addresses[0].isDefault, true);

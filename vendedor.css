@@ -512,6 +512,42 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.seller-price-list-share {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem 1rem;
+  padding: 0 1rem 1rem;
+  border-top: 1px solid rgba(183, 184, 255, 0.14);
+}
+
+.seller-price-list-share[hidden] {
+  display: none;
+}
+
+.seller-price-list-share label {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 0.85rem;
+}
+
+.seller-price-list-share label span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.seller-price-list-share-actions {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.seller-price-list-share .form-message {
+  grid-column: 1 / -1;
+  min-height: 1.25rem;
+  margin: 0;
+}
+
 .seller-list-tools {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(160px, 0.38fr) repeat(2, minmax(140px, 0.28fr));
@@ -1822,5 +1858,22 @@ textarea:focus-visible {
   .seller-price-list-actions a {
     width: 100%;
     min-height: 3rem;
+  }
+
+  .seller-price-list-actions button {
+    width: 100%;
+    min-height: 3rem;
+  }
+
+  .seller-price-list-share {
+    grid-template-columns: 1fr;
+  }
+
+  .seller-price-list-share-actions {
+    flex-direction: column;
+  }
+
+  .seller-price-list-share-actions button {
+    width: 100%;
   }
 }

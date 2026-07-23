@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { ZipArchive } from "archiver";
-import { ValidationError, publicErrorMessage } from "./domain/validation.js";
+import { normalizeEmail, ValidationError, publicErrorMessage } from "./domain/validation.js";
 import { authenticate, createPasswordReset, login, logout, registerCustomer, requireAdmin, requireApprovedCustomer, requireUser, resetPassword } from "./services/auth-service.js";
 import {
   createAdminCustomer,
@@ -106,7 +106,9 @@ import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList, createScheduledPriceList } from "./services/price-list-service.js";
 import {
   applyDuePriceUpdates,
+  createSellerPriceListShare,
   getSellerPriceUpdateBatch,
+  getSharedPriceUpdateBatch,
   getPriceUpdateBatch,
   listSellerPriceUpdateBatches,
   listPriceUpdateBatches,
@@ -227,6 +229,30 @@ export function createApp({
         const body = await readJson(request);
         const result = await resetPassword(db, body.token, body.password, config);
         return sendJson(response, 200, result);
+      }
+      match = url.pathname.match(/^\/api\/shared\/price-lists\/(\d+)\/list\.xlsx$/);
+      if (request.method === "GET" && match) {
+        applyDuePriceUpdates(db);
+        const batch = getSharedPriceUpdateBatch(db, Number(match[1]), url.searchParams.get("token"));
+        if (!batch) return sendJson(response, 404, { error: "Este enlace venció o ya no está disponible." });
+        const priceList = await createScheduledPriceList(batch);
+        response.writeHead(200, {
+          "content-type": priceList.contentType,
+          "content-disposition": `attachment; filename="${priceList.filename}"`,
+          "content-length": priceList.buffer.length,
+          "cache-control": "no-store",
+          ...SECURITY_HEADERS
+        });
+        response.end(priceList.buffer);
+        return;
+      }
+      match = url.pathname.match(/^\/api\/shared\/price-lists\/(\d+)$/);
+      if (request.method === "GET" && match) {
+        applyDuePriceUpdates(db);
+        const batch = getSharedPriceUpdateBatch(db, Number(match[1]), url.searchParams.get("token"));
+        return batch
+          ? sendJson(response, 200, { batch })
+          : sendJson(response, 404, { error: "Este enlace venció o ya no está disponible." });
       }
       if (request.method === "POST" && url.pathname === "/api/sales/login") {
         const result = await loginSalesRep(db, await readJson(request), config.sessionDays || 30);
@@ -523,6 +549,62 @@ export function createApp({
         requireSalesRep(currentSalesRep);
         applyDuePriceUpdates(db);
         return sendJson(response, 200, { priceLists: listSellerPriceUpdateBatches(db) });
+      }
+      match = url.pathname.match(/^\/api\/sales\/price-lists\/(\d+)\/share$/);
+      if (request.method === "POST" && match) {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const body = await readJson(request);
+        const channel = String(body.channel || "").trim().toLowerCase();
+        let recipient = "";
+        if (channel === "email") {
+          recipient = normalizeEmail(body.recipient);
+        } else if (channel === "whatsapp") {
+          recipient = String(body.recipient || "").replace(/\D/g, "");
+          if (recipient.length < 8 || recipient.length > 15) {
+            throw new ValidationError("Ingresá un número de WhatsApp válido, con código de país y área.");
+          }
+        } else {
+          throw new ValidationError("Seleccioná email o WhatsApp para compartir la lista.");
+        }
+        const share = createSellerPriceListShare(db, {
+          batchId: Number(match[1]),
+          salesRepId: salesRep.id,
+          channel,
+          recipient
+        });
+        if (!share) return sendJson(response, 404, { error: "Esta lista ya no está disponible para vendedores." });
+        const baseUrl = config.publicBaseUrl.replace(/\/$/, "");
+        const token = encodeURIComponent(share.token);
+        const pdfUrl = `${baseUrl}/price-update-list.html?batch=${share.batch.id}&share=${token}`;
+        const excelUrl = `${baseUrl}/api/shared/price-lists/${share.batch.id}/list.xlsx?token=${token}`;
+        if (channel === "email") {
+          emailService.queueSellerPriceListCustomer({
+            recipient,
+            salesRepName: salesRep.name,
+            effectiveDate: share.batch.effectiveDate,
+            pdfUrl,
+            excelUrl
+          });
+        }
+        const whatsappText = [
+          "Hola, te comparto la lista oficial de precios de KM Detail Line.",
+          `Vigencia: ${share.batch.effectiveDate.split("-").reverse().join("/")}.`,
+          "",
+          `Ver o guardar en PDF: ${pdfUrl}`,
+          `Descargar en Excel: ${excelUrl}`,
+          "",
+          "Los enlaces privados tienen una vigencia de 30 días."
+        ].join("\n");
+        return sendJson(response, 200, {
+          message: channel === "email"
+            ? `Lista enviada a ${recipient}.`
+            : "Mensaje preparado para abrir en WhatsApp.",
+          whatsappText: channel === "whatsapp" ? whatsappText : "",
+          recipient,
+          pdfUrl,
+          excelUrl,
+          expiresAt: share.expiresAt
+        });
       }
       match = url.pathname.match(/^\/api\/sales\/price-lists\/(\d+)\/list\.xlsx$/);
       if (request.method === "GET" && match) {

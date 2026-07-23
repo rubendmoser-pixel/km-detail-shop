@@ -6,9 +6,12 @@ const backLink = document.querySelector("#backToPriceLists");
 const searchParams = new URLSearchParams(location.search);
 const batchId = Number(searchParams.get("batch") || 0);
 const sellerPortal = searchParams.get("portal") === "sales";
+const shareToken = String(searchParams.get("share") || "").trim();
 const productsPerPage = 10;
 
-if (sellerPortal && backLink) {
+if (shareToken && backLink) {
+  backLink.hidden = true;
+} else if (sellerPortal && backLink) {
   backLink.href = "./vendedor.html#price-lists";
   backLink.textContent = "Volver a listas";
 }
@@ -18,7 +21,9 @@ load();
 async function load() {
   if (!Number.isInteger(batchId) || batchId <= 0) return renderError("No se indicó una programación de precios válida.");
   try {
-    const endpoint = sellerPortal
+    const endpoint = shareToken
+      ? `/api/shared/price-lists/${batchId}?token=${encodeURIComponent(shareToken)}`
+      : sellerPortal
       ? `/api/sales/price-lists/${batchId}`
       : `/api/admin/price-updates/${batchId}`;
     const response = await fetch(endpoint, { credentials: "same-origin" });
@@ -114,7 +119,7 @@ function renderError(message) {
   actions.hidden = true;
   const href = sellerPortal ? "./vendedor.html#price-lists" : "./admin.html#prices";
   const label = sellerPortal ? "Volver al portal de ventas" : "Volver a precios";
-  root.innerHTML = `<section class="error"><h1>No se pudo generar la lista</h1><p>${escapeHtml(message)}</p><a href="${href}">${label}</a></section>`;
+  root.innerHTML = `<section class="error"><h1>No se pudo generar la lista</h1><p>${escapeHtml(message)}</p>${shareToken ? "" : `<a href="${href}">${label}</a>`}</section>`;
 }
 
 function chunk(values, size) {

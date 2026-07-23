@@ -589,8 +589,26 @@ function renderPriceLists() {
             <a class="ghost-button compact" href="/api/sales/price-lists/${encodeURIComponent(batch.id)}/list.xlsx" download>
               ${iconSvg("download")}Descargar Excel
             </a>
+            <button class="ghost-button compact button-whatsapp" type="button" data-open-price-list-share="${batch.id}" data-share-channel="whatsapp">
+              ${iconSvg("message-circle")}WhatsApp
+            </button>
+            <button class="ghost-button compact button-info" type="button" data-open-price-list-share="${batch.id}" data-share-channel="email">
+              ${iconSvg("mail")}Email
+            </button>
           </div>
         </div>
+        <form class="seller-price-list-share" data-price-list-share-form="${batch.id}" hidden>
+          <input type="hidden" name="channel" value="">
+          <label>
+            <span data-price-list-share-label>Destinatario</span>
+            <input name="recipient" autocomplete="off" required>
+          </label>
+          <div class="seller-price-list-share-actions">
+            <button class="primary-button compact" type="submit" data-price-list-share-submit>Enviar</button>
+            <button class="ghost-button compact" type="button" data-close-price-list-share>Cancelar</button>
+          </div>
+          <p class="form-message" data-price-list-share-message aria-live="polite"></p>
+        </form>
       </article>
     `;
   }).join("");
@@ -1544,6 +1562,70 @@ nodes.viewButtons?.forEach((button) => {
 });
 
 nodes.refreshPriceLists?.addEventListener("click", loadPriceLists);
+
+nodes.priceLists?.addEventListener("click", (event) => {
+  const openButton = event.target.closest("[data-open-price-list-share]");
+  if (openButton) {
+    const batchId = openButton.dataset.openPriceListShare;
+    const form = nodes.priceLists.querySelector(`[data-price-list-share-form="${CSS.escape(batchId)}"]`);
+    if (!form) return;
+    nodes.priceLists.querySelectorAll("[data-price-list-share-form]").forEach((candidate) => {
+      candidate.hidden = candidate !== form;
+    });
+    const channel = openButton.dataset.shareChannel === "email" ? "email" : "whatsapp";
+    form.elements.channel.value = channel;
+    form.elements.recipient.value = "";
+    form.elements.recipient.type = channel === "email" ? "email" : "tel";
+    form.elements.recipient.inputMode = channel === "email" ? "email" : "tel";
+    form.elements.recipient.placeholder = channel === "email"
+      ? "cliente@empresa.com"
+      : "Ej. 5493411234567";
+    form.querySelector("[data-price-list-share-label]").textContent = channel === "email"
+      ? "Email del destinatario"
+      : "WhatsApp con código de país y área";
+    form.querySelector("[data-price-list-share-submit]").innerHTML = channel === "email"
+      ? `${iconSvg("mail")}Enviar por email`
+      : `${iconSvg("message-circle")}Abrir WhatsApp`;
+    form.querySelector("[data-price-list-share-message]").textContent = "";
+    form.hidden = false;
+    form.elements.recipient.focus();
+    return;
+  }
+  const closeButton = event.target.closest("[data-close-price-list-share]");
+  if (closeButton) closeButton.closest("[data-price-list-share-form]").hidden = true;
+});
+
+nodes.priceLists?.addEventListener("submit", async (event) => {
+  const form = event.target.closest("[data-price-list-share-form]");
+  if (!form) return;
+  event.preventDefault();
+  const batchId = form.dataset.priceListShareForm;
+  const channel = form.elements.channel.value;
+  const recipient = form.elements.recipient.value.trim();
+  const submitButton = form.querySelector("[data-price-list-share-submit]");
+  const message = form.querySelector("[data-price-list-share-message]");
+  const whatsappWindow = channel === "whatsapp" ? window.open("about:blank", "_blank") : null;
+  submitButton.disabled = true;
+  message.textContent = channel === "email" ? "Enviando lista..." : "Preparando mensaje...";
+  try {
+    const payload = await sellerApi(`/api/sales/price-lists/${encodeURIComponent(batchId)}/share`, {
+      method: "POST",
+      body: { channel, recipient }
+    });
+    if (channel === "whatsapp") {
+      const whatsappUrl = `https://wa.me/${onlyDigits(payload.recipient)}?text=${encodeURIComponent(payload.whatsappText || "")}`;
+      if (whatsappWindow) whatsappWindow.location.href = whatsappUrl;
+      else window.open(whatsappUrl, "_blank", "noopener");
+    }
+    message.textContent = payload.message || "Lista compartida.";
+    form.elements.recipient.value = "";
+  } catch (error) {
+    if (whatsappWindow) whatsappWindow.close();
+    message.textContent = error.message || "No se pudo compartir la lista.";
+  } finally {
+    submitButton.disabled = false;
+  }
+});
 
 nodes.modeButtons?.forEach((button) => {
   button.addEventListener("click", async () => {

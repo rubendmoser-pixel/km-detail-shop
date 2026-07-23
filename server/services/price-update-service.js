@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { ValidationError } from "../domain/validation.js";
 import { transaction } from "../db.js";
 
@@ -276,4 +277,52 @@ export function listSellerPriceUpdateBatches(db) {
 export function getSellerPriceUpdateBatch(db, id) {
   const batch = getPriceUpdateBatch(db, id);
   return batch?.sellerVisible && batch.status !== "cancelled" ? batch : null;
+}
+
+export function createSellerPriceListShare(db, { batchId, salesRepId, channel, recipient }) {
+  const batch = getSellerPriceUpdateBatch(db, batchId);
+  if (!batch) return null;
+  if (!["email", "whatsapp"].includes(channel)) {
+    throw new ValidationError("Seleccioná email o WhatsApp para compartir la lista.");
+  }
+  const token = randomBytes(32).toString("hex");
+  const tokenHash = hashShareToken(token);
+  const result = db.prepare(`
+    INSERT INTO price_list_shares (
+      batch_id, sales_rep_id, token_hash, channel, recipient, expires_at
+    ) VALUES (?, ?, ?, ?, ?, datetime('now', '+30 days'))
+  `).run(batch.id, salesRepId, tokenHash, channel, recipient);
+  const share = db.prepare(`
+    SELECT id, expires_at AS expiresAt
+    FROM price_list_shares
+    WHERE id = ?
+  `).get(result.lastInsertRowid);
+  return { ...share, token, batch };
+}
+
+export function getSharedPriceUpdateBatch(db, id, token) {
+  const batchId = Number(id);
+  const rawToken = String(token || "").trim();
+  if (!Number.isSafeInteger(batchId) || batchId <= 0 || !/^[a-f0-9]{64}$/i.test(rawToken)) return null;
+  const share = db.prepare(`
+    SELECT s.id
+    FROM price_list_shares s
+    JOIN price_update_batches b ON b.id = s.batch_id
+    WHERE s.batch_id = ?
+      AND s.token_hash = ?
+      AND s.expires_at > CURRENT_TIMESTAMP
+      AND b.seller_visible = 1
+      AND b.status != 'cancelled'
+  `).get(batchId, hashShareToken(rawToken));
+  if (!share) return null;
+  db.prepare(`
+    UPDATE price_list_shares
+    SET last_access_at = CURRENT_TIMESTAMP, access_count = access_count + 1
+    WHERE id = ?
+  `).run(share.id);
+  return getPriceUpdateBatch(db, batchId);
+}
+
+function hashShareToken(token) {
+  return createHash("sha256").update(String(token)).digest("hex");
 }

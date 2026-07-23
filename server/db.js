@@ -461,6 +461,22 @@ function migrate(db) {
       UNIQUE(batch_id, product_id)
     );
 
+    CREATE TABLE IF NOT EXISTS price_list_shares (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_id INTEGER NOT NULL REFERENCES price_update_batches(id) ON DELETE CASCADE,
+      sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      channel TEXT NOT NULL CHECK(channel IN ('email', 'whatsapp')),
+      recipient TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      expires_at TEXT NOT NULL,
+      last_access_at TEXT NOT NULL DEFAULT '',
+      access_count INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_price_list_shares_token
+      ON price_list_shares(token_hash, batch_id, expires_at);
+
     CREATE TABLE IF NOT EXISTS official_distributors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
