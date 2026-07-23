@@ -237,5 +237,9 @@ test("administration can urgently extend the active weekly production plan", asy
   assert.equal(updated.targetQuantity, 30);
   assert.equal(updated.addedQuantity, 30);
   assert.equal(updated.urgent, true);
+  const operatorView = getCurrentProductionDashboard(db).plan.items.find((item) => item.kmCode === "URG-001");
+  assert.equal(operatorView.urgent, true);
+  assert.equal(operatorView.latestAdditionReason, "Ampliación adicional");
+  assert.equal(operatorView.addedQuantity, 30);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM production_plan_additions WHERE plan_id=?").get(plan.id).count, 2);
 });
