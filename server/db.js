@@ -208,6 +208,18 @@ function migrate(db) {
       UNIQUE(plan_id, product_id)
     );
 
+    CREATE TABLE IF NOT EXISTS production_plan_additions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plan_id INTEGER NOT NULL REFERENCES production_plans(id) ON DELETE CASCADE,
+      plan_item_id INTEGER NOT NULL REFERENCES production_plan_items(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      quantity INTEGER NOT NULL CHECK (quantity > 0),
+      reason TEXT NOT NULL,
+      urgent INTEGER NOT NULL DEFAULT 0 CHECK (urgent IN (0, 1)),
+      added_by INTEGER REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS production_work_schedule_defaults (
       weekday INTEGER PRIMARY KEY CHECK (weekday BETWEEN 1 AND 7),
       enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
@@ -1069,6 +1081,7 @@ function migrate(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_operators_status ON production_operators(status, name);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_sessions_token ON production_sessions(token_hash, expires_at);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_plans_week ON production_plans(week_start, status);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_production_plan_additions_plan ON production_plan_additions(plan_id, created_at DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_plan_days_plan_date ON production_plan_days(plan_id, work_date);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_reports_status_date ON production_daily_reports(status, production_date DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_commissions_pending ON production_commission_entries(operator_id, settlement_id, created_at);");

@@ -242,6 +242,43 @@ export function approveProductionPlan(db, planId, adminId) {
   return getProductionPlan(db, planId);
 }
 
+export function addProductionPlanItem(db, planId, input = {}, adminId) {
+  const plan = db.prepare("SELECT * FROM production_plans WHERE id=?").get(positiveId(planId));
+  if (!plan) throw new NotFoundError("Planificación no encontrada.");
+  if (!["approved", "in_progress"].includes(plan.status)) {
+    throw new ValidationError("Solo podés ampliar una planificación aprobada o en curso.");
+  }
+  const kmCode = optionalText(input.kmCode, "código KM", { max: 40 }).trim().toUpperCase();
+  if (!kmCode) throw new ValidationError("Ingresá el código KM del producto.");
+  const product = db.prepare("SELECT id FROM products WHERE UPPER(km_code)=? AND active=1").get(kmCode);
+  if (!product) throw new ValidationError("No encontramos un producto activo con ese código KM.");
+  const quantity = positiveInteger(input.quantity, "cantidad adicional");
+  const reason = optionalText(input.reason, "motivo", { max: 300 }).trim();
+  if (!reason) throw new ValidationError("Indicá por qué se agrega el producto al plan en curso.");
+  const urgent = input.urgent === true ? 1 : 0;
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    let item = db.prepare("SELECT * FROM production_plan_items WHERE plan_id=? AND product_id=?").get(plan.id, product.id);
+    if (item) {
+      db.prepare(`UPDATE production_plan_items SET target_quantity=target_quantity+?,adjustment_note=?,sort_order=sort_order
+        WHERE id=?`).run(quantity, reason, item.id);
+      item = db.prepare("SELECT * FROM production_plan_items WHERE id=?").get(item.id);
+    } else {
+      const sortOrder = Number(db.prepare("SELECT COALESCE(MAX(sort_order),-1)+1 AS value FROM production_plan_items WHERE plan_id=?").get(plan.id).value);
+      item = db.prepare(`INSERT INTO production_plan_items(plan_id,product_id,suggested_quantity,target_quantity,adjustment_note,sort_order)
+        VALUES(?,?,0,?,?,?) RETURNING *`).get(plan.id, product.id, quantity, reason, sortOrder);
+    }
+    db.prepare(`INSERT INTO production_plan_additions(plan_id,plan_item_id,product_id,quantity,reason,urgent,added_by)
+      VALUES(?,?,?,?,?,?,?)`).run(plan.id, item.id, product.id, quantity, reason, urgent, adminId);
+    db.prepare("UPDATE production_plans SET updated_at=CURRENT_TIMESTAMP WHERE id=?").run(plan.id);
+    db.exec("COMMIT");
+    return getProductionPlan(db, plan.id);
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 export function listProductionPlans(db) {
   return db.prepare("SELECT id FROM production_plans ORDER BY week_start DESC LIMIT 26").all().map((row) => getProductionPlan(db, row.id));
 }
@@ -261,8 +298,12 @@ export function getProductionPlan(db, planId) {
   const items = db.prepare(`SELECT pi.id,pi.product_id,pi.suggested_quantity,pi.target_quantity,pi.adjustment_note,
       pi.carryover_quantity,pi.carryover_from_plan_item_id,
       p.km_code,p.ean13,p.name,p.warehouse_location,p.production_minutes_per_unit,
+      COALESCE(pa.added_quantity,0) AS added_quantity,COALESCE(pa.urgent,0) AS urgent,
+      (SELECT reason FROM production_plan_additions a WHERE a.plan_item_id=pi.id ORDER BY a.id DESC LIMIT 1) AS latest_addition_reason,
+      (SELECT created_at FROM production_plan_additions a WHERE a.plan_item_id=pi.id ORDER BY a.id DESC LIMIT 1) AS latest_added_at,
       COALESCE(SUM(CASE WHEN r.status='confirmed' THEN ri.good_quantity ELSE 0 END),0) AS produced_quantity
     FROM production_plan_items pi JOIN products p ON p.id=pi.product_id
+    LEFT JOIN (SELECT plan_item_id,SUM(quantity) AS added_quantity,MAX(urgent) AS urgent FROM production_plan_additions GROUP BY plan_item_id) pa ON pa.plan_item_id=pi.id
     LEFT JOIN production_daily_report_items ri ON ri.plan_item_id=pi.id
     LEFT JOIN production_daily_reports r ON r.id=ri.report_id
     WHERE pi.plan_id=? GROUP BY pi.id ORDER BY pi.sort_order,p.km_code`).all(plan.id).map((row) => ({
@@ -271,6 +312,8 @@ export function getProductionPlan(db, planId) {
       targetQuantity: row.target_quantity, producedQuantity: row.produced_quantity,
       remainingQuantity: Math.max(0, row.target_quantity - row.produced_quantity), adjustmentNote: row.adjustment_note || "",
       carryoverQuantity: Number(row.carryover_quantity || 0), carryoverFromPlanItemId: row.carryover_from_plan_item_id || null,
+      addedQuantity: Number(row.added_quantity || 0), urgent: Boolean(row.urgent),
+      latestAdditionReason: row.latest_addition_reason || "", latestAddedAt: row.latest_added_at || null,
       productionMinutesPerUnit: Number(row.production_minutes_per_unit || 0),
       requiredHours: Number(row.production_minutes_per_unit || 0) > 0 ? Number(row.target_quantity) * Number(row.production_minutes_per_unit) / 60 : null
     }));

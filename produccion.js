@@ -20,4 +20,18 @@ async function saveReport(event){event.preventDefault();const form=event.current
 async function submitReport(){if(!state.draftId)return;try{await api(`/api/production/reports/${state.draftId}/submit`,{method:"POST",body:{}});toast("Parte enviado a Administración.");await load()}catch(error){$("#productionReportMessage").textContent=error.message}}
 function renderReports(){$("#productionReports").innerHTML=state.reports.length?state.reports.map((report)=>{const extras=report.items.filter((item)=>!item.planItemId);return`<article class="report-card"><div class="plan-item-head"><strong>${esc(report.reportNumber)} · ${formatDate(report.productionDate)}</strong><span class="status ${report.status}">${statusText(report)}</span></div><small>${report.items.reduce((sum,item)=>sum+item.goodQuantity,0)} buenas · ${report.items.reduce((sum,item)=>sum+item.rejectedQuantity,0)} rechazadas</small>${extras.length?`<small class="extra-summary">${extras.reduce((sum,item)=>sum+item.goodQuantity,0)} unidades fuera del plan</small>`:""}<small>Participaron: ${report.participants?.map((participant)=>esc(participant.name)).join(", ")||esc(report.operatorName)}</small>${report.status==="confirmed"?`<small>Comisión generada: $ ${Number(report.productionCommissionArs||0).toLocaleString("es-AR",{minimumFractionDigits:2})}</small>`:""}${report.returnReason?`<p>Corrección solicitada: ${esc(report.returnReason)}</p>`:""}</article>`}).join(""):`<p>Todavía no hay partes diarios.</p>`}
 function statusText(report){return({draft:"Borrador",submitted:"Enviado, espera confirmación",confirmed:"Confirmado por Administración",returned:"Devuelto para corregir"})[report.status]||report.status}
-function formatDate(value){if(!value)return"-";const [y,m,d]=value.split("-");return`${d}/${m}/${y}`}boot();
+function formatDate(value){if(!value)return"-";const [y,m,d]=value.split("-");return`${d}/${m}/${y}`}
+const renderPlanBase=renderPlan;
+renderPlan=function(){
+  renderPlanBase();const plan=state.plan;if(!plan)return;
+  const urgent=plan.items.filter((item)=>item.urgent&&item.remainingQuantity>0);
+  if(urgent.length)$("#productionPlan").insertAdjacentHTML("afterbegin",`<div class="production-urgent-alert"><strong>⚠ Producción urgente</strong><span>${urgent.map((item)=>`${esc(item.kmCode)}: ${item.remainingQuantity} u. pendientes`).join(" · ")}</span></div>`);
+  document.querySelectorAll("#productionPlan .plan-item").forEach((row,index)=>{
+    const item=plan.items[index];if(!item)return;
+    row.classList.toggle("is-urgent",Boolean(item.urgent));
+    const heading=row.querySelector("h3");
+    if(item.urgent)heading?.insertAdjacentHTML("beforeend",'<span class="urgent-badge">Urgente</span>');
+    if(item.addedQuantity)heading?.insertAdjacentHTML("afterend",`<small class="added-plan-note">Agregado durante la semana: +${item.addedQuantity} u. · ${esc(item.latestAdditionReason)}</small>`);
+  });
+};
+boot();

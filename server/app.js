@@ -92,7 +92,7 @@ import {
   updateLogisticsChecklist, upsertLogisticsOperator
 } from "./services/logistics-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
+  addProductionPlanItem, adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, getProductionStockParameters, getProductionSuggestions,
   listProductionMaterials, listProductionOperators, listProductionPlans, listProductionRecipes, listProductionReports, listProductionSuppliers, loginProductionOperator, logoutProductionOperator, searchProductionProducts,
   registerProductionInventoryEntry, requireProductionOperator, returnDailyProductionReport, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, saveProductionStockItemParameter, saveProductionStockParameterDefaults,
   submitDailyProductionReport, upsertProductionMaterial, upsertProductionOperator, upsertProductionRecipe, upsertProductionSupplier
@@ -996,6 +996,10 @@ export function createApp({
       match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/approve$/);
       if (request.method === "POST" && match) {
         return sendJson(response, 200, { plan: approveProductionPlan(db, Number(match[1]), currentUser.id) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/items$/);
+      if (request.method === "POST" && match) {
+        return sendJson(response, 201, { plan: addProductionPlanItem(db, Number(match[1]), await readJson(request), currentUser.id) });
       }
       match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/close$/);
       if (request.method === "POST" && match) {

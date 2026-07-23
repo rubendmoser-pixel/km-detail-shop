@@ -6,7 +6,7 @@ import path from "node:path";
 import { openDatabase } from "../server/db.js";
 import { getInventoryValuation } from "../server/services/production-cost-service.js";
 import {
-  adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
+  addProductionPlanItem, adjustProductionInventory, approveProductionPlan, authenticateProductionOperator, closeProductionPlan, confirmDailyProductionReport, consumeProductionAdminPortalAccess, createProductionAdminPortalAccess, createProductionCommissionSettlement, createProductionWeek, getCurrentProductionDashboard, getProductionCommissionDashboard, getProductionCommissionSettlement, getProductionInventory, getProductionReportImpact, getProductionScheduleDefaults, loginProductionOperator, logoutProductionOperator,
   registerProductionInventoryEntry, saveDailyProductionReport, saveProductionPlan, saveProductionPlanCalendar, saveProductionScheduleDefaults, searchProductionProducts, submitDailyProductionReport, upsertProductionOperator, upsertProductionRecipe
 } from "../server/services/production-service.js";
 
@@ -203,4 +203,39 @@ test("unplanned production consumes its full recipe without advancing the weekly
   const commissions = getProductionCommissionDashboard(db).pending.filter((entry) => entry.productId === extra.id);
   assert.equal(commissions.length, 1);
   assert.equal(commissions[0].amountArs, 75);
+});
+
+test("administration can urgently extend the active weekly production plan", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-production-extension-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath, adminEmail: "admin-extension@km-detail.com", adminPassword: "secure-admin-password" });
+  t.after(() => {
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+  const admin = db.prepare("SELECT id FROM users WHERE role='admin'").get();
+  const family = db.prepare("INSERT INTO product_families(name,slug) VALUES('Ampliacion semanal','ampliacion-semanal') RETURNING id").get();
+  const first = db.prepare(`INSERT INTO products(km_code,ean13,name,slug,family_id,base_price_cents,price_effective_from)
+    VALUES('PLAN-A','7790000000200','Producto inicial','producto-inicial',?,1000,'2026-07-01') RETURNING id`).get(family.id);
+  db.prepare(`INSERT INTO products(km_code,ean13,name,slug,family_id,base_price_cents,price_effective_from)
+    VALUES('URG-001','7790000000201','Producto urgente','producto-urgente',?,1000,'2026-07-01')`).run(family.id);
+  const plan = saveProductionPlan(db, { weekStart: "2026-07-13", items: [{ productId: first.id, targetQuantity: 10 }] }, admin.id);
+  approveProductionPlan(db, plan.id, admin.id);
+
+  const extended = addProductionPlanItem(db, plan.id, {
+    kmCode: "urg-001", quantity: 25, reason: "Pedido urgente de cliente", urgent: true
+  }, admin.id);
+  const urgent = extended.items.find((item) => item.kmCode === "URG-001");
+  assert.equal(urgent.targetQuantity, 25);
+  assert.equal(urgent.addedQuantity, 25);
+  assert.equal(urgent.urgent, true);
+  assert.equal(urgent.latestAdditionReason, "Pedido urgente de cliente");
+
+  const increased = addProductionPlanItem(db, plan.id, {
+    kmCode: "URG-001", quantity: 5, reason: "Ampliación adicional", urgent: false
+  }, admin.id);
+  const updated = increased.items.find((item) => item.kmCode === "URG-001");
+  assert.equal(updated.targetQuantity, 30);
+  assert.equal(updated.addedQuantity, 30);
+  assert.equal(updated.urgent, true);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM production_plan_additions WHERE plan_id=?").get(plan.id).count, 2);
 });

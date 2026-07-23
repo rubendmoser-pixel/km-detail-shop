@@ -5,6 +5,8 @@ async function api(path,options={}){const hasBody=Object.prototype.hasOwnPropert
 function monday(){const date=new Date();const day=date.getDay()||7;date.setDate(date.getDate()-day+1);return`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`}
 function init(){
   if(!document.querySelector('[data-admin-view="production"]'))return;
+  const planEditor=document.querySelector(".production-plan-editor");
+  if(planEditor&&!$("#productionPlanExtension"))planEditor.insertAdjacentHTML("beforebegin",`<section class="production-plan-extension" id="productionPlanExtension" hidden><div><p class="eyebrow">Semana en curso</p><h2>Agregar al plan actual</h2><p>Sumá una necesidad nueva sin rehacer la planificación.</p></div><form id="productionPlanExtensionForm"><input name="kmCode" type="text" placeholder="Código KM" autocomplete="off" required><input name="quantity" type="number" min="1" step="1" value="1" aria-label="Cantidad adicional" required><input name="reason" type="text" maxlength="300" placeholder="Motivo de la ampliación" required><label class="production-urgent-check"><input name="urgent" type="checkbox"><span>Urgente</span></label><button class="production-urgent-button" type="submit">Agregar al plan</button></form><p class="form-message" id="productionPlanExtensionMessage"></p></section>`);
   const materialsPanel=document.querySelector('[data-production-panel="materials"]');
   if(materialsPanel&&$("#productionMaterialsMount"))$("#productionMaterialsMount").append(materialsPanel);
   const suppliersPanel=document.querySelector('[data-production-panel="suppliers"]');
@@ -49,6 +51,7 @@ function init(){
   $("#newProductionWeek")?.addEventListener("click",beginNewWeek);$("#productionWeekCalendarForm")?.addEventListener("submit",saveWeekCalendar);$("#closeProductionWeek")?.addEventListener("click",closeWeek);
   $("#productionWeekCalendarForm")?.addEventListener("change",(event)=>{toggleCalendarDay(event);if(event.target.id==="productionWeekStart")renderWeekCalendar();renderWeekCapacityPreview()});$("#productionWeekCalendarForm")?.addEventListener("input",renderWeekCapacityPreview);
   $("#productionPlanForm")?.addEventListener("submit",savePlan);$("#productionProductSearch")?.addEventListener("input",handleProductSearch);
+  $("#productionPlanExtensionForm")?.addEventListener("submit",extendCurrentPlan);
   $("#productionProductSearch")?.addEventListener("focus",()=>{if($("#productionProductSearch").value.trim()&&!state.selectedProductId)renderProductResults()});
   $("#productionProductSearch")?.addEventListener("keydown",handleProductSearchKeydown);$("#productionProductResults")?.addEventListener("click",handleProductResultClick);$("#productionProductResults")?.addEventListener("keydown",handleProductResultKeydown);
   $("#productionProductQuantity")?.addEventListener("keydown",(event)=>{if(event.key==="Enter"){event.preventDefault();addItem()}});$("#addProductionPlanItem")?.addEventListener("click",addItem);$("#productionPlanItems")?.addEventListener("click",removeItem);
@@ -281,5 +284,27 @@ function resetOperator(){const form=$("#productionOperatorForm");form.reset();fo
 async function saveOperator(event){event.preventDefault();const form=event.currentTarget;const values=Object.fromEntries(new FormData(form));if(values.portalPassword!==values.portalPasswordConfirmation)return setOperatorMessage("Las claves no coinciden.");try{await api("/api/admin/production-operators",{method:"POST",body:{id:values.id?Number(values.id):undefined,name:values.name,email:values.email,phone:values.phone,status:values.status,notes:values.notes,portalPassword:values.portalPassword,portalAccessEnabled:form.elements.portalAccessEnabled.checked}});resetOperator();setOperatorMessage("Operario guardado correctamente.",true);await load(true)}catch(error){setOperatorMessage(error.message)}}
 function togglePassword(){const input=$("#productionOperatorPassword");input.type=input.type==="password"?"text":"password";$("[data-production-password]").textContent=input.type==="password"?"Ver":"Ocultar"}
 function setMessage(message,success=false){const node=$("#productionPlanMessage");node.textContent=message;node.classList.toggle("is-success",success)}function setOperatorMessage(message,success=false){const node=$("#productionOperatorMessage");node.textContent=message;node.classList.toggle("is-success",success)}function showError(error){setMessage(error.message||"No se pudo cargar Producción.")}function formatDate(value){if(!value)return"-";const [y,m,d]=value.slice(0,10).split("-");return`${d}/${m}/${y}`}function formatDateTime(value){if(!value)return"-";return new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short"}).format(new Date(value.endsWith("Z")?value:`${value}Z`))}function qty(value){return new Intl.NumberFormat("es-AR",{maximumFractionDigits:3}).format(Number(value||0))}function money(value){return new Intl.NumberFormat("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value||0))}function status(value){return({draft:"Borrador",approved:"Aprobado",in_progress:"En curso",closed:"Cerrado",submitted:"Pendiente de Administración",confirmed:"Confirmado",returned:"Devuelto"})[value]||value}function itemType(value){return({raw_material:"Materia prima",intermediate:"Intermedio",finished_product:"Producto terminado"})[value]||value}function movementType(value){return({production_in:"Ingreso de producción",production_consumption:"Consumo de fabricación",stock_receipt:"Ingreso por compra",initial_stock:"Stock inicial",intermediate_preparation:"Preparación de intermedio",stock_adjustment:"Ajuste manual"})[value]||value}
+function renderPlanExtension(){
+  const panel=$("#productionPlanExtension");if(!panel)return;
+  const plan=currentPlan();panel.hidden=!plan||!["approved","in_progress"].includes(plan.status);
+  document.querySelectorAll("#productionPlanItems .production-plan-row").forEach((row,index)=>{
+    const item=state.items[index];if(!item)return;
+    row.classList.toggle("is-urgent",Boolean(item.urgent));
+    const details=row.firstElementChild;
+    if(item.urgent&&!details.querySelector(".production-urgent-badge"))details.querySelector("strong")?.insertAdjacentHTML("afterend",'<span class="production-urgent-badge">Urgente</span>');
+    if(item.addedQuantity&&!details.querySelector(".production-added-note"))details.insertAdjacentHTML("beforeend",`<small class="production-added-note">Ampliación durante la semana: +${qty(item.addedQuantity)} u. · ${esc(item.latestAdditionReason)}</small>`);
+  });
+}
+async function extendCurrentPlan(event){
+  event.preventDefault();const plan=currentPlan();if(!plan)return;
+  const form=event.currentTarget;const message=$("#productionPlanExtensionMessage");message.textContent="";
+  try{
+    const {plan:updated}=await api(`/api/admin/production/plans/${plan.id}/items`,{method:"POST",body:{kmCode:form.elements.kmCode.value,quantity:Number(form.elements.quantity.value),reason:form.elements.reason.value,urgent:form.elements.urgent.checked}});
+    state.plans=state.plans.map((row)=>row.id===updated.id?updated:row);usePlan(updated);
+    form.reset();form.elements.quantity.value="1";message.textContent="Producto agregado al plan en curso y comunicado a Producción.";message.classList.add("is-success");
+  }catch(error){message.textContent=error.message;message.classList.remove("is-success")}
+}
+const renderPlanActionsBase=renderPlanActions;
+renderPlanActions=function(){renderPlanActionsBase();renderPlanExtension()};
 document.addEventListener("DOMContentLoaded",init);
 })();
