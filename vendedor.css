@@ -548,6 +548,64 @@ textarea:focus {
   margin: 0;
 }
 
+.seller-customer-price-lists {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.85rem;
+  padding: 1rem;
+  border: 1px solid rgba(92, 219, 149, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(92, 219, 149, 0.055);
+}
+
+.seller-customer-price-list-head {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.65fr) minmax(260px, 1fr);
+  align-items: end;
+  gap: 1rem;
+}
+
+.seller-customer-price-list-head > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.seller-customer-price-list-head small,
+.seller-customer-price-list-history small {
+  color: var(--dim);
+}
+
+.seller-customer-price-list-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.seller-customer-price-list-actions .seller-meta {
+  margin-left: auto;
+}
+
+.seller-customer-price-lists .form-message {
+  min-height: 1.15rem;
+  margin: 0;
+}
+
+.seller-customer-price-list-history {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(183, 184, 255, 0.14);
+}
+
+.seller-customer-price-list-history-row {
+  display: grid;
+  grid-template-columns: auto minmax(110px, 0.7fr) minmax(100px, 0.55fr) minmax(160px, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+}
+
 .seller-list-tools {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(160px, 0.38fr) repeat(2, minmax(140px, 0.28fr));
@@ -1875,5 +1933,24 @@ textarea:focus-visible {
 
   .seller-price-list-share-actions button {
     width: 100%;
+  }
+
+  .seller-customer-price-list-head,
+  .seller-customer-price-list-history-row {
+    grid-template-columns: 1fr;
+  }
+
+  .seller-customer-price-list-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .seller-customer-price-list-actions button {
+    width: 100%;
+    min-height: 3rem;
+  }
+
+  .seller-customer-price-list-actions .seller-meta {
+    margin-left: 0;
   }
 }

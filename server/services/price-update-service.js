@@ -279,7 +279,7 @@ export function getSellerPriceUpdateBatch(db, id) {
   return batch?.sellerVisible && batch.status !== "cancelled" ? batch : null;
 }
 
-export function createSellerPriceListShare(db, { batchId, salesRepId, channel, recipient }) {
+export function createSellerPriceListShare(db, { batchId, salesRepId, customerId = null, channel, recipient }) {
   const batch = getSellerPriceUpdateBatch(db, batchId);
   if (!batch) return null;
   if (!["email", "whatsapp"].includes(channel)) {
@@ -289,15 +289,29 @@ export function createSellerPriceListShare(db, { batchId, salesRepId, channel, r
   const tokenHash = hashShareToken(token);
   const result = db.prepare(`
     INSERT INTO price_list_shares (
-      batch_id, sales_rep_id, token_hash, channel, recipient, expires_at
-    ) VALUES (?, ?, ?, ?, ?, datetime('now', '+30 days'))
-  `).run(batch.id, salesRepId, tokenHash, channel, recipient);
+      batch_id, sales_rep_id, customer_id, token_hash, channel, recipient, expires_at
+    ) VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+30 days'))
+  `).run(batch.id, salesRepId, customerId || null, tokenHash, channel, recipient);
   const share = db.prepare(`
     SELECT id, expires_at AS expiresAt
     FROM price_list_shares
     WHERE id = ?
   `).get(result.lastInsertRowid);
   return { ...share, token, batch };
+}
+
+export function listSellerCustomerPriceListShares(db, { salesRepId, customerId }) {
+  return db.prepare(`
+    SELECT s.id, s.batch_id AS batchId, s.channel, s.recipient,
+      s.created_at AS createdAt, s.expires_at AS expiresAt,
+      s.last_access_at AS lastAccessAt, s.access_count AS accessCount,
+      b.effective_date AS effectiveDate, b.status
+    FROM price_list_shares s
+    JOIN price_update_batches b ON b.id = s.batch_id
+    WHERE s.sales_rep_id = ? AND s.customer_id = ?
+    ORDER BY s.created_at DESC, s.id DESC
+    LIMIT 30
+  `).all(salesRepId, customerId);
 }
 
 export function getSharedPriceUpdateBatch(db, id, token) {

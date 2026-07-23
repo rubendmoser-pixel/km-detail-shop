@@ -614,8 +614,9 @@ export function getAssignedApprovedCustomerForSalesRep(db, salesRepId, customerI
   if (customer.approval_status !== "approved") throw new ValidationError("El cliente no esta aprobado");
   ensureSeedAddress(db, id);
   return db.prepare(`SELECT c.id, c.user_id, c.business_name, c.approval_status, c.sales_rep_id,
+    c.whatsapp, c.phone, u.email,
     (SELECT sa.id FROM customer_shipping_addresses sa WHERE sa.customer_id=c.id ORDER BY sa.is_default DESC, sa.id ASC LIMIT 1) AS default_shipping_address_id
-    FROM customers c WHERE c.id=?`).get(id);
+    FROM customers c JOIN users u ON u.id=c.user_id WHERE c.id=?`).get(id);
 }
 
 export function getAssignedCustomerForSalesRep(db, salesRepId, customerId) {

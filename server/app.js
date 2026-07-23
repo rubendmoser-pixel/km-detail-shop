@@ -110,6 +110,7 @@ import {
   getSellerPriceUpdateBatch,
   getSharedPriceUpdateBatch,
   getPriceUpdateBatch,
+  listSellerCustomerPriceListShares,
   listSellerPriceUpdateBatches,
   listPriceUpdateBatches,
   scheduleIndividualPriceUpdate,
@@ -549,6 +550,87 @@ export function createApp({
         requireSalesRep(currentSalesRep);
         applyDuePriceUpdates(db);
         return sendJson(response, 200, { priceLists: listSellerPriceUpdateBatches(db) });
+      }
+      match = url.pathname.match(/^\/api\/sales\/customers\/(\d+)\/price-lists$/);
+      if (request.method === "GET" && match) {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, Number(match[1]));
+        applyDuePriceUpdates(db);
+        return sendJson(response, 200, {
+          customer: {
+            id: customer.id,
+            businessName: customer.business_name,
+            email: customer.email || "",
+            whatsapp: customer.whatsapp || customer.phone || ""
+          },
+          priceLists: listSellerPriceUpdateBatches(db),
+          history: listSellerCustomerPriceListShares(db, {
+            salesRepId: salesRep.id,
+            customerId: customer.id
+          })
+        });
+      }
+      match = url.pathname.match(/^\/api\/sales\/customers\/(\d+)\/price-lists\/(\d+)\/share$/);
+      if (request.method === "POST" && match) {
+        const salesRep = requireSalesRep(currentSalesRep);
+        const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, Number(match[1]));
+        const body = await readJson(request);
+        const channel = String(body.channel || "").trim().toLowerCase();
+        let recipient = "";
+        if (channel === "email") {
+          recipient = normalizeEmail(customer.email);
+        } else if (channel === "whatsapp") {
+          recipient = String(customer.whatsapp || customer.phone || "").replace(/\D/g, "");
+          if (recipient.length < 8 || recipient.length > 15) {
+            throw new ValidationError("El cliente no tiene un WhatsApp válido cargado.");
+          }
+        } else {
+          throw new ValidationError("Seleccioná email o WhatsApp para compartir la lista.");
+        }
+        const share = createSellerPriceListShare(db, {
+          batchId: Number(match[2]),
+          salesRepId: salesRep.id,
+          customerId: customer.id,
+          channel,
+          recipient
+        });
+        if (!share) return sendJson(response, 404, { error: "Esta lista ya no está disponible para vendedores." });
+        const baseUrl = config.publicBaseUrl.replace(/\/$/, "");
+        const token = encodeURIComponent(share.token);
+        const pdfUrl = `${baseUrl}/price-update-list.html?batch=${share.batch.id}&share=${token}`;
+        const excelUrl = `${baseUrl}/api/shared/price-lists/${share.batch.id}/list.xlsx?token=${token}`;
+        if (channel === "email") {
+          emailService.queueSellerPriceListCustomer({
+            recipient,
+            salesRepName: salesRep.name,
+            effectiveDate: share.batch.effectiveDate,
+            pdfUrl,
+            excelUrl
+          });
+        }
+        const whatsappText = [
+          `Hola, te comparto la lista oficial de precios de KM Detail Line.`,
+          `Vigencia: ${share.batch.effectiveDate.split("-").reverse().join("/")}.`,
+          "",
+          `Ver o guardar en PDF: ${pdfUrl}`,
+          `Descargar en Excel: ${excelUrl}`,
+          "",
+          "Los enlaces privados tienen una vigencia de 30 días."
+        ].join("\n");
+        return sendJson(response, 200, {
+          message: channel === "email"
+            ? `Lista enviada a ${recipient}.`
+            : "Mensaje preparado para abrir en WhatsApp.",
+          whatsappText: channel === "whatsapp" ? whatsappText : "",
+          recipient,
+          pdfUrl,
+          excelUrl,
+          expiresAt: share.expiresAt,
+          history: listSellerCustomerPriceListShares(db, {
+            salesRepId: salesRep.id,
+            customerId: customer.id
+          })
+        });
       }
       match = url.pathname.match(/^\/api\/sales\/price-lists\/(\d+)\/share$/);
       if (request.method === "POST" && match) {

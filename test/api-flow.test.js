@@ -407,6 +407,31 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   );
   assert.equal(Buffer.from(await sellerPriceListExcel.arrayBuffer()).subarray(0, 2).toString(), "PK");
+  const customerPriceLists = await getJson(
+    `${baseUrl}/api/sales/customers/${registration.customer.id}/price-lists`,
+    salesCookie
+  );
+  assert.equal(customerPriceLists.customer.email, "cliente-api@example.com");
+  assert.equal(customerPriceLists.priceLists.some((batch) => batch.id === scheduledBatch.id), true);
+  assert.deepEqual(customerPriceLists.history, []);
+  const customerPriceListShareResponse = await fetch(
+    `${baseUrl}/api/sales/customers/${registration.customer.id}/price-lists/${scheduledBatch.id}/share`,
+    {
+      method: "POST",
+      headers: jsonHeaders(salesCookie),
+      body: JSON.stringify({ channel: "email" })
+    }
+  );
+  assert.equal(customerPriceListShareResponse.status, 200);
+  const customerPriceListShare = await customerPriceListShareResponse.json();
+  assert.equal(customerPriceListShare.recipient, "cliente-api@example.com");
+  assert.equal(customerPriceListShare.history.length, 1);
+  assert.equal(customerPriceListShare.history[0].batchId, scheduledBatch.id);
+  assert.equal(customerPriceListShare.history[0].channel, "email");
+  assert.equal(
+    db.prepare("SELECT customer_id FROM price_list_shares WHERE id = ?").get(customerPriceListShare.history[0].id).customer_id,
+    registration.customer.id
+  );
   const emailPriceListShareResponse = await fetch(`${baseUrl}/api/sales/price-lists/${scheduledBatch.id}/share`, {
     method: "POST",
     headers: jsonHeaders(salesCookie),

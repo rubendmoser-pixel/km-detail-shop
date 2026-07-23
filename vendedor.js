@@ -6,7 +6,9 @@ const state = {
   quoteDetails: {},
   orderDetails: {},
   customerAddresses: {},
+  customerPriceLists: {},
   openCustomerAddressesId: null,
+  openCustomerPriceListsId: null,
   editingCustomerAddressId: null,
   openQuoteId: null,
   openOrderId: null,
@@ -589,26 +591,8 @@ function renderPriceLists() {
             <a class="ghost-button compact" href="/api/sales/price-lists/${encodeURIComponent(batch.id)}/list.xlsx" download>
               ${iconSvg("download")}Descargar Excel
             </a>
-            <button class="ghost-button compact button-whatsapp" type="button" data-open-price-list-share="${batch.id}" data-share-channel="whatsapp">
-              ${iconSvg("message-circle")}WhatsApp
-            </button>
-            <button class="ghost-button compact button-info" type="button" data-open-price-list-share="${batch.id}" data-share-channel="email">
-              ${iconSvg("mail")}Email
-            </button>
           </div>
         </div>
-        <form class="seller-price-list-share" data-price-list-share-form="${batch.id}" hidden>
-          <input type="hidden" name="channel" value="">
-          <label>
-            <span data-price-list-share-label>Destinatario</span>
-            <input name="recipient" autocomplete="off" required>
-          </label>
-          <div class="seller-price-list-share-actions">
-            <button class="primary-button compact" type="submit" data-price-list-share-submit>Enviar</button>
-            <button class="ghost-button compact" type="button" data-close-price-list-share>Cancelar</button>
-          </div>
-          <p class="form-message" data-price-list-share-message aria-live="polite"></p>
-        </form>
       </article>
     `;
   }).join("");
@@ -637,7 +621,7 @@ function renderCustomers(customers = []) {
     const location = [customer.city, customer.province].filter(Boolean).join(", ");
     const contact = [customer.contact_person, customer.whatsapp || customer.phone].filter(Boolean).join(" | ");
     return `
-      <article class="seller-card">
+      <article class="seller-card" data-customer-card="${customer.id}">
         <div class="seller-card-top">
           <div>
             <strong>${escapeHtml(customer.business_name)}</strong>
@@ -648,14 +632,74 @@ function renderCustomers(customers = []) {
         <div class="seller-meta">${escapeHtml(location || "Sin localidad cargada")}</div>
         <div class="seller-meta">${escapeHtml(contact || "Sin contacto cargado")}</div>
         <div class="quote-actions">
+          ${customer.approval_status === "approved" ? `
+            <button class="ghost-button compact button-success" type="button" data-manage-customer-price-lists="${customer.id}">
+              ${iconSvg(String(state.openCustomerPriceListsId) === String(customer.id) ? "x" : "file-text")}${String(state.openCustomerPriceListsId) === String(customer.id) ? "Cerrar listas" : "Enviar lista de precios"}
+            </button>
+          ` : ""}
           <button class="ghost-button compact button-info" type="button" data-manage-addresses="${customer.id}">
             ${iconSvg(String(state.openCustomerAddressesId) === String(customer.id) ? "x" : "map-pin")}${String(state.openCustomerAddressesId) === String(customer.id) ? "Cerrar" : "Lugares de entrega"}
           </button>
         </div>
+        ${String(state.openCustomerPriceListsId) === String(customer.id) ? renderCustomerPriceListManager(customer) : ""}
         ${String(state.openCustomerAddressesId) === String(customer.id) ? renderSellerAddressManager(customer) : ""}
       </article>
     `;
   }).join("");
+}
+
+function renderCustomerPriceListManager(customer) {
+  const payload = state.customerPriceLists[customer.id];
+  if (!payload) return `<div class="seller-customer-price-lists"><div class="empty-state">Cargando listas e historial...</div></div>`;
+  const lists = payload.priceLists || [];
+  const history = payload.history || [];
+  if (!lists.length) {
+    return `<div class="seller-customer-price-lists"><div class="empty-state">Administración todavía no habilitó una lista para vendedores.</div></div>`;
+  }
+  return `
+    <div class="seller-customer-price-lists" data-customer-price-list-manager="${customer.id}">
+      <div class="seller-customer-price-list-head">
+        <div>
+          <strong>Enviar lista oficial</strong>
+          <small>El envío queda registrado en este cliente.</small>
+        </div>
+        <label class="seller-field">
+          <span>Lista disponible</span>
+          <select data-customer-price-list-select>
+            ${lists.map((batch) => `<option value="${batch.id}">Vigencia ${escapeHtml(shortDate(batch.effectiveDate))} · ${Number(batch.productCount || 0)} productos</option>`).join("")}
+          </select>
+        </label>
+      </div>
+      <div class="seller-customer-price-list-actions">
+        <button class="ghost-button compact button-info" type="button" data-send-customer-price-list="email" ${payload.customer?.email ? "" : "disabled"}>
+          ${iconSvg("mail")}Enviar / reenviar por email
+        </button>
+        <button class="ghost-button compact button-whatsapp" type="button" data-send-customer-price-list="whatsapp" ${payload.customer?.whatsapp ? "" : "disabled"}>
+          ${iconSvg("message-circle")}Enviar / reenviar por WhatsApp
+        </button>
+        <span class="seller-meta">${payload.customer?.email ? escapeHtml(payload.customer.email) : "Sin email"} · ${payload.customer?.whatsapp ? escapeHtml(payload.customer.whatsapp) : "Sin WhatsApp"}</span>
+      </div>
+      <p class="form-message" data-customer-price-list-message aria-live="polite"></p>
+      <div class="seller-customer-price-list-history">
+        <strong>Historial de envíos</strong>
+        ${history.length ? history.map((entry) => `
+          <div class="seller-customer-price-list-history-row">
+            ${badge(entry.channel === "email" ? "Email" : "WhatsApp", entry.channel === "email" ? "blue" : "green")}
+            <span>Lista ${escapeHtml(shortDate(entry.effectiveDate))}</span>
+            <span>${escapeHtml(shortDate(entry.createdAt))}</span>
+            <small>${escapeHtml(entry.recipient || "")}</small>
+          </div>
+        `).join("") : `<small>Todavía no se enviaron listas a este cliente.</small>`}
+      </div>
+    </div>
+  `;
+}
+
+async function loadCustomerPriceLists(customerId) {
+  const payload = await sellerApi(`/api/sales/customers/${encodeURIComponent(customerId)}/price-lists`);
+  state.customerPriceLists[customerId] = payload;
+  renderCustomers(state.dashboard?.customers || []);
+  return payload;
 }
 
 function sellerProvinceOptions(selected = "") {
@@ -1723,12 +1767,59 @@ nodes.orderShipping?.addEventListener("change", (event) => {
 
 nodes.customers?.addEventListener("click", async (event) => {
   const manage = event.target.closest("[data-manage-addresses]");
+  const managePriceLists = event.target.closest("[data-manage-customer-price-lists]");
+  const sendPriceList = event.target.closest("[data-send-customer-price-list]");
   const closeAddresses = event.target.closest("[data-close-addresses]");
   const edit = event.target.closest("[data-edit-address]");
   const setDefault = event.target.closest("[data-default-address]");
   const remove = event.target.closest("[data-delete-address]");
   const cancel = event.target.closest("[data-cancel-address-edit]");
   const customerCard = event.target.closest(".seller-card");
+  if (managePriceLists) {
+    const customerId = managePriceLists.dataset.manageCustomerPriceLists;
+    state.openCustomerPriceListsId = String(state.openCustomerPriceListsId) === String(customerId) ? null : customerId;
+    renderCustomers(state.dashboard?.customers || []);
+    if (state.openCustomerPriceListsId && !state.customerPriceLists[customerId]) {
+      try {
+        await loadCustomerPriceLists(customerId);
+      } catch (error) {
+        state.customerPriceLists[customerId] = { priceLists: [], history: [], error: error.message };
+        renderCustomers(state.dashboard?.customers || []);
+      }
+    }
+    return;
+  }
+  if (sendPriceList) {
+    const manager = sendPriceList.closest("[data-customer-price-list-manager]");
+    const customerId = manager?.dataset.customerPriceListManager;
+    const batchId = manager?.querySelector("[data-customer-price-list-select]")?.value;
+    const channel = sendPriceList.dataset.sendCustomerPriceList;
+    const message = manager?.querySelector("[data-customer-price-list-message]");
+    if (!customerId || !batchId) return;
+    const whatsappWindow = channel === "whatsapp" ? window.open("about:blank", "_blank") : null;
+    sendPriceList.disabled = true;
+    if (message) message.textContent = channel === "email" ? "Enviando lista..." : "Preparando WhatsApp...";
+    try {
+      const payload = await sellerApi(`/api/sales/customers/${encodeURIComponent(customerId)}/price-lists/${encodeURIComponent(batchId)}/share`, {
+        method: "POST",
+        body: { channel }
+      });
+      if (channel === "whatsapp") {
+        const whatsappUrl = `https://wa.me/${onlyDigits(payload.recipient)}?text=${encodeURIComponent(payload.whatsappText || "")}`;
+        if (whatsappWindow) whatsappWindow.location.href = whatsappUrl;
+        else window.open(whatsappUrl, "_blank", "noopener");
+      }
+      state.customerPriceLists[customerId].history = payload.history || [];
+      renderCustomers(state.dashboard?.customers || []);
+      const refreshedMessage = nodes.customers.querySelector(`[data-customer-price-list-manager="${CSS.escape(String(customerId))}"] [data-customer-price-list-message]`);
+      if (refreshedMessage) refreshedMessage.textContent = payload.message || "Lista compartida.";
+    } catch (error) {
+      if (whatsappWindow) whatsappWindow.close();
+      if (message) message.textContent = error.message || "No se pudo enviar la lista.";
+      sendPriceList.disabled = false;
+    }
+    return;
+  }
   if (closeAddresses) {
     state.openCustomerAddressesId = null;
     state.editingCustomerAddressId = null;
@@ -1745,7 +1836,7 @@ nodes.customers?.addEventListener("click", async (event) => {
     }
     return;
   }
-  const customerId = state.openCustomerAddressesId || customerCard?.querySelector("[data-manage-addresses]")?.dataset.manageAddresses;
+  const customerId = state.openCustomerAddressesId || customerCard?.dataset.customerCard;
   if (!customerId) return;
   if (edit || cancel) {
     state.editingCustomerAddressId = edit?.dataset.editAddress || null;

@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 24;
+const SCHEMA_VERSION = 25;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -465,6 +465,7 @@ function migrate(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       batch_id INTEGER NOT NULL REFERENCES price_update_batches(id) ON DELETE CASCADE,
       sales_rep_id INTEGER NOT NULL REFERENCES sales_reps(id) ON DELETE CASCADE,
+      customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
       token_hash TEXT NOT NULL UNIQUE,
       channel TEXT NOT NULL CHECK(channel IN ('email', 'whatsapp')),
       recipient TEXT NOT NULL,
@@ -889,6 +890,7 @@ function migrate(db) {
   ensureColumn(db, "price_update_batches", "seller_visible", "INTEGER NOT NULL DEFAULT 0 CHECK (seller_visible IN (0, 1))");
   ensureColumn(db, "price_update_batches", "seller_visible_at", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "price_update_batches", "seller_visible_by", "INTEGER REFERENCES users(id)");
+  ensureColumn(db, "price_list_shares", "customer_id", "INTEGER REFERENCES customers(id) ON DELETE SET NULL");
   ensureColumn(db, "products", "production_minutes_per_unit", "REAL NOT NULL DEFAULT 0 CHECK (production_minutes_per_unit >= 0)");
   ensureColumn(db, "products", "production_commission_cents", "INTEGER NOT NULL DEFAULT 0 CHECK (production_commission_cents >= 0)");
   ensureColumn(db, "orders", "payment_method", "TEXT NOT NULL DEFAULT 'bank_transfer'");
@@ -1058,6 +1060,7 @@ function migrate(db) {
     WHERE total_cents > 0;
   `);
   db.exec("CREATE INDEX IF NOT EXISTS idx_customers_sales_rep ON customers(sales_rep_id);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_price_list_shares_customer ON price_list_shares(customer_id, created_at DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_logistics_operators_status ON logistics_operators(status, name);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_logistics_sessions_token ON logistics_sessions(token_hash, expires_at);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_production_operators_status ON production_operators(status, name);");
