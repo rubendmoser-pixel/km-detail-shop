@@ -2321,6 +2321,34 @@ body.customer-app .customer-order-summary {
   display: block;
 }
 
+.order-adjustment-notice {
+  display: grid;
+  gap: 5px;
+  padding: 13px 14px;
+  border: 1px solid rgba(227, 190, 77, 0.55);
+  border-left-width: 4px;
+  border-radius: 7px;
+  background: rgba(227, 190, 77, 0.1);
+}
+
+.order-adjustment-notice strong {
+  color: #fff1ad;
+}
+
+.order-adjustment-notice span {
+  color: #e0e2e5;
+  line-height: 1.45;
+}
+
+.order-adjustment-notice.review-requested {
+  border-color: rgba(90, 172, 222, 0.58);
+  background: rgba(90, 172, 222, 0.1);
+}
+
+.order-adjustment-notice.review-requested strong {
+  color: #bde9ff;
+}
+
 .purchase-actions {
   display: flex;
   flex-wrap: wrap;

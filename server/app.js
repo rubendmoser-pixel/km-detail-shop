@@ -36,6 +36,7 @@ import {
   listCustomerOrders,
   registerCurrentAccountPayment,
   reviewPaymentReceipt,
+  requestModifiedOrderReview,
   updateOrderFulfillment,
   updateOrderStatus
 } from "./services/order-service.js";
@@ -833,6 +834,11 @@ export function createApp({
       if (request.method === "POST" && match) {
         const user = requireApprovedCustomer(currentUser);
         return sendJson(response, 200, { order: acceptModifiedOrder(db, Number(match[1]), user.customerId, user.id) });
+      }
+      match = url.pathname.match(/^\/api\/orders\/(\d+)\/review-request$/);
+      if (request.method === "POST" && match) {
+        const user = requireApprovedCustomer(currentUser);
+        return sendJson(response, 200, { order: requestModifiedOrderReview(db, Number(match[1]), user.customerId, user.id) });
       }
       match = url.pathname.match(/^\/api\/orders\/(\d+)\/received$/);
       if (request.method === "POST" && match) {

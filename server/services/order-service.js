@@ -187,7 +187,7 @@ export function getOrder(db, orderId, customerId = null, isAdmin = false) {
   `).all(orderId) : [];
   const mercadoPagoPayments = listMercadoPagoPayments(db, order.id);
   const accountPayments = listAccountPayments(db, order.id);
-  return mapOrder(order, items, receipts, events, mercadoPagoPayments, accountPayments);
+  return mapOrder(order, items, receipts, events, mercadoPagoPayments, accountPayments, { includeInternal: isAdmin });
 }
 
 export function createShippingLabels(db, orderId, packageCount) {
@@ -311,7 +311,7 @@ export function listCustomerOrders(db, customerId) {
     const receipts = db.prepare("SELECT * FROM payment_receipts WHERE order_id = ? ORDER BY created_at DESC, id DESC").all(order.id);
     const mercadoPagoPayments = listMercadoPagoPayments(db, order.id);
     const accountPayments = listAccountPayments(db, order.id);
-    return mapOrder(order, items, receipts, [], mercadoPagoPayments, accountPayments);
+    return mapOrder(order, items, receipts, [], mercadoPagoPayments, accountPayments, { includeInternal: false });
   });
 }
 
@@ -337,7 +337,8 @@ export function listAdminOrders(db, filters = {}) {
     SELECT o.id, o.order_number, o.status, o.payment_status, o.total_cents, o.paid_cents, o.balance_cents,
            o.payment_due_date, o.currency, o.commercial_class,
            o.created_by_role, o.created_by_sales_rep_id, o.sales_rep_name, o.sales_rep_email,
-           o.fulfillment_status, o.logistics_status, o.modified_acceptance_required, o.created_at, c.business_name, c.tax_id
+           o.fulfillment_status, o.logistics_status, o.modified_acceptance_required, o.customer_review_requested_at,
+           o.created_at, c.business_name, c.tax_id
     FROM orders o JOIN customers c ON c.id = o.customer_id
     ${whereSql} ORDER BY o.created_at DESC
     LIMIT 500
@@ -365,7 +366,7 @@ export function orderOperationalStage(order) {
   if (order.status === "delivered" || fulfillmentStatus === "delivered") return "delivered";
   if (fulfillmentStatus === "shipped") return "shipped";
   if (fulfillmentStatus === "ready") return "prepared";
-  if (order.status === "order_created") return "review_availability";
+  if (order.status === "order_created" || order.customer_review_requested_at) return "review_availability";
   if (Boolean(order.modified_acceptance_required)) return "awaiting_acceptance";
   if (!PAYMENT_STATUSES_ALLOWING_FULFILLMENT.has(normalizePaymentStatus(order.payment_status))) return "awaiting_payment";
   if (order.logistics_status === "preparing") return "preparing";
@@ -391,7 +392,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
   const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId);
   if (!order) throw new NotFoundError("Order not found");
   assertOrderOpen(order, "Availability cannot be confirmed");
-  if (order.status !== "order_created") {
+  if (order.status !== "order_created" && !order.customer_review_requested_at) {
     throw new ValidationError("Availability can only be confirmed for received orders");
   }
   if (!Array.isArray(input.items) || input.items.length === 0) throw new ValidationError("items are required");
@@ -475,7 +476,7 @@ export function confirmOrderAvailability(db, orderId, input, adminUserId) {
         credit_authorized_by = CASE WHEN ? THEN ? ELSE credit_authorized_by END,
         due_reminder_sent_at = NULL, overdue_reminder_sent_date = '',
         payment_reminder_stage = '', payment_reminder_last_sent_date = '',
-        modified_acceptance_required = ?, updated_at = CURRENT_TIMESTAMP
+        modified_acceptance_required = ?, customer_review_requested_at = NULL, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       newStatus, confirmedSubtotalNetCents, vatCents, totalCents,
@@ -996,10 +997,25 @@ export function acceptModifiedOrder(db, orderId, customerId, userId) {
   if (!order.modified_acceptance_required) throw new ValidationError("Order does not require acceptance");
   const acceptedAt = new Date().toISOString();
   db.prepare(`
-    UPDATE orders SET modified_acceptance_required = 0, customer_accepted_at = ?, updated_at = CURRENT_TIMESTAMP
+    UPDATE orders SET modified_acceptance_required = 0, customer_accepted_at = ?,
+      customer_review_requested_at = NULL, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(acceptedAt, orderId);
   addOrderEvent(db, orderId, userId, "customer_reaccepted", "", order, { acceptedAt });
+  return getOrder(db, orderId, customerId, false);
+}
+
+export function requestModifiedOrderReview(db, orderId, customerId, userId) {
+  const order = db.prepare("SELECT * FROM orders WHERE id = ? AND customer_id = ?").get(orderId, customerId);
+  if (!order) throw new NotFoundError("Order not found");
+  if (!order.modified_acceptance_required) throw new ValidationError("Order does not require review");
+  if (order.customer_review_requested_at) return getOrder(db, orderId, customerId, false);
+  const requestedAt = new Date().toISOString();
+  db.prepare(`
+    UPDATE orders SET customer_review_requested_at = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(requestedAt, orderId);
+  addOrderEvent(db, orderId, userId, "customer_adjustment_review_requested", "", order, { requestedAt });
   return getOrder(db, orderId, customerId, false);
 }
 
@@ -1403,7 +1419,7 @@ function ensureTableColumn(db, table, column, definition) {
   }
 }
 
-function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments = [], accountPayments = []) {
+function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments = [], accountPayments = [], { includeInternal = false } = {}) {
   const commercialAdjustmentCents = resolvedCommercialAdjustmentCents(order);
   const calculatedBalanceCents = clientPayableBalanceCents({
     ...order,
@@ -1467,6 +1483,7 @@ function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments 
     priceReservedAt: order.price_reserved_at,
     customerAcceptedAt: order.customer_accepted_at,
     modifiedAcceptanceRequired: Boolean(order.modified_acceptance_required),
+    adjustmentReviewRequestedAt: order.customer_review_requested_at || "",
     createdAt: order.created_at,
     updatedAt: order.updated_at,
     paymentReceipts: receipts.map((receipt) => ({
@@ -1526,9 +1543,9 @@ function mapOrder(order, items, receipts = [], events = [], mercadoPagoPayments 
       subtotalNetCents: item.subtotal_net_cents,
       confirmedSubtotalNetCents: item.confirmed_subtotal_net_cents || 0,
       lineStatus: item.line_status || "pending_confirmation",
-      availabilityNote: item.availability_note || "",
-      unfulfilledReasonCode: item.unfulfilled_reason_code || "",
-      unfulfilledReasonLabel: UNFULFILLED_REASON_LABELS[item.unfulfilled_reason_code] || ""
+      availabilityNote: includeInternal ? (item.availability_note || "") : "",
+      unfulfilledReasonCode: includeInternal ? (item.unfulfilled_reason_code || "") : "",
+      unfulfilledReasonLabel: includeInternal ? (UNFULFILLED_REASON_LABELS[item.unfulfilled_reason_code] || "") : ""
     }))
   };
 }

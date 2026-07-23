@@ -793,9 +793,37 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.match(availabilityEmail.html_body, /<!doctype html>/);
   assert.match(availabilityEmail.html_body, /KM Detail Line/);
   assert.match(availabilityEmail.html_body, /Total para pago y despacho/);
+  assert.doesNotMatch(availabilityEmail.text_body, /Falta de producto terminado|Producci[oó]n demorada|Se despacha una unidad ahora/i);
   const availabilitySalesEmail = db.prepare("SELECT recipient, subject FROM email_outbox WHERE event_type = 'order_availability_sales_rep'").get();
   assert.equal(availabilitySalesEmail, undefined);
   assert.match(availabilityEmail.text_body, /Total para pago y despacho/);
+  const customerAdjustedOrders = await getJson(`${baseUrl}/api/orders`, customerCookie);
+  const customerAdjustedOrder = customerAdjustedOrders.orders.find((order) => order.id === orderPayload.order.id);
+  assert.equal(customerAdjustedOrder.items[0].unfulfilledReasonCode, "");
+  assert.equal(customerAdjustedOrder.items[0].unfulfilledReasonLabel, "");
+  assert.equal(customerAdjustedOrder.items[0].availabilityNote, "");
+  const reviewRequestResponse = await fetch(`${baseUrl}/api/orders/${orderPayload.order.id}/review-request`, {
+    method: "POST",
+    headers: jsonHeaders(customerCookie)
+  });
+  assert.equal(reviewRequestResponse.status, 200);
+  assert.ok((await reviewRequestResponse.json()).order.adjustmentReviewRequestedAt);
+  const reviewQueue = await getJson(`${baseUrl}/api/admin/orders?stage=review_availability`, adminCookie);
+  assert.equal(reviewQueue.orders.some((order) => order.id === orderPayload.order.id), true);
+  const reviewedAvailabilityResponse = await fetch(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/availability`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({
+      reason: "Segunda revisión interna",
+      paymentCondition: "advance_payment",
+      items: [
+        { id: availabilityOrder.items[0].id, confirmedQuantity: 1, unfulfilledReasonCode: "finished_stock_shortage", availabilityNote: "Nota interna revisada" },
+        { id: availabilityOrder.items[1].id, confirmedQuantity: 3, unfulfilledReasonCode: "production_delay", availabilityNote: "Nota interna revisada" }
+      ]
+    })
+  });
+  assert.equal(reviewedAvailabilityResponse.status, 200);
+  assert.equal((await reviewedAvailabilityResponse.json()).order.adjustmentReviewRequestedAt, "");
   const deliveryNotePayload = await getJson(`${baseUrl}/api/admin/orders/${orderPayload.order.id}/delivery-note`, adminCookie);
   assert.equal(deliveryNotePayload.order.items.length, 2);
   assert.equal(deliveryNotePayload.order.items[0].quantity, 1);

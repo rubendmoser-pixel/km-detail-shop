@@ -105,13 +105,13 @@ export function getLogisticsOrder(db, orderId) {
 export function claimLogisticsOrder(db, orderId, operator) {
   const order = db.prepare("SELECT * FROM orders WHERE id=?").get(orderId);
   assertLogisticsOpen(order);
-  if (order.status !== "order_created" && (order.modified_acceptance_required || !PAYMENT_READY.has(order.payment_status))) {
+  if (order.status !== "order_created" && !order.customer_review_requested_at && (order.modified_acceptance_required || !PAYMENT_READY.has(order.payment_status))) {
     throw new ValidationError("El pedido todavía espera aceptación o aprobación administrativa.");
   }
   if (order.logistics_operator_id && Number(order.logistics_operator_id) !== Number(operator.id)) {
     throw new ValidationError("El pedido ya está asignado a otro operario.");
   }
-  db.prepare(`UPDATE orders SET logistics_operator_id=?, logistics_status=CASE WHEN status='order_created' THEN logistics_status ELSE 'preparing' END,
+  db.prepare(`UPDATE orders SET logistics_operator_id=?, logistics_status=CASE WHEN status='order_created' OR customer_review_requested_at IS NOT NULL THEN logistics_status ELSE 'preparing' END,
       logistics_started_at=COALESCE(logistics_started_at,?), updated_at=CURRENT_TIMESTAMP WHERE id=?`)
     .run(operator.id, new Date().toISOString(), orderId);
   addLogisticsEvent(db, orderId, operator, "logistics_claimed", "Pedido tomado por logística");
@@ -120,7 +120,7 @@ export function claimLogisticsOrder(db, orderId, operator) {
 
 export function confirmLogisticsAvailability(db, orderId, input, operator) {
   const order = db.prepare("SELECT * FROM orders WHERE id=?").get(orderId);
-  if (!order || order.status !== "order_created") throw new ValidationError("Este pedido ya no espera confirmación de disponibilidad.");
+  if (!order || (order.status !== "order_created" && !order.customer_review_requested_at)) throw new ValidationError("Este pedido ya no espera confirmación de disponibilidad.");
   if (order.logistics_operator_id && Number(order.logistics_operator_id) !== Number(operator.id)) throw new ValidationError("El pedido está asignado a otro operario.");
   db.prepare("UPDATE orders SET logistics_operator_id=? WHERE id=?").run(operator.id, orderId);
   const result = confirmOrderAvailability(db, orderId, { ...input, paymentCondition: "advance_payment" }, null);
@@ -190,7 +190,7 @@ function publicOperator(row) { return { id: row.id, name: row.name, email: row.e
 function stageFor(row) {
   if (row.fulfillment_status === "shipped") return "in_transit";
   if (row.fulfillment_status === "ready") return "awaiting_dispatch";
-  if (row.status === "order_created") return "review_availability";
+  if (row.status === "order_created" || row.customer_review_requested_at) return "review_availability";
   if (row.modified_acceptance_required) return "waiting_acceptance";
   if (!PAYMENT_READY.has(row.payment_status)) return "waiting_payment";
   if (row.logistics_status === "preparing") return "preparing";
@@ -206,7 +206,8 @@ function mapLogistics(row = {}) { return { status: row.logistics_status || "pend
   labeled: Boolean(row.logistics_labeled_at), readyAt: row.logistics_ready_at, packages: row.logistics_packages || 1 }; }
 function sanitizeOrder(order) {
   return { id: order.id, orderNumber: order.orderNumber, status: order.status, paymentStatus: order.paymentStatus,
-    modifiedAcceptanceRequired: order.modifiedAcceptanceRequired, businessName: order.businessName, contactPerson: order.contactPerson,
+    modifiedAcceptanceRequired: order.modifiedAcceptanceRequired, adjustmentReviewRequestedAt: order.adjustmentReviewRequestedAt,
+    businessName: order.businessName, contactPerson: order.contactPerson,
     customerWhatsapp: order.customerWhatsapp, shipping: order.shipping, fulfillment: order.fulfillment, logistics: order.logistics,
     items: (order.items || []).map((item) => ({ id: item.id, kmCode: item.kmCode, ean13: item.ean13, productName: item.productName,
       warehouseLocation: item.warehouseLocation, quantity: item.quantity, confirmedQuantity: item.confirmedQuantity,

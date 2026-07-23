@@ -595,6 +595,7 @@ function migrate(db) {
       price_reserved_at TEXT NOT NULL,
       customer_accepted_at TEXT,
       modified_acceptance_required INTEGER NOT NULL DEFAULT 0 CHECK (modified_acceptance_required IN (0, 1)),
+      customer_review_requested_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -934,6 +935,8 @@ function migrate(db) {
   ensureColumn(db, "orders", "overdue_reminder_sent_date", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "payment_reminder_stage", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "orders", "payment_reminder_last_sent_date", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "orders", "modified_acceptance_required", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "orders", "customer_review_requested_at", "TEXT");
   ensureColumn(db, "payment_receipts", "amount_cents", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "payment_receipts", "review_reason", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "payment_receipts", "reviewed_at", "TEXT");

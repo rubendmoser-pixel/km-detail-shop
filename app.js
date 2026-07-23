@@ -1152,6 +1152,9 @@ function renderCustomerOrders() {
   els.customerOrders.querySelectorAll("[data-accept-order]").forEach((button) => {
     button.addEventListener("click", () => acceptOrder(Number(button.dataset.acceptOrder)));
   });
+  els.customerOrders.querySelectorAll("[data-request-order-review]").forEach((button) => {
+    button.addEventListener("click", () => requestOrderReview(Number(button.dataset.requestOrderReview)));
+  });
   els.customerOrders.querySelectorAll("[data-confirm-received]").forEach((button) => {
     button.addEventListener("click", () => confirmReceived(Number(button.dataset.confirmReceived)));
   });
@@ -1200,7 +1203,8 @@ function renderCustomerOrder(order) {
   const fulfillment = order.fulfillment || {};
   const shipping = order.shipping || {};
   const latestReceipt = order.paymentReceipts?.[0];
-  const needsAcceptance = order.modifiedAcceptanceRequired && ["availability_confirmed", "confirmed"].includes(order.status);
+  const reviewRequested = Boolean(order.adjustmentReviewRequestedAt);
+  const needsAcceptance = order.modifiedAcceptanceRequired && !reviewRequested && ["availability_confirmed", "confirmed"].includes(order.status);
   const canUpload = ["availability_confirmed", "confirmed"].includes(order.status)
     && !["paid", "settled_adjustment"].includes(order.paymentStatus)
     && !needsAcceptance
@@ -1255,10 +1259,21 @@ function renderCustomerOrder(order) {
             <strong>${order.status === "order_created" ? "Articulos solicitados" : "Articulos confirmados"}</strong>
             ${visibleItems.length ? visibleItems.map(renderPurchaseLine).join("") : `<span>Pendiente de confirmacion comercial.</span>`}
             ${items.length > visibleItems.length ? `<span>+ ${items.length - visibleItems.length} articulo${items.length - visibleItems.length === 1 ? "" : "s"} mas</span>` : ""}
-            ${unavailableItems.length ? `<strong>No disponibles</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${item.unfulfilledReasonLabel ? ` · ${escapeHtml(item.unfulfilledReasonLabel)}` : ""}${item.availabilityNote ? ` (${escapeHtml(item.availabilityNote)})` : ""}</span>`).join("")}` : ""}
+            ${unavailableItems.length ? `<strong>No confirmados</strong>${unavailableItems.map((item) => `<span>${escapeHtml(item.quantity)} solicitado${item.quantity === 1 ? "" : "s"} · 0 confirmado · ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}</span>`).join("")}` : ""}
           </div>
+          ${order.modifiedAcceptanceRequired ? `
+            <div class="order-adjustment-notice ${reviewRequested ? "review-requested" : ""}">
+              <strong>${reviewRequested ? "Revisión solicitada a KM" : "El pedido fue ajustado"}</strong>
+              <span>${reviewRequested
+                ? "KM revisará nuevamente las cantidades y te informará la actualización."
+                : "Una o más cantidades cambiaron según la disponibilidad actual. Revisá lo solicitado y lo confirmado antes de continuar."}</span>
+            </div>
+          ` : ""}
           <div class="purchase-actions">
-            ${needsAcceptance ? `<button class="primary-button" type="button" data-accept-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Aceptar disponibilidad</button>` : ""}
+            ${needsAcceptance ? `
+              <button class="primary-button" type="button" data-accept-order="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Aceptar pedido ajustado</button>
+              <button class="ghost-button" type="button" data-request-order-review="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Solicitar revisión</button>
+            ` : ""}
             ${canConfirmReceived ? `<button class="primary-button" type="button" data-confirm-received="${order.id}" ${state.purchasesRefreshing ? "disabled" : ""}>Confirmar pedido recibido</button>` : ""}
             ${showPaymentOptions ? `
               <div class="payment-options" aria-label="Opciones de pago">
@@ -1290,9 +1305,9 @@ function isCreditAccountOrder(order = {}) {
 
 function renderPurchaseLine(item) {
   const quantity = item.confirmedQuantity > 0 ? item.confirmedQuantity : item.quantity;
-  const suffix = item.confirmedQuantity > 0 && item.confirmedQuantity !== item.quantity ? ` de ${item.quantity}` : "";
+  const suffix = item.confirmedQuantity > 0 && item.confirmedQuantity !== item.quantity ? ` confirmado de ${item.quantity} solicitado` : "";
   const difference = item.confirmedQuantity > 0 && item.confirmedQuantity < item.quantity
-    ? ` · No confirmado: ${item.quantity - item.confirmedQuantity}${item.unfulfilledReasonLabel ? ` (${escapeHtml(item.unfulfilledReasonLabel)})` : ""}` : "";
+    ? ` · Diferencia: ${item.quantity - item.confirmedQuantity}` : "";
   return `<span>${quantity}${suffix} x ${escapeHtml(item.kmCode)} - ${escapeHtml(item.productName)}${difference}</span>`;
 }
 
@@ -1347,6 +1362,12 @@ function customerOrderState(order) {
   if (fulfillmentStatus === "ready") {
     return { label: "KM prepara el despacho", detail: "Pedido listo internamente para salir.", className: "status-warn" };
   }
+  if (order.adjustmentReviewRequestedAt) {
+    return { label: "Revisión solicitada", detail: "KM está revisando nuevamente las cantidades.", className: "status-warn" };
+  }
+  if (order.modifiedAcceptanceRequired) {
+    return { label: "Pedido ajustado por disponibilidad", detail: "Revisá las cantidades y confirmá si deseás continuar.", className: "status-warn" };
+  }
   if (order.paymentStatus === "overdue") {
     return { label: "Saldo vencido", detail: `Saldo pendiente: ${balance}.`, className: "status-danger" };
   }
@@ -1392,6 +1413,7 @@ function filterPurchases(orders) {
 function purchaseGroup(order) {
   if (["delivered", "cancelled"].includes(order.status) || order.fulfillment?.status === "delivered") return "closed";
   if (["shipped", "ready"].includes(order.fulfillment?.status)) return "shipment";
+  if (order.modifiedAcceptanceRequired) return "active";
   if (order.paymentStatus === "overdue") return "pay";
   if (["availability_confirmed", "confirmed"].includes(order.status) && !["paid", "settled_adjustment", "credit_account", "partial_payment"].includes(order.paymentStatus)) return "pay";
   return "active";
@@ -1403,7 +1425,8 @@ function paymentHelperText(order) {
   if (order.paymentStatus === "credit_account") return `<p>Pedido autorizado en cuenta corriente${order.paymentDueDate ? ` con vencimiento ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
   if (order.paymentStatus === "partial_payment") return `<p>Cuenta corriente: saldo pendiente ${money.format((order.balanceCents || 0) / 100)}${order.paymentDueDate ? `, vence ${formatShortDate(order.paymentDueDate)}` : ""}.</p>`;
   if (order.paymentStatus === "overdue") return `<p>Saldo vencido: ${money.format((order.balanceCents || 0) / 100)}.</p>`;
-  if (order.modifiedAcceptanceRequired) return `<p>Revisa y acepta la disponibilidad confirmada para continuar.</p>`;
+  if (order.adjustmentReviewRequestedAt) return `<p>KM está revisando nuevamente las cantidades solicitadas.</p>`;
+  if (order.modifiedAcceptanceRequired) return `<p>Revisá y aceptá el pedido ajustado para continuar.</p>`;
   if (!["availability_confirmed", "confirmed"].includes(order.status)) return `<p>KM confirmara disponibilidad antes de habilitar el pago.</p>`;
   return "";
 }
@@ -1501,8 +1524,17 @@ function setMobileMenu(open) {
 async function acceptOrder(orderId) {
   await runPurchaseAction(async () => {
     await api(`/api/orders/${orderId}/accept`, { method: "POST" });
-    showToast("Disponibilidad aceptada. Ya podes continuar con el pago.");
+    showToast("Pedido ajustado aceptado. Ya podes continuar con el pago.");
   }, { fallbackFilter: "pay" });
+}
+
+async function requestOrderReview(orderId) {
+  if (!orderId) return;
+  if (!confirm("¿Querés solicitar a KM una nueva revisión de las cantidades?")) return;
+  await runPurchaseAction(async () => {
+    await api(`/api/orders/${orderId}/review-request`, { method: "POST" });
+    showToast("Solicitaste una revisión. KM volverá a evaluar el pedido.");
+  }, { fallbackFilter: "active" });
 }
 
 async function confirmReceived(orderId) {

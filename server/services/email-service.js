@@ -271,6 +271,7 @@ export function createEmailService({ db, config, pushService = null }) {
     `).get(orderId);
     if (!order) return;
     const items = db.prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id").all(orderId);
+    const adjusted = Boolean(order.modified_acceptance_required);
     const confirmed = items.filter((item) => item.confirmed_quantity > 0);
     const unavailable = items.filter((item) => item.confirmed_quantity === 0);
     const paymentConditionLines = order.payment_status === "credit_account"
@@ -287,21 +288,24 @@ export function createEmailService({ db, config, pushService = null }) {
     const customerConfirmedLines = confirmed.length ? confirmed.flatMap((item, index) => [
       `${index + 1}. ${item.km_code} - ${item.product_name}`,
       `   Cantidad confirmada: ${item.confirmed_quantity} de ${item.quantity}`,
-      item.confirmed_quantity < item.quantity ? `   No confirmado: ${item.quantity - item.confirmed_quantity} (${UNFULFILLED_REASON_LABELS[item.unfulfilled_reason_code] || "Sin clasificar"})` : "",
+      item.confirmed_quantity < item.quantity ? `   Diferencia: ${item.quantity - item.confirmed_quantity}` : "",
       `   Subtotal neto: ${money.format(item.confirmed_subtotal_net_cents / 100)}`,
-      item.availability_note ? `   Observacion: ${item.availability_note}` : ""
     ]).filter(Boolean) : ["No hay articulos disponibles para despacho en esta confirmacion."];
     const unavailableLines = unavailable.flatMap((item, index) => [
       `${index + 1}. ${item.km_code} - ${item.product_name}`,
       `   Cantidad solicitada: ${item.quantity}`,
-      `   Motivo: ${UNFULFILLED_REASON_LABELS[item.unfulfilled_reason_code] || "Sin clasificar"}`,
-      item.availability_note ? `   Observacion: ${item.availability_note}` : ""
+      "   Cantidad confirmada: 0"
     ]).filter(Boolean);
-    queue("order_availability_customer", order.email, `Pedido ${order.order_number}: disponibilidad confirmada`, [
+    queue("order_availability_customer", order.email, adjusted
+      ? `Pedido ${order.order_number}: cantidades ajustadas`
+      : `Pedido ${order.order_number}: disponibilidad confirmada`, [
       `Hola ${order.contact_person},`,
       "",
-      `Confirmamos la disponibilidad comercial de tu pedido ${order.order_number}.`,
+      adjusted
+        ? `Revisamos tu pedido ${order.order_number} y ajustamos la cantidad disponible de uno o más productos.`
+        : `Confirmamos la disponibilidad comercial de tu pedido ${order.order_number}.`,
       "El importe final para pago y despacho corresponde solo a los articulos confirmados.",
+      adjusted ? "Ingresá a la plataforma para revisar las cantidades y aceptar el pedido ajustado antes de continuar." : "",
       "",
       "Resumen del pedido",
       `Articulos confirmados: ${confirmed.length}`,
@@ -317,7 +321,6 @@ export function createEmailService({ db, config, pushService = null }) {
       unavailable.length ? "" : null,
       unavailable.length ? "Articulos no disponibles:" : null,
       ...unavailableLines,
-      reason ? `Nota: ${reason}` : "",
       "",
       "Podes responder este correo si necesitas consultar algo.",
       "Tambien podes ingresar a la plataforma para revisar el pedido y cargar el comprobante de pago.",

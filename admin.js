@@ -3052,7 +3052,7 @@ function detailedOrderStage(order) {
   if (order.status === "delivered" || fulfillmentStatus === "delivered") return "delivered";
   if (fulfillmentStatus === "shipped") return "shipped";
   if (fulfillmentStatus === "ready") return "prepared";
-  if (order.status === "order_created") return "review_availability";
+  if (order.status === "order_created" || order.adjustmentReviewRequestedAt) return "review_availability";
   if (order.modifiedAcceptanceRequired) return "awaiting_acceptance";
   if (!["paid", "credit_account", "settled_adjustment"].includes(order.paymentStatus)) return "awaiting_payment";
   if (order.logisticsStatus === "preparing") return "preparing";
@@ -3354,7 +3354,7 @@ function renderOrderWorkflow(order) {
   const fulfillmentStatus = normalizedFulfillmentStatus(order.fulfillment?.status);
   const isCancelled = order.status === "cancelled";
   const isClosed = order.status === "delivered" || fulfillmentStatus === "delivered";
-  const canConfirmAvailability = order.status === "order_created";
+  const canConfirmAvailability = order.status === "order_created" || Boolean(order.adjustmentReviewRequestedAt);
   const availabilityConfirmed = ["availability_confirmed", "confirmed", "in_preparation", "ready", "delivered"].includes(order.status);
   const isCreditAccount = order.paymentStatus === "credit_account";
   const canManageOpenBalance = availabilityConfirmed && (order.balanceCents || 0) > 0 && !isCreditAccount;
@@ -3409,6 +3409,7 @@ function orderEventText(type) {
     commission_settled: "Comision liquidada",
     fulfillment_updated: "Despacho actualizado",
     customer_reaccepted: "Cliente acepto modificacion",
+    customer_adjustment_review_requested: "Cliente solicito revisar el ajuste",
     customer_received: "Cliente confirmo recepcion"
   }[type] || type || "Actividad";
 }
