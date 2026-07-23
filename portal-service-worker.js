@@ -1,4 +1,4 @@
-const PORTAL_CACHE = "km-portal-apps-v5";
+const PORTAL_CACHE = "km-portal-apps-v6";
 
 function portalStartPage() {
   const host = self.location.hostname;
@@ -30,7 +30,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
   event.respondWith(
-    fetch(event.request).then((response) => {
+    fetch(event.request, { cache: "no-store" }).then((response) => {
       if (response.ok) {
         const copy = response.clone();
         caches.open(PORTAL_CACHE).then((cache) => cache.put(event.request, copy));

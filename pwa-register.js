@@ -1,5 +1,13 @@
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/portal-service-worker.js", { scope: "/" }).catch(() => {});
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
+    navigator.serviceWorker.register("/portal-service-worker.js", { scope: "/", updateViaCache: "none" })
+      .then((registration) => registration.update())
+      .catch(() => {});
   });
 }

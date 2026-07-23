@@ -1402,6 +1402,9 @@ export function createApp({
         url.pathname = "/produccion.html";
       }
       let staticHeaders = {};
+      if (request.method === "GET" && /^(\/(?:admin|vendedor|logistica|produccion)\.html|\/(?:admin-production|vendedor|logistica|produccion)\.(?:js|css)|\/pwa-register\.js|\/portal-service-worker\.js)$/.test(url.pathname)) {
+        staticHeaders = { "cache-control": "no-store" };
+      }
       if (request.method === "GET" && isServerRenderedSeoPath(url.pathname)) {
         const landingPage = renderSeoLandingPage(url.pathname, listPublicProductsForSeo(db));
         const analyticsSessionId = resolveServerAnalyticsSessionId(cookies.km_analytics_session);
