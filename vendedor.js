@@ -1,6 +1,7 @@
 const state = {
   salesRep: null,
   dashboard: null,
+  priceLists: null,
   quotes: [],
   quoteDetails: {},
   orderDetails: {},
@@ -9,7 +10,7 @@ const state = {
   editingCustomerAddressId: null,
   openQuoteId: null,
   openOrderId: null,
-  activeView: "summary",
+  activeView: window.location.hash === "#price-lists" ? "price-lists" : "summary",
   mode: "order",
   quoteAudience: "registered",
   quoteStep: 1,
@@ -54,6 +55,8 @@ const nodes = {
   title: document.getElementById("sellerTitle"),
   subtitle: document.getElementById("sellerSubtitle"),
   stats: document.getElementById("sellerStats"),
+  priceLists: document.getElementById("sellerPriceLists"),
+  refreshPriceLists: document.getElementById("refreshSellerPriceLists"),
   summaryDateFrom: document.getElementById("sellerSummaryDateFrom"),
   summaryDateTo: document.getElementById("sellerSummaryDateTo"),
   customers: document.getElementById("sellerCustomers"),
@@ -152,6 +155,7 @@ const SELLER_ICON_PATHS = {
   send: `<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>`,
   "arrow-left": `<path d="m15 18-6-6 6-6M9 12h12"/>`,
   "file-text": `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/>`,
+  download: `<path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/>`,
   plus: `<path d="M12 5v14M5 12h14"/>`,
   pencil: `<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>`,
   "message-circle": `<path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.7-5.1A8 8 0 1 1 21 15Z"/>`,
@@ -548,6 +552,60 @@ function renderSellerView() {
   nodes.views?.forEach((view) => {
     view.classList.toggle("active", view.dataset.sellerView === state.activeView);
   });
+}
+
+function priceListStatus(batch) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (batch.status === "applied" || String(batch.effectiveDate || "") <= today) {
+    return { label: "Vigente", tone: "green" };
+  }
+  return { label: "Próxima", tone: "blue" };
+}
+
+function renderPriceLists() {
+  if (!nodes.priceLists) return;
+  const priceLists = state.priceLists || [];
+  if (!priceLists.length) {
+    nodes.priceLists.innerHTML = `<div class="empty-state">Todavía no hay una lista habilitada por Administración.</div>`;
+    return;
+  }
+  nodes.priceLists.innerHTML = priceLists.map((batch) => {
+    const status = priceListStatus(batch);
+    return `
+      <article class="seller-price-list-card">
+        <div class="seller-price-list-main">
+          <div>
+            <div class="seller-price-list-title">
+              <strong>Lista de precios · ${escapeHtml(shortDate(batch.effectiveDate))}</strong>
+              ${badge(status.label, status.tone)}
+            </div>
+            <p>${Number(batch.productCount || 0)} productos · Precios de lista + IVA</p>
+            <small>Versión oficial habilitada por KM Detail Line.</small>
+          </div>
+          <div class="seller-price-list-actions">
+            <a class="ghost-button compact button-info" href="/price-update-list.html?batch=${encodeURIComponent(batch.id)}&portal=sales" target="_blank" rel="noopener">
+              ${iconSvg("eye")}Ver / PDF
+            </a>
+            <a class="ghost-button compact" href="/api/sales/price-lists/${encodeURIComponent(batch.id)}/list.xlsx" download>
+              ${iconSvg("download")}Descargar Excel
+            </a>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+async function loadPriceLists() {
+  if (!nodes.priceLists) return;
+  nodes.priceLists.innerHTML = `<div class="empty-state">Cargando listas disponibles...</div>`;
+  try {
+    const payload = await sellerApi("/api/sales/price-lists");
+    state.priceLists = payload.priceLists || [];
+    renderPriceLists();
+  } catch (error) {
+    nodes.priceLists.innerHTML = `<div class="empty-state">${escapeHtml(error.message || "No se pudieron cargar las listas.")}</div>`;
+  }
 }
 
 function renderCustomers(customers = []) {
@@ -1202,6 +1260,7 @@ function renderDashboard(payload) {
     loadSellerAddresses(state.order.customerId);
   }
   loadQuotes();
+  if (state.activeView === "price-lists") loadPriceLists();
 }
 
 function showLogin(message = "") {
@@ -1477,10 +1536,14 @@ nodes.viewButtons?.forEach((button) => {
   button.addEventListener("click", () => {
     closeExpandedSellerContent();
     state.activeView = button.dataset.sellerViewButton || "summary";
+    window.history.replaceState({}, "", state.activeView === "price-lists" ? "#price-lists" : window.location.pathname);
     nodes.orderMessage.textContent = "";
     renderSellerView();
+    if (state.activeView === "price-lists") loadPriceLists();
   });
 });
+
+nodes.refreshPriceLists?.addEventListener("click", loadPriceLists);
 
 nodes.modeButtons?.forEach((button) => {
   button.addEventListener("click", async () => {

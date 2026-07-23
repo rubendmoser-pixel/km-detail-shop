@@ -1602,6 +1602,7 @@ function renderPriceUpdateHistory() {
       <article class="price-history-card">
         <div>
           <span class="status-pill ${batch.status === "applied" ? "ok" : "warning"}">${status}</span>
+          <span class="status-pill ${batch.sellerVisible ? "ok" : ""}">${batch.sellerVisible ? "Visible para vendedores" : "Oculta para vendedores"}</span>
           <strong>${type}</strong>
           <p>${batch.changedCount || 0} modificados de ${batch.productCount || 0} productos - Implementa ${escapeAdmin(dateLabel)}</p>
           ${sample ? `<small>${sample}</small>` : ""}
@@ -1609,13 +1610,35 @@ function renderPriceUpdateHistory() {
         <div class="price-history-actions">
           <button class="ghost-button" type="button" data-price-list-batch="${batch.id}">Generar lista PDF</button>
           <button class="ghost-button" type="button" data-price-list-xlsx="${batch.id}">Descargar Excel</button>
+          <button class="ghost-button ${batch.sellerVisible ? "danger-soft" : ""}" type="button"
+            data-price-list-visibility="${batch.id}" data-visible="${batch.sellerVisible ? "true" : "false"}">
+            ${batch.sellerVisible ? "Ocultar a vendedores" : "Habilitar para vendedores"}
+          </button>
         </div>
       </article>
     `;
   }).join("");
 }
 
-function openScheduledPriceList(event) {
+async function openScheduledPriceList(event) {
+  const visibilityButton = event.target.closest("[data-price-list-visibility]");
+  if (visibilityButton) {
+    visibilityButton.disabled = true;
+    try {
+      const visible = visibilityButton.dataset.visible !== "true";
+      const payload = await adminApi(`/api/admin/price-updates/${encodeURIComponent(visibilityButton.dataset.priceListVisibility)}`, {
+        method: "PATCH",
+        body: { visible }
+      });
+      adminState.priceBatches = payload.batches || [];
+      renderPriceUpdateHistory();
+      showAdminToast(payload.message || (visible ? "Lista habilitada" : "Lista oculta"));
+    } catch (error) {
+      showAdminToast(error.message);
+      visibilityButton.disabled = false;
+    }
+    return;
+  }
   const excelButton = event.target.closest("[data-price-list-xlsx]");
   if (excelButton) {
     const link = document.createElement("a");

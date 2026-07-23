@@ -444,7 +444,10 @@ function migrate(db) {
       created_by INTEGER REFERENCES users(id),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       applied_at TEXT NOT NULL DEFAULT '',
-      note TEXT NOT NULL DEFAULT ''
+      note TEXT NOT NULL DEFAULT '',
+      seller_visible INTEGER NOT NULL DEFAULT 0 CHECK (seller_visible IN (0, 1)),
+      seller_visible_at TEXT NOT NULL DEFAULT '',
+      seller_visible_by INTEGER REFERENCES users(id)
     );
 
     CREATE TABLE IF NOT EXISTS price_update_items (
@@ -867,6 +870,9 @@ function migrate(db) {
   ensureColumn(db, "products", "promotion_starts_at", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "promotion_ends_at", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "promotion_active", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_active IN (0, 1))");
+  ensureColumn(db, "price_update_batches", "seller_visible", "INTEGER NOT NULL DEFAULT 0 CHECK (seller_visible IN (0, 1))");
+  ensureColumn(db, "price_update_batches", "seller_visible_at", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "price_update_batches", "seller_visible_by", "INTEGER REFERENCES users(id)");
   ensureColumn(db, "products", "production_minutes_per_unit", "REAL NOT NULL DEFAULT 0 CHECK (production_minutes_per_unit >= 0)");
   ensureColumn(db, "products", "production_commission_cents", "INTEGER NOT NULL DEFAULT 0 CHECK (production_commission_cents >= 0)");
   ensureColumn(db, "orders", "payment_method", "TEXT NOT NULL DEFAULT 'bank_transfer'");

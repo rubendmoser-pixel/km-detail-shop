@@ -106,10 +106,13 @@ import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList, createScheduledPriceList } from "./services/price-list-service.js";
 import {
   applyDuePriceUpdates,
+  getSellerPriceUpdateBatch,
   getPriceUpdateBatch,
+  listSellerPriceUpdateBatches,
   listPriceUpdateBatches,
   scheduleIndividualPriceUpdate,
-  scheduleLinearPriceUpdate
+  scheduleLinearPriceUpdate,
+  setPriceUpdateSellerVisibility
 } from "./services/price-update-service.js";
 import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
 import { createBackup } from "./services/backup-service.js";
@@ -515,6 +518,37 @@ export function createApp({
           notes: body.notes
         });
         return sendJson(response, 201, { quote, message: "Presupuesto generado." });
+      }
+      if (request.method === "GET" && url.pathname === "/api/sales/price-lists") {
+        requireSalesRep(currentSalesRep);
+        applyDuePriceUpdates(db);
+        return sendJson(response, 200, { priceLists: listSellerPriceUpdateBatches(db) });
+      }
+      match = url.pathname.match(/^\/api\/sales\/price-lists\/(\d+)\/list\.xlsx$/);
+      if (request.method === "GET" && match) {
+        requireSalesRep(currentSalesRep);
+        applyDuePriceUpdates(db);
+        const batch = getSellerPriceUpdateBatch(db, Number(match[1]));
+        if (!batch) return sendJson(response, 404, { error: "Esta lista de precios no está disponible para vendedores." });
+        const priceList = await createScheduledPriceList(batch);
+        response.writeHead(200, {
+          "content-type": priceList.contentType,
+          "content-disposition": `attachment; filename="${priceList.filename}"`,
+          "content-length": priceList.buffer.length,
+          "cache-control": "no-store",
+          ...SECURITY_HEADERS
+        });
+        response.end(priceList.buffer);
+        return;
+      }
+      match = url.pathname.match(/^\/api\/sales\/price-lists\/(\d+)$/);
+      if (request.method === "GET" && match) {
+        requireSalesRep(currentSalesRep);
+        applyDuePriceUpdates(db);
+        const batch = getSellerPriceUpdateBatch(db, Number(match[1]));
+        return batch
+          ? sendJson(response, 200, { batch })
+          : sendJson(response, 404, { error: "Esta lista de precios no está disponible para vendedores." });
       }
       if (request.method === "GET" && url.pathname === "/api/me") {
         return sendJson(response, 200, { user: requireUser(currentUser) });
@@ -931,6 +965,22 @@ export function createApp({
         return;
       }
       match = url.pathname.match(/^\/api\/admin\/price-updates\/(\d+)$/);
+      if (request.method === "PATCH" && match) {
+        const body = await readJson(request);
+        if (typeof body.visible !== "boolean") {
+          throw new ValidationError("Indicá si la lista debe estar visible para vendedores.");
+        }
+        const batch = setPriceUpdateSellerVisibility(db, Number(match[1]), body.visible, currentUser.id);
+        return batch
+          ? sendJson(response, 200, {
+            batch,
+            batches: listPriceUpdateBatches(db),
+            message: batch.sellerVisible
+              ? "Lista habilitada para vendedores."
+              : "Lista oculta para vendedores."
+          })
+          : sendJson(response, 404, { error: "No encontramos la actualización de precios." });
+      }
       if (request.method === "GET" && match) {
         applyDuePriceUpdates(db);
         const batch = getPriceUpdateBatch(db, Number(match[1]));

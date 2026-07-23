@@ -55,6 +55,8 @@ function mapBatch(row, items = []) {
     createdAt: row.createdAt,
     appliedAt: row.appliedAt,
     note: row.note,
+    sellerVisible: Boolean(row.sellerVisible),
+    sellerVisibleAt: row.sellerVisibleAt || "",
     items
   };
 }
@@ -181,7 +183,8 @@ export function getPriceUpdateBatch(db, id) {
   const row = db.prepare(`
     SELECT id, type, status, effective_date AS effectiveDate, percent_bps AS percentBps,
       product_count AS productCount, changed_count AS changedCount, created_at AS createdAt,
-      applied_at AS appliedAt, note
+      applied_at AS appliedAt, note, seller_visible AS sellerVisible,
+      seller_visible_at AS sellerVisibleAt
     FROM price_update_batches
     WHERE id = ?
   `).get(id);
@@ -222,7 +225,8 @@ export function listPriceUpdateBatches(db) {
   const rows = db.prepare(`
     SELECT id, type, status, effective_date AS effectiveDate, percent_bps AS percentBps,
       product_count AS productCount, changed_count AS changedCount, created_at AS createdAt,
-      applied_at AS appliedAt, note
+      applied_at AS appliedAt, note, seller_visible AS sellerVisible,
+      seller_visible_at AS sellerVisibleAt
     FROM price_update_batches
     ORDER BY id DESC
     LIMIT 20
@@ -236,4 +240,40 @@ export function listPriceUpdateBatches(db) {
     LIMIT 8
   `);
   return rows.map((row) => mapBatch(row, itemsStmt.all(row.id)));
+}
+
+export function setPriceUpdateSellerVisibility(db, id, visible, userId = null) {
+  const batchId = Number(id);
+  if (!Number.isSafeInteger(batchId) || batchId <= 0) {
+    throw new ValidationError("La lista de precios seleccionada no es válida.");
+  }
+  const exists = db.prepare("SELECT id FROM price_update_batches WHERE id = ?").get(batchId);
+  if (!exists) return null;
+  db.prepare(`
+    UPDATE price_update_batches
+    SET seller_visible = ?,
+      seller_visible_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE '' END,
+      seller_visible_by = CASE WHEN ? = 1 THEN ? ELSE NULL END
+    WHERE id = ?
+  `).run(visible ? 1 : 0, visible ? 1 : 0, visible ? 1 : 0, userId || null, batchId);
+  return getPriceUpdateBatch(db, batchId);
+}
+
+export function listSellerPriceUpdateBatches(db) {
+  const rows = db.prepare(`
+    SELECT id, type, status, effective_date AS effectiveDate, percent_bps AS percentBps,
+      product_count AS productCount, changed_count AS changedCount, created_at AS createdAt,
+      applied_at AS appliedAt, note, seller_visible AS sellerVisible,
+      seller_visible_at AS sellerVisibleAt
+    FROM price_update_batches
+    WHERE seller_visible = 1 AND status != 'cancelled'
+    ORDER BY effective_date DESC, id DESC
+    LIMIT 12
+  `).all();
+  return rows.map((row) => mapBatch(row));
+}
+
+export function getSellerPriceUpdateBatch(db, id) {
+  const batch = getPriceUpdateBatch(db, id);
+  return batch?.sellerVisible && batch.status !== "cancelled" ? batch : null;
 }

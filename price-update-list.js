@@ -2,18 +2,31 @@ const root = document.querySelector("#priceUpdateListRoot");
 const actions = document.querySelector("#screenActions");
 const summary = document.querySelector("#documentSummary");
 const printButton = document.querySelector("#printPriceList");
-const batchId = Number(new URLSearchParams(location.search).get("batch") || 0);
+const backLink = document.querySelector("#backToPriceLists");
+const searchParams = new URLSearchParams(location.search);
+const batchId = Number(searchParams.get("batch") || 0);
+const sellerPortal = searchParams.get("portal") === "sales";
 const productsPerPage = 10;
+
+if (sellerPortal && backLink) {
+  backLink.href = "./vendedor.html#price-lists";
+  backLink.textContent = "Volver a listas";
+}
 
 load();
 
 async function load() {
   if (!Number.isInteger(batchId) || batchId <= 0) return renderError("No se indicó una programación de precios válida.");
   try {
-    const response = await fetch(`/api/admin/price-updates/${batchId}`);
+    const endpoint = sellerPortal
+      ? `/api/sales/price-lists/${batchId}`
+      : `/api/admin/price-updates/${batchId}`;
+    const response = await fetch(endpoint, { credentials: "same-origin" });
     const payload = await response.json().catch(() => ({}));
     if (response.status === 401) {
-      renderError("La sesión administrativa venció. Ingresá nuevamente para generar la lista.");
+      renderError(sellerPortal
+        ? "La sesión de vendedor venció. Ingresá nuevamente para consultar la lista."
+        : "La sesión administrativa venció. Ingresá nuevamente para generar la lista.");
       return;
     }
     if (!response.ok || !payload.batch) throw new Error(payload.error || "No pudimos cargar la lista programada.");
@@ -99,7 +112,9 @@ async function printWhenImagesAreReady() {
 
 function renderError(message) {
   actions.hidden = true;
-  root.innerHTML = `<section class="error"><h1>No se pudo generar la lista</h1><p>${escapeHtml(message)}</p><a href="./admin.html#prices">Volver a precios</a></section>`;
+  const href = sellerPortal ? "./vendedor.html#price-lists" : "./admin.html#prices";
+  const label = sellerPortal ? "Volver al portal de ventas" : "Volver a precios";
+  root.innerHTML = `<section class="error"><h1>No se pudo generar la lista</h1><p>${escapeHtml(message)}</p><a href="${href}">${label}</a></section>`;
 }
 
 function chunk(values, size) {

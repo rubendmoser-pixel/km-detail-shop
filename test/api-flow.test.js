@@ -245,6 +245,17 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   });
   assert.equal(scheduledPriceResponse.status, 201);
   const scheduledBatch = (await scheduledPriceResponse.json()).batch;
+  assert.equal(scheduledBatch.sellerVisible, false);
+  assert.equal((await fetch(`${baseUrl}/api/sales/price-lists`)).status, 401);
+  const publishSellerListResponse = await fetch(`${baseUrl}/api/admin/price-updates/${scheduledBatch.id}`, {
+    method: "PATCH",
+    headers: jsonHeaders(adminCookie),
+    body: JSON.stringify({ visible: true })
+  });
+  assert.equal(publishSellerListResponse.status, 200);
+  const publishedSellerList = await publishSellerListResponse.json();
+  assert.equal(publishedSellerList.batch.sellerVisible, true);
+  assert.match(publishedSellerList.message, /habilitada/i);
   const printableBatchResponse = await fetch(`${baseUrl}/api/admin/price-updates/${scheduledBatch.id}`, {
     headers: { cookie: adminCookie }
   });
@@ -382,6 +393,20 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(products.products[0].images.length, 2);
   assert.equal(products.products[0].images[0].url, images[0].url);
   const salesCookie = await salesLoginCookie(baseUrl, "vendedor-api@km-detail.com", "sales-portal-password-456");
+  const sellerPriceLists = await getJson(`${baseUrl}/api/sales/price-lists`, salesCookie);
+  assert.equal(sellerPriceLists.priceLists.some((batch) => batch.id === scheduledBatch.id), true);
+  assert.equal(sellerPriceLists.priceLists.find((batch) => batch.id === scheduledBatch.id).items.length, 0);
+  const sellerPriceListDetail = await getJson(`${baseUrl}/api/sales/price-lists/${scheduledBatch.id}`, salesCookie);
+  assert.equal(sellerPriceListDetail.batch.items.length, 2);
+  const sellerPriceListExcel = await fetch(`${baseUrl}/api/sales/price-lists/${scheduledBatch.id}/list.xlsx`, {
+    headers: { cookie: salesCookie }
+  });
+  assert.equal(sellerPriceListExcel.status, 200);
+  assert.equal(
+    sellerPriceListExcel.headers.get("content-type"),
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  assert.equal(Buffer.from(await sellerPriceListExcel.arrayBuffer()).subarray(0, 2).toString(), "PK");
   const sellerAddresses = await getJson(`${baseUrl}/api/sales/customers/${registration.customer.id}/shipping-addresses`, salesCookie);
   assert.equal(sellerAddresses.addresses.length, 1);
   assert.equal(sellerAddresses.addresses[0].isDefault, true);

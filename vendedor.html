@@ -12,7 +12,7 @@
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/assets/app-ventas-192.png" />
     <link rel="manifest" href="/manifest-ventas.webmanifest" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260717k" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260723a" />
   </head>
   <body>
     <header class="seller-header">
@@ -94,6 +94,7 @@
           <button type="button" data-seller-view-button="quotes" data-icon="file-text">Presupuestos</button>
           <button type="button" data-seller-view-button="orders" data-icon="clipboard-list">Pedidos</button>
           <button type="button" data-seller-view-button="customers" data-icon="users">Clientes</button>
+          <button type="button" data-seller-view-button="price-lists" data-icon="file-text">Listas de precios</button>
           <button type="button" data-seller-view-button="request" data-icon="user-plus">Alta comercial</button>
           <button type="button" data-seller-view-button="account" data-icon="settings">Cuenta</button>
         </nav>
@@ -110,6 +111,22 @@
             </label>
           </div>
           <div class="seller-stats" id="sellerStats"></div>
+        </section>
+
+        <section class="seller-view" data-seller-view="price-lists">
+          <section class="seller-panel seller-price-lists-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Material comercial oficial</p>
+                <h2>Listas de precios</h2>
+                <p>Consultá la versión habilitada por KM y descargala para enviarla a tus clientes.</p>
+              </div>
+              <button class="ghost-button compact button-info" id="refreshSellerPriceLists" type="button" data-icon="refresh-cw">Actualizar</button>
+            </div>
+            <div class="seller-price-lists" id="sellerPriceLists">
+              <div class="empty-state">Cargando listas disponibles...</div>
+            </div>
+          </section>
         </section>
 
         <section class="seller-view" data-seller-view="request">
@@ -484,6 +501,6 @@
 
     <script src="/form-validation.js?v=1" defer></script>
     <script src="/pwa-register.js?v=1" defer></script>
-    <script src="/vendedor.js?v=20260719a" type="module"></script>
+    <script src="/vendedor.js?v=20260723a" type="module"></script>
   </body>
 </html>

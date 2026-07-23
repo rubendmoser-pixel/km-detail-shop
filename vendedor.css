@@ -457,6 +457,61 @@ textarea:focus {
   padding: 1rem;
 }
 
+.seller-price-lists {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.seller-price-list-card {
+  border: 1px solid rgba(183, 184, 255, 0.24);
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, rgba(25, 28, 32, 0.96), rgba(15, 17, 20, 0.96));
+}
+
+.seller-price-list-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.seller-price-list-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.seller-price-list-title strong {
+  font-size: 1.08rem;
+}
+
+.seller-price-list-card p {
+  margin: 0.4rem 0 0.15rem;
+}
+
+.seller-price-list-card small {
+  color: var(--dim);
+}
+
+.seller-price-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.seller-price-list-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .seller-list-tools {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(160px, 0.38fr) repeat(2, minmax(140px, 0.28fr));
@@ -1756,5 +1811,16 @@ textarea:focus-visible {
 
   .seller-detail-close button {
     width: 100%;
+  }
+
+  .seller-price-list-main,
+  .seller-price-list-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .seller-price-list-actions a {
+    width: 100%;
+    min-height: 3rem;
   }
 }
