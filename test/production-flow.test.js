@@ -147,3 +147,60 @@ test("production plan, daily report and admin confirmation update stock with tra
   assert.equal(closed.nextPlan.items[0].targetQuantity, 8);
   approveProductionPlan(db, closed.nextPlan.id, admin.id);
 });
+
+test("unplanned production consumes its full recipe without advancing the weekly plan", async (t) => {
+  const databasePath = path.join(os.tmpdir(), `km-detail-production-extra-${Date.now()}.sqlite`);
+  const db = await openDatabase({ databasePath, adminEmail: "admin-extra@km-detail.com", adminPassword: "secure-admin-password" });
+  t.after(() => {
+    db.close();
+    for (const suffix of ["", "-shm", "-wal"]) fs.rmSync(`${databasePath}${suffix}`, { force: true });
+  });
+  const admin = db.prepare("SELECT id FROM users WHERE role='admin'").get();
+  const family = db.prepare("INSERT INTO product_families(name,slug) VALUES('Produccion adicional','produccion-adicional') RETURNING id").get();
+  const planned = db.prepare(`INSERT INTO products(km_code,ean13,name,slug,family_id,base_price_cents,price_effective_from)
+    VALUES('PLAN-001','7790000000100','Producto planificado','producto-planificado',?,1000,'2026-07-01') RETURNING id`).get(family.id);
+  const extra = db.prepare(`INSERT INTO products(km_code,ean13,name,slug,family_id,base_price_cents,price_effective_from)
+    VALUES('EXTRA-001','7790000000101','Producto aprovechado','producto-aprovechado',?,1000,'2026-07-01') RETURNING id`).get(family.id);
+  const raw = db.prepare(`INSERT INTO inventory_items(item_code,name,item_type,unit) VALUES('MP-EXTRA','Materia prima compartida','raw_material','unidad') RETURNING id`).get();
+  db.prepare("INSERT INTO inventory_balances(item_id,quantity) VALUES(?,100)").run(raw.id);
+  upsertProductionRecipe(db, {
+    productId: planned.id, kmCode: "PLAN-001", ean13: "7790000000100", productionCommissionArs: 0,
+    components: [{ itemId: raw.id, quantity: 1 }]
+  });
+  upsertProductionRecipe(db, {
+    productId: extra.id, kmCode: "EXTRA-001", ean13: "7790000000101", productionCommissionArs: 25,
+    components: [{ itemId: raw.id, quantity: 4 }]
+  });
+  const operator = await upsertProductionOperator(db, {
+    name: "Operario adicional", email: "extra@km-detail.com", portalPassword: "clave-produccion-2026", portalAccessEnabled: true
+  });
+  const session = await loginProductionOperator(db, { email: operator.email, password: "clave-produccion-2026" });
+  const plan = saveProductionPlan(db, { weekStart: "2026-07-13", items: [{ productId: planned.id, targetQuantity: 10 }] }, admin.id);
+  approveProductionPlan(db, plan.id, admin.id);
+  const dashboard = getCurrentProductionDashboard(db);
+  assert.ok(dashboard.products.some((product) => product.id === extra.id && product.kmCode === "EXTRA-001"));
+
+  const report = saveDailyProductionReport(db, {
+    productionDate: "2026-07-16",
+    items: [
+      { productId: planned.id, goodQuantity: 2, rejectedQuantity: 0 },
+      { productId: extra.id, goodQuantity: 3, rejectedQuantity: 1, notes: "Aprovechamiento de sobrante" }
+    ]
+  }, session.operator);
+  const unplannedItem = report.items.find((item) => item.productId === extra.id);
+  assert.equal(unplannedItem.planItemId, null);
+  assert.equal(unplannedItem.notes, "Aprovechamiento de sobrante");
+  submitDailyProductionReport(db, report.id, session.operator);
+  confirmDailyProductionReport(db, report.id, admin.id);
+
+  assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(raw.id).quantity, 82);
+  assert.equal(db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(extra.id).quantity, 3);
+  const updated = getCurrentProductionDashboard(db).plan;
+  assert.equal(updated.items[0].producedQuantity, 2);
+  assert.equal(updated.items[0].remainingQuantity, 8);
+  assert.equal(updated.summary.unplannedProducedQuantity, 3);
+  assert.equal(updated.summary.actualProducedQuantity, 5);
+  const commissions = getProductionCommissionDashboard(db).pending.filter((entry) => entry.productId === extra.id);
+  assert.equal(commissions.length, 1);
+  assert.equal(commissions[0].amountArs, 75);
+});

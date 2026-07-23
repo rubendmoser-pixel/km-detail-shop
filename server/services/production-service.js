@@ -250,7 +250,9 @@ export function getCurrentProductionDashboard(db) {
   const plan = db.prepare(`SELECT id FROM production_plans WHERE status IN ('approved','in_progress') ORDER BY week_start DESC LIMIT 1`).get();
   const operators = listProductionOperators(db).filter((operator) => operator.status === "active")
     .map((operator) => ({ id: operator.id, name: operator.name }));
-  return { plan: plan ? getProductionPlan(db, plan.id) : null, reports: listProductionReports(db, { limit: 14 }), operators };
+  const products = db.prepare(`SELECT id,km_code,ean13,name FROM products WHERE active=1 ORDER BY km_code`).all()
+    .map((product) => ({ id: product.id, kmCode: product.km_code, ean13: product.ean13, name: product.name }));
+  return { plan: plan ? getProductionPlan(db, plan.id) : null, reports: listProductionReports(db, { limit: 14 }), operators, products };
 }
 
 export function getProductionPlan(db, planId) {
@@ -280,6 +282,11 @@ export function getProductionPlan(db, planId) {
   const reportCounts = Object.fromEntries(reports.map((row) => [row.status, Number(row.count || 0)]));
   const targetQuantity = items.reduce((sum, item) => sum + item.targetQuantity, 0);
   const producedQuantity = items.reduce((sum, item) => sum + Number(item.producedQuantity || 0), 0);
+  const unplannedProducedQuantity = Number(db.prepare(`SELECT COALESCE(SUM(ri.good_quantity),0) AS quantity
+    FROM production_daily_report_items ri
+    JOIN production_daily_reports r ON r.id=ri.report_id
+    WHERE r.production_date BETWEEN ? AND ? AND r.status='confirmed' AND ri.plan_item_id IS NULL`)
+    .get(plan.week_start, weekEnd)?.quantity || 0);
   const carryoverQuantity = items.reduce((sum, item) => sum + Number(item.carryoverQuantity || 0), 0);
   const scheduledHours = days.reduce((sum, day) => sum + day.plannedHours, 0);
   const operatorCount = Number(plan.operator_count || 1);
@@ -291,7 +298,9 @@ export function getProductionPlan(db, planId) {
       operatorCount, availableLaborHours, requiredLaborHours, productsWithoutTime,
       overCapacityHours: Math.max(0, requiredLaborHours - availableLaborHours),
       capacityPercent: availableLaborHours > 0 ? requiredLaborHours / availableLaborHours * 100 : 0,
-      products: items.length, targetQuantity, producedQuantity, remainingQuantity: Math.max(0, targetQuantity - producedQuantity), carryoverQuantity,
+      products: items.length, targetQuantity, producedQuantity, unplannedProducedQuantity,
+      actualProducedQuantity: producedQuantity + unplannedProducedQuantity,
+      remainingQuantity: Math.max(0, targetQuantity - producedQuantity), carryoverQuantity,
       submittedReports: reportCounts.submitted || 0, confirmedReports: reportCounts.confirmed || 0, returnedReports: reportCounts.returned || 0 } };
 }
 
