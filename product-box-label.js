@@ -20,30 +20,37 @@ async function load() {
 }
 
 function renderLabel(label) {
-  const complete = label.unitWeightGrams > 0 && label.unitsPerBox > 0 && label.boxDescription;
+  const complete = label.unitWeightGrams > 0
+    && label.unitsPerBox > 0
+    && label.boxDescription
+    && label.boxTareWeightGrams > 0
+    && label.boxCode;
   root.innerHTML = `
     <article class="box-sheet ${complete ? "" : "incomplete"}">
-      <section class="code-block">
-        <strong>${escapeHtml(label.kmCode)}</strong>
-      </section>
-      <section class="quantity-block">
-        <span>CONTENIDO</span>
-        <strong>${formatNumber(label.unitsPerBox, 0)} UNIDADES</strong>
+      <header class="commercial-header">
+        <img src="./assets/km-logo-solid-black-v2.png" alt="KM">
+        <div><span>PRESENTACI&Oacute;N COMERCIAL</span><strong>PRODUCTO EN CAJA</strong></div>
+      </header>
+      <section class="box-code-block">
+        <span>C&Oacute;DIGO DE CAJA</span>
+        <strong>${escapeHtml(label.boxCode || "SIN C&Oacute;DIGO")}</strong>
       </section>
       <section class="product-detail">
-        <h1>${escapeHtml(label.name)}</h1>
-        ${label.measure ? `<p>${escapeHtml(label.measure)}</p>` : ""}
+        <div class="product-code"><span>PRODUCTO</span><strong>${escapeHtml(label.kmCode)}</strong></div>
+        <div class="product-name"><h1>${escapeHtml(label.name)}</h1>${label.measure ? `<p>${escapeHtml(label.measure)}</p>` : ""}</div>
       </section>
-      <section class="box-detail">
-        <div><span>CAJA UTILIZADA</span><strong>${escapeHtml(label.boxDescription || "SIN DEFINIR")}</strong></div>
-        <div><span>PESO POR UNIDAD</span><strong>${formatWeight(label.unitWeightGrams)}</strong></div>
-        <div><span>PESO NETO ESTIMADO</span><strong>${formatWeight(label.netWeightGrams)}</strong></div>
-        <div><span>EAN</span><strong>${escapeHtml(label.ean13 || "SIN EAN")}</strong></div>
+      <section class="commercial-data">
+        <div class="quantity"><span>CONTENIDO</span><strong>${formatNumber(label.unitsPerBox, 0)}</strong><b>UNIDADES</b></div>
+        <div class="weight"><span>PESO BRUTO ESTIMADO</span><strong>${formatWeight(label.grossWeightGrams)}</strong></div>
       </section>
-      ${complete ? "" : `<p class="warning">Complet&aacute; peso, unidades por caja y caja utilizada antes de usar esta etiqueta.</p>`}
+      <section class="ean-detail">
+        <span>EAN DEL PRODUCTO</span>
+        <strong>${escapeHtml(label.ean13 || "SIN EAN")}</strong>
+      </section>
+      ${complete ? "" : `<p class="warning">Complet&aacute; peso unitario, cantidad, caja utilizada, peso de la caja y c&oacute;digo de caja antes de imprimir.</p>`}
     </article>`;
   document.title = `${label.kmCode} - Etiqueta de caja`;
-  summary.textContent = `${label.kmCode} · ${label.unitsPerBox || 0} unidades`;
+  summary.textContent = `${label.boxCode || label.kmCode} · ${label.unitsPerBox || 0} unidades`;
   actions.hidden = false;
   printButton.disabled = !complete;
   printButton.title = complete ? "" : "Faltan datos de embalaje en la ficha del producto.";

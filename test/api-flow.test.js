@@ -176,6 +176,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
       unitWeightGrams: 185.5,
       unitsPerBox: 12,
       boxDescription: "Caja 40 x 30 x 20 cm",
+      boxTareWeightGrams: 320,
       basePriceCents: 100_000,
       priceEffectiveFrom: "2026-01-01"
     })
@@ -204,6 +205,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(adminProducts.products[0].unitWeightGrams, 185.5);
   assert.equal(adminProducts.products[0].unitsPerBox, 12);
   assert.equal(adminProducts.products[0].boxDescription, "Caja 40 x 30 x 20 cm");
+  assert.equal(adminProducts.products[0].boxTareWeightGrams, 320);
+  assert.equal(adminProducts.products[0].boxCode, "API001K-C12");
   assert.equal(adminProducts.products[0].family.description, "Poliespumas para prueba API");
   const imageResponse = await fetch(`${baseUrl}/api/admin/products/${product.id}/images`, {
     method: "POST",
@@ -253,7 +256,10 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(boxLabel.unitWeightGrams, 185.5);
   assert.equal(boxLabel.unitsPerBox, 12);
   assert.equal(boxLabel.boxDescription, "Caja 40 x 30 x 20 cm");
+  assert.equal(boxLabel.boxTareWeightGrams, 320);
+  assert.equal(boxLabel.boxCode, "API001K-C12");
   assert.equal(boxLabel.netWeightGrams, 2226);
+  assert.equal(boxLabel.grossWeightGrams, 2546);
   assert.equal("basePriceCents" in boxLabel, false);
   assert.equal((await fetch(`${baseUrl}/api/admin/products/${product.id}/box-label`)).status, 401);
   const scheduledPriceResponse = await fetch(`${baseUrl}/api/admin/price-updates/linear`, {

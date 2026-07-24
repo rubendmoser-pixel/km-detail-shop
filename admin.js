@@ -1736,6 +1736,8 @@ function editProduct(event) {
   productField("unitWeightGrams").value = product.unitWeightGrams || "";
   productField("unitsPerBox").value = product.unitsPerBox || "";
   productField("boxDescription").value = product.boxDescription || "";
+  productField("boxTareWeightGrams").value = product.boxTareWeightGrams || "";
+  productField("boxCode").value = product.boxCode || "";
   productField("material").value = product.material || "";
   productField("color").value = product.color || "";
   productField("measure").value = product.measure || "";
@@ -1783,6 +1785,8 @@ function resetProductForm() {
   productField("unitWeightGrams").value = "";
   productField("unitsPerBox").value = "";
   productField("boxDescription").value = "";
+  productField("boxTareWeightGrams").value = "";
+  productField("boxCode").value = "";
   productField("priceEffectiveFrom").value = new Date().toISOString().slice(0, 10);
   productField("promotionPercent").value = "";
   productField("promotionLabel").value = "";
@@ -1819,6 +1823,8 @@ async function saveProduct(event) {
     unitWeightGrams: values.unitWeightGrams,
     unitsPerBox: values.unitsPerBox,
     boxDescription: values.boxDescription,
+    boxTareWeightGrams: values.boxTareWeightGrams,
+    boxCode: values.boxCode,
     material: values.material,
     color: values.color,
     measure: values.measure,

@@ -210,6 +210,7 @@ export function listAdminProducts(db, filters = {}) {
            p.color, p.measure, p.cut_level, p.attachment_system,
            p.compatible_machine, p.recommended_use, p.technical_description, p.warehouse_location,
            p.unit_weight_grams, p.units_per_box, p.box_description,
+           p.box_tare_weight_grams, p.box_code,
            p.image_filename, p.base_price_cents, p.promotion_bps, p.promotion_label,
            p.promotion_starts_at, p.promotion_ends_at, p.promotion_active,
            p.currency, p.price_effective_from,
@@ -272,6 +273,7 @@ export function getAdminProductBoxLabel(db, productId) {
   const row = db.prepare(`
     SELECT p.id, p.km_code, p.ean13, p.name, p.measure,
            p.unit_weight_grams, p.units_per_box, p.box_description,
+           p.box_tare_weight_grams, p.box_code,
            f.name AS family_name
     FROM products p
     JOIN product_families f ON f.id = p.family_id
@@ -288,7 +290,13 @@ export function getAdminProductBoxLabel(db, productId) {
     unitWeightGrams: Number(row.unit_weight_grams || 0),
     unitsPerBox: Number(row.units_per_box || 0),
     boxDescription: row.box_description || "",
-    netWeightGrams: Number(row.unit_weight_grams || 0) * Number(row.units_per_box || 0)
+    boxTareWeightGrams: Number(row.box_tare_weight_grams || 0),
+    boxCode: row.box_code || "",
+    netWeightGrams: Number(row.unit_weight_grams || 0) * Number(row.units_per_box || 0),
+    grossWeightGrams: (
+      Number(row.unit_weight_grams || 0) * Number(row.units_per_box || 0)
+      + Number(row.box_tare_weight_grams || 0)
+    )
   };
 }
 
@@ -406,7 +414,7 @@ export function upsertProduct(db, input) {
   const kmCode = requiredText(input.kmCode, "kmCode", { max: 30 }).toUpperCase();
   const existingProduct = db.prepare(`
     SELECT promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active,
-           unit_weight_grams, units_per_box, box_description
+           unit_weight_grams, units_per_box, box_description, box_tare_weight_grams, box_code
     FROM products WHERE km_code = ?
   `).get(kmCode);
   const hasPromotionInput = ["promotionBps", "promotionLabel", "promotionStartsAt", "promotionEndsAt", "promotionActive"]
@@ -439,17 +447,26 @@ export function upsertProduct(db, input) {
   const boxDescription = Object.hasOwn(input, "boxDescription")
     ? optionalText(input.boxDescription, "boxDescription", { max: 120 })
     : existingProduct?.box_description || "";
+  const boxTareWeightGrams = Object.hasOwn(input, "boxTareWeightGrams")
+    ? nonNegativeNumber(input.boxTareWeightGrams, "boxTareWeightGrams")
+    : Number(existingProduct?.box_tare_weight_grams || 0);
+  const suggestedBoxCode = unitsPerBox > 0 ? `${kmCode}-C${unitsPerBox}` : "";
+  const boxCodeInput = Object.hasOwn(input, "boxCode")
+    ? optionalText(input.boxCode, "boxCode", { max: 40 }).toUpperCase()
+    : existingProduct?.box_code || "";
+  const boxCode = boxCodeInput || suggestedBoxCode;
 
   return db.prepare(`
     INSERT INTO products (
       km_code, ean13, name, slug, family_id, subfamily, material, color, measure,
       cut_level, attachment_system, compatible_machine, recommended_use,
       technical_description, warehouse_location, unit_weight_grams, units_per_box, box_description,
+      box_tare_weight_grams, box_code,
       image_filename, base_price_cents,
       promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active,
       price_effective_from,
       active, web_sort_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(km_code) DO UPDATE SET
       ean13 = excluded.ean13, name = excluded.name, slug = excluded.slug,
       family_id = excluded.family_id, subfamily = excluded.subfamily,
@@ -462,6 +479,8 @@ export function upsertProduct(db, input) {
       unit_weight_grams = excluded.unit_weight_grams,
       units_per_box = excluded.units_per_box,
       box_description = excluded.box_description,
+      box_tare_weight_grams = excluded.box_tare_weight_grams,
+      box_code = excluded.box_code,
       image_filename = excluded.image_filename,
       base_price_cents = excluded.base_price_cents,
       promotion_bps = excluded.promotion_bps,
@@ -486,6 +505,8 @@ export function upsertProduct(db, input) {
     unitWeightGrams,
     unitsPerBox,
     boxDescription,
+    boxTareWeightGrams,
+    boxCode,
     optionalText(input.imageFilename, "imageFilename") || null,
     input.basePriceCents,
     promotionBps,
@@ -562,6 +583,8 @@ function adminProduct(row) {
     unitWeightGrams: Number(row.unit_weight_grams || 0),
     unitsPerBox: Number(row.units_per_box || 0),
     boxDescription: row.box_description || "",
+    boxTareWeightGrams: Number(row.box_tare_weight_grams || 0),
+    boxCode: row.box_code || "",
     imageFilename: row.image_filename,
     primaryImageUrl: row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : "",
     imageCount: row.image_count || 0,

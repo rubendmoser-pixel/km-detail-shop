@@ -845,6 +845,8 @@
                 <label><span>Peso por unidad (g)</span><input name="unitWeightGrams" type="number" min="0" step="0.001" placeholder="Ej: 185" /></label>
                 <label><span>Unidades por caja</span><input name="unitsPerBox" type="number" min="0" step="1" placeholder="Ej: 12" /></label>
                 <label class="wide"><span>Caja utilizada</span><input name="boxDescription" maxlength="120" placeholder="Ej: Caja 40 x 30 x 20 cm" /></label>
+                <label><span>Peso de la caja vac&iacute;a (g)</span><input name="boxTareWeightGrams" type="number" min="0" step="0.001" placeholder="Ej: 320" /></label>
+                <label><span>C&oacute;digo presentaci&oacute;n caja</span><input name="boxCode" maxlength="40" placeholder="Autom&aacute;tico: CODIGO-C12" /></label>
               </fieldset>
               <fieldset>
                 <legend>Ficha técnica</legend>
@@ -1251,7 +1253,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=1" defer></script>
-    <script src="./admin.js?v=129" defer></script>
+    <script src="./admin.js?v=130" defer></script>
     <script src="./admin-production.js?v=46" defer></script>
   </body>
 </html>
