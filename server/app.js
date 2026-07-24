@@ -1408,7 +1408,7 @@ export function createApp({
           "clear-site-data": "\"cache\", \"storage\"",
           ...SECURITY_HEADERS
         });
-        response.end("<!doctype html><html lang=\"es-AR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"refresh\" content=\"1;url=/produccion.html?version=13\"><title>Actualizando KM Producción</title></head><body style=\"margin:0;background:#0b0d0f;color:#fff;font-family:system-ui;display:grid;min-height:100vh;place-items:center;text-align:center\"><main><h1>Actualizando KM Producción</h1><p>La aplicación se abrirá nuevamente en un momento.</p></main></body></html>");
+        response.end("<!doctype html><html lang=\"es-AR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"refresh\" content=\"1;url=/produccion.html?version=14\"><title>Actualizando KM Producción</title></head><body style=\"margin:0;background:#0b0d0f;color:#fff;font-family:system-ui;display:grid;min-height:100vh;place-items:center;text-align:center\"><main><h1>Actualizando KM Producción</h1><p>La aplicación se abrirá nuevamente en un momento.</p></main></body></html>");
         return;
       }
       let staticHeaders = {};

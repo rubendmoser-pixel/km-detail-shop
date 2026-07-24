@@ -1,4 +1,4 @@
-const PORTAL_CACHE = "km-portal-apps-v7";
+const PORTAL_CACHE = "km-portal-apps-v8";
 
 function portalStartPage() {
   const host = self.location.hostname;

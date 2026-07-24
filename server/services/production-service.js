@@ -424,13 +424,13 @@ export function saveDailyProductionReport(db, input = {}, operator) {
   db.exec("BEGIN IMMEDIATE");
   try {
     let report = db.prepare("SELECT * FROM production_daily_reports WHERE production_date=?").get(productionDate);
-    if (report && !["draft", "returned"].includes(report.status)) throw new ValidationError("El parte de ese día ya fue enviado y no puede modificarse.");
+    if (report && !["draft", "returned", "submitted"].includes(report.status)) throw new ValidationError("El parte de ese día ya fue confirmado y no puede modificarse.");
     if (!report) {
       const number = `PF-${productionDate.replaceAll("-", "")}`;
       report = db.prepare(`INSERT INTO production_daily_reports(report_number,production_date,operator_id,notes) VALUES(?,?,?,?) RETURNING *`)
         .get(number, productionDate, operator.id, notes);
     } else {
-      db.prepare(`UPDATE production_daily_reports SET operator_id=?,notes=?,status='draft',return_reason='',updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+      db.prepare(`UPDATE production_daily_reports SET operator_id=?,notes=?,status='draft',submitted_at=NULL,return_reason='',updated_at=CURRENT_TIMESTAMP WHERE id=?`)
         .run(operator.id, notes, report.id);
       db.prepare("DELETE FROM production_daily_report_items WHERE report_id=?").run(report.id);
     }

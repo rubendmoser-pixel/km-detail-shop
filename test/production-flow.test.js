@@ -190,16 +190,25 @@ test("unplanned production consumes its full recipe without advancing the weekly
     productionDate: "2026-07-16",
     items: [
       { productId: planned.id, goodQuantity: 2, rejectedQuantity: 0 },
-      { productId: extra.id, goodQuantity: 3, rejectedQuantity: 1, notes: "Aprovechamiento de sobrante" },
-      { productId: extraSecond.id, goodQuantity: 5, rejectedQuantity: 0, notes: "Segunda producción adicional" }
+      { productId: extra.id, goodQuantity: 3, rejectedQuantity: 1, notes: "Aprovechamiento de sobrante" }
     ]
   }, session.operator);
   const unplannedItem = report.items.find((item) => item.productId === extra.id);
   assert.equal(unplannedItem.planItemId, null);
   assert.equal(unplannedItem.notes, "Aprovechamiento de sobrante");
-  assert.equal(report.items.find((item) => item.productId === extraSecond.id).planItemId, null);
   submitDailyProductionReport(db, report.id, session.operator);
-  confirmDailyProductionReport(db, report.id, admin.id);
+  const reopened = saveDailyProductionReport(db, {
+    productionDate: "2026-07-16",
+    items: [
+      { productId: planned.id, goodQuantity: 2, rejectedQuantity: 0 },
+      { productId: extra.id, goodQuantity: 3, rejectedQuantity: 1, notes: "Aprovechamiento de sobrante" },
+      { productId: extraSecond.id, goodQuantity: 5, rejectedQuantity: 0, notes: "Segunda producción adicional" }
+    ]
+  }, session.operator);
+  assert.equal(reopened.status, "draft");
+  assert.equal(reopened.items.find((item) => item.productId === extraSecond.id).planItemId, null);
+  submitDailyProductionReport(db, reopened.id, session.operator);
+  confirmDailyProductionReport(db, reopened.id, admin.id);
 
   assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(raw.id).quantity, 72);
   assert.equal(db.prepare(`SELECT b.quantity FROM inventory_balances b JOIN inventory_items i ON i.id=b.item_id WHERE i.product_id=?`).get(extra.id).quantity, 3);
