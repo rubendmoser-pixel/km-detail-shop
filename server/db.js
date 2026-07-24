@@ -805,6 +805,25 @@ function migrate(db) {
       sent_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipient_type TEXT NOT NULL
+        CHECK (recipient_type IN ('admin', 'customer', 'sales_rep', 'logistics', 'production')),
+      recipient_id INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      priority TEXT NOT NULL DEFAULT 'info'
+        CHECK (priority IN ('info', 'action', 'urgent')),
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      action_url TEXT NOT NULL DEFAULT '/',
+      entity_type TEXT NOT NULL DEFAULT '',
+      entity_id INTEGER,
+      dedupe_key TEXT NOT NULL DEFAULT '',
+      read_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -875,6 +894,10 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON email_outbox(status, created_at);
     CREATE INDEX IF NOT EXISTS idx_push_subscriptions_customer ON push_subscriptions(customer_id, enabled);
     CREATE INDEX IF NOT EXISTS idx_push_outbox_pending ON push_outbox(status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_notifications_recipient
+      ON notifications(recipient_type, recipient_id, read_at, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_entity
+      ON notifications(entity_type, entity_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_security_events_created ON security_events(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_security_events_email ON security_events(email, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at DESC);

@@ -1,0 +1,200 @@
+.km-notification-center {
+  position: relative;
+  z-index: 1200;
+  flex: 0 0 auto;
+  margin-left: 8px;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.km-notification-center[hidden],
+.km-notification-panel[hidden] {
+  display: none !important;
+}
+
+.km-notification-bell {
+  position: relative !important;
+  display: grid !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  place-items: center !important;
+  border: 1px solid #3a4049 !important;
+  border-radius: 12px !important;
+  background: #171a1f !important;
+  color: #f5f7fa !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.km-notification-bell:hover,
+.km-notification-bell:focus-visible {
+  border-color: #8e86ff !important;
+  background: #20232a !important;
+}
+
+.km-notification-bell svg {
+  width: 21px;
+  height: 21px;
+}
+
+.km-notification-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid #090b0e;
+  border-radius: 999px;
+  background: #ef476f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
+.km-notification-panel {
+  position: fixed;
+  top: 76px;
+  right: clamp(10px, 2vw, 28px);
+  z-index: 3000;
+  width: min(400px, calc(100vw - 20px));
+  max-height: min(650px, calc(100vh - 94px));
+  overflow: hidden;
+  border: 1px solid #393e48;
+  border-radius: 16px;
+  background: #101318;
+  color: #f4f6f8;
+  box-shadow: 0 22px 60px rgb(0 0 0 / 55%);
+}
+
+.km-notification-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #30353e;
+}
+
+.km-notification-head strong {
+  font-size: 18px;
+}
+
+.km-notification-read-all {
+  width: auto !important;
+  min-height: 36px !important;
+  padding: 7px 10px !important;
+  border: 1px solid #4a5160 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: #cbd2dc !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.km-notification-list {
+  max-height: min(575px, calc(100vh - 165px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.km-notification-item {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid #292e36;
+  border-left: 4px solid #68b7ff;
+  background: #11151a;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.km-notification-item[data-priority="action"] {
+  border-left-color: #ffd45c;
+}
+
+.km-notification-item[data-priority="urgent"] {
+  border-left-color: #ff617c;
+}
+
+.km-notification-item[data-unread="true"] {
+  background: #1a2028;
+}
+
+.km-notification-item:hover,
+.km-notification-item:focus-visible {
+  background: #232a34;
+}
+
+.km-notification-item-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.km-notification-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #8e86ff;
+}
+
+.km-notification-item[data-unread="false"] .km-notification-dot {
+  visibility: hidden;
+}
+
+.km-notification-body {
+  margin: 0;
+  color: #bac2ce;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.km-notification-time {
+  display: block;
+  margin-top: 7px;
+  color: #828c9b;
+  font-size: 11px;
+}
+
+.km-notification-empty {
+  padding: 30px 18px;
+  color: #aab2be;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .km-notification-center {
+    margin-left: 4px;
+  }
+
+  .km-notification-bell {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+  }
+
+  .km-notification-panel {
+    top: 66px;
+    right: 8px;
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 76px);
+  }
+
+  .km-notification-list {
+    max-height: calc(100vh - 140px);
+  }
+}

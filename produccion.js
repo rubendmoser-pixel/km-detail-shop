@@ -23,3 +23,19 @@ function renderReports(){$("#productionReports").innerHTML=state.reports.length?
 function statusText(report){return({draft:"Borrador",submitted:"Enviado, espera confirmación",confirmed:"Confirmado por Administración",returned:"Devuelto para corregir"})[report.status]||report.status}
 function formatDate(value){if(!value)return"-";const [y,m,d]=value.split("-");return`${d}/${m}/${y}`}
 boot();
+loadNotificationCenter();
+
+function loadNotificationCenter() {
+  if (!document.querySelector('link[href*="notifications.css"]')) {
+    const style = document.createElement("link");
+    style.rel = "stylesheet";
+    style.href = "/notifications.css?v=1";
+    document.head.append(style);
+  }
+  if (!document.querySelector('script[src*="notifications.js"]')) {
+    const script = document.createElement("script");
+    script.src = "/notifications.js?v=1";
+    script.defer = true;
+    document.head.append(script);
+  }
+}

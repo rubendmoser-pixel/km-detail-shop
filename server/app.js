@@ -123,6 +123,19 @@ import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEven
 import { createBackup } from "./services/backup-service.js";
 import { pruneBackups } from "./services/storage-status-service.js";
 import { deleteOfficialDistributor, listOfficialDistributors, upsertOfficialDistributor } from "./services/distributor-service.js";
+import {
+  getCustomerNotificationContext,
+  getOrderNotificationContext,
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  notifyAdmins,
+  notifyAllLogistics,
+  notifyAllProduction,
+  notifyCustomer,
+  notifySalesRep,
+  requireNotificationActor
+} from "./services/notification-service.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 
@@ -158,6 +171,28 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/health") {
         return sendJson(response, 200, { status: "ok", service: "km-detail-b2b", time: new Date().toISOString() });
       }
+      const notificationContext = {
+        user: currentUser,
+        salesRep: currentSalesRep,
+        logisticsOperator: currentLogisticsOperator,
+        productionOperator: currentProductionOperator
+      };
+      if (request.method === "GET" && url.pathname === "/api/notifications") {
+        return sendJson(response, 200, listNotifications(
+          db,
+          requireNotificationActor(notificationContext),
+          { limit: url.searchParams.get("limit") }
+        ));
+      }
+      if (request.method === "POST" && url.pathname === "/api/notifications/read-all") {
+        return sendJson(response, 200, markAllNotificationsRead(db, requireNotificationActor(notificationContext)));
+      }
+      match = url.pathname.match(/^\/api\/notifications\/(\d+)\/read$/);
+      if (request.method === "POST" && match) {
+        return sendJson(response, 200, {
+          notification: markNotificationRead(db, requireNotificationActor(notificationContext), Number(match[1]))
+        });
+      }
       if (request.method === "POST" && url.pathname === "/api/analytics/events") {
         return sendJson(response, 202, recordAnalyticsEvents(db, request, currentUser, await readJson(request, 1_000_000)));
       }
@@ -168,6 +203,7 @@ export function createApp({
         }, config);
         if (result?.newlyApproved && result.order?.id) {
           emailService.queuePaymentReceiptReviewed(result.order.id, "accepted", "Pago acreditado por Mercado Pago");
+          notifyPaymentReviewed(db, result.order.id, "accepted", "Pago acreditado por Mercado Pago");
           void emailService.flush();
         }
         return sendJson(response, 200, { ok: true, ignored: Boolean(result?.ignored) });
@@ -188,6 +224,16 @@ export function createApp({
       if (request.method === "POST" && url.pathname === "/api/auth/register") {
         const result = await registerCustomer(db, await readJson(request));
         emailService.queueCustomerRegistration(result.customer.id);
+        notifyAdmins(db, {
+          eventType: "customer_request_created",
+          priority: "action",
+          title: "Nueva solicitud comercial",
+          body: result.customer.businessName || "Cliente nuevo",
+          actionUrl: "/admin.html#customers",
+          entityType: "customer",
+          entityId: result.customer.id,
+          dedupeKey: `customer-request-admin:${result.customer.id}`
+        });
         return sendJson(response, 201, result);
       }
       if (request.method === "POST" && url.pathname === "/api/auth/login") {
@@ -317,7 +363,19 @@ export function createApp({
       }
       match = url.pathname.match(/^\/api\/production\/reports\/(\d+)\/submit$/);
       if (request.method === "POST" && match) {
-        return sendJson(response, 200, { report: submitDailyProductionReport(db, Number(match[1]), requireProductionOperator(currentProductionOperator)) });
+        const operator = requireProductionOperator(currentProductionOperator);
+        const report = submitDailyProductionReport(db, Number(match[1]), operator);
+        notifyAdmins(db, {
+          eventType: "production_report_submitted",
+          priority: "action",
+          title: "Parte de producción para revisar",
+          body: `${operator.name || "Producción"} envió un nuevo parte diario.`,
+          actionUrl: "/admin.html#production",
+          entityType: "production_report",
+          entityId: report.id,
+          dedupeKey: `production-report-submitted:${report.id}`
+        });
+        return sendJson(response, 200, { report });
       }
       if (request.method === "POST" && url.pathname === "/api/logistics/logout") {
         logoutLogisticsOperator(db, cookies.km_logistics_session);
@@ -346,6 +404,7 @@ export function createApp({
       if (request.method === "PATCH" && logisticsMatch) {
         const order = confirmLogisticsAvailability(db, Number(logisticsMatch[1]), await readJson(request), requireLogisticsOperator(currentLogisticsOperator));
         emailService.queueOrderAvailabilityConfirmed(order.id);
+        notifyOrderAvailability(db, order.id);
         return sendJson(response, 200, { order });
       }
       logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)\/checklist$/);
@@ -356,6 +415,7 @@ export function createApp({
       if (request.method === "PATCH" && logisticsMatch) {
         const order = dispatchLogisticsOrder(db, Number(logisticsMatch[1]), await readJson(request), requireLogisticsOperator(currentLogisticsOperator));
         emailService.queueOrderFulfillmentUpdated(order.id);
+        notifyOrderDispatched(db, order.id);
         return sendJson(response, 200, { order });
       }
       logisticsMatch = url.pathname.match(/^\/api\/logistics\/orders\/(\d+)\/(picking-list|shipping-labels)$/);
@@ -402,6 +462,16 @@ export function createApp({
         const salesRep = requireSalesRep(currentSalesRep);
         const result = await requestCommercialCustomer(db, salesRep, await readJson(request));
         emailService.queueCustomerRegistration(result.customer.id);
+        notifyAdmins(db, {
+          eventType: "customer_request_created",
+          priority: "action",
+          title: "Nueva alta comercial para revisar",
+          body: `${result.customer.businessName || "Cliente nuevo"} · ${salesRep.name}`,
+          actionUrl: "/admin.html#customers",
+          entityType: "customer",
+          entityId: result.customer.id,
+          dedupeKey: `customer-request-admin:${result.customer.id}`
+        });
         return sendJson(response, 201, { ...result, message: "Solicitud enviada a KM." });
       }
       match = url.pathname.match(/^\/api\/sales\/customers\/(\d+)\/shipping-addresses$/);
@@ -458,6 +528,7 @@ export function createApp({
           createdBySalesRepId: salesRep.id
         });
         emailService.queueOrderCreated(order.id);
+        notifyOrderCreated(db, order.id);
         return sendJson(response, 201, { order, message: "Pedido enviado a KM." });
       }
       {
@@ -502,6 +573,7 @@ export function createApp({
           });
           const updatedQuote = markSalesQuoteConverted(db, quote.id, salesRep.id);
           emailService.queueOrderCreated(order.id);
+          notifyOrderCreated(db, order.id);
           return sendJson(response, 201, { order, quote: updatedQuote, message: "Pedido generado desde presupuesto." });
         }
       }
@@ -780,6 +852,7 @@ export function createApp({
           });
         });
         emailService.queueOrderCreated(order.id);
+        notifyOrderCreated(db, order.id);
         return sendJson(response, 201, { order, availabilityNotice: "Pedido sujeto a confirmación de disponibilidad." });
       }
 
@@ -829,6 +902,7 @@ export function createApp({
         const user = requireApprovedCustomer(currentUser);
         const order = addPaymentReceipt(db, Number(match[1]), user.customerId, user.id, await readJson(request, 12_500_000), uploadsPath);
         emailService.queuePaymentReceiptUploaded(order.id);
+        notifyPaymentUploaded(db, order.id);
         return sendJson(response, 201, { order });
       }
       match = url.pathname.match(/^\/api\/orders\/(\d+)\/accept$/);
@@ -909,6 +983,7 @@ export function createApp({
         const body = await readJson(request);
         const customer = setCustomerStatus(db, Number(match[1]), body.status, currentUser.id, body.commercialClass);
         if (customer.changed) emailService.queueCustomerStatus(Number(match[1]), body.status);
+        if (customer.changed) notifyCustomerStatusChanged(db, Number(match[1]), body.status);
         return sendJson(response, 200, { customer });
       }
       match = url.pathname.match(/^\/api\/admin\/customers\/(\d+)\/commercial-class$/);
@@ -996,11 +1071,34 @@ export function createApp({
       }
       match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/approve$/);
       if (request.method === "POST" && match) {
-        return sendJson(response, 200, { plan: approveProductionPlan(db, Number(match[1]), currentUser.id) });
+        const plan = approveProductionPlan(db, Number(match[1]), currentUser.id);
+        notifyAllProduction(db, {
+          eventType: "production_plan_approved",
+          priority: "action",
+          title: "Plan semanal habilitado",
+          body: "Administración aprobó el plan de fabricación. Ya está disponible para trabajar.",
+          actionUrl: "/produccion.html",
+          entityType: "production_plan",
+          entityId: plan.id,
+          dedupeKey: `production-plan-approved:${plan.id}`
+        });
+        return sendJson(response, 200, { plan });
       }
       match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/items$/);
       if (request.method === "POST" && match) {
-        return sendJson(response, 201, { plan: addProductionPlanItem(db, Number(match[1]), await readJson(request), currentUser.id) });
+        const body = await readJson(request);
+        const plan = addProductionPlanItem(db, Number(match[1]), body, currentUser.id);
+        notifyAllProduction(db, {
+          eventType: "production_plan_updated",
+          priority: body.urgent ? "urgent" : "action",
+          title: body.urgent ? "Fabricación urgente agregada" : "Plan semanal actualizado",
+          body: body.reason || "Administración agregó un producto al plan en curso.",
+          actionUrl: "/produccion.html",
+          entityType: "production_plan",
+          entityId: plan.id,
+          dedupeKey: `production-plan-item:${plan.id}:${body.productId || ""}`
+        });
+        return sendJson(response, 201, { plan });
       }
       match = url.pathname.match(/^\/api\/admin\/production\/plans\/(\d+)\/close$/);
       if (request.method === "POST" && match) {
@@ -1076,12 +1174,34 @@ export function createApp({
       }
       match = url.pathname.match(/^\/api\/admin\/production\/reports\/(\d+)\/confirm$/);
       if (request.method === "POST" && match) {
-        return sendJson(response, 200, confirmDailyProductionReport(db, Number(match[1]), currentUser.id));
+        const result = confirmDailyProductionReport(db, Number(match[1]), currentUser.id);
+        notifyAllProduction(db, {
+          eventType: "production_report_confirmed",
+          priority: "info",
+          title: "Parte de producción aprobado",
+          body: "Administración confirmó el ingreso de la producción al stock.",
+          actionUrl: "/produccion.html",
+          entityType: "production_report",
+          entityId: Number(match[1]),
+          dedupeKey: `production-report-confirmed:${match[1]}`
+        });
+        return sendJson(response, 200, result);
       }
       match = url.pathname.match(/^\/api\/admin\/production\/reports\/(\d+)\/return$/);
       if (request.method === "POST" && match) {
         const body = await readJson(request);
-        return sendJson(response, 200, { report: returnDailyProductionReport(db, Number(match[1]), body.reason) });
+        const report = returnDailyProductionReport(db, Number(match[1]), body.reason);
+        notifyAllProduction(db, {
+          eventType: "production_report_returned",
+          priority: "action",
+          title: "Parte devuelto para corregir",
+          body: body.reason || "Administración devolvió un parte diario.",
+          actionUrl: "/produccion.html",
+          entityType: "production_report",
+          entityId: Number(match[1]),
+          dedupeKey: `production-report-returned:${match[1]}`
+        });
+        return sendJson(response, 200, { report });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/sales-reps") {
         return sendJson(response, 201, { salesRep: await upsertSalesRep(db, await readJson(request)) });
@@ -1221,6 +1341,7 @@ export function createApp({
         const body = await readJson(request);
         const order = confirmOrderAvailability(db, Number(match[1]), body, currentUser.id);
         emailService.queueOrderAvailabilityConfirmed(order.id, body.reason);
+        notifyOrderAvailability(db, order.id);
         return sendJson(response, 200, { order });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/fulfillment$/);
@@ -1255,6 +1376,7 @@ export function createApp({
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/account-payments$/);
       if (request.method === "POST" && match) {
         const order = registerCurrentAccountPayment(db, Number(match[1]), await readJson(request), currentUser.id);
+        notifyPaymentReviewed(db, order.id, "accepted");
         return sendJson(response, 200, { order });
       }
       match = url.pathname.match(/^\/api\/admin\/orders\/(\d+)$/);
@@ -1272,6 +1394,7 @@ export function createApp({
         const body = await readJson(request);
         const order = reviewPaymentReceipt(db, Number(match[1]), body, currentUser.id);
         emailService.queuePaymentReceiptReviewed(order.id, body.status, body.reason);
+        notifyPaymentReviewed(db, order.id, body.status, body.reason);
         return sendJson(response, 200, { order });
       }
       match = url.pathname.match(/^\/api\/admin\/payment-receipts\/(\d+)\/file$/);
@@ -1417,7 +1540,7 @@ export function createApp({
         return;
       }
       let staticHeaders = {};
-      if (request.method === "GET" && /^(\/(?:admin|vendedor|logistica|produccion)\.html|\/(?:admin-production|vendedor|logistica|produccion)\.(?:js|css)|\/pwa-register\.js|\/portal-service-worker\.js|\/manifest-(?:admin|vendedor|logistica|produccion)\.webmanifest)$/.test(url.pathname)) {
+      if (request.method === "GET" && /^(\/(?:admin|vendedor|logistica|produccion)\.html|\/(?:admin-production|vendedor|logistica|produccion|notifications)\.(?:js|css)|\/pwa-register\.js|\/portal-service-worker\.js|\/manifest-(?:admin|vendedor|logistica|produccion)\.webmanifest)$/.test(url.pathname)) {
         staticHeaders = { "cache-control": "no-store" };
       }
       if (request.method === "GET" && isServerRenderedSeoPath(url.pathname)) {
@@ -1455,6 +1578,187 @@ export function createApp({
       });
     }
   };
+}
+
+function notifyOrderCreated(db, orderId) {
+  const order = getOrderNotificationContext(db, orderId);
+  if (!order) return;
+  const label = `${order.order_number} · ${order.business_name}`;
+  const common = {
+    eventType: "order_created",
+    priority: "action",
+    body: label,
+    entityType: "order",
+    entityId: order.id
+  };
+  notifyAdmins(db, {
+    ...common,
+    title: "Nuevo pedido recibido",
+    actionUrl: "/admin.html#orders",
+    dedupeKey: `order-created-admin:${order.id}`
+  });
+  notifyAllLogistics(db, {
+    ...common,
+    title: "Pedido para confirmar disponibilidad",
+    actionUrl: "/logistica.html",
+    dedupeKey: `order-created-logistics:${order.id}`
+  });
+  notifySalesRep(db, order.sales_rep_id, {
+    ...common,
+    priority: "info",
+    title: "Pedido registrado",
+    actionUrl: "/vendedor.html",
+    dedupeKey: `order-created-sales:${order.id}`
+  });
+}
+
+function notifyCustomerStatusChanged(db, customerId, status) {
+  const customer = getCustomerNotificationContext(db, customerId);
+  if (!customer) return;
+  const approved = status === "approved";
+  const salesRepId = customer.sales_rep_id || customer.requested_by_sales_rep_id;
+  notifySalesRep(db, salesRepId, {
+    eventType: approved ? "customer_approved" : "customer_status_changed",
+    priority: approved ? "info" : "action",
+    title: approved ? "Alta comercial aprobada" : "Alta comercial actualizada",
+    body: `${customer.business_name} · Estado: ${status}`,
+    actionUrl: "/vendedor.html",
+    entityType: "customer",
+    entityId: customer.id,
+    dedupeKey: `customer-status-sales:${customer.id}:${status}`
+  });
+  notifyCustomer(db, customer.id, {
+    eventType: approved ? "customer_approved" : "customer_status_changed",
+    priority: approved ? "info" : "action",
+    title: approved ? "Tu cuenta comercial fue aprobada" : "KM actualizó el estado de tu cuenta",
+    body: approved ? "Ya podés consultar precios y realizar pedidos." : "Ingresá para consultar el estado de tu solicitud.",
+    actionUrl: approved ? "/#catalogo" : "/",
+    entityType: "customer",
+    entityId: customer.id,
+    dedupeKey: `customer-status-customer:${customer.id}:${status}`
+  });
+}
+
+function notifyOrderAvailability(db, orderId) {
+  const order = getOrderNotificationContext(db, orderId);
+  if (!order) return;
+  const label = `${order.order_number} · ${order.business_name}`;
+  const common = {
+    eventType: "order_availability_confirmed",
+    priority: "action",
+    body: label,
+    entityType: "order",
+    entityId: order.id
+  };
+  notifyAdmins(db, {
+    ...common,
+    title: "Disponibilidad confirmada",
+    actionUrl: "/admin.html#orders",
+    dedupeKey: `availability-admin:${order.id}`
+  });
+  notifyCustomer(db, order.customer_id, {
+    ...common,
+    title: "KM revisó tu pedido",
+    actionUrl: "/#mis-compras",
+    dedupeKey: `availability-customer:${order.id}`
+  });
+  notifySalesRep(db, order.sales_rep_id, {
+    ...common,
+    priority: "info",
+    title: "Disponibilidad confirmada",
+    actionUrl: "/vendedor.html",
+    dedupeKey: `availability-sales:${order.id}`
+  });
+}
+
+function notifyPaymentUploaded(db, orderId) {
+  const order = getOrderNotificationContext(db, orderId);
+  if (!order) return;
+  const common = {
+    eventType: "payment_receipt_uploaded",
+    priority: "action",
+    body: `${order.order_number} · ${order.business_name}`,
+    entityType: "order",
+    entityId: order.id
+  };
+  notifyAdmins(db, {
+    ...common,
+    title: "Comprobante de pago para revisar",
+    actionUrl: "/admin.html#orders",
+    dedupeKey: `payment-uploaded-admin:${order.id}`
+  });
+  notifySalesRep(db, order.sales_rep_id, {
+    ...common,
+    priority: "info",
+    title: "Cliente informó un pago",
+    actionUrl: "/vendedor.html",
+    dedupeKey: `payment-uploaded-sales:${order.id}`
+  });
+}
+
+function notifyPaymentReviewed(db, orderId, status, reason = "") {
+  const order = getOrderNotificationContext(db, orderId);
+  if (!order) return;
+  const accepted = ["accepted", "approved", "paid"].includes(String(status || "").toLowerCase());
+  const common = {
+    eventType: accepted ? "payment_accepted" : "payment_rejected",
+    priority: accepted ? "info" : "action",
+    body: reason || `${order.order_number} · ${order.business_name}`,
+    entityType: "order",
+    entityId: order.id
+  };
+  notifyCustomer(db, order.customer_id, {
+    ...common,
+    title: accepted ? "Pago confirmado por KM" : "Revisá el comprobante de pago",
+    actionUrl: "/#mis-compras",
+    dedupeKey: `payment-reviewed-customer:${order.id}:${accepted}`
+  });
+  notifySalesRep(db, order.sales_rep_id, {
+    ...common,
+    title: accepted ? "Pago confirmado" : "Comprobante observado",
+    actionUrl: "/vendedor.html",
+    dedupeKey: `payment-reviewed-sales:${order.id}:${accepted}`
+  });
+  if (accepted && order.payment_status === "paid") {
+    notifyAllLogistics(db, {
+      ...common,
+      priority: "action",
+      title: "Pago aprobado: preparar pedido",
+      body: `${order.order_number} · ${order.business_name}`,
+      actionUrl: "/logistica.html",
+      dedupeKey: `payment-approved-logistics:${order.id}`
+    });
+  }
+}
+
+function notifyOrderDispatched(db, orderId) {
+  const order = getOrderNotificationContext(db, orderId);
+  if (!order) return;
+  const common = {
+    eventType: "order_dispatched",
+    priority: "info",
+    body: `${order.order_number} · ${order.business_name}`,
+    entityType: "order",
+    entityId: order.id
+  };
+  notifyCustomer(db, order.customer_id, {
+    ...common,
+    title: "Tu pedido fue despachado",
+    actionUrl: "/#mis-compras",
+    dedupeKey: `order-dispatched-customer:${order.id}`
+  });
+  notifyAdmins(db, {
+    ...common,
+    title: "Pedido despachado",
+    actionUrl: "/admin.html#orders",
+    dedupeKey: `order-dispatched-admin:${order.id}`
+  });
+  notifySalesRep(db, order.sales_rep_id, {
+    ...common,
+    title: "Pedido despachado",
+    actionUrl: "/vendedor.html",
+    dedupeKey: `order-dispatched-sales:${order.id}`
+  });
 }
 
 function resolveServerAnalyticsSessionId(value) {
