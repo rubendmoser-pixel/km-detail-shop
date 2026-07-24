@@ -19,11 +19,15 @@ const pushService = createPushService({ db, config });
 const emailService = createEmailService({ db, config, pushService });
 void emailService.flush();
 void pushService.flush();
+void pushService.flushActorNotifications();
 void emailService.queuePaymentDueReminders();
 const paymentReminderInterval = setInterval(() => {
   void emailService.queuePaymentDueReminders();
   void pushService.flush();
 }, 60 * 60 * 1000);
+const notificationPushInterval = setInterval(() => {
+  void pushService.flushActorNotifications();
+}, 5 * 1000);
 const server = http.createServer(createApp({ db, config, emailService, pushService }));
 
 server.listen(config.port, config.host, () => {
@@ -32,6 +36,7 @@ server.listen(config.port, config.host, () => {
 
 function shutdown() {
   clearInterval(paymentReminderInterval);
+  clearInterval(notificationPushInterval);
   server.close(() => {
     db.close();
     process.exit(0);

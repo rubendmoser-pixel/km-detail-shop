@@ -805,6 +805,21 @@ function migrate(db) {
       sent_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS notification_push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipient_type TEXT NOT NULL
+        CHECK (recipient_type IN ('admin', 'customer', 'sales_rep', 'logistics', 'production')),
+      recipient_id INTEGER NOT NULL,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT NOT NULL DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      disabled_at TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       recipient_type TEXT NOT NULL
@@ -822,6 +837,19 @@ function migrate(db) {
       read_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_push_outbox (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+      recipient_type TEXT NOT NULL,
+      recipient_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      sent_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS sessions (
@@ -898,6 +926,10 @@ function migrate(db) {
       ON notifications(recipient_type, recipient_id, read_at, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_notifications_entity
       ON notifications(entity_type, entity_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notification_push_subscriptions_recipient
+      ON notification_push_subscriptions(recipient_type, recipient_id, enabled);
+    CREATE INDEX IF NOT EXISTS idx_notification_push_outbox_pending
+      ON notification_push_outbox(status, created_at);
     CREATE INDEX IF NOT EXISTS idx_security_events_created ON security_events(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_security_events_email ON security_events(email, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at DESC);

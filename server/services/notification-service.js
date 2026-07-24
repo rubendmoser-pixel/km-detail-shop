@@ -138,6 +138,7 @@ export function createNotification(db, input = {}) {
             created_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
         WHERE id=?
       `).run(eventType, priority, title, body, actionUrl, entityType, entityId, existing.id);
+      queuePushNotification(db, existing.id, recipientType, recipientId, priority);
       return getNotification(db, { type: recipientType, id: recipientId }, existing.id);
     }
   }
@@ -148,7 +149,23 @@ export function createNotification(db, input = {}) {
       action_url, entity_type, entity_id, dedupe_key
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(recipientType, recipientId, eventType, priority, title, body, actionUrl, entityType, entityId, dedupeKey);
+  queuePushNotification(db, result.lastInsertRowid, recipientType, recipientId, priority);
   return getNotification(db, { type: recipientType, id: recipientId }, result.lastInsertRowid);
+}
+
+function queuePushNotification(db, notificationId, recipientType, recipientId, priority) {
+  if (priority !== "action" && priority !== "urgent") return;
+  const subscribed = db.prepare(`
+    SELECT 1
+    FROM notification_push_subscriptions
+    WHERE recipient_type = ? AND recipient_id = ? AND enabled = 1
+    LIMIT 1
+  `).get(recipientType, recipientId);
+  if (!subscribed) return;
+  db.prepare(`
+    INSERT INTO notification_push_outbox (notification_id, recipient_type, recipient_id)
+    VALUES (?, ?, ?)
+  `).run(notificationId, recipientType, recipientId);
 }
 
 function getNotification(db, actor, id) {

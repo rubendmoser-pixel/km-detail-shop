@@ -1,5 +1,8 @@
 (() => {
-  const state = { center: null, button: null, panel: null, list: null, count: null, readAll: null, timer: null };
+  const state = {
+    center: null, button: null, panel: null, list: null, count: null, readAll: null, timer: null,
+    pushArea: null, pushButton: null, pushStatus: null, pushLoaded: false
+  };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install);
   else install();
@@ -25,6 +28,13 @@
           <strong>Avisos</strong>
           <button class="km-notification-read-all" type="button">Marcar todo como leído</button>
         </div>
+        <div class="km-notification-push" hidden>
+          <div>
+            <strong>Avisos en este teléfono</strong>
+            <small class="km-notification-push-status">Recibí una señal aunque la aplicación esté cerrada.</small>
+          </div>
+          <button class="km-notification-push-button" type="button">Activar</button>
+        </div>
         <div class="km-notification-list"><div class="km-notification-empty">Cargando avisos…</div></div>
       </section>`;
     host.append(center);
@@ -35,6 +45,9 @@
     state.list = center.querySelector(".km-notification-list");
     state.count = center.querySelector(".km-notification-count");
     state.readAll = center.querySelector(".km-notification-read-all");
+    state.pushArea = center.querySelector(".km-notification-push");
+    state.pushButton = center.querySelector(".km-notification-push-button");
+    state.pushStatus = center.querySelector(".km-notification-push-status");
 
     state.button.addEventListener("click", () => {
       const opening = state.panel.hidden;
@@ -43,6 +56,7 @@
       if (opening) refresh();
     });
     state.readAll.addEventListener("click", markAllRead);
+    state.pushButton.addEventListener("click", enablePush);
     document.addEventListener("click", (event) => {
       if (!state.panel.hidden && !state.center.contains(event.target)) close();
     });
@@ -69,6 +83,7 @@
       const data = await response.json();
       state.center.hidden = false;
       render(data.notifications || [], Number(data.unread || 0));
+      if (!state.pushLoaded) loadPushState();
     } catch {
       // Los avisos nunca deben interrumpir la tarea principal del usuario.
     }
@@ -134,6 +149,83 @@
     } catch {
       // Mantiene abierta la aplicación si hay una interrupción de red.
     }
+  }
+
+  async function loadPushState() {
+    state.pushLoaded = true;
+    if (!isInternalPortal() || !supportsPush()) return;
+    try {
+      const config = await fetchJson("/api/notifications/push/config");
+      if (!config.enabled) return;
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      state.pushArea.hidden = false;
+      renderPushState(Boolean(subscription || config.subscribed));
+    } catch {
+      // La aplicación sigue funcionando aunque el dispositivo no admita push.
+    }
+  }
+
+  async function enablePush() {
+    state.pushButton.disabled = true;
+    state.pushStatus.textContent = "Solicitando permiso…";
+    try {
+      const config = await fetchJson("/api/notifications/push/config");
+      if (!config.enabled || !config.publicKey) throw new Error("Los avisos todavía no están disponibles.");
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") throw new Error("El permiso quedó desactivado en este teléfono.");
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(config.publicKey)
+        });
+      }
+      await fetchJson("/api/notifications/push/subscribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(subscription.toJSON())
+      });
+      renderPushState(true);
+    } catch (error) {
+      state.pushButton.disabled = false;
+      state.pushStatus.textContent = error.message || "No se pudieron activar los avisos.";
+    }
+  }
+
+  function renderPushState(active) {
+    state.pushArea.dataset.active = String(active);
+    state.pushButton.disabled = active;
+    state.pushButton.textContent = active ? "Activo" : "Activar";
+    state.pushStatus.textContent = active
+      ? "Este teléfono recibirá señales de avisos importantes."
+      : "Recibí una señal aunque la aplicación esté cerrada.";
+  }
+
+  function supportsPush() {
+    return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  }
+
+  function isInternalPortal() {
+    return /^(admin|ventas|logistica|produccion)\./.test(window.location.hostname)
+      || /\/(?:admin|vendedor|logistica|produccion)\.html$/.test(window.location.pathname);
+  }
+
+  async function fetchJson(url, options = {}) {
+    const response = await fetch(url, { credentials: "same-origin", cache: "no-store", ...options });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || "No se pudo completar la operación.");
+    return body;
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const output = new Uint8Array(rawData.length);
+    for (let index = 0; index < rawData.length; index += 1) output[index] = rawData.charCodeAt(index);
+    return output;
   }
 
   function close() {

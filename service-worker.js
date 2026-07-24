@@ -1,11 +1,11 @@
-const CACHE_NAME = "km-detail-shop-v89";
+const CACHE_NAME = "km-detail-shop-v90";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css?v=72",
   "./app.js?v=96",
-  "./notifications.css?v=1",
-  "./notifications.js?v=1",
+  "./notifications.css?v=2",
+  "./notifications.js?v=2",
   "./assets/km-hero-detailing.png",
   "./assets/km-empresa.png",
   "./assets/km-distribuidores.png",
@@ -81,6 +81,10 @@ self.addEventListener("push", (event) => {
     icon: payload.icon || "./assets/icon-192.png",
     badge: payload.badge || "./assets/notification-badge.png",
     tag: payload.tag || "km-detail",
+    renotify: true,
+    requireInteraction: payload.priority === "urgent",
+    silent: false,
+    vibrate: payload.priority === "urgent" ? [250, 100, 250, 100, 350] : [180, 90, 180],
     data: {
       url: payload.url || "/#mis-compras"
     }

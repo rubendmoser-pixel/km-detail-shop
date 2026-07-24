@@ -59,6 +59,49 @@ export function createPushService({ db, config }) {
     return { enabled, subscribed: count > 0 };
   }
 
+  function upsertActorSubscription(actor, subscription, userAgent = "") {
+    if (!enabled) return { enabled: false, subscribed: false };
+    const endpoint = requiredText(subscription?.endpoint, "endpoint");
+    const p256dh = requiredText(subscription?.keys?.p256dh, "p256dh");
+    const auth = requiredText(subscription?.keys?.auth, "auth");
+    db.prepare(`
+      INSERT INTO notification_push_subscriptions (
+        recipient_type, recipient_id, endpoint, p256dh, auth, user_agent,
+        enabled, updated_at, disabled_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, NULL)
+      ON CONFLICT(endpoint) DO UPDATE SET
+        recipient_type = excluded.recipient_type,
+        recipient_id = excluded.recipient_id,
+        p256dh = excluded.p256dh,
+        auth = excluded.auth,
+        user_agent = excluded.user_agent,
+        enabled = 1,
+        updated_at = CURRENT_TIMESTAMP,
+        disabled_at = NULL
+    `).run(actor.type, actor.id, endpoint, p256dh, auth, String(userAgent || "").slice(0, 500));
+    return { enabled: true, subscribed: true };
+  }
+
+  function removeActorSubscription(actor, endpoint) {
+    if (!endpoint) return { subscribed: false };
+    db.prepare(`
+      UPDATE notification_push_subscriptions
+      SET enabled = 0, disabled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE endpoint = ? AND recipient_type = ? AND recipient_id = ?
+    `).run(endpoint, actor.type, actor.id);
+    return { subscribed: false };
+  }
+
+  function getActorSubscriptionState(actor) {
+    if (!enabled) return { enabled, subscribed: false };
+    const count = db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM notification_push_subscriptions
+      WHERE recipient_type = ? AND recipient_id = ? AND enabled = 1
+    `).get(actor.type, actor.id).count;
+    return { enabled, subscribed: Number(count || 0) > 0 };
+  }
+
   function queueCustomerNotification({ customerId, eventType, title, body, url = "/", tag = "" }) {
     if (!enabled || !customerId || !body) return { queued: false };
     const activeSubscriptions = db.prepare(`
@@ -94,6 +137,92 @@ export function createPushService({ db, config }) {
     } finally {
       flushing = false;
     }
+  }
+
+  async function flushActorNotifications(limit = 50) {
+    if (!enabled || flushing) return { sent: 0, failed: 0 };
+    flushing = true;
+    let sent = 0;
+    let failed = 0;
+    try {
+      const messages = db.prepare(`
+        SELECT po.*, n.title, n.body, n.action_url, n.priority
+        FROM notification_push_outbox po
+        JOIN notifications n ON n.id = po.notification_id
+        WHERE po.status = 'pending'
+        ORDER BY po.created_at ASC, po.id ASC
+        LIMIT ?
+      `).all(limit);
+      for (const message of messages) {
+        const result = await sendActorMessage(message);
+        if (result.sent) sent += 1;
+        else failed += 1;
+      }
+      return { sent, failed };
+    } finally {
+      flushing = false;
+    }
+  }
+
+  async function sendActorMessage(message) {
+    const subscriptions = db.prepare(`
+      SELECT *
+      FROM notification_push_subscriptions
+      WHERE recipient_type = ? AND recipient_id = ? AND enabled = 1
+      ORDER BY updated_at DESC
+    `).all(message.recipient_type, message.recipient_id);
+    if (!subscriptions.length) {
+      markActorFailed(message.id, "No hay dispositivos suscriptos");
+      return { sent: false };
+    }
+    const payload = JSON.stringify({
+      title: message.title || "KM Detail Line",
+      body: message.body || "Tenés un nuevo aviso.",
+      url: message.action_url || "/",
+      tag: `km-alert-${message.notification_id}`,
+      priority: message.priority || "action",
+      icon: DEFAULT_ICON,
+      badge: DEFAULT_BADGE
+    });
+    let delivered = 0;
+    const errors = [];
+    for (const subscription of subscriptions) {
+      try {
+        await webpush.sendNotification({
+          endpoint: subscription.endpoint,
+          keys: { p256dh: subscription.p256dh, auth: subscription.auth }
+        }, payload);
+        delivered += 1;
+      } catch (error) {
+        errors.push(error.message || "Error enviando push");
+        if (error.statusCode === 404 || error.statusCode === 410) {
+          db.prepare(`
+            UPDATE notification_push_subscriptions
+            SET enabled = 0, disabled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `).run(subscription.id);
+        }
+      }
+    }
+    if (delivered > 0) {
+      db.prepare(`
+        UPDATE notification_push_outbox
+        SET status = 'sent', attempts = attempts + 1, sent_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP, last_error = NULL
+        WHERE id = ?
+      `).run(message.id);
+      return { sent: true };
+    }
+    markActorFailed(message.id, errors.join(" | ") || "No se pudo entregar la notificación");
+    return { sent: false };
+  }
+
+  function markActorFailed(id, error) {
+    db.prepare(`
+      UPDATE notification_push_outbox
+      SET status = 'failed', attempts = attempts + 1, last_error = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(String(error || "Error").slice(0, 1000), id);
   }
 
   async function sendMessage(message) {
@@ -163,8 +292,12 @@ export function createPushService({ db, config }) {
     upsertSubscription,
     removeSubscription,
     getUserSubscriptionState,
+    upsertActorSubscription,
+    removeActorSubscription,
+    getActorSubscriptionState,
     queueCustomerNotification,
-    flush
+    flush,
+    flushActorNotifications
   };
 }
 

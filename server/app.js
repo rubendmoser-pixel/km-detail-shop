@@ -187,6 +187,26 @@ export function createApp({
       if (request.method === "POST" && url.pathname === "/api/notifications/read-all") {
         return sendJson(response, 200, markAllNotificationsRead(db, requireNotificationActor(notificationContext)));
       }
+      if (request.method === "GET" && url.pathname === "/api/notifications/push/config") {
+        const actor = requireNotificationActor(notificationContext);
+        return sendJson(response, 200, {
+          ...pushService.publicConfig(),
+          ...pushService.getActorSubscriptionState(actor)
+        });
+      }
+      if (request.method === "POST" && url.pathname === "/api/notifications/push/subscribe") {
+        const actor = requireNotificationActor(notificationContext);
+        return sendJson(response, 201, pushService.upsertActorSubscription(
+          actor,
+          await readJson(request),
+          request.headers["user-agent"] || ""
+        ));
+      }
+      if (request.method === "DELETE" && url.pathname === "/api/notifications/push/subscribe") {
+        const actor = requireNotificationActor(notificationContext);
+        const body = await readJson(request);
+        return sendJson(response, 200, pushService.removeActorSubscription(actor, body.endpoint));
+      }
       match = url.pathname.match(/^\/api\/notifications\/(\d+)\/read$/);
       if (request.method === "POST" && match) {
         return sendJson(response, 200, {

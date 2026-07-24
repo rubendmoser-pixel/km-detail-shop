@@ -29,12 +29,12 @@ function loadNotificationCenter() {
   if (!document.querySelector('link[href*="notifications.css"]')) {
     const style = document.createElement("link");
     style.rel = "stylesheet";
-    style.href = "/notifications.css?v=1";
+    style.href = "/notifications.css?v=2";
     document.head.append(style);
   }
   if (!document.querySelector('script[src*="notifications.js"]')) {
     const script = document.createElement("script");
-    script.src = "/notifications.js?v=1";
+    script.src = "/notifications.js?v=2";
     script.defer = true;
     document.head.append(script);
   }

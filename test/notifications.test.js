@@ -65,3 +65,44 @@ test("los avisos se crean, agrupan y marcan como leídos por destinatario", asyn
   assert.equal(markAllNotificationsRead(db, actor).updated, 2);
   assert.equal(listNotifications(db, actor).unread, 0);
 });
+
+test("los avisos importantes se preparan para enviar al teléfono suscripto", async (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "km-notification-push-"));
+  const databasePath = path.join(directory, "test.sqlite");
+  const db = await openDatabase({
+    databasePath,
+    adminEmail: "push@km-detail.com",
+    adminPassword: "secure-admin-password"
+  });
+  t.after(() => {
+    db.close();
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
+
+  const admin = db.prepare("SELECT id FROM users WHERE role='admin' LIMIT 1").get();
+  db.prepare(`
+    INSERT INTO notification_push_subscriptions (
+      recipient_type, recipient_id, endpoint, p256dh, auth, user_agent
+    ) VALUES ('admin', ?, 'https://push.test/admin', 'key', 'auth', 'test')
+  `).run(admin.id);
+
+  createNotification(db, {
+    recipientType: "admin",
+    recipientId: admin.id,
+    priority: "action",
+    title: "Pedido para revisar"
+  });
+  createNotification(db, {
+    recipientType: "admin",
+    recipientId: admin.id,
+    priority: "info",
+    title: "Dato informativo"
+  });
+
+  const queued = db.prepare(`
+    SELECT po.status, n.title
+    FROM notification_push_outbox po
+    JOIN notifications n ON n.id = po.notification_id
+  `).all().map((row) => ({ status: row.status, title: row.title }));
+  assert.deepEqual(queued, [{ status: "pending", title: "Pedido para revisar" }]);
+});
