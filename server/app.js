@@ -43,6 +43,7 @@ import {
 import {
   addProductImage,
   deleteProductImage,
+  getAdminProductBoxLabel,
   getAdminProductLocationLabel,
   getPublicProductBySlug,
   listAdminProducts,
@@ -1117,6 +1118,10 @@ export function createApp({
       match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/location-label$/);
       if (request.method === "GET" && match) {
         return sendJson(response, 200, { label: getAdminProductLocationLabel(db, Number(match[1])) });
+      }
+      match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/box-label$/);
+      if (request.method === "GET" && match) {
+        return sendJson(response, 200, { label: getAdminProductBoxLabel(db, Number(match[1])) });
       }
       if (request.method === "GET" && url.pathname === "/api/admin/price-updates") {
         applyDuePriceUpdates(db);

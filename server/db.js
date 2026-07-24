@@ -414,6 +414,9 @@ function migrate(db) {
       recommended_use TEXT NOT NULL DEFAULT '',
       technical_description TEXT NOT NULL DEFAULT '',
       warehouse_location TEXT NOT NULL DEFAULT '',
+      unit_weight_grams REAL NOT NULL DEFAULT 0 CHECK (unit_weight_grams >= 0),
+      units_per_box INTEGER NOT NULL DEFAULT 0 CHECK (units_per_box >= 0),
+      box_description TEXT NOT NULL DEFAULT '',
       image_filename TEXT,
       base_price_cents INTEGER NOT NULL CHECK (base_price_cents >= 0),
       promotion_bps INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000),
@@ -895,6 +898,9 @@ function migrate(db) {
   ensureColumn(db, "order_items", "promotion_bps", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000)");
   ensureColumn(db, "order_items", "promotion_label", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "warehouse_location", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "products", "unit_weight_grams", "REAL NOT NULL DEFAULT 0 CHECK (unit_weight_grams >= 0)");
+  ensureColumn(db, "products", "units_per_box", "INTEGER NOT NULL DEFAULT 0 CHECK (units_per_box >= 0)");
+  ensureColumn(db, "products", "box_description", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "promotion_bps", "INTEGER NOT NULL DEFAULT 0 CHECK (promotion_bps BETWEEN 0 AND 10000)");
   ensureColumn(db, "products", "promotion_label", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "products", "promotion_starts_at", "TEXT NOT NULL DEFAULT ''");

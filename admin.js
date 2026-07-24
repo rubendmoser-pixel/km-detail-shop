@@ -1695,11 +1695,11 @@ function renderProducts() {
   adminEls.productsTableBody.innerHTML = adminState.products.length ? adminState.products.map((product) => `
     <tr data-product-id="${product.id}">
       <td class="product-km-cell" data-label="KM"><strong>${escapeAdmin(product.kmCode)}</strong><br><span>${escapeAdmin(product.ean13)}</span>${product.promotion?.current?.active && product.promotion.current.bps ? `<br>${adminPromotionBadge(product.promotion.current)}` : ""}</td>
-      <td data-label="Producto">${escapeAdmin(product.name)}${product.measure ? `<br><span>${escapeAdmin(product.measure)}</span>` : ""}${product.warehouseLocation ? `<br><span>Ubicacion: ${escapeAdmin(product.warehouseLocation)}</span>` : ""}</td>
+      <td data-label="Producto">${escapeAdmin(product.name)}${product.measure ? `<br><span>${escapeAdmin(product.measure)}</span>` : ""}${product.warehouseLocation ? `<br><span>Ubicacion: ${escapeAdmin(product.warehouseLocation)}</span>` : ""}${product.unitsPerBox ? `<br><span>Caja: ${product.unitsPerBox} u.${product.boxDescription ? ` · ${escapeAdmin(product.boxDescription)}` : ""}</span>` : ""}</td>
       <td data-label="Familia">${escapeAdmin(product.family.name)}</td>
       <td data-label="Precio lista">${adminMoney.format(product.basePriceCents / 100)}</td>
       <td data-label="Estado"><span class="status-badge ${product.active ? "approved" : "suspended"}">${product.active ? "Activo" : "Inactivo"}</span>${product.imageCount ? `<br><span>${product.imageCount} img.</span>` : ""}</td>
-      <td data-label="Acciones"><div class="product-row-actions"><a class="ghost-button row-button product-label-button" href="./product-location-label.html?product=${product.id}" target="_blank" rel="noopener" title="Imprimir etiqueta de dep&oacute;sito">${adminIconSvg("tags")}Etiqueta</a><button class="ghost-button row-button toolbar-create-button" type="button" data-edit-product="${product.id}">Editar</button></div></td>
+      <td data-label="Acciones"><div class="product-row-actions"><a class="ghost-button row-button product-label-button" href="./product-location-label.html?product=${product.id}" target="_blank" rel="noopener" title="Imprimir etiqueta de dep&oacute;sito">${adminIconSvg("tags")}Dep&oacute;sito</a><a class="ghost-button row-button product-label-button" href="./product-box-label.html?product=${product.id}" target="_blank" rel="noopener" title="Imprimir etiqueta de caja">${adminIconSvg("package")}Caja</a><button class="ghost-button row-button toolbar-create-button" type="button" data-edit-product="${product.id}">Editar</button></div></td>
     </tr>
   `).join("") : `<tr><td class="admin-empty-cell" colspan="6">No hay productos para este filtro.</td></tr>`;
   adminEls.productsTableBody.querySelectorAll("[data-edit-product]").forEach((button) => button.addEventListener("click", editProduct));
@@ -1733,6 +1733,9 @@ function editProduct(event) {
   productField("active").checked = product.active;
   productField("imageFilename").value = product.imageFilename || "";
   productField("warehouseLocation").value = product.warehouseLocation || "";
+  productField("unitWeightGrams").value = product.unitWeightGrams || "";
+  productField("unitsPerBox").value = product.unitsPerBox || "";
+  productField("boxDescription").value = product.boxDescription || "";
   productField("material").value = product.material || "";
   productField("color").value = product.color || "";
   productField("measure").value = product.measure || "";
@@ -1777,6 +1780,9 @@ function resetProductForm() {
   productField("familyDescription").value = "";
   productField("webSortOrder").value = 0;
   productField("warehouseLocation").value = "";
+  productField("unitWeightGrams").value = "";
+  productField("unitsPerBox").value = "";
+  productField("boxDescription").value = "";
   productField("priceEffectiveFrom").value = new Date().toISOString().slice(0, 10);
   productField("promotionPercent").value = "";
   productField("promotionLabel").value = "";
@@ -1810,6 +1816,9 @@ async function saveProduct(event) {
     active: productField("active").checked,
     imageFilename: values.imageFilename,
     warehouseLocation: values.warehouseLocation,
+    unitWeightGrams: values.unitWeightGrams,
+    unitsPerBox: values.unitsPerBox,
+    boxDescription: values.boxDescription,
     material: values.material,
     color: values.color,
     measure: values.measure,

@@ -209,6 +209,7 @@ export function listAdminProducts(db, filters = {}) {
     SELECT p.id, p.km_code, p.ean13, p.name, p.slug, p.subfamily, p.material,
            p.color, p.measure, p.cut_level, p.attachment_system,
            p.compatible_machine, p.recommended_use, p.technical_description, p.warehouse_location,
+           p.unit_weight_grams, p.units_per_box, p.box_description,
            p.image_filename, p.base_price_cents, p.promotion_bps, p.promotion_label,
            p.promotion_starts_at, p.promotion_ends_at, p.promotion_active,
            p.currency, p.price_effective_from,
@@ -262,6 +263,32 @@ export function getAdminProductLocationLabel(db, productId) {
     familyName: row.family_name || "",
     warehouseLocation: row.warehouse_location || "",
     images: listProductImages(db, id).slice(0, 2).map(({ url, altText }) => ({ url, altText }))
+  };
+}
+
+export function getAdminProductBoxLabel(db, productId) {
+  const id = Number(productId);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ValidationError("productId is invalid");
+  const row = db.prepare(`
+    SELECT p.id, p.km_code, p.ean13, p.name, p.measure,
+           p.unit_weight_grams, p.units_per_box, p.box_description,
+           f.name AS family_name
+    FROM products p
+    JOIN product_families f ON f.id = p.family_id
+    WHERE p.id = ?
+  `).get(id);
+  if (!row) throw new NotFoundError("Product not found");
+  return {
+    productId: row.id,
+    kmCode: row.km_code,
+    ean13: row.ean13 || "",
+    name: row.name,
+    measure: row.measure || "",
+    familyName: row.family_name || "",
+    unitWeightGrams: Number(row.unit_weight_grams || 0),
+    unitsPerBox: Number(row.units_per_box || 0),
+    boxDescription: row.box_description || "",
+    netWeightGrams: Number(row.unit_weight_grams || 0) * Number(row.units_per_box || 0)
   };
 }
 
@@ -378,7 +405,8 @@ export function upsertProduct(db, input) {
   }
   const kmCode = requiredText(input.kmCode, "kmCode", { max: 30 }).toUpperCase();
   const existingProduct = db.prepare(`
-    SELECT promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active
+    SELECT promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active,
+           unit_weight_grams, units_per_box, box_description
     FROM products WHERE km_code = ?
   `).get(kmCode);
   const hasPromotionInput = ["promotionBps", "promotionLabel", "promotionStartsAt", "promotionEndsAt", "promotionActive"]
@@ -402,16 +430,26 @@ export function upsertProduct(db, input) {
   if (!/^\d{13}$/.test(ean13)) throw new ValidationError("ean13 must contain exactly 13 digits");
   const name = requiredText(input.name, "name");
   const slug = slugify(input.slug || `${kmCode}-${name}`);
+  const unitWeightGrams = Object.hasOwn(input, "unitWeightGrams")
+    ? nonNegativeNumber(input.unitWeightGrams, "unitWeightGrams")
+    : Number(existingProduct?.unit_weight_grams || 0);
+  const unitsPerBox = Object.hasOwn(input, "unitsPerBox")
+    ? nonNegativeInteger(input.unitsPerBox, "unitsPerBox")
+    : Number(existingProduct?.units_per_box || 0);
+  const boxDescription = Object.hasOwn(input, "boxDescription")
+    ? optionalText(input.boxDescription, "boxDescription", { max: 120 })
+    : existingProduct?.box_description || "";
 
   return db.prepare(`
     INSERT INTO products (
       km_code, ean13, name, slug, family_id, subfamily, material, color, measure,
       cut_level, attachment_system, compatible_machine, recommended_use,
-      technical_description, warehouse_location, image_filename, base_price_cents,
+      technical_description, warehouse_location, unit_weight_grams, units_per_box, box_description,
+      image_filename, base_price_cents,
       promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active,
       price_effective_from,
       active, web_sort_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(km_code) DO UPDATE SET
       ean13 = excluded.ean13, name = excluded.name, slug = excluded.slug,
       family_id = excluded.family_id, subfamily = excluded.subfamily,
@@ -421,6 +459,9 @@ export function upsertProduct(db, input) {
       recommended_use = excluded.recommended_use,
       technical_description = excluded.technical_description,
       warehouse_location = excluded.warehouse_location,
+      unit_weight_grams = excluded.unit_weight_grams,
+      units_per_box = excluded.units_per_box,
+      box_description = excluded.box_description,
       image_filename = excluded.image_filename,
       base_price_cents = excluded.base_price_cents,
       promotion_bps = excluded.promotion_bps,
@@ -442,6 +483,9 @@ export function upsertProduct(db, input) {
     optionalText(input.recommendedUse, "recommendedUse"),
     optionalText(input.technicalDescription, "technicalDescription"),
     optionalText(input.warehouseLocation, "warehouseLocation", { max: 80 }),
+    unitWeightGrams,
+    unitsPerBox,
+    boxDescription,
     optionalText(input.imageFilename, "imageFilename") || null,
     input.basePriceCents,
     promotionBps,
@@ -452,6 +496,24 @@ export function upsertProduct(db, input) {
     requiredText(input.priceEffectiveFrom, "priceEffectiveFrom", { max: 30 }),
     input.active === false ? 0 : 1, Number.isInteger(input.webSortOrder) ? input.webSortOrder : 0
   );
+}
+
+function nonNegativeNumber(value, field) {
+  if (value === "" || value === null || value === undefined) return 0;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 100_000_000) {
+    throw new ValidationError(`${field} must be a non-negative number`);
+  }
+  return Math.round(number * 1000) / 1000;
+}
+
+function nonNegativeInteger(value, field) {
+  if (value === "" || value === null || value === undefined) return 0;
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < 0 || number > 1_000_000) {
+    throw new ValidationError(`${field} must be a non-negative integer`);
+  }
+  return number;
 }
 
 function safeInputBasisPoints(value, field) {
@@ -497,6 +559,9 @@ function adminProduct(row) {
     recommendedUse: row.recommended_use,
     technicalDescription: row.technical_description,
     warehouseLocation: row.warehouse_location || "",
+    unitWeightGrams: Number(row.unit_weight_grams || 0),
+    unitsPerBox: Number(row.units_per_box || 0),
+    boxDescription: row.box_description || "",
     imageFilename: row.image_filename,
     primaryImageUrl: row.primary_image_filename ? `/media/products/${row.primary_image_filename}` : "",
     imageCount: row.image_count || 0,
