@@ -121,14 +121,7 @@ async function init() {
   await Promise.all([loadSession(), loadSettings(), loadOfficialDistributors()]);
   await loadProducts();
   if ("serviceWorker" in navigator) {
-    let reloadingForUpdate = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (reloadingForUpdate) return;
-      reloadingForUpdate = true;
-      window.location.reload();
-    });
     navigator.serviceWorker.register("./service-worker.js", { updateViaCache: "none" })
-      .then((registration) => registration.update())
       .catch(() => {});
   }
   if (isApprovedCustomer()) await Promise.all([loadCustomerOrders(), loadShippingAddresses(), loadPushState()]);

@@ -157,7 +157,7 @@
     try {
       const config = await fetchJson("/api/notifications/push/config");
       if (!config.enabled) return;
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getServiceWorkerRegistration(3_000);
       const subscription = await registration.pushManager.getSubscription();
       state.pushArea.hidden = false;
       renderPushState(Boolean(subscription || config.subscribed));
@@ -174,7 +174,7 @@
       if (!config.enabled || !config.publicKey) throw new Error("Los avisos todavía no están disponibles.");
       const permission = await Notification.requestPermission();
       if (permission !== "granted") throw new Error("El permiso quedó desactivado en este teléfono.");
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getServiceWorkerRegistration(10_000);
       let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
@@ -205,6 +205,22 @@
 
   function supportsPush() {
     return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  }
+
+  async function getServiceWorkerRegistration(timeoutMs) {
+    const existing = await navigator.serviceWorker.getRegistration("/");
+    if (existing) return existing;
+    let timer;
+    try {
+      return await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => {
+          timer = window.setTimeout(() => reject(new Error("El servicio de avisos todavía se está iniciando.")), timeoutMs);
+        })
+      ]);
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
 
   function isInternalPortal() {
