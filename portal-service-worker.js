@@ -1,4 +1,4 @@
-const PORTAL_CACHE = "km-portal-apps-v6";
+const PORTAL_CACHE = "km-portal-apps-v7";
 
 function portalStartPage() {
   const host = self.location.hostname;
@@ -21,7 +21,10 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       keys.filter((key) => key.startsWith("km-portal-apps-") && key !== PORTAL_CACHE).map((key) => caches.delete(key))
-    )).then(() => self.clients.claim())
+    )).then(() => self.clients.claim()).then(async () => {
+      const clients = await self.clients.matchAll({ type: "window" });
+      await Promise.all(clients.map((client) => client.navigate(client.url)));
+    })
   );
 });
 

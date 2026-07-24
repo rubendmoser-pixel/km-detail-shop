@@ -1401,8 +1401,18 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/" && String(request.headers.host || "").split(":")[0].toLowerCase() === "produccion.km-detail.com") {
         url.pathname = "/produccion.html";
       }
+      if (request.method === "GET" && url.pathname === "/actualizar-app-produccion") {
+        response.writeHead(200, {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "clear-site-data": "\"cache\", \"storage\"",
+          ...SECURITY_HEADERS
+        });
+        response.end("<!doctype html><html lang=\"es-AR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"refresh\" content=\"1;url=/produccion.html?version=13\"><title>Actualizando KM Producción</title></head><body style=\"margin:0;background:#0b0d0f;color:#fff;font-family:system-ui;display:grid;min-height:100vh;place-items:center;text-align:center\"><main><h1>Actualizando KM Producción</h1><p>La aplicación se abrirá nuevamente en un momento.</p></main></body></html>");
+        return;
+      }
       let staticHeaders = {};
-      if (request.method === "GET" && /^(\/(?:admin|vendedor|logistica|produccion)\.html|\/(?:admin-production|vendedor|logistica|produccion)\.(?:js|css)|\/pwa-register\.js|\/portal-service-worker\.js)$/.test(url.pathname)) {
+      if (request.method === "GET" && /^(\/(?:admin|vendedor|logistica|produccion)\.html|\/(?:admin-production|vendedor|logistica|produccion)\.(?:js|css)|\/pwa-register\.js|\/portal-service-worker\.js|\/manifest-(?:admin|vendedor|logistica|produccion)\.webmanifest)$/.test(url.pathname)) {
         staticHeaders = { "cache-control": "no-store" };
       }
       if (request.method === "GET" && isServerRenderedSeoPath(url.pathname)) {
