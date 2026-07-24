@@ -7,17 +7,19 @@ body { margin: 0; color: #08090b; font-family: Arial, Helvetica, sans-serif; }
 .screen-actions button { cursor: pointer; color: #090a0c; background: linear-gradient(135deg, #beb5ff, #7e72ef); border-color: #d4ceff; }
 .screen-actions button:disabled { cursor: not-allowed; opacity: .45; }
 .screen-actions span { font-size: 14px; font-weight: 700; }
-.box-sheet { display: grid; grid-template-rows: 25mm 66mm 42mm 70mm auto; gap: 6mm; width: 210mm; height: 297mm; margin: 18px auto; overflow: hidden; padding: 12mm; background: #fff; box-shadow: 0 20px 60px rgba(0, 0, 0, .18); page-break-inside: avoid; break-inside: avoid; }
-.commercial-header { display: flex; align-items: center; justify-content: space-between; gap: 10mm; padding-bottom: 5mm; border-bottom: 1.2mm solid #08090b; }
-.commercial-header img { display: block; width: 48mm; height: 18mm; object-fit: contain; object-position: left center; }
-.commercial-header div { display: grid; gap: 1.5mm; text-align: right; }
-.commercial-header span, .box-code-block span, .product-detail span, .commercial-data span, .ean-detail span { color: #4f5660; font-size: 8.5pt; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
-.commercial-header strong { font-size: 15pt; letter-spacing: .04em; }
-.box-code-block { display: grid; place-items: center; align-content: center; gap: 5mm; padding: 5mm; text-align: center; border: 1.8mm solid #08090b; }
-.box-code-block strong { max-width: 100%; overflow-wrap: anywhere; font-size: 67pt; line-height: .88; letter-spacing: .015em; }
+.box-sheet { display: grid; grid-template-rows: 23mm 78mm 48mm 60mm auto; gap: 5mm; width: 210mm; height: 297mm; margin: 18px auto; overflow: hidden; padding: 12mm; background: #fff; box-shadow: 0 20px 60px rgba(0, 0, 0, .18); page-break-inside: avoid; break-inside: avoid; }
+.commercial-header { display: grid; place-items: center; padding-bottom: 4mm; border-bottom: 1.2mm solid #08090b; }
+.commercial-header img { display: block; width: 54mm; height: 19mm; object-fit: contain; object-position: center; }
+.product-detail span, .commercial-data span, .ean-detail span { color: #4f5660; font-size: 8.5pt; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.box-code-block { display: grid; place-items: center; align-content: center; gap: 5mm; padding: 4mm 7mm; text-align: center; border: 1.8mm solid #08090b; }
+.box-code-block strong { max-width: 100%; overflow-wrap: anywhere; font-size: 53pt; line-height: .88; letter-spacing: .015em; }
+.barcode { width: 100%; background: #fff; }
+.barcode svg { display: block; width: 100%; height: 100%; }
+.box-barcode { height: 23mm; }
 .product-detail { display: grid; grid-template-columns: minmax(42mm,.65fr) minmax(0,1.8fr); align-items: stretch; border: .7mm solid #08090b; }
-.product-code { display: grid; place-items: center; align-content: center; gap: 2mm; padding: 4mm; border-right: .7mm solid #08090b; }
-.product-code strong { font-size: 29pt; line-height: 1; }
+.product-code { display: grid; place-items: center; align-content: center; gap: 1.5mm; padding: 3mm; border-right: .7mm solid #08090b; }
+.product-code strong { font-size: 25pt; line-height: 1; }
+.product-barcode { width: 90%; height: 10mm; }
 .product-name { display: grid; align-content: center; padding: 5mm; }
 .product-name h1 { margin: 0; font-size: 17pt; line-height: 1.1; text-transform: uppercase; }
 .product-name p { margin: 2mm 0 0; color: #555c65; font-size: 10pt; font-weight: 800; }
@@ -25,8 +27,10 @@ body { margin: 0; color: #08090b; font-family: Arial, Helvetica, sans-serif; }
 .commercial-data>div { display: grid; place-items: center; align-content: center; gap: 3mm; padding: 6mm; text-align: center; border: 1.2mm solid #08090b; }
 .commercial-data strong { font-size: 43pt; line-height: .9; }
 .commercial-data b { font-size: 14pt; letter-spacing: .12em; }
-.ean-detail { display: flex; align-items: center; justify-content: space-between; gap: 8mm; padding: 5mm 7mm; border-top: .6mm solid #08090b; border-bottom: .6mm solid #08090b; }
-.ean-detail strong { font-size: 22pt; letter-spacing: .08em; }
+.ean-detail { display: grid; grid-template-columns: minmax(46mm,.7fr) minmax(0,1.3fr); align-items: center; gap: 8mm; padding: 4mm 7mm; border-top: .6mm solid #08090b; border-bottom: .6mm solid #08090b; }
+.ean-detail>div:first-child { display: grid; gap: 2mm; }
+.ean-detail strong { font-size: 18pt; letter-spacing: .06em; }
+.ean-barcode { height: 19mm; }
 .warning { grid-column: 1 / -1; margin: 0; padding: 4mm; color: #9d1724; font-weight: 800; text-align: center; border: .5mm solid #9d1724; }
 .incomplete .box-code-block, .incomplete .commercial-data>div { border-color: #9d1724; }
 .error { max-width: 720px; margin: 60px auto; padding: 30px; background: #fff; box-shadow: 0 16px 45px rgba(0, 0, 0, .15); }
