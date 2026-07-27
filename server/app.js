@@ -84,6 +84,15 @@ import {
   upsertSalesRep
 } from "./services/sales-rep-service.js";
 import { createProspectSalesQuote, createSalesQuote, getSalesQuote, listProspectQuoteProducts, listSalesQuotesForSalesRep, markSalesQuoteConverted, markSalesQuoteShared } from "./services/sales-quote-service.js";
+import {
+  addSalesProspectActivity,
+  canSalesRepAccessProspects,
+  listAdminProspects,
+  listSalesProspects,
+  markProspectConverted,
+  markProspectQuoted,
+  updateSalesProspect
+} from "./services/prospect-service.js";
 import { deleteShippingAddress, listShippingAddresses, setDefaultShippingAddress, upsertShippingAddress } from "./services/shipping-address-service.js";
 import { SECURITY_HEADERS, SEO_SECURITY_HEADERS, analyticsSessionCookie, clearLogisticsSessionCookie, clearProductionSessionCookie, clearSalesRepSessionCookie, clearSessionCookie, logisticsSessionCookie, parseCookies, productionSessionCookie, readJson, salesRepSessionCookie, sendJson, serveProductImage, serveStatic, sessionCookie } from "./http.js";
 import {
@@ -476,11 +485,17 @@ export function createApp({
       }
       if (request.method === "GET" && url.pathname === "/api/sales/dashboard") {
         const salesRep = requireSalesRep(currentSalesRep);
-        return sendJson(response, 200, { salesRep, dashboard: getSalesRepPortalDashboard(db, salesRep.id) });
+        return sendJson(response, 200, {
+          salesRep,
+          dashboard: getSalesRepPortalDashboard(db, salesRep.id),
+          prospectAccess: canSalesRepAccessProspects(salesRep)
+        });
       }
       if (request.method === "POST" && url.pathname === "/api/sales/customer-requests") {
         const salesRep = requireSalesRep(currentSalesRep);
-        const result = await requestCommercialCustomer(db, salesRep, await readJson(request));
+        const body = await readJson(request);
+        const result = await requestCommercialCustomer(db, salesRep, body);
+        markProspectConverted(db, salesRep, body.prospectId, result.customer.id);
         emailService.queueCustomerRegistration(result.customer.id);
         notifyAdmins(db, {
           eventType: "customer_request_created",
@@ -493,6 +508,24 @@ export function createApp({
           dedupeKey: `customer-request-admin:${result.customer.id}`
         });
         return sendJson(response, 201, { ...result, message: "Solicitud enviada a KM." });
+      }
+      if (request.method === "GET" && url.pathname === "/api/sales/prospects") {
+        const salesRep = requireSalesRep(currentSalesRep);
+        return sendJson(response, 200, listSalesProspects(db, salesRep, {
+          search: url.searchParams.get("q"),
+          status: url.searchParams.get("status"),
+          city: url.searchParams.get("city")
+        }));
+      }
+      match = url.pathname.match(/^\/api\/sales\/prospects\/(\d+)$/);
+      if (request.method === "PATCH" && match) {
+        const salesRep = requireSalesRep(currentSalesRep);
+        return sendJson(response, 200, { prospect: updateSalesProspect(db, salesRep, Number(match[1]), await readJson(request)) });
+      }
+      match = url.pathname.match(/^\/api\/sales\/prospects\/(\d+)\/activities$/);
+      if (request.method === "POST" && match) {
+        const salesRep = requireSalesRep(currentSalesRep);
+        return sendJson(response, 201, { prospect: addSalesProspectActivity(db, salesRep, Number(match[1]), await readJson(request)) });
       }
       match = url.pathname.match(/^\/api\/sales\/customers\/(\d+)\/shipping-addresses$/);
       if (match && request.method === "GET") {
@@ -630,6 +663,7 @@ export function createApp({
         const body = await readJson(request);
         if (body.kind === "prospect") {
           const quote = createProspectSalesQuote(db, salesRep, body);
+          markProspectQuoted(db, salesRep, body.prospectId);
           return sendJson(response, 201, { quote, message: "Presupuesto para cliente potencial generado." });
         }
         const customer = getAssignedApprovedCustomerForSalesRep(db, salesRep.id, body.customerId);
@@ -963,6 +997,19 @@ export function createApp({
             status: url.searchParams.get("status") || "",
             search: url.searchParams.get("q") || ""
           })
+        });
+      }
+      if (request.method === "GET" && url.pathname === "/api/admin/prospects") {
+        return sendJson(response, 200, listAdminProspects(db, {
+          search: url.searchParams.get("q"),
+          status: url.searchParams.get("status"),
+          city: url.searchParams.get("city")
+        }));
+      }
+      match = url.pathname.match(/^\/api\/admin\/prospects\/(\d+)$/);
+      if (request.method === "PATCH" && match) {
+        return sendJson(response, 200, {
+          prospect: updateSalesProspect(db, currentUser, Number(match[1]), await readJson(request), "admin")
         });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/customers") {

@@ -7,6 +7,14 @@ const state = {
   orderDetails: {},
   customerAddresses: {},
   customerPriceLists: {},
+  prospectAccess: false,
+  prospects: [],
+  prospectSummary: {},
+  prospectCities: [],
+  prospectSearch: "",
+  prospectStatus: "",
+  prospectCityFilter: "",
+  currentProspectId: null,
   openCustomerAddressesId: null,
   openCustomerPriceListsId: null,
   editingCustomerAddressId: null,
@@ -59,6 +67,14 @@ const nodes = {
   stats: document.getElementById("sellerStats"),
   priceLists: document.getElementById("sellerPriceLists"),
   refreshPriceLists: document.getElementById("refreshSellerPriceLists"),
+  prospectsTab: document.getElementById("sellerProspectsTab"),
+  prospects: document.getElementById("sellerProspectList"),
+  prospectStats: document.getElementById("sellerProspectStats"),
+  prospectSearch: document.getElementById("sellerProspectSearch"),
+  prospectStatus: document.getElementById("sellerProspectStatus"),
+  prospectCityFilter: document.getElementById("sellerProspectCity"),
+  prospectMessage: document.getElementById("sellerProspectMessage"),
+  refreshProspects: document.getElementById("refreshSellerProspects"),
   summaryDateFrom: document.getElementById("sellerSummaryDateFrom"),
   summaryDateTo: document.getElementById("sellerSummaryDateTo"),
   customers: document.getElementById("sellerCustomers"),
@@ -572,6 +588,102 @@ function renderSellerView() {
   nodes.views?.forEach((view) => {
     view.classList.toggle("active", view.dataset.sellerView === state.activeView);
   });
+}
+
+const PROSPECT_STATUS_LABELS = {
+  uncontacted: "Sin contactar",
+  contacted: "Contactado",
+  interested: "Interesado",
+  quote_sent: "Presupuesto enviado",
+  follow_up: "Seguimiento",
+  converted: "Convertido",
+  not_interested: "No interesado",
+  invalid: "Datos incorrectos / cerrado"
+};
+
+function renderProspects() {
+  if (!nodes.prospects) return;
+  const summary = state.prospectSummary || {};
+  if (nodes.prospectStats) {
+    nodes.prospectStats.innerHTML = `
+      <article><small>Total</small><strong>${Number(summary.total || 0)}</strong></article>
+      <article><small>Sin contactar</small><strong>${Number(summary.uncontacted || 0)}</strong></article>
+      <article><small>Interesados</small><strong>${Number(summary.interested || 0)}</strong></article>
+      <article><small>Seguimientos vencidos</small><strong>${Number(summary.pendingFollowUps || 0)}</strong></article>
+      <article><small>Convertidos</small><strong>${Number(summary.converted || 0)}</strong></article>
+    `;
+  }
+  if (nodes.prospectCityFilter) {
+    const selected = state.prospectCityFilter;
+    nodes.prospectCityFilter.innerHTML = `<option value="">Todas las localidades</option>${state.prospectCities
+      .map((city) => `<option value="${escapeHtml(city)}">${escapeHtml(city)}</option>`).join("")}`;
+    nodes.prospectCityFilter.value = selected;
+  }
+  if (!state.prospects.length) {
+    nodes.prospects.innerHTML = `<div class="empty-state">No hay prospectos para los filtros elegidos.</div>`;
+    return;
+  }
+  nodes.prospects.innerHTML = state.prospects.map((prospect) => {
+    const phone = String(prospect.whatsapp || prospect.phone || "").replace(/\D/g, "");
+    const due = prospect.nextFollowUpDate && prospect.nextFollowUpDate <= new Date().toISOString().slice(0, 10);
+    return `
+      <article class="seller-prospect-card priority-${escapeHtml(prospect.priority)}">
+        <div class="seller-prospect-main">
+          <div>
+            <div class="seller-prospect-title">
+              <strong>${escapeHtml(prospect.businessName)}</strong>
+              ${badge(PROSPECT_STATUS_LABELS[prospect.status] || prospect.status, prospect.status === "converted" ? "green" : prospect.priority === "high" ? "gold" : "blue")}
+            </div>
+            <p>${iconSvg("map-pin")}${escapeHtml([prospect.city, prospect.province].filter(Boolean).join(", ") || "Sin localidad")} · ${escapeHtml(prospect.address || "Sin dirección")}</p>
+            <small>${escapeHtml(prospect.category || "Pinturería")} · Perfil automotor: ${escapeHtml(prospect.automotiveProfile || "Por verificar")} · Confianza ${escapeHtml(prospect.confidence || "media")}</small>
+          </div>
+          <div class="seller-prospect-contact">
+            <strong>${escapeHtml(prospect.phone || "Sin teléfono")}</strong>
+            ${phone ? `<a href="https://wa.me/${encodeURIComponent(phone)}" target="_blank" rel="noopener">${iconSvg("message-circle")}WhatsApp</a>` : ""}
+          </div>
+        </div>
+        <div class="seller-prospect-followup ${due ? "is-due" : ""}">
+          <span>Próximo seguimiento: <strong>${prospect.nextFollowUpDate ? escapeHtml(shortDate(prospect.nextFollowUpDate)) : "sin fecha"}</strong></span>
+          <span>${escapeHtml(prospect.lastActivityNote || prospect.sourceNotes || "Sin contacto registrado")}</span>
+        </div>
+        <div class="seller-prospect-actions">
+          <button type="button" class="ghost-button compact button-info" data-prospect-contact="${prospect.id}">${iconSvg("message-circle")}Registrar contacto</button>
+          <button type="button" class="ghost-button compact" data-prospect-quote="${prospect.id}">${iconSvg("file-text")}Presupuestar</button>
+          <button type="button" class="ghost-button compact" data-prospect-register="${prospect.id}">${iconSvg("user-plus")}Solicitar alta</button>
+        </div>
+        <form class="seller-prospect-contact-form" data-prospect-contact-form="${prospect.id}" hidden>
+          <select name="channel"><option value="whatsapp">WhatsApp</option><option value="phone">Teléfono</option><option value="visit">Visita</option><option value="email">Email</option></select>
+          <select name="status">
+            <option value="contacted">Contactado</option><option value="interested">Interesado</option>
+            <option value="follow_up">Seguimiento</option><option value="not_interested">No interesado</option>
+            <option value="invalid">Datos incorrectos / cerrado</option>
+          </select>
+          <input name="nextFollowUpDate" type="date" aria-label="Próximo seguimiento" />
+          <textarea name="notes" required placeholder="Resultado breve del contacto"></textarea>
+          <button class="primary-button compact" type="submit">${iconSvg("check")}Guardar contacto</button>
+        </form>
+      </article>
+    `;
+  }).join("");
+}
+
+async function loadProspects() {
+  if (!state.prospectAccess) return;
+  if (nodes.prospectMessage) nodes.prospectMessage.textContent = "Actualizando base comercial...";
+  try {
+    const params = new URLSearchParams();
+    if (state.prospectSearch) params.set("q", state.prospectSearch);
+    if (state.prospectStatus) params.set("status", state.prospectStatus);
+    if (state.prospectCityFilter) params.set("city", state.prospectCityFilter);
+    const payload = await sellerApi(`/api/sales/prospects?${params}`);
+    state.prospects = payload.prospects || [];
+    state.prospectSummary = payload.summary || {};
+    state.prospectCities = payload.cities || [];
+    renderProspects();
+    if (nodes.prospectMessage) nodes.prospectMessage.textContent = `${state.prospects.length} prospectos visibles.`;
+  } catch (error) {
+    if (nodes.prospectMessage) nodes.prospectMessage.textContent = error.message || "No se pudo cargar la base comercial.";
+  }
 }
 
 function priceListStatus(batch) {
@@ -1317,6 +1429,9 @@ function renderOrderItems() {
 function renderDashboard(payload) {
   state.salesRep = payload.salesRep;
   state.dashboard = payload.dashboard;
+  state.prospectAccess = Boolean(payload.prospectAccess);
+  nodes.prospectsTab?.classList.toggle("hidden", !state.prospectAccess);
+  if (!state.prospectAccess && state.activeView === "prospects") state.activeView = "summary";
   if (nodes.prospectDiscount) nodes.prospectDiscount.max = String(maximumProspectDiscountPercent());
   if (!state.summaryDateFrom && state.dashboard?.period?.from) state.summaryDateFrom = dateKey(state.dashboard.period.from);
   if (!state.summaryDateTo && state.dashboard?.period?.to) state.summaryDateTo = dateKey(state.dashboard.period.to);
@@ -1341,6 +1456,7 @@ function renderDashboard(payload) {
   }
   loadQuotes();
   if (state.activeView === "price-lists") loadPriceLists();
+  if (state.activeView === "prospects") loadProspects();
 }
 
 function showLogin(message = "") {
@@ -1495,6 +1611,7 @@ nodes.customerRequestForm?.addEventListener("submit", async (event) => {
   try {
     const form = new FormData(event.currentTarget);
     const body = Object.fromEntries(form.entries());
+    body.prospectId = state.currentProspectId || undefined;
     const sameShipping = nodes.shippingSameAsCommercial?.checked;
     body.shipping = sameShipping ? {
       label: "Principal",
@@ -1522,6 +1639,7 @@ nodes.customerRequestForm?.addEventListener("submit", async (event) => {
     const payload = await sellerApi("/api/sales/customer-requests", { method: "POST", body });
     nodes.customerRequestMessage.textContent = payload.message || "Solicitud enviada a KM.";
     event.currentTarget.reset();
+    state.currentProspectId = null;
     syncCommercialShippingFields();
     await loadDashboard();
   } catch (error) {
@@ -1620,7 +1738,90 @@ nodes.viewButtons?.forEach((button) => {
     nodes.orderMessage.textContent = "";
     renderSellerView();
     if (state.activeView === "price-lists") loadPriceLists();
+    if (state.activeView === "prospects") loadProspects();
   });
+});
+
+nodes.refreshProspects?.addEventListener("click", loadProspects);
+nodes.prospectSearch?.addEventListener("input", (event) => {
+  state.prospectSearch = event.currentTarget.value;
+  clearTimeout(nodes.prospectSearch._prospectTimer);
+  nodes.prospectSearch._prospectTimer = setTimeout(loadProspects, 250);
+});
+nodes.prospectStatus?.addEventListener("change", (event) => {
+  state.prospectStatus = event.currentTarget.value;
+  loadProspects();
+});
+nodes.prospectCityFilter?.addEventListener("change", (event) => {
+  state.prospectCityFilter = event.currentTarget.value;
+  loadProspects();
+});
+
+nodes.prospects?.addEventListener("click", (event) => {
+  const contactButton = event.target.closest("[data-prospect-contact]");
+  if (contactButton) {
+    const form = nodes.prospects.querySelector(`[data-prospect-contact-form="${contactButton.dataset.prospectContact}"]`);
+    if (form) form.hidden = !form.hidden;
+    return;
+  }
+  const prospectId = Number(event.target.closest("[data-prospect-quote]")?.dataset.prospectQuote
+    || event.target.closest("[data-prospect-register]")?.dataset.prospectRegister || 0);
+  if (!prospectId) return;
+  const prospect = state.prospects.find((item) => item.id === prospectId);
+  if (!prospect) return;
+  state.currentProspectId = prospect.id;
+  if (event.target.closest("[data-prospect-quote]")) {
+    state.mode = "quote";
+    state.quoteAudience = "prospect";
+    state.quoteStep = 1;
+    nodes.prospectBusinessName.value = prospect.businessName || "";
+    nodes.prospectContact.value = prospect.contactPerson || prospect.businessName || "";
+    nodes.prospectEmail.value = prospect.email || "";
+    nodes.prospectWhatsapp.value = prospect.whatsapp || prospect.phone || "";
+    nodes.prospectPhone.value = prospect.phone || "";
+    nodes.prospectCity.value = prospect.city || "";
+    nodes.prospectProvince.value = prospect.province || "";
+    state.activeView = "builder";
+    renderOrderBuilder();
+    renderSellerView();
+    nodes.prospectBusinessName.focus();
+    return;
+  }
+  const form = nodes.customerRequestForm;
+  form.elements.businessName.value = prospect.businessName || "";
+  form.elements.contactPerson.value = prospect.contactPerson || prospect.businessName || "";
+  form.elements.email.value = prospect.email || "";
+  form.elements.phone.value = prospect.phone || "";
+  form.elements.whatsapp.value = prospect.whatsapp || prospect.phone || "";
+  form.elements.address.value = prospect.address || "";
+  form.elements.city.value = prospect.city || "";
+  form.elements.province.value = prospect.province || "";
+  form.elements.industry.value = prospect.category || "Pinturería";
+  form.elements.customerType.value = "Pintureria";
+  form.elements.notes.value = `Origen: base de prospectos ${prospect.sourceId || ""}.`;
+  state.activeView = "request";
+  renderSellerView();
+  if (nodes.customerRequestPanel) nodes.customerRequestPanel.open = true;
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+nodes.prospects?.addEventListener("submit", async (event) => {
+  const form = event.target.closest("[data-prospect-contact-form]");
+  if (!form) return;
+  event.preventDefault();
+  const prospectId = Number(form.dataset.prospectContactForm);
+  const button = form.querySelector("button[type='submit']");
+  button.disabled = true;
+  try {
+    const body = Object.fromEntries(new FormData(form).entries());
+    await sellerApi(`/api/sales/prospects/${prospectId}/activities`, { method: "POST", body });
+    if (nodes.prospectMessage) nodes.prospectMessage.textContent = "Contacto registrado.";
+    await loadProspects();
+  } catch (error) {
+    if (nodes.prospectMessage) nodes.prospectMessage.textContent = error.message || "No se pudo guardar el contacto.";
+  } finally {
+    button.disabled = false;
+  }
 });
 
 nodes.refreshPriceLists?.addEventListener("click", loadPriceLists);
@@ -2084,6 +2285,7 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
       method: "POST",
       body: {
         kind: isProspectQuote ? "prospect" : "registered",
+        prospectId: isProspectQuote ? state.currentProspectId || undefined : undefined,
         customerId: isProspectQuote ? undefined : Number(state.order.customerId),
         shippingAddressId: isQuote ? undefined : Number(state.order.shippingAddressId),
         businessName: isProspectQuote ? nodes.prospectBusinessName.value : undefined,
@@ -2104,6 +2306,7 @@ nodes.orderForm?.addEventListener("submit", async (event) => {
     });
     state.order.items = [];
     if (isQuote) state.quoteStep = 1;
+    if (isProspectQuote) state.currentProspectId = null;
     nodes.orderMessage.textContent = isQuote
       ? `Presupuesto ${payload.quote?.quoteNumber || ""} generado.`
       : `Pedido ${payload.order?.orderNumber || ""} enviado a KM.`;

@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { hashPassword } from "./security.js";
 
-const SCHEMA_VERSION = 25;
+const SCHEMA_VERSION = 26;
 
 export async function openDatabase({ databasePath, adminEmail = "", adminPassword = "", whatsappNumber = "" }) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -11,6 +12,7 @@ export async function openDatabase({ databasePath, adminEmail = "", adminPasswor
   db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
   migrate(db);
   seedSettings(db, whatsappNumber);
+  seedSalesProspects(db);
   if (adminEmail && adminPassword) await ensureAdmin(db, adminEmail, adminPassword);
   return db;
 }
@@ -733,6 +735,49 @@ function migrate(db) {
       subtotal_net_cents INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS sales_prospects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id TEXT UNIQUE,
+      assigned_sales_rep_id INTEGER REFERENCES sales_reps(id) ON DELETE SET NULL,
+      business_name TEXT NOT NULL,
+      contact_person TEXT NOT NULL DEFAULT '',
+      email TEXT NOT NULL DEFAULT '',
+      phone TEXT NOT NULL DEFAULT '',
+      whatsapp TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT '',
+      province TEXT NOT NULL DEFAULT '',
+      postal_code TEXT NOT NULL DEFAULT '',
+      category TEXT NOT NULL DEFAULT '',
+      confidence TEXT NOT NULL DEFAULT '',
+      automotive_profile TEXT NOT NULL DEFAULT '',
+      polishing_products TEXT NOT NULL DEFAULT '',
+      rating REAL,
+      review_count INTEGER NOT NULL DEFAULT 0,
+      priority TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN ('high', 'medium', 'normal')),
+      status TEXT NOT NULL DEFAULT 'uncontacted' CHECK (status IN ('uncontacted', 'contacted', 'interested', 'quote_sent', 'follow_up', 'converted', 'not_interested', 'invalid')),
+      last_contact_at TEXT,
+      next_follow_up_date TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      source_notes TEXT NOT NULL DEFAULT '',
+      converted_customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sales_prospect_activities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      prospect_id INTEGER NOT NULL REFERENCES sales_prospects(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL DEFAULT 'contact',
+      channel TEXT NOT NULL DEFAULT '',
+      outcome TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      next_follow_up_date TEXT NOT NULL DEFAULT '',
+      created_by_role TEXT NOT NULL DEFAULT 'sales_rep',
+      created_by_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS order_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -910,6 +955,9 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_sales_quotes_customer_created ON sales_quotes(customer_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_sales_quote_items_quote ON sales_quote_items(quote_id);
     CREATE INDEX IF NOT EXISTS idx_sales_prospect_quotes_rep_created ON sales_prospect_quotes(sales_rep_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_sales_prospects_rep_status ON sales_prospects(assigned_sales_rep_id, status, next_follow_up_date);
+    CREATE INDEX IF NOT EXISTS idx_sales_prospects_search ON sales_prospects(city, business_name);
+    CREATE INDEX IF NOT EXISTS idx_sales_prospect_activities_prospect ON sales_prospect_activities(prospect_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_sales_prospect_quote_items_quote ON sales_prospect_quote_items(quote_id);
     CREATE INDEX IF NOT EXISTS idx_sales_reps_status ON sales_reps(status, name);
     CREATE INDEX IF NOT EXISTS idx_sales_rep_sessions_token ON sales_rep_sessions(token_hash, expires_at);
@@ -1035,6 +1083,7 @@ function migrate(db) {
   ensureColumn(db, "sales_reps", "password_hash", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "sales_quotes", "email_sent_at", "TEXT");
   ensureColumn(db, "sales_quotes", "whatsapp_sent_at", "TEXT");
+  ensureColumn(db, "sales_prospect_quotes", "prospect_id", "INTEGER REFERENCES sales_prospects(id) ON DELETE SET NULL");
   ensureColumn(db, "inventory_movements", "balance_after", "REAL");
   ensureColumn(db, "inventory_items", "category", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "inventory_items", "item_kind", "TEXT NOT NULL DEFAULT 'raw_material'");
@@ -1174,6 +1223,49 @@ function seedSettings(db, whatsappNumber) {
   for (let weekday = 1; weekday <= 7; weekday += 1) insertProductionDay.run(weekday, weekday <= 5 ? 1 : 0, weekday <= 5 ? 8 : 0);
   db.prepare("INSERT OR IGNORE INTO bank_settings (id) VALUES (1)").run();
   seedPaymentAccountsFromBankSettings(db);
+}
+
+function seedSalesProspects(db) {
+  const sourcePath = path.join(path.dirname(fileURLToPath(import.meta.url)), "data", "santa-fe-prospects.json");
+  if (!fs.existsSync(sourcePath)) return;
+  let rows = [];
+  try {
+    rows = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
+  } catch {
+    return;
+  }
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO sales_prospects (
+      source_id, business_name, phone, whatsapp, address, city, province, category,
+      confidence, automotive_profile, polishing_products, rating, review_count,
+      priority, source_notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  for (const row of rows) {
+    const profile = String(row.automotiveProfile || "").toLowerCase();
+    const category = String(row.category || "").toLowerCase();
+    const priority = profile === "sí" || profile === "si" || profile === "probable"
+      || /automotor|repintado|laboratorio/.test(category)
+      ? "high"
+      : (String(row.confidence || "").toLowerCase() === "alta" && row.phone ? "medium" : "normal");
+    insert.run(
+      row.sourceId || null,
+      row.businessName || "Prospecto sin nombre",
+      row.phone || "",
+      row.phone || "",
+      row.address || "",
+      row.city || "",
+      row.province || "Santa Fe",
+      row.category || "",
+      row.confidence || "",
+      row.automotiveProfile || "",
+      row.polishingProducts || "",
+      row.rating ?? null,
+      Number(row.reviewCount || 0),
+      priority,
+      row.sourceNotes || ""
+    );
+  }
 }
 
 function seedPaymentAccountsFromBankSettings(db) {

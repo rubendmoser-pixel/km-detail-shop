@@ -378,6 +378,119 @@ textarea:focus {
   display: block;
 }
 
+.seller-prospect-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.seller-prospect-stats article {
+  border: 1px solid #343943;
+  border-radius: 12px;
+  background: #181b20;
+  padding: 14px 16px;
+}
+
+.seller-prospect-stats small {
+  display: block;
+  color: #aeb7c8;
+}
+
+.seller-prospect-stats strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 1.65rem;
+}
+
+.seller-prospect-filters {
+  display: grid;
+  grid-template-columns: minmax(260px, 2fr) minmax(190px, 1fr) minmax(190px, 1fr);
+  gap: 12px;
+}
+
+.seller-prospect-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.seller-prospect-card {
+  border: 1px solid #343943;
+  border-left: 5px solid #687083;
+  border-radius: 14px;
+  background: #15181d;
+  padding: 18px;
+}
+
+.seller-prospect-card.priority-high { border-left-color: #f1c94e; }
+.seller-prospect-card.priority-medium { border-left-color: #79c5ff; }
+
+.seller-prospect-main,
+.seller-prospect-title,
+.seller-prospect-followup,
+.seller-prospect-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.seller-prospect-main {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.seller-prospect-title strong { font-size: 1.2rem; }
+.seller-prospect-main p { margin: 7px 0; }
+.seller-prospect-main small { color: #aeb7c8; }
+.seller-prospect-contact { text-align: right; }
+.seller-prospect-contact a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+  color: #79e5a2;
+}
+
+.seller-prospect-followup {
+  justify-content: space-between;
+  margin: 15px 0;
+  border-radius: 9px;
+  background: #20242b;
+  padding: 10px 12px;
+  color: #bac3d3;
+}
+
+.seller-prospect-followup.is-due {
+  background: #352c16;
+  color: #ffe186;
+}
+
+.seller-prospect-actions { flex-wrap: wrap; }
+
+.seller-prospect-contact-form {
+  display: grid;
+  grid-template-columns: 150px 190px 170px minmax(260px, 1fr) auto;
+  gap: 10px;
+  margin-top: 14px;
+  border-top: 1px solid #343943;
+  padding-top: 14px;
+}
+
+.seller-prospect-contact-form[hidden] { display: none; }
+.seller-prospect-contact-form textarea { min-height: 48px; }
+
+@media (max-width: 900px) {
+  .seller-prospect-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .seller-prospect-filters,
+  .seller-prospect-contact-form { grid-template-columns: 1fr; }
+  .seller-prospect-main,
+  .seller-prospect-followup { align-items: flex-start; flex-direction: column; }
+  .seller-prospect-contact { text-align: left; }
+  .seller-prospect-contact a { justify-content: flex-start; }
+}
+
 .seller-stat {
   min-height: 5.7rem;
   padding: 0.9rem 1rem;

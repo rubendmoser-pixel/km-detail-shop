@@ -135,6 +135,7 @@ export function createProspectSalesQuote(db, salesRep, input = {}) {
   if (discountBps > settings.maximumDiscountBps) throw new ValidationError(`El descuento para un cliente potencial no puede superar el ${settings.maximumDiscountBps / 100}%.`, { field: "discountBps", code: "range", max: settings.maximumDiscountBps });
   const notes = optionalText(input.notes, "notes", { max: 1000 });
   const validUntil = optionalDate(input.validUntil, "validUntil");
+  const prospectId = input.prospectId ? positiveInteger(Number(input.prospectId), "prospectId") : null;
 
   return transaction(db, () => {
     const productQuery = db.prepare("SELECT * FROM products WHERE id = ? AND active = 1");
@@ -152,12 +153,12 @@ export function createProspectSalesQuote(db, salesRep, input = {}) {
     const subtotalListCents = lines.reduce((total, line) => total + line.basePriceCents * line.quantity, 0);
     const created = db.prepare(`
       INSERT INTO sales_prospect_quotes (
-        quote_number, sales_rep_id, sales_rep_name, sales_rep_email,
+        quote_number, sales_rep_id, sales_rep_name, sales_rep_email, prospect_id,
         business_name, contact_person, email, whatsapp, phone, city, province, discount_bps,
         subtotal_list_cents, discount_cents, subtotal_net_cents, vat_bps, vat_cents, total_cents, valid_until, notes
-      ) VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+      ) VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
     `).get(
-      salesRep.id, salesRep.name || "", salesRep.email || "", businessName, contactPerson, email, whatsapp,
+      salesRep.id, salesRep.name || "", salesRep.email || "", prospectId, businessName, contactPerson, email, whatsapp,
       phone, city, province, discountBps, subtotalListCents, subtotalListCents - totals.subtotalNetCents,
       totals.subtotalNetCents, totals.vatBps, totals.vatCents, totals.totalCents, validUntil, notes
     );

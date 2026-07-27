@@ -12,7 +12,7 @@
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/assets/app-ventas-192.png" />
     <link rel="manifest" href="/manifest-ventas.webmanifest" />
-    <link rel="stylesheet" href="/vendedor.css?v=20260723d" />
+    <link rel="stylesheet" href="/vendedor.css?v=20260726a" />
     <link rel="stylesheet" href="/notifications.css?v=2" />
   </head>
   <body>
@@ -95,6 +95,7 @@
           <button type="button" data-seller-view-button="quotes" data-icon="file-text">Presupuestos</button>
           <button type="button" data-seller-view-button="orders" data-icon="clipboard-list">Pedidos</button>
           <button type="button" data-seller-view-button="customers" data-icon="users">Clientes</button>
+          <button class="hidden" id="sellerProspectsTab" type="button" data-seller-view-button="prospects" data-icon="map-pin">Prospectos</button>
           <button type="button" data-seller-view-button="price-lists" data-icon="file-text">Listas de precios</button>
           <button type="button" data-seller-view-button="request" data-icon="user-plus">Alta comercial</button>
           <button type="button" data-seller-view-button="account" data-icon="settings">Cuenta</button>
@@ -112,6 +113,39 @@
             </label>
           </div>
           <div class="seller-stats" id="sellerStats"></div>
+        </section>
+
+        <section class="seller-view" data-seller-view="prospects">
+          <section class="seller-panel seller-prospects-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Desarrollo comercial</p>
+                <h2>Prospectos de Santa Fe</h2>
+                <p>Una sola base de trabajo, habilitada exclusivamente para Rubén Darío Moser.</p>
+              </div>
+              <button class="ghost-button compact button-info" id="refreshSellerProspects" type="button" data-icon="refresh-cw">Actualizar</button>
+            </div>
+            <div class="seller-prospect-stats" id="sellerProspectStats"></div>
+            <div class="seller-prospect-filters">
+              <input id="sellerProspectSearch" type="search" placeholder="Buscar comercio, localidad, teléfono o dirección" />
+              <select id="sellerProspectStatus">
+                <option value="">Todos los estados</option>
+                <option value="uncontacted">Sin contactar</option>
+                <option value="contacted">Contactado</option>
+                <option value="interested">Interesado</option>
+                <option value="quote_sent">Presupuesto enviado</option>
+                <option value="follow_up">Seguimiento</option>
+                <option value="converted">Convertido</option>
+                <option value="not_interested">No interesado</option>
+                <option value="invalid">Datos incorrectos / cerrado</option>
+              </select>
+              <select id="sellerProspectCity"><option value="">Todas las localidades</option></select>
+            </div>
+            <p class="form-message" id="sellerProspectMessage" role="status"></p>
+            <div class="seller-prospect-list" id="sellerProspectList">
+              <div class="empty-state">Abrí la sección para cargar la base comercial.</div>
+            </div>
+          </section>
         </section>
 
         <section class="seller-view" data-seller-view="price-lists">
@@ -502,7 +536,7 @@
 
     <script src="/form-validation.js?v=1" defer></script>
     <script src="/pwa-register.js?v=2" defer></script>
-    <script src="/vendedor.js?v=20260723d" type="module"></script>
+    <script src="/vendedor.js?v=20260726a" type="module"></script>
     <script src="/notifications.js?v=3" defer></script>
   </body>
 </html>
