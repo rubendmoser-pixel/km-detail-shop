@@ -1,7 +1,11 @@
+import fs from "node:fs";
 import { AuthError, NotFoundError, ValidationError, normalizeEmail, optionalText, requiredText } from "../domain/validation.js";
 import { createSessionToken, hashPassword, hashToken, verifyPassword } from "../security.js";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const HISTORICAL_SALES = JSON.parse(fs.readFileSync(new URL("../data/historical-sales-baseline.json", import.meta.url), "utf8"));
+const HISTORICAL_SALES_BY_CODE = new Map(HISTORICAL_SALES.products.map((product) => [product.kmCode, product]));
+const AVERAGE_DAYS_PER_MONTH = 365.25 / 12;
 
 export function listProductionOperators(db) {
   return db.prepare(`SELECT id,name,email,phone,status,notes,created_at,updated_at,
@@ -610,19 +614,25 @@ export function getProductionStockParameters(db) {
   return { defaults: { productSafetyDays, materialSafetyDays }, items };
 }
 
-export function getProductionSuggestions(db) {
+export function getProductionSuggestions(db, { now = new Date() } = {}) {
   const productSafetyDays = settingInteger(db, "production_product_safety_days", 30);
   const materialSafetyDays = settingInteger(db, "production_material_safety_days", 30);
+  const nowDate = calculationDate(now);
+  const nowIso = nowDate.toISOString();
+  const operationalStart = HISTORICAL_SALES.operationalStart;
+  const operationalWindowStart = laterIsoDate(operationalStart, new Date(nowDate.getTime() - 90 * 86400000).toISOString().slice(0, 10));
   const history = db.prepare(`SELECT MIN(COALESCE(o.updated_at,o.created_at)) AS first_sale,COUNT(DISTINCT o.id) AS orders
     FROM orders o WHERE o.fulfillment_status IN ('shipped','delivered')
-    AND o.status!='cancelled' AND COALESCE(o.updated_at,o.created_at)>=datetime('now','-90 days')`).get();
+    AND o.status!='cancelled' AND COALESCE(o.updated_at,o.created_at)>=? AND COALESCE(o.updated_at,o.created_at)<=?`).get(operationalStart, nowIso);
   const deliveredOrders = Number(history.orders || 0);
-  const rawDays = history.first_sale ? Math.floor(Number(db.prepare("SELECT julianday('now')-julianday(?) AS days").get(history.first_sale).days || 0)) + 1 : 0;
-  const observationDays = deliveredOrders ? Math.min(90, Math.max(7, rawDays)) : 0;
+  const operationalAgeDays = history.first_sale ? Math.floor((nowDate.getTime() - new Date(`${history.first_sale}Z`).getTime()) / 86400000) + 1 : 0;
+  const observationDays = deliveredOrders ? Math.min(90, Math.max(7, operationalAgeDays)) : 0;
+  const weights = demandSourceWeights(operationalAgeDays);
   const productRows = db.prepare(`SELECT p.id AS product_id,p.km_code,p.name,i.id AS item_id,i.safety_days,i.minimum_batch,
       COALESCE(b.quantity,0) AS stock,
       COALESCE(SUM(CASE WHEN o.fulfillment_status IN ('shipped','delivered') AND o.status!='cancelled'
-        AND COALESCE(o.updated_at,o.created_at)>=datetime('now','-90 days') THEN CASE WHEN oi.confirmed_quantity>0 THEN oi.confirmed_quantity ELSE oi.quantity END ELSE 0 END),0) AS delivered_quantity,
+        AND COALESCE(o.updated_at,o.created_at)>=? AND COALESCE(o.updated_at,o.created_at)<=?
+        THEN CASE WHEN oi.confirmed_quantity>0 THEN oi.confirmed_quantity ELSE oi.quantity END ELSE 0 END),0) AS delivered_quantity,
       COALESCE(SUM(CASE WHEN o.status IN ('availability_confirmed','confirmed','in_preparation','ready')
         AND COALESCE(o.fulfillment_status,'pending') IN ('pending','ready') THEN oi.confirmed_quantity ELSE 0 END),0) AS pending_quantity,
       COALESCE(SUM(CASE WHEN oi.line_status IN ('partial','unavailable','cancelled')
@@ -630,10 +640,14 @@ export function getProductionSuggestions(db) {
     FROM products p JOIN inventory_items i ON i.product_id=p.id AND i.active=1 AND i.tracks_stock=1
     LEFT JOIN inventory_balances b ON b.item_id=i.id
     LEFT JOIN order_items oi ON oi.product_id=p.id LEFT JOIN orders o ON o.id=oi.order_id
-    WHERE p.active=1 GROUP BY p.id,i.id ORDER BY p.km_code COLLATE NOCASE`).all();
+    WHERE p.active=1 GROUP BY p.id,i.id ORDER BY p.km_code COLLATE NOCASE`).all(operationalWindowStart, nowIso);
   const products = productRows.map((row) => {
     const deliveredQuantity = Number(row.delivered_quantity || 0);
-    const dailyDemand = observationDays ? deliveredQuantity / observationDays : 0;
+    const historicalProduct = HISTORICAL_SALES_BY_CODE.get(row.km_code);
+    const historicalDailyDemand = historicalProduct ? Number(historicalProduct.averageMonthlyNetUnits || 0) / AVERAGE_DAYS_PER_MONTH : 0;
+    const operationalDailyDemand = observationDays ? deliveredQuantity / observationDays : 0;
+    const productWeights = historicalProduct ? weights : { historical: 0, operational: observationDays ? 1 : 0 };
+    const dailyDemand = historicalDailyDemand * productWeights.historical + operationalDailyDemand * productWeights.operational;
     const pendingQuantity = Number(row.pending_quantity || 0);
     const unfulfilledQuantity = Number(row.unfulfilled_quantity || 0);
     const safetyDays = row.safety_days === null ? productSafetyDays : Number(row.safety_days);
@@ -644,7 +658,8 @@ export function getProductionSuggestions(db) {
     const suggestedQuantity = shortage > 0 ? Math.ceil(shortage / minimumBatch) * minimumBatch : 0;
     return {
       productId: row.product_id, itemId: row.item_id, kmCode: row.km_code, name: row.name, stock,
-      deliveredQuantity, pendingQuantity, unfulfilledQuantity, dailyDemand, observationDays, safetyDays, targetStock,
+      deliveredQuantity, pendingQuantity, unfulfilledQuantity, dailyDemand, historicalDailyDemand, operationalDailyDemand,
+      demandWeights: productWeights, observationDays, safetyDays, targetStock,
       minimumBatch, suggestedQuantity,
       reason: suggestedQuantity ? (pendingQuantity > stock ? "pending_orders" : "safety_stock") : (dailyDemand || pendingQuantity ? "covered" : "collecting_data")
     };
@@ -693,7 +708,19 @@ export function getProductionSuggestions(db) {
     });
   const learningStatus = deliveredOrders === 0 ? "collecting" : (observationDays < 30 || deliveredOrders < 10) ? "learning" : "stable";
   return {
-    generatedAt: new Date().toISOString(), history: { windowDays: 90, observationDays, deliveredOrders, status: learningStatus },
+    generatedAt: nowIso,
+    history: {
+      windowDays: 90, observationDays, operationalAgeDays, deliveredOrders, status: learningStatus,
+      operationalStart,
+      historical: {
+        periodStart: HISTORICAL_SALES.periodStart,
+        periodEnd: HISTORICAL_SALES.periodEnd,
+        months: HISTORICAL_SALES.months.length,
+        totalNetUnits: HISTORICAL_SALES.summary.totalNetUnits,
+        products: HISTORICAL_SALES.summary.products
+      },
+      weights
+    },
     summary: {
       productsToProduce: products.filter((product) => product.suggestedQuantity > 0).length,
       unitsToProduce: products.reduce((total, product) => total + product.suggestedQuantity, 0),
@@ -702,6 +729,25 @@ export function getProductionSuggestions(db) {
     },
     products, materials
   };
+}
+
+function demandSourceWeights(observationDays) {
+  if (!observationDays) return { historical: 1, operational: 0 };
+  if (observationDays <= 31) return { historical: 0.8, operational: 0.2 };
+  if (observationDays <= 62) return { historical: 0.6, operational: 0.4 };
+  if (observationDays <= 93) return { historical: 0.4, operational: 0.6 };
+  if (observationDays <= 124) return { historical: 0.2, operational: 0.8 };
+  return { historical: 0, operational: 1 };
+}
+
+function laterIsoDate(left, right) {
+  return left > right ? left : right;
+}
+
+function calculationDate(value) {
+  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  if (Number.isNaN(date.getTime())) throw new ValidationError("La fecha de cálculo no es válida.");
+  return date;
 }
 
 export function saveProductionStockParameterDefaults(db, input = {}, adminId) {

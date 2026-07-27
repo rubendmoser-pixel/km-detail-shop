@@ -202,7 +202,9 @@ test("production master imports every validated recipe idempotently by KM code a
   let suggestions = getProductionSuggestions(db);
   assert.equal(suggestions.history.status, "collecting");
   assert.equal(suggestions.products.length, 104);
-  assert.equal(suggestions.summary.productsToProduce, 0);
+  assert.ok(suggestions.summary.productsToProduce > 0);
+  assert.deepEqual(suggestions.history.weights, { historical: 1, operational: 0 });
+  assert.equal(suggestions.history.historical.products, 104);
   const customerUser = db.prepare("INSERT INTO users(email,password_hash,role) VALUES('forecast@test.local','x','customer') RETURNING id").get();
   const customer = db.prepare(`INSERT INTO customers(user_id,first_name,last_name,business_name,tax_id,tax_condition,customer_type,industry,city,province,address,phone,whatsapp,contact_person,approval_status,terms_accepted_at,privacy_accepted_at)
     VALUES(?,'Prueba','Forecast','Cliente forecast','30-99999999-1','RI','comercio','detailing','Rosario','Santa Fe','Calle 1','1','1','Prueba','approved',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING id`).get(customerUser.id);
@@ -214,12 +216,16 @@ test("production master imports every validated recipe idempotently by KM code a
   insertOrderItem.run(deliveredOrder.id, cp171.id, "CP171K", cp171Recipe.ean13, cp171Recipe.name, 14, 14);
   const activeOrder = insertOrder.get(customer.id, "availability_confirmed", "paid", "pending");
   insertOrderItem.run(activeOrder.id, cp171.id, "CP171K", cp171Recipe.ean13, cp171Recipe.name, 8, 8);
-  suggestions = getProductionSuggestions(db);
+  db.prepare("UPDATE orders SET created_at='2026-08-15 00:00:00',updated_at='2026-08-15 00:00:00' WHERE id IN (?,?)").run(deliveredOrder.id, activeOrder.id);
+  suggestions = getProductionSuggestions(db, { now: "2026-08-21T00:00:00.000Z" });
   const cp171Suggestion = suggestions.products.find((product) => product.kmCode === "CP171K");
   assert.equal(suggestions.history.status, "learning");
-  assert.equal(cp171Suggestion.dailyDemand, 2);
+  assert.deepEqual(suggestions.history.weights, { historical: 0.8, operational: 0.2 });
+  assert.equal(cp171Suggestion.operationalDailyDemand, 2);
+  assert.ok(cp171Suggestion.historicalDailyDemand > 0);
+  assert.ok(Math.abs(cp171Suggestion.dailyDemand - (cp171Suggestion.historicalDailyDemand * 0.8 + 2 * 0.2)) < 1e-9);
   assert.equal(cp171Suggestion.pendingQuantity, 8);
-  assert.equal(cp171Suggestion.suggestedQuantity, 84);
+  assert.ok(cp171Suggestion.suggestedQuantity > 8);
   assert.ok(suggestions.materials.some((material) => material.plannedRequirement > 0));
   updateOrderFulfillment(db, activeOrder.id, { fulfillmentStatus: "ready" }, admin.id);
   updateOrderFulfillment(db, activeOrder.id, {
@@ -227,12 +233,16 @@ test("production master imports every validated recipe idempotently by KM code a
   }, admin.id);
   assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(productItem.id).quantity, -7);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM inventory_movements WHERE item_id=? AND movement_type='order_dispatch' AND reference_id=?").get(productItem.id, activeOrder.id).count, 1);
-  suggestions = getProductionSuggestions(db);
+  db.prepare("UPDATE orders SET updated_at='2026-08-15 00:00:00' WHERE id=?").run(activeOrder.id);
+  suggestions = getProductionSuggestions(db, { now: "2026-08-21T00:00:00.000Z" });
   const cp171AfterDispatch = suggestions.products.find((product) => product.kmCode === "CP171K");
   assert.equal(cp171AfterDispatch.pendingQuantity, 0);
   assert.equal(cp171AfterDispatch.deliveredQuantity, 22);
-  assert.ok(Math.abs(cp171AfterDispatch.dailyDemand - (22 / 7)) < 1e-9);
-  assert.equal(cp171AfterDispatch.suggestedQuantity, 120);
+  assert.ok(Math.abs(cp171AfterDispatch.operationalDailyDemand - (22 / 7)) < 1e-9);
+  assert.ok(Math.abs(cp171AfterDispatch.dailyDemand - (cp171AfterDispatch.historicalDailyDemand * 0.8 + (22 / 7) * 0.2)) < 1e-9);
+  assert.ok(cp171AfterDispatch.suggestedQuantity > 0);
+  const matureSuggestions = getProductionSuggestions(db, { now: "2026-12-20T00:00:00.000Z" });
+  assert.deepEqual(matureSuggestions.history.weights, { historical: 0, operational: 1 });
   db.prepare("UPDATE inventory_balances SET quantity=123.5 WHERE item_id=?").run(raw.id);
   const repeated = synchronizeProductionMaster(db);
   assert.equal(repeated.skipped, true);
