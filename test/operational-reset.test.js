@@ -60,7 +60,7 @@ test("operational reset clears test activity and preserves validated masters", a
       ('customer', ?, 'https://push.test/customer', 'key-customer', 'auth-customer'),
       ('admin', ?, 'https://push.test/admin', 'key-admin', 'auth-admin')
   `).run(customerUser.id, adminUser.id);
-  db.prepare(`
+  const customer = db.prepare(`
     INSERT INTO customers (
       user_id, first_name, last_name, business_name, tax_id, tax_condition,
       customer_type, industry, city, province, address, phone, whatsapp,
@@ -68,10 +68,52 @@ test("operational reset clears test activity and preserves validated masters", a
     ) VALUES (?, 'Cliente', 'Prueba', 'Cliente Prueba', '20-00000000-1',
       'Responsable inscripto', 'Distribuidor', 'Pintureria', 'Rosario',
       'Santa Fe', 'Calle 1', '1', '1', 'Cliente', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-  `).run(customerUser.id);
+    RETURNING id
+  `).get(customerUser.id);
+  const salesRep = db.prepare(`
+    INSERT INTO sales_reps (name, email, default_commission_bps)
+    VALUES ('Vendedor Prueba', 'vendedor-reset@prueba.com', 1000)
+    RETURNING id
+  `).get();
+  const order = db.prepare(`
+    INSERT INTO orders (
+      order_number, customer_id, discount_1_bps, discount_2_bps, discount_3_bps,
+      sales_rep_id, sales_rep_name, sales_rep_email, sales_commission_bps,
+      sales_commission_base_cents, sales_commission_cents,
+      subtotal_net_cents, vat_bps, vat_cents, total_cents,
+      bank_snapshot_json, shipping_snapshot_json, price_reserved_at
+    ) VALUES (
+      'KM-RESET-000001', ?, 0, 0, 0,
+      ?, 'Vendedor Prueba', 'vendedor-reset@prueba.com', 1000,
+      1000, 100,
+      1000, 2100, 210, 1210,
+      '{}', '{}', CURRENT_TIMESTAMP
+    )
+    RETURNING id
+  `).get(customer.id, salesRep.id);
+  const settlement = db.prepare(`
+    INSERT INTO sales_commission_settlements (
+      settlement_number, sales_rep_id, sales_rep_name, sales_rep_email,
+      orders_count, commission_base_cents, commission_cents
+    ) VALUES ('LC-RESET-000001', ?, 'Vendedor Prueba', 'vendedor-reset@prueba.com', 1, 1000, 100)
+    RETURNING id
+  `).get(salesRep.id);
+  db.prepare(`
+    INSERT INTO sales_commission_settlement_items (
+      settlement_id, order_id, order_number, business_name, order_created_at,
+      subtotal_net_cents, commission_bps, commission_cents
+    ) VALUES (?, ?, 'KM-RESET-000001', 'Cliente Prueba', CURRENT_TIMESTAMP, 1000, 1000, 100)
+  `).run(settlement.id, order.id);
+  db.prepare(`
+    UPDATE orders
+    SET sales_commission_settlement_id = ?, sales_commission_settled_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(settlement.id, order.id);
 
   const preview = getOperationalResetPreview(db);
   assert.equal(preview.clears.commercial.tables.customers, 1);
+  assert.equal(preview.clears.commercial.tables.orders, 1);
+  assert.equal(preview.clears.commercial.tables.sales_commission_settlements, 1);
   assert.equal(preview.clears.production.tables.inventory_movements, 1);
   assert.equal(preview.stock.nonZero, 1);
   assert.equal(preview.preserves.catalog.tables.products, 1);
@@ -87,6 +129,8 @@ test("operational reset clears test activity and preserves validated masters", a
   const result = resetOperationalData(db, uploadsPath, { confirmation: OPERATIONAL_RESET_CONFIRMATION });
   assert.equal(result.resetStockBalances.nonZero, 1);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM customers").get().count, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM orders").get().count, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM sales_commission_settlements").get().count, 0);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users WHERE role='customer'").get().count, 0);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM inventory_movements").get().count, 0);
   assert.equal(db.prepare("SELECT quantity FROM inventory_balances WHERE item_id=?").get(item.id).quantity, 0);
