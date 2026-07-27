@@ -129,7 +129,8 @@ import {
   setPriceUpdateSellerVisibility
 } from "./services/price-update-service.js";
 import { getAnalyticsDashboard, recordAnalyticsEvents, recordServerAnalyticsEvent } from "./services/analytics-service.js";
-import { createBackup } from "./services/backup-service.js";
+import { createBackup, formatBackupSummary } from "./services/backup-service.js";
+import { getOperationalResetPreview, OPERATIONAL_RESET_CONFIRMATION, resetOperationalData } from "./services/operational-reset-service.js";
 import { pruneBackups } from "./services/storage-status-service.js";
 import { deleteOfficialDistributor, listOfficialDistributors, upsertOfficialDistributor } from "./services/distributor-service.js";
 import {
@@ -1519,6 +1520,9 @@ export function createApp({
       if (request.method === "GET" && url.pathname === "/api/admin/operation/dashboard") {
         return sendJson(response, 200, { dashboard: getAdminOperationDashboard(db, { month: url.searchParams.get("month") }) });
       }
+      if (request.method === "GET" && url.pathname === "/api/admin/operation/reset-preview") {
+        return sendJson(response, 200, { preview: getOperationalResetPreview(db) });
+      }
       if (request.method === "GET" && url.pathname === "/api/admin/analytics/dashboard") {
         return sendJson(response, 200, { dashboard: getAnalyticsDashboard(db, { days: url.searchParams.get("days") }) });
       }
@@ -1535,6 +1539,19 @@ export function createApp({
           backupPath: config.backupPath
         });
         return sendBackupArchive(response, backup);
+      }
+      if (request.method === "POST" && url.pathname === "/api/admin/operation/reset-operational-data") {
+        const input = await readJson(request);
+        if (String(input.confirmation || "").trim() !== OPERATIONAL_RESET_CONFIRMATION) {
+          throw new ValidationError(`Para limpiar la base escribi exactamente: ${OPERATIONAL_RESET_CONFIRMATION}`);
+        }
+        const backup = createBackup({
+          databasePath: config.databasePath,
+          uploadsPath,
+          backupPath: config.backupPath
+        });
+        const result = resetOperationalData(db, uploadsPath, input);
+        return sendJson(response, 200, { result, backup: formatBackupSummary(backup) });
       }
       if (request.method === "POST" && url.pathname === "/api/admin/emails/flush") {
         const result = await emailService.flush();

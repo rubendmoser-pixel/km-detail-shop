@@ -7490,6 +7490,20 @@ button.operation-row:hover {
   }
 }
 
+/* Preparación segura de la base operativa. */
+#backupsView .operational-reset-panel { margin-top: 18px; }
+#backupsView .operational-reset-columns { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+#backupsView .operational-reset-summary { display:grid; align-content:start; gap:8px; min-width:0; padding:18px; border:1px solid var(--line); border-left:4px solid #8c94a3; border-radius:12px; background:#17191d; }
+#backupsView .operational-reset-summary.is-clear { border-left-color:#ef6b73; background:rgba(111,27,34,.16); }
+#backupsView .operational-reset-summary.is-preserved { border-left-color:#67d995; background:rgba(30,104,62,.14); }
+#backupsView .operational-reset-summary > span { color:var(--muted); font-size:.76rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+#backupsView .operational-reset-summary > strong { font-size:1.08rem; }
+#backupsView .operational-reset-summary > small { color:var(--muted); line-height:1.45; }
+#backupsView .operational-reset-form { display:grid; grid-template-columns:minmax(260px,1fr) auto; align-items:end; gap:14px; margin-top:18px; padding-top:18px; border-top:1px solid var(--line); }
+#backupsView .operational-reset-form label { display:grid; gap:7px; }
+#backupsView .operational-reset-form .form-message { grid-column:1/-1; margin:0; }
+@media(max-width:960px){#backupsView .operational-reset-columns,#backupsView .operational-reset-form{grid-template-columns:1fr}}
+
 /* Demanda no atendida: lectura administrativa compacta en PC y tarjetas en teléfono. */
 .unfulfilled-demand-summary { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:18px 0; }
 .unfulfilled-demand-summary > div { min-width:0; padding:16px; border:1px solid #343941; border-radius:12px; background:#17191d; }

@@ -2,7 +2,7 @@ const adminState = {
   user: null, customers: [], products: [], families: [], selectedProductId: null, productImages: [],
   orders: [], selectedOrder: null, settings: null, emails: [], emailSummary: null, emailEnabled: false, emailProvider: "",
   securityEvents: [], securitySummary: null, salesReps: [], distributors: [], salesRepDashboard: null, salesRepProfile: null, selectedSalesRepId: null, salesPanel: "overview", pendingCommissions: [], commissionSettlements: [], selectedCustomerId: null,
-  operationDashboard: null, operationMonth: new Date().toISOString().slice(0, 7), operationTab: "summary", operationProductSearch: "", analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}, customerShippingAddresses: {}, editingCustomerShippingAddress: {},
+  operationDashboard: null, operationalResetPreview: null, operationMonth: new Date().toISOString().slice(0, 7), operationTab: "summary", operationProductSearch: "", analyticsDashboard: null, currentAccountFilter: "open", currentAccountOrderId: null, currentAccountPaymentsOpen: false, customerProductDiscounts: {}, paymentAccounts: [], customerPaymentAccounts: {}, customerShippingAddresses: {}, editingCustomerShippingAddress: {},
   priceProducts: [], priceCosts: null, priceProfitTargets: {}, priceDraft: {}, priceBatches: [], priceMode: "individual", priceFilter: "all",
   orderScope: "active", orderSearches: { active: "", history: "" }, logisticsOperators: [], unfulfilledDemand: null
 };
@@ -344,7 +344,7 @@ function bindAdminEvents() {
   on(adminEls.operationReportTabs, "click", (event) => { const button=event.target.closest("[data-operation-tab]"); if(!button)return; adminState.operationTab=button.dataset.operationTab; renderOperationDashboard(adminState.operationDashboard); });
   on(adminEls.operationDashboard, "click", handleOperationDashboardClick);
   on(adminEls.operationDashboard, "input", debounce((event) => { if(!event.target.matches("[data-operation-product-search]"))return; adminState.operationProductSearch=event.target.value; renderOperationDashboard(adminState.operationDashboard); adminEls.operationDashboard.querySelector("[data-operation-product-search]")?.focus(); }, 180));
-  on(byId("#reloadBackups"), "click", loadOperationDashboard);
+  on(byId("#reloadBackups"), "click", () => Promise.all([loadOperationDashboard(), loadOperationalResetPreview()]));
   on(adminEls.backupDashboard, "click", handleBackupDashboardClick);
   on(adminEls.deleteTestOrdersForm, "submit", deleteTestOrders);
   on(document, "click", (event) => {
@@ -433,7 +433,8 @@ async function enterWorkspace() {
     ["emails", loadEmails],
     ["seguridad", loadSecurityEvents],
     ["actividad", loadAnalyticsDashboard],
-    ["operacion", loadOperationDashboard]
+    ["operacion", loadOperationDashboard],
+    ["preparacion de base", loadOperationalResetPreview]
   ].map(([label, loader]) => loadAdminSection(label, loader)));
   showAdminView(currentAdminView(), false);
   const requestedOrderId = Number(new URLSearchParams(window.location.search).get("order") || 0);
@@ -483,6 +484,7 @@ function showAdminView(view, updateHash = true) {
   if (targetView === "commissions") loadSalesCommissions().catch((error) => showAdminToast(error.message));
   if (targetView === "prices" && !adminState.priceProducts.length) loadPriceUpdates().catch((error) => showAdminToast(error.message));
   if (targetView === "unfulfilled-demand") loadUnfulfilledDemand().catch((error) => showAdminToast(error.message));
+  if (targetView === "backups") loadOperationalResetPreview().catch((error) => showAdminToast(error.message));
 }
 
 async function loadCustomers() {
@@ -4385,6 +4387,59 @@ function renderBackupDashboard(dashboard = adminState.operationDashboard) {
       </div>
       ${renderStorageStatus(dashboard.storage || {})}
     </section>
+    ${renderOperationalResetPanel(adminState.operationalResetPreview)}
+  `;
+}
+
+async function loadOperationalResetPreview() {
+  const { preview } = await adminApi("/api/admin/operation/reset-preview");
+  adminState.operationalResetPreview = preview;
+  renderBackupDashboard();
+}
+
+function renderOperationalResetPanel(preview) {
+  if (!preview) return `
+    <section class="operation-panel backup-panel operational-reset-panel">
+      <p class="admin-note">Cargando vista previa de la base operativa...</p>
+    </section>`;
+  const clears = preview.clears || {};
+  const preserves = preview.preserves || {};
+  const clearTotal = Object.values(clears).reduce((sum, group) => sum + Number(group?.total || 0), 0);
+  const preservedTotal = Object.values(preserves).reduce((sum, group) => sum + Number(group?.total || 0), 0);
+  return `
+    <section class="operation-panel backup-panel operational-reset-panel">
+      <div class="panel-heading">
+        <p class="eyebrow">Preparacion para datos reales</p>
+        <h2>Puesta a cero operativa</h2>
+        <p>Primero genera un backup automatico. Despues elimina solamente la operacion de prueba y deja intactos los maestros validados.</p>
+      </div>
+      <div class="operational-reset-columns">
+        <div class="operational-reset-summary is-clear">
+          <span>Se limpiara</span>
+          <strong>${escapeAdmin(clearTotal)} registros operativos</strong>
+          <small>Clientes de prueba, pedidos, cobros, presupuestos, planes, partes, comisiones, movimientos, avisos y estadisticas de prueba.</small>
+        </div>
+        <div class="operational-reset-summary is-preserved">
+          <span>Se conservara</span>
+          <strong>${escapeAdmin(preservedTotal)} registros maestros</strong>
+          <small>Productos, imagenes, recetas, insumos, proveedores, precios programados, prospectos, distribuidores y accesos internos.</small>
+        </div>
+        <div class="operational-reset-summary">
+          <span>Stock a poner en cero</span>
+          <strong>${escapeAdmin(preview.stock?.nonZero || 0)} saldos con movimiento</strong>
+          <small>Las fichas y parametros de stock permanecen; solo se reinician las cantidades y su historial.</small>
+        </div>
+      </div>
+      <form class="operational-reset-form" data-operational-reset-form>
+        <label>
+          <span>Confirmacion obligatoria</span>
+          <input name="confirmation" autocomplete="off" placeholder="${escapeAdmin(preview.confirmation)}" />
+        </label>
+        <button type="button" class="ghost-button danger-button" data-reset-operational>Crear backup y limpiar datos de prueba</button>
+        <p class="form-message" data-operational-reset-message role="status"></p>
+      </form>
+      <p class="admin-note"><strong>No se ejecuta automaticamente.</strong> La frase y una segunda confirmacion son obligatorias.</p>
+    </section>
   `;
 }
 
@@ -4492,7 +4547,43 @@ function handleBackupDashboardClick(event) {
     return;
   }
   const pruneButton = event.target.closest("[data-prune-backups]");
-  if (pruneButton && adminEls.backupDashboard.contains(pruneButton)) pruneBackups(pruneButton);
+  if (pruneButton && adminEls.backupDashboard.contains(pruneButton)) {
+    pruneBackups(pruneButton);
+    return;
+  }
+  const resetButton = event.target.closest("[data-reset-operational]");
+  if (resetButton && adminEls.backupDashboard.contains(resetButton)) resetOperationalData(resetButton);
+}
+
+async function resetOperationalData(button) {
+  const form = button.closest("[data-operational-reset-form]");
+  const message = form?.querySelector("[data-operational-reset-message]");
+  const confirmation = String(new FormData(form).get("confirmation") || "").trim();
+  const required = adminState.operationalResetPreview?.confirmation || "LIMPIAR BASE DE PRUEBA";
+  if (confirmation !== required) {
+    message.textContent = `Escribi exactamente: ${required}`;
+    return;
+  }
+  if (!window.confirm("Se creara un backup completo y luego se borrara toda la operacion de prueba. Los maestros validados y los precios programados se conservaran. ¿Continuar?")) return;
+
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Creando backup y limpiando...";
+  try {
+    const { result, backup } = await adminApi("/api/admin/operation/reset-operational-data", {
+      method: "POST",
+      body: { confirmation }
+    });
+    form.reset();
+    message.textContent = `Limpieza terminada. Backup previo: ${backup.name}. Saldos reiniciados: ${result.resetStockBalances.nonZero}.`;
+    showAdminToast("Base operativa preparada correctamente.");
+    await Promise.all([loadOperationalResetPreview(), loadOperationDashboard(), loadCustomers(), loadOrders()]);
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
 }
 
 async function downloadExternalBackup(button) {
