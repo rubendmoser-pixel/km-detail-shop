@@ -11,10 +11,51 @@ export async function openDatabase({ databasePath, adminEmail = "", adminPasswor
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
   migrate(db);
+  assignSequentialProductLocations(db);
   seedSettings(db, whatsappNumber);
   seedSalesProspects(db);
   if (adminEmail && adminPassword) await ensureAdmin(db, adminEmail, adminPassword);
   return db;
+}
+
+export function assignSequentialProductLocations(db, { slotsPerLetter = 16 } = {}) {
+  const products = db.prepare(`
+    SELECT p.id, p.warehouse_location
+    FROM products p
+    JOIN product_families f ON f.id = p.family_id
+    WHERE p.active = 1
+    ORDER BY f.sort_order, p.web_sort_order, p.name
+  `).all();
+  const markerKey = "product_location_sequence_104_v1";
+  const alreadyApplied = db.prepare("SELECT value FROM settings WHERE key = ?").get(markerKey)?.value === "complete";
+  if (alreadyApplied || products.length !== 104) {
+    return {
+      total: products.length,
+      assigned: 0,
+      lastLocation: products.length === 104 ? "G - 008" : "",
+    };
+  }
+  const update = db.prepare(`
+    UPDATE products
+    SET warehouse_location = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND TRIM(warehouse_location) = ''
+  `);
+  let assigned = 0;
+  let lastLocation = "";
+  transaction(db, () => {
+    products.forEach((product, index) => {
+      const letterIndex = Math.floor(index / slotsPerLetter);
+      if (letterIndex >= 26) return;
+      const letter = String.fromCharCode(65 + letterIndex);
+      const position = String((index % slotsPerLetter) + 1).padStart(3, "0");
+      const location = `${letter} - ${position}`;
+      lastLocation = location;
+      if (String(product.warehouse_location || "").trim()) return;
+      assigned += update.run(location, product.id).changes;
+    });
+    db.prepare("INSERT INTO settings (key, value) VALUES (?, 'complete')").run(markerKey);
+  });
+  return { total: products.length, assigned, lastLocation };
 }
 
 function migrate(db) {

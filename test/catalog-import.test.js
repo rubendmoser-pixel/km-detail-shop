@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { openDatabase, transaction } from "../server/db.js";
+import { assignSequentialProductLocations, openDatabase, transaction } from "../server/db.js";
 import { upsertProduct } from "../server/services/product-service.js";
 
 const catalogPath = path.resolve(import.meta.dirname, "..", "server", "data", "catalog-2026.json");
@@ -35,4 +35,24 @@ test("catalog source imports 104 active products without duplicates", async (t) 
   assert.equal(counts.eans, 104);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM product_families WHERE active = 1").get().count, 12);
   assert.equal(db.prepare("SELECT base_price_cents FROM products WHERE km_code = 'CP171K'").get().base_price_cents, 881_800);
+
+  const locationResult = assignSequentialProductLocations(db);
+  assert.deepEqual(locationResult, { total: 104, assigned: 104, lastLocation: "G - 008" });
+  const locations = db.prepare(`
+    SELECT p.km_code, p.warehouse_location
+    FROM products p
+    JOIN product_families f ON f.id = p.family_id
+    WHERE p.active = 1
+    ORDER BY f.sort_order, p.web_sort_order, p.name
+  `).all();
+  assert.equal(locations[0].warehouse_location, "A - 001");
+  assert.equal(locations[15].warehouse_location, "A - 016");
+  assert.equal(locations[16].warehouse_location, "B - 001");
+  assert.equal(locations[103].warehouse_location, "G - 008");
+  assert.equal(new Set(locations.map((product) => product.warehouse_location)).size, 104);
+
+  db.prepare("UPDATE products SET warehouse_location = 'DEFINIDA' WHERE id = (SELECT id FROM products WHERE km_code = 'CP171K')").run();
+  const secondPass = assignSequentialProductLocations(db);
+  assert.equal(secondPass.assigned, 0);
+  assert.equal(db.prepare("SELECT warehouse_location FROM products WHERE km_code = 'CP171K'").get().warehouse_location, "DEFINIDA");
 });
