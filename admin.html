@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="./assets/app-admin-192.png" />
     <link rel="manifest" href="./manifest-admin.webmanifest" />
     <link rel="stylesheet" href="./styles.css?v=69" />
-    <link rel="stylesheet" href="./admin.css?v=98" />
+    <link rel="stylesheet" href="./admin.css?v=99" />
     <link rel="stylesheet" href="./admin-production.css?v=52" />
     <link rel="stylesheet" href="./notifications.css?v=2" />
   </head>
@@ -838,6 +838,10 @@
                 <label><span>Promo hasta</span><input name="promotionEndsAt" type="date" /></label>
                 <label class="checkbox-label"><input name="promotionActive" type="checkbox" /><span>Promocion activa</span></label>
                 <label class="checkbox-label"><input name="active" type="checkbox" checked /><span>Producto activo</span></label>
+                <div class="wide product-promotion-actions">
+                  <button class="ghost-button danger-button" id="removeProductPromotion" type="button" hidden>Quitar promocion</button>
+                  <small id="removeProductPromotionNote" hidden>Elimina el porcentaje, el texto y la vigencia de esta promocion.</small>
+                </div>
                 <label><span>Imagen archivo</span><input name="imageFilename" placeholder="ej: km-pa-150.jpg" /></label>
                 <label><span>Ubicacion deposito</span><input name="warehouseLocation" placeholder="Ej: A-03-02" maxlength="80" /></label>
               </fieldset>
@@ -1254,7 +1258,7 @@
     <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
     <script src="./form-validation.js?v=1" defer></script>
     <script src="./pwa-register.js?v=2" defer></script>
-    <script src="./admin.js?v=131" defer></script>
+    <script src="./admin.js?v=132" defer></script>
     <script src="./admin-production.js?v=47" defer></script>
     <script src="./notifications.js?v=4" defer></script>
   </body>

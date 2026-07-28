@@ -51,6 +51,7 @@ import {
   listProductFamilies,
   listProductImages,
   listProducts,
+  removeProductPromotion,
   setPrimaryProductImage,
   upsertProduct
 } from "./services/product-service.js";
@@ -1302,6 +1303,10 @@ export function createApp({
             search: url.searchParams.get("q") || ""
           })
         });
+      }
+      match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/promotion$/);
+      if (request.method === "DELETE" && match) {
+        return sendJson(response, 200, { product: removeProductPromotion(db, Number(match[1])) });
       }
       match = url.pathname.match(/^\/api\/admin\/products\/(\d+)\/location-label$/);
       if (request.method === "GET" && match) {

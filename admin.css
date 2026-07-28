@@ -3321,6 +3321,23 @@
   grid-column: 1 / -1;
 }
 
+.product-promotion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding-top: 2px;
+}
+
+.product-promotion-actions small {
+  color: #aeb2bc;
+  line-height: 1.35;
+}
+
+.product-promotion-actions [hidden] {
+  display: none !important;
+}
+
 .product-form .form-actions .toolbar-create-button {
   color: #080515;
   background: linear-gradient(180deg, #dfdcff, #8980ff);

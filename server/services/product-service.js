@@ -519,6 +519,29 @@ export function upsertProduct(db, input) {
   );
 }
 
+export function removeProductPromotion(db, productId) {
+  if (!Number.isSafeInteger(productId) || productId <= 0) {
+    throw new ValidationError("El producto indicado no es valido.");
+  }
+  const product = db.prepare(`
+    UPDATE products
+    SET promotion_bps = 0,
+        promotion_label = '',
+        promotion_starts_at = '',
+        promotion_ends_at = '',
+        promotion_active = 0,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+    RETURNING id, km_code
+  `).get(productId);
+  if (!product) throw new NotFoundError("No encontramos el producto.");
+  return {
+    id: product.id,
+    kmCode: product.km_code,
+    promotion: { bps: 0, label: "", startsAt: "", endsAt: "", active: false, current: false }
+  };
+}
+
 function nonNegativeNumber(value, field) {
   if (value === "" || value === null || value === undefined) return 0;
   const number = Number(value);

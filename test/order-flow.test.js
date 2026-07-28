@@ -8,7 +8,7 @@ import { registerCustomer } from "../server/services/auth-service.js";
 import { setCustomerDiscounts, setCustomerPaymentTerms, setCustomerStatus, upsertCustomerProductDiscount } from "../server/services/customer-service.js";
 import { authorizeOrderCredit, clientPayableBalanceCents, confirmOrderAvailability, createOrder, getOrder, recordMercadoPagoPayment, registerCurrentAccountPayment, reviewPaymentReceipt, updateOrderFulfillment } from "../server/services/order-service.js";
 import { createEmailService } from "../server/services/email-service.js";
-import { upsertProduct } from "../server/services/product-service.js";
+import { removeProductPromotion, upsertProduct } from "../server/services/product-service.js";
 import { updateCommercialSettings } from "../server/services/settings-service.js";
 import { setCustomerPaymentAccounts, upsertPaymentAccount } from "../server/services/payment-account-service.js";
 import { getAdminOperationDashboard } from "../server/services/admin-report-service.js";
@@ -104,6 +104,27 @@ test("active product promotion is applied and reserved in order items", async (t
   assert.equal(order.items[0].promotionLabel, "Promo prueba");
   assert.equal(order.items[0].finalUnitPriceCents, 6840);
   assert.equal(order.subtotalNetCents, 20_520);
+
+  removeProductPromotion(db, product.id);
+  const clearedPromotion = db.prepare(`
+    SELECT promotion_bps, promotion_label, promotion_starts_at, promotion_ends_at, promotion_active
+    FROM products WHERE id = ?
+  `).get(product.id);
+  assert.deepEqual({ ...clearedPromotion }, {
+    promotion_bps: 0,
+    promotion_label: "",
+    promotion_starts_at: "",
+    promotion_ends_at: "",
+    promotion_active: 0
+  });
+  const historicalPromotion = db.prepare(`
+    SELECT promotion_bps, promotion_label
+    FROM order_items WHERE order_id = ?
+  `).get(order.id);
+  assert.deepEqual({ ...historicalPromotion }, {
+    promotion_bps: 1000,
+    promotion_label: "Promo prueba"
+  });
 });
 
 test("confirmed order preserves price, discounts, VAT and bank snapshot", async (t) => {

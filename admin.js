@@ -201,7 +201,7 @@ const adminEls = Object.fromEntries([
   "availabilityForm", "availabilityPaymentCondition", "availabilityTermsField", "availabilityMessage", "paymentReviewPanel", "fulfillmentForm", "fulfillmentQuickActions", "fulfillmentSubmit", "fulfillmentMessage",
   "orderStatusForm", "orderStatusMessage", "orderAdvancedPanel",
   "productSearch", "productFamilyFilter", "productStatusFilter", "productsTableBody", "productListPanel", "productResultCount", "productForm",
-  "productFormTitle", "productMessage", "closeProductForm", "familyNameOptions", "productImageInput", "productImages",
+  "productFormTitle", "productMessage", "closeProductForm", "removeProductPromotion", "removeProductPromotionNote", "familyNameOptions", "productImageInput", "productImages",
   "productImagesNote", "settingsForm", "settingsMessage", "paymentAccountForm", "paymentAccountMessage", "paymentAccountList",
   "reloadPrices", "priceModeButtons", "individualPricePanel", "linearPricePanel", "priceEffectiveDate", "fillUnchangedPrices",
   "clearPriceDraft", "saveIndividualPrices", "priceUpdateStats", "priceUpdateFilters", "priceUpdateList", "priceUpdateMessage", "priceProfitConditions",
@@ -254,6 +254,7 @@ function bindAdminEvents() {
   on(byId("#newProduct"), "click", openNewProductEditor);
   on(byId("#resetProductForm"), "click", resetProductForm);
   on(adminEls.closeProductForm, "click", closeProductEditor);
+  on(adminEls.removeProductPromotion, "click", removeSelectedProductPromotion);
   on(adminEls.productForm, "submit", saveProduct);
   on(productField("familyName"), "change", syncSelectedFamilyDescription);
   on(productField("familyName"), "blur", syncSelectedFamilyDescription);
@@ -1712,6 +1713,26 @@ function adminPromotionBadge(promotion) {
   return ` <span class="promo-badge small">PROMO -${formatBps(promotion.bps)}</span>`;
 }
 
+function productHasPromotion(product) {
+  const promotion = product?.promotion;
+  return Boolean(
+    promotion
+    && (
+      Number(promotion.bps || 0) > 0
+      || String(promotion.label || "").trim()
+      || promotion.startsAt
+      || promotion.endsAt
+      || promotion.active
+    )
+  );
+}
+
+function syncProductPromotionAction(product = null) {
+  const visible = Boolean(adminState.selectedProductId && productHasPromotion(product));
+  if (adminEls.removeProductPromotion) adminEls.removeProductPromotion.hidden = !visible;
+  if (adminEls.removeProductPromotionNote) adminEls.removeProductPromotionNote.hidden = !visible;
+}
+
 function editProduct(event) {
   const product = adminState.products.find((item) => item.id === Number(event.currentTarget.dataset.editProduct));
   if (!product) return;
@@ -1749,6 +1770,7 @@ function editProduct(event) {
   productField("recommendedUse").value = product.recommendedUse || "";
   productField("technicalDescription").value = product.technicalDescription || "";
   adminEls.productMessage.textContent = "";
+  syncProductPromotionAction(product);
   openProductEditor();
   loadProductImages(product.id);
   adminEls.productForm.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1795,6 +1817,7 @@ function resetProductForm() {
   productField("promotionStartsAt").value = "";
   productField("promotionEndsAt").value = "";
   productField("promotionActive").checked = false;
+  syncProductPromotionAction();
   if (adminEls.productMessage) adminEls.productMessage.textContent = "";
   adminState.productImages = [];
   renderProductImages();
@@ -1851,6 +1874,38 @@ async function saveProduct(event) {
     adminEls.productMessage.textContent = error.message;
   } finally {
     setBusy(adminEls.productForm, false);
+  }
+}
+
+async function removeSelectedProductPromotion() {
+  const product = adminState.products.find((item) => item.id === Number(adminState.selectedProductId));
+  if (!product || !productHasPromotion(product)) {
+    syncProductPromotionAction();
+    return;
+  }
+  const confirmed = window.confirm(
+    `¿Quitar la promocion de ${product.kmCode}? Se eliminaran el porcentaje, el texto y las fechas. Los pedidos y presupuestos anteriores no se modificaran.`
+  );
+  if (!confirmed) return;
+
+  adminEls.removeProductPromotion.disabled = true;
+  if (adminEls.productMessage) adminEls.productMessage.textContent = "Quitando promocion...";
+  try {
+    await adminApi(`/api/admin/products/${product.id}/promotion`, { method: "DELETE" });
+    productField("promotionPercent").value = "";
+    productField("promotionLabel").value = "";
+    productField("promotionStartsAt").value = "";
+    productField("promotionEndsAt").value = "";
+    productField("promotionActive").checked = false;
+    product.promotion = { bps: 0, label: "", startsAt: "", endsAt: "", active: false, current: false };
+    syncProductPromotionAction(product);
+    if (adminEls.productMessage) adminEls.productMessage.textContent = `Promocion de ${product.kmCode} eliminada.`;
+    showAdminToast(`Promocion de ${product.kmCode} eliminada.`);
+    await loadProducts();
+  } catch (error) {
+    if (adminEls.productMessage) adminEls.productMessage.textContent = error.message;
+  } finally {
+    adminEls.removeProductPromotion.disabled = false;
   }
 }
 
