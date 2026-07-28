@@ -23,3 +23,24 @@ test("la espera del servicio de avisos tiene un tiempo máximo", () => {
   assert.match(notifications, /getServiceWorkerRegistration\(10_000\)/);
   assert.match(notifications, /Promise\.race/);
 });
+
+test("el panel de avisos se cierra al leer uno o marcar todos", () => {
+  const notifications = fs.readFileSync(path.join(root, "notifications.js"), "utf8");
+  const versionedFiles = [
+    "index.html",
+    "admin.html",
+    "vendedor.html",
+    "logistica.html",
+    "produccion.js",
+    "service-worker.js",
+    "portal-service-worker.js"
+  ];
+
+  assert.match(notifications, /async function openNotification\(notification\) \{\s*close\(\);/);
+  assert.match(notifications, /async function markAllRead\(\)[\s\S]*?if \(response\.ok\) \{\s*close\(\);/);
+  for (const filename of versionedFiles) {
+    const source = fs.readFileSync(path.join(root, filename), "utf8");
+    assert.match(source, /notifications\.js\?v=4/);
+    assert.doesNotMatch(source, /notifications\.js\?v=3/);
+  }
+});

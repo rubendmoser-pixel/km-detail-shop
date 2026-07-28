@@ -128,6 +128,7 @@
   }
 
   async function openNotification(notification) {
+    close();
     if (!notification.readAt) {
       try {
         await fetch(`/api/notifications/${notification.id}/read`, {
@@ -145,7 +146,10 @@
   async function markAllRead() {
     try {
       const response = await fetch("/api/notifications/read-all", { method: "POST", credentials: "same-origin" });
-      if (response.ok) await refresh();
+      if (response.ok) {
+        close();
+        await refresh();
+      }
     } catch {
       // Mantiene abierta la aplicación si hay una interrupción de red.
     }

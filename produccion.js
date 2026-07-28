@@ -34,7 +34,7 @@ function loadNotificationCenter() {
   }
   if (!document.querySelector('script[src*="notifications.js"]')) {
     const script = document.createElement("script");
-    script.src = "/notifications.js?v=3";
+    script.src = "/notifications.js?v=4";
     script.defer = true;
     document.head.append(script);
   }

@@ -1,4 +1,4 @@
-const PORTAL_CACHE = "km-portal-apps-v11";
+const PORTAL_CACHE = "km-portal-apps-v12";
 
 function portalStartPage() {
   const host = self.location.hostname;
@@ -10,7 +10,7 @@ function portalStartPage() {
 }
 
 const START_PAGE = portalStartPage();
-const CORE_ASSETS = [START_PAGE, "/assets/km-metal-logo-small.png", "/notifications.css?v=2", "/notifications.js?v=3"];
+const CORE_ASSETS = [START_PAGE, "/assets/km-metal-logo-small.png", "/notifications.css?v=2", "/notifications.js?v=4"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(PORTAL_CACHE).then((cache) => cache.addAll(CORE_ASSETS)));
