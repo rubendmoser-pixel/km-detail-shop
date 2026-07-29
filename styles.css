@@ -4193,8 +4193,7 @@ textarea,
   font-weight: 750;
 }
 
-.seo-discovery-links a:hover,
-.seo-product-directory-card:hover {
+.seo-discovery-links a:hover {
   border-color: var(--purple);
   transform: translateY(-1px);
 }

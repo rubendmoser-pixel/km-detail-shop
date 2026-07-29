@@ -22,11 +22,13 @@ const products = [
   }
 ];
 
-test("product directory exposes crawlable product and family links", () => {
+test("product directory exposes product cards without publishing individual technical sheets", () => {
   const html = renderProductDirectoryPage(products);
   assert.match(html, /<h1>Productos profesionales KM Detail Line<\/h1>/);
   assert.match(html, /<h2>Familia SEO<\/h2>/);
-  assert.match(html, /href="\/producto\/seo001k-producto-seo"/);
+  assert.match(html, /id="producto-seo001k"/);
+  assert.doesNotMatch(html, /href="\/producto\//);
+  assert.doesNotMatch(html, /ficha tecnica/i);
   assert.match(html, /"numberOfItems":1/);
   assert.match(html, /class="seo-product-directory-main-image"/);
   assert.match(html, /seo-2\.webp/);
@@ -36,22 +38,25 @@ test("product directory exposes crawlable product and family links", () => {
   assert.doesNotMatch(html, /Precio|\$|priceCurrency|"offers"/);
 });
 
-test("technical landing pages link relevant products without exposing prices", () => {
+test("technical landing pages show relevant cards without individual product links or prices", () => {
   const html = renderSeoLandingPage("/pads-de-espuma-para-pulido", [{
     ...products[0],
     ean13: "7790000000001",
     family: { name: "Pad poliespuma con velcro" }
   }]);
   assert.match(html, /Productos de esta linea/);
-  assert.match(html, /href="\/producto\/seo001k-producto-seo"/);
+  assert.match(html, /id="producto-seo001k"/);
+  assert.doesNotMatch(html, /href="\/producto\//);
   assert.match(html, /EAN 7790000000001/);
   assert.match(html, /"@type":"ItemList"/);
   assert.doesNotMatch(html, /"@type":"Product"/);
   assert.doesNotMatch(html, /"offers"|priceCurrency|Precio/);
 });
 
-test("sitemap uses real product modification dates instead of today's date", () => {
+test("sitemap removes individual technical sheets and keeps their images in the directory", () => {
   const sitemap = renderSitemap(products);
-  const productEntry = sitemap.match(/<url>\s*<loc>https:\/\/www\.km-detail\.com\/producto\/seo001k-producto-seo<\/loc>[\s\S]*?<\/url>/)?.[0] || "";
-  assert.match(productEntry, /<lastmod>2026-06-19<\/lastmod>/);
+  assert.doesNotMatch(sitemap, /\/producto\//);
+  const directoryEntry = sitemap.match(/<url>\s*<loc>https:\/\/www\.km-detail\.com\/productos<\/loc>[\s\S]*?<\/url>/)?.[0] || "";
+  assert.match(directoryEntry, /seo\.webp/);
+  assert.match(directoryEntry, /seo-2\.webp/);
 });

@@ -45,7 +45,6 @@ import {
   deleteProductImage,
   getAdminProductBoxLabel,
   getAdminProductLocationLabel,
-  getPublicProductBySlug,
   listAdminProducts,
   listPublicProductsForSeo,
   listProductFamilies,
@@ -112,7 +111,7 @@ import { createEmailService } from "./services/email-service.js";
 import { createPushService } from "./services/push-service.js";
 import { createMercadoPagoPreference, handleMercadoPagoWebhook, publicMercadoPagoConfig } from "./services/mercadopago-service.js";
 import { createRateLimiter } from "./rate-limit.js";
-import { isServerRenderedSeoPath, renderProductDirectoryPage, renderProductPage, renderSeoLandingPage, renderSitemap } from "./seo-pages.js";
+import { isServerRenderedSeoPath, renderProductDirectoryPage, renderSeoLandingPage, renderSitemap } from "./seo-pages.js";
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList, createScheduledPriceList } from "./services/price-list-service.js";
@@ -1591,29 +1590,16 @@ export function createApp({
       }
       match = url.pathname.match(/^\/producto\/([a-z0-9-]+)$/);
       if (request.method === "GET" && match) {
-        applyDuePriceUpdates(db);
-        const product = getPublicProductBySlug(db, match[1]);
-        const productPage = renderProductPage(product);
-        if (productPage) {
-          const analyticsSessionId = resolveServerAnalyticsSessionId(cookies.km_analytics_session);
-          recordServerAnalyticsEvent(db, request, currentUser, {
-            eventType: "page_view",
-            sessionId: analyticsSessionId,
-            productId: product?.id,
-            path: url.pathname,
-            referrer: request.headers.referer || "",
-            metadata: { source: "server", pageType: "product" }
-          });
-          response.writeHead(200, {
-            "content-type": "text/html; charset=utf-8",
-            "content-length": Buffer.byteLength(productPage),
-            "cache-control": "no-cache",
-            ...SEO_SECURITY_HEADERS,
-            "set-cookie": analyticsSessionCookie(analyticsSessionId, { secure: config.secureCookies })
-          });
-          response.end(productPage);
-          return;
-        }
+        const body = "Esta ficha de producto fue retirada.";
+        response.writeHead(410, {
+          "content-type": "text/plain; charset=utf-8",
+          "content-length": Buffer.byteLength(body),
+          "cache-control": "no-cache",
+          "x-robots-tag": "noindex, nofollow",
+          ...SEO_SECURITY_HEADERS
+        });
+        response.end(body);
+        return;
       }
       if (request.method === "GET" && url.pathname === "/" && String(request.headers.host || "").split(":")[0].toLowerCase() === "produccion.km-detail.com") {
         url.pathname = "/produccion.html";

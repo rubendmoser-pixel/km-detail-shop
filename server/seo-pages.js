@@ -255,7 +255,7 @@ export function renderSeoLandingPage(pathname, products = []) {
       itemListElement: featuredProducts.map((product, index) => ({
         "@type": "ListItem",
         position: index + 1,
-        url: `${SITE_URL}${product.publicUrl}`,
+        url: `${SITE_URL}/productos#${publicProductAnchor(product)}`,
         name: `${product.kmCode} - ${product.name}`
       }))
     } : null
@@ -302,6 +302,47 @@ function landingProductsForPath(pathname, products = []) {
   return products.filter((product) => matcher(String(product.family?.name || "")));
 }
 
+function publicProductAnchor(product) {
+  const code = String(product?.kmCode || "producto").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return `producto-${code}`;
+}
+
+function renderPublicProductCard(product) {
+  const gallery = product.images?.length
+    ? product.images.slice(0, 2)
+    : (product.primaryImageUrl ? [{ url: product.primaryImageUrl, altText: product.name }] : []);
+  const tags = [
+    product.material,
+    product.measure,
+    product.cutLevel ? `Corte ${product.cutLevel}` : ""
+  ].filter(Boolean);
+  return `
+    <article class="seo-product-directory-card" id="${escapeHtml(publicProductAnchor(product))}" aria-label="${escapeHtml(product.kmCode)} ${escapeHtml(product.name)}">
+      <span class="seo-product-directory-code">${escapeHtml(product.kmCode)}</span>
+      <div class="seo-product-directory-media">
+        ${gallery[0]?.url
+          ? `<img class="seo-product-directory-main-image" src="${escapeHtml(gallery[0].url)}" alt="${escapeHtml(gallery[0].altText || product.name)}" loading="lazy" />`
+          : `<span class="seo-product-directory-no-image">Imagen en preparacion</span>`}
+        ${gallery.length ? `
+          <div class="seo-product-directory-thumbs" aria-hidden="true">
+            ${gallery.map((item) => `<img src="${escapeHtml(item.url)}" alt="" loading="lazy" />`).join("")}
+          </div>` : ""}
+      </div>
+      <div class="seo-product-directory-content">
+        <strong>${escapeHtml(product.name)}</strong>
+        <small>${escapeHtml([
+          product.family?.name,
+          product.attachmentSystem,
+          product.ean13 ? `EAN ${product.ean13}` : ""
+        ].filter(Boolean).join(" · "))}</small>
+        ${tags.length ? `
+          <span class="seo-product-directory-tags">
+            ${tags.map((tag, index) => `<span${index === 2 ? ` class="yellow"` : ""}>${escapeHtml(tag)}</span>`).join("")}
+          </span>` : ""}
+      </div>
+    </article>`;
+}
+
 function renderLandingProducts(products = [], heading = "") {
   if (!products.length) return "";
   return `<section class="seo-landing-products" aria-label="Productos de ${escapeHtml(heading)}">
@@ -313,14 +354,7 @@ function renderLandingProducts(products = [], heading = "") {
       <a href="/productos">Ver catalogo completo</a>
     </div>
     <div class="seo-product-directory-grid">
-      ${products.map((product) => `<a class="seo-product-directory-card" href="${escapeHtml(product.publicUrl)}">
-        <img src="${escapeHtml(product.primaryImageUrl || "/assets/km-linea-profesional.png")}" alt="${escapeHtml(product.name)}" loading="lazy" />
-        <span class="product-code">${escapeHtml(product.kmCode)}</span>
-        <strong>${escapeHtml(product.name)}</strong>
-        <small>${escapeHtml([product.family?.name, product.measure, product.attachmentSystem].filter(Boolean).join(" · "))}</small>
-        ${product.ean13 ? `<small>EAN ${escapeHtml(product.ean13)}</small>` : ""}
-        <span class="seo-product-directory-action">Ver ficha tecnica</span>
-      </a>`).join("")}
+      ${products.map(renderPublicProductCard).join("")}
     </div>
   </section>`;
 }
@@ -447,7 +481,7 @@ export function renderProductDirectoryPage(products = []) {
   const itemList = products.map((product, index) => ({
     "@type": "ListItem",
     position: index + 1,
-    url: `${SITE_URL}${product.publicUrl}`,
+    url: `${url}#${publicProductAnchor(product)}`,
     name: `${product.kmCode} - ${product.name}`
   }));
   const graph = [
@@ -481,42 +515,7 @@ export function renderProductDirectoryPage(products = []) {
         <span>${familyProducts.length} producto${familyProducts.length === 1 ? "" : "s"}</span>
       </div>
       <div class="seo-product-directory-grid">
-        ${familyProducts.map((product) => {
-          const gallery = product.images?.length
-            ? product.images.slice(0, 2)
-            : (product.primaryImageUrl ? [{ url: product.primaryImageUrl, altText: product.name }] : []);
-          const tags = [
-            product.material,
-            product.measure,
-            product.cutLevel ? `Corte ${product.cutLevel}` : ""
-          ].filter(Boolean);
-          return `
-          <a class="seo-product-directory-card" href="${escapeHtml(product.publicUrl)}" aria-label="Ver ficha tecnica de ${escapeHtml(product.kmCode)} ${escapeHtml(product.name)}">
-            <span class="seo-product-directory-code">${escapeHtml(product.kmCode)}</span>
-            <div class="seo-product-directory-media">
-              ${gallery[0]?.url
-                ? `<img class="seo-product-directory-main-image" src="${escapeHtml(gallery[0].url)}" alt="${escapeHtml(gallery[0].altText || product.name)}" loading="lazy" />`
-                : `<span class="seo-product-directory-no-image">Imagen en preparacion</span>`}
-              ${gallery.length ? `
-                <div class="seo-product-directory-thumbs" aria-hidden="true">
-                  ${gallery.map((item) => `<img src="${escapeHtml(item.url)}" alt="" loading="lazy" />`).join("")}
-                </div>` : ""}
-            </div>
-            <div class="seo-product-directory-content">
-              <strong>${escapeHtml(product.name)}</strong>
-              <small>${escapeHtml([
-                product.family?.name,
-                product.attachmentSystem,
-                product.ean13 ? `EAN ${product.ean13}` : ""
-              ].filter(Boolean).join(" · "))}</small>
-              ${tags.length ? `
-                <span class="seo-product-directory-tags">
-                  ${tags.map((tag, index) => `<span${index === 2 ? ` class="yellow"` : ""}>${escapeHtml(tag)}</span>`).join("")}
-                </span>` : ""}
-              <span class="seo-product-directory-action">Ver ficha tecnica</span>
-            </div>
-          </a>`;
-        }).join("")}
+        ${familyProducts.map(renderPublicProductCard).join("")}
       </div>
     </section>`).join("");
 
@@ -531,7 +530,7 @@ export function renderProductDirectoryPage(products = []) {
         <div class="seo-product-directory-intro">
           <p class="eyebrow">Catalogo publico</p>
           <h1>Productos profesionales KM Detail Line</h1>
-          <p class="section-lead">Consulta la linea activa por familia, codigo KM y especificacion tecnica. Cada producto dispone de una ficha publica individual.</p>
+          <p class="section-lead">Consulta la linea activa por familia, codigo KM y caracteristicas generales.</p>
           <div class="meta-line">
             <span class="tag">${products.length} productos activos</span>
             <a class="primary-link" href="/#catalogo">Abrir catalogo operativo</a>
@@ -551,15 +550,17 @@ export function renderSitemap(products = []) {
     ["https://www.km-detail.com/distribuidores", "monthly", "0.8", SITE_CONTENT_UPDATED_AT],
     ["https://www.km-detail.com/contacto", "monthly", "0.6", SITE_CONTENT_UPDATED_AT],
     ...[...seoLandingPages.keys()].map((path) => [`${SITE_URL}${path}`, "monthly", "0.8", SITE_CONTENT_UPDATED_AT]),
-    ...products.map((product) => [`${SITE_URL}${product.publicUrl}`, "monthly", "0.7", productModificationDate(product)]),
     ["https://www.km-detail.com/assets/catalogo-km-detail-2026.pdf", "monthly", "0.5", SITE_CONTENT_UPDATED_AT]
   ];
   const unique = [...new Map(urls.map((item) => [item[0], item])).values()];
-  const productsByUrl = new Map(products.map((product) => [`${SITE_URL}${product.publicUrl}`, product]));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${unique.map(([loc, changefreq, priority, lastmod]) => {
-    const product = productsByUrl.get(loc);
-    const images = product?.images?.length ? product.images.slice(0, 6) : [];
-    const imageNodes = images.map((item) => `    <image:image>\n      <image:loc>${escapeXml(absoluteUrl(item.url))}</image:loc>\n      <image:title>${escapeXml(item.altText || product.name)}</image:title>\n    </image:image>`).join("\n");
+    const images = loc === `${SITE_URL}/productos`
+      ? products.flatMap((product) => (product.images?.length ? product.images.slice(0, 2) : []).map((item) => ({
+          ...item,
+          productName: product.name
+        })))
+      : [];
+    const imageNodes = images.map((item) => `    <image:image>\n      <image:loc>${escapeXml(absoluteUrl(item.url))}</image:loc>\n      <image:title>${escapeXml(item.altText || item.productName)}</image:title>\n    </image:image>`).join("\n");
     return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ""}\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>${imageNodes ? `\n${imageNodes}` : ""}\n  </url>`;
   }).join("\n")}\n</urlset>\n`;
 }
@@ -601,7 +602,7 @@ function layout({ title, description, url, image, schemaGraph, main }) {
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="/styles.css?v=73" />
+    <link rel="stylesheet" href="/styles.css?v=74" />
     <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": schemaGraph })}</script>
   </head>
   <body>
