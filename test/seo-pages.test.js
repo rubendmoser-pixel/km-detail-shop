@@ -9,10 +9,16 @@ const products = [
     publicUrl: "/producto/seo001k-producto-seo",
     family: { name: "Familia SEO" },
     measure: "6 IN",
+    material: "Lana 100%",
+    cutLevel: "95",
     attachmentSystem: "Velcro",
+    ean13: "7790000000001",
     primaryImageUrl: "/media/products/seo.webp",
     updatedAt: "2026-06-18 10:30:00",
-    images: [{ url: "/media/products/seo.webp", altText: "Producto SEO", updatedAt: "2026-06-19 11:00:00" }]
+    images: [
+      { url: "/media/products/seo.webp", altText: "Producto SEO", updatedAt: "2026-06-19 11:00:00" },
+      { url: "/media/products/seo-2.webp", altText: "Producto SEO vista secundaria", updatedAt: "2026-06-19 11:00:00" }
+    ]
   }
 ];
 
@@ -22,6 +28,12 @@ test("product directory exposes crawlable product and family links", () => {
   assert.match(html, /<h2>Familia SEO<\/h2>/);
   assert.match(html, /href="\/producto\/seo001k-producto-seo"/);
   assert.match(html, /"numberOfItems":1/);
+  assert.match(html, /class="seo-product-directory-main-image"/);
+  assert.match(html, /seo-2\.webp/);
+  assert.match(html, /Lana 100%/);
+  assert.match(html, /Corte 95/);
+  assert.match(html, /EAN 7790000000001/);
+  assert.doesNotMatch(html, /Precio|\$|priceCurrency|"offers"/);
 });
 
 test("technical landing pages link relevant products without exposing prices", () => {

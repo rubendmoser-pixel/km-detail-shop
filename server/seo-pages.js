@@ -481,14 +481,42 @@ export function renderProductDirectoryPage(products = []) {
         <span>${familyProducts.length} producto${familyProducts.length === 1 ? "" : "s"}</span>
       </div>
       <div class="seo-product-directory-grid">
-        ${familyProducts.map((product) => `
-          <a class="seo-product-directory-card" href="${escapeHtml(product.publicUrl)}">
-            ${product.primaryImageUrl ? `<img src="${escapeHtml(product.primaryImageUrl)}" alt="${escapeHtml(product.images?.[0]?.altText || product.name)}" loading="lazy" />` : ""}
-            <span class="product-code">${escapeHtml(product.kmCode)}</span>
-            <strong>${escapeHtml(product.name)}</strong>
-            <small>${escapeHtml([product.measure, product.attachmentSystem].filter(Boolean).join(" · "))}</small>
-            <span class="seo-product-directory-action">Ver ficha tecnica</span>
-          </a>`).join("")}
+        ${familyProducts.map((product) => {
+          const gallery = product.images?.length
+            ? product.images.slice(0, 2)
+            : (product.primaryImageUrl ? [{ url: product.primaryImageUrl, altText: product.name }] : []);
+          const tags = [
+            product.material,
+            product.measure,
+            product.cutLevel ? `Corte ${product.cutLevel}` : ""
+          ].filter(Boolean);
+          return `
+          <a class="seo-product-directory-card" href="${escapeHtml(product.publicUrl)}" aria-label="Ver ficha tecnica de ${escapeHtml(product.kmCode)} ${escapeHtml(product.name)}">
+            <span class="seo-product-directory-code">${escapeHtml(product.kmCode)}</span>
+            <div class="seo-product-directory-media">
+              ${gallery[0]?.url
+                ? `<img class="seo-product-directory-main-image" src="${escapeHtml(gallery[0].url)}" alt="${escapeHtml(gallery[0].altText || product.name)}" loading="lazy" />`
+                : `<span class="seo-product-directory-no-image">Imagen en preparacion</span>`}
+              ${gallery.length ? `
+                <div class="seo-product-directory-thumbs" aria-hidden="true">
+                  ${gallery.map((item) => `<img src="${escapeHtml(item.url)}" alt="" loading="lazy" />`).join("")}
+                </div>` : ""}
+            </div>
+            <div class="seo-product-directory-content">
+              <strong>${escapeHtml(product.name)}</strong>
+              <small>${escapeHtml([
+                product.family?.name,
+                product.attachmentSystem,
+                product.ean13 ? `EAN ${product.ean13}` : ""
+              ].filter(Boolean).join(" · "))}</small>
+              ${tags.length ? `
+                <span class="seo-product-directory-tags">
+                  ${tags.map((tag, index) => `<span${index === 2 ? ` class="yellow"` : ""}>${escapeHtml(tag)}</span>`).join("")}
+                </span>` : ""}
+              <span class="seo-product-directory-action">Ver ficha tecnica</span>
+            </div>
+          </a>`;
+        }).join("")}
       </div>
     </section>`).join("");
 
@@ -573,7 +601,7 @@ function layout({ title, description, url, image, schemaGraph, main }) {
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
-    <link rel="stylesheet" href="/styles.css?v=71" />
+    <link rel="stylesheet" href="/styles.css?v=73" />
     <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": schemaGraph })}</script>
   </head>
   <body>
