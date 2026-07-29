@@ -639,7 +639,6 @@ function renderProductCard(product) {
     `).join("")}
   </div>` : "";
   const mainAlt = images[0]?.altText || product.name;
-  const productUrl = product.publicUrl || `/producto/${encodeURIComponent(product.slug || product.kmCode.toLowerCase())}`;
   const zoomCaption = `${product.kmCode} · ${product.name}`;
   const promotionBadge = approved ? promotionBadgeHtml(product.promotion) : "";
   const specialBadge = approved ? specialDiscountBadgeHtml(product.specialDiscount) : "";
@@ -668,7 +667,7 @@ function renderProductCard(product) {
     <article class="product-card family-${familyClass}${promotionClass}${specialClass}">
       ${visual}
       <div class="product-body">
-        <h3><a class="product-title-link" href="${escapeHtml(productUrl)}">${escapeHtml(product.name)}</a></h3>
+        <h3>${escapeHtml(product.name)}</h3>
         <p>${escapeHtml(product.family.name)} · ${escapeHtml(product.attachmentSystem || "Sin especificar")} · EAN ${escapeHtml(product.ean13)}</p>
         <div class="meta-line">
           <span class="tag ${familyClass}">${escapeHtml(product.material || product.family.name)}</span>

@@ -44,3 +44,13 @@ test("el panel de avisos se cierra al leer uno o marcar todos", () => {
     assert.doesNotMatch(source, /notifications\.js\?v=3/);
   }
 });
+
+test("el catalogo web no enlaza las fichas individuales retiradas", () => {
+  const storefront = fs.readFileSync(path.join(root, "app.js"), "utf8");
+  const home = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const worker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
+
+  assert.doesNotMatch(storefront, /product-title-link|\/producto\/\$\{/);
+  assert.match(home, /app\.js\?v=99/);
+  assert.match(worker, /app\.js\?v=99/);
+});
