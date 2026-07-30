@@ -40,9 +40,20 @@ test("el panel de avisos se cierra al leer uno o marcar todos", () => {
   assert.match(notifications, /async function markAllRead\(\)[\s\S]*?if \(response\.ok\) \{\s*close\(\);/);
   for (const filename of versionedFiles) {
     const source = fs.readFileSync(path.join(root, filename), "utf8");
-    assert.match(source, /notifications\.js\?v=4/);
-    assert.doesNotMatch(source, /notifications\.js\?v=3/);
+    assert.match(source, /notifications\.js\?v=5/);
+    assert.doesNotMatch(source, /notifications\.js\?v=4/);
   }
+});
+
+test("la campana publica solo se habilita para clientes con sesion", () => {
+  const notifications = fs.readFileSync(path.join(root, "notifications.js"), "utf8");
+  const storefront = fs.readFileSync(path.join(root, "app.js"), "utf8");
+
+  assert.match(notifications, /if \(isInternalPortal\(\)\) return true;/);
+  assert.match(notifications, /fetch\("\/api\/me"/);
+  assert.match(notifications, /data\.user\?\.role === "customer"/);
+  assert.match(notifications, /hideNotificationCenter\(\)/);
+  assert.match(storefront, /window\.KMNotifications\?\.refresh\(\)/);
 });
 
 test("el catalogo web no enlaza las fichas individuales retiradas", () => {
@@ -51,6 +62,6 @@ test("el catalogo web no enlaza las fichas individuales retiradas", () => {
   const worker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
 
   assert.doesNotMatch(storefront, /product-title-link|\/producto\/\$\{/);
-  assert.match(home, /app\.js\?v=99/);
-  assert.match(worker, /app\.js\?v=99/);
+  assert.match(home, /app\.js\?v=100/);
+  assert.match(worker, /app\.js\?v=100/);
 });

@@ -74,9 +74,13 @@
 
   async function refresh() {
     try {
+      if (!(await canShowNotificationCenter())) {
+        hideNotificationCenter();
+        return;
+      }
       const response = await fetch("/api/notifications?limit=40", { credentials: "same-origin", cache: "no-store" });
       if (response.status === 401) {
-        state.center.hidden = true;
+        hideNotificationCenter();
         return;
       }
       if (!response.ok) return;
@@ -87,6 +91,24 @@
     } catch {
       // Los avisos nunca deben interrumpir la tarea principal del usuario.
     }
+  }
+
+  async function canShowNotificationCenter() {
+    if (isInternalPortal()) return true;
+    try {
+      const response = await fetch("/api/me", { credentials: "same-origin", cache: "no-store" });
+      if (!response.ok) return false;
+      const data = await response.json();
+      return data.user?.role === "customer";
+    } catch {
+      return false;
+    }
+  }
+
+  function hideNotificationCenter() {
+    close();
+    state.center.hidden = true;
+    state.count.hidden = true;
   }
 
   function render(notifications, unread) {

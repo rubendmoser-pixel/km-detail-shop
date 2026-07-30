@@ -453,6 +453,7 @@ function renderAccountState() {
   }
   document.body.classList.toggle("customer-app", approved);
   setOperationalView(view);
+  window.KMNotifications?.refresh();
 }
 
 function isPublicHash(hash) {
