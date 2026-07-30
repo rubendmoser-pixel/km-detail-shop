@@ -56,6 +56,14 @@ test("la campana publica solo se habilita para clientes con sesion", () => {
   assert.match(storefront, /window\.KMNotifications\?\.refresh\(\)/);
 });
 
+test("la portada publica no muestra el bloque secundario de exploracion", () => {
+  const home = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
+
+  assert.doesNotMatch(home, /seoDiscoveryTitle|seo-discovery-section|Explora productos y aplicaciones profesionales/);
+  assert.doesNotMatch(styles, /seo-discovery-section|seo-discovery-links/);
+});
+
 test("el catalogo web no enlaza las fichas individuales retiradas", () => {
   const storefront = fs.readFileSync(path.join(root, "app.js"), "utf8");
   const home = fs.readFileSync(path.join(root, "index.html"), "utf8");

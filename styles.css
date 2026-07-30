@@ -4145,7 +4145,6 @@ textarea,
   }
 
 }
-.seo-discovery-section,
 .seo-product-directory {
   display: grid;
   gap: 24px;
@@ -4166,19 +4165,6 @@ textarea,
   text-decoration: none;
 }
 
-.seo-discovery-section {
-  grid-template-columns: minmax(260px, 0.8fr) minmax(420px, 1.2fr);
-  align-items: start;
-  border-top: 1px solid var(--line);
-}
-
-.seo-discovery-links {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.seo-discovery-links a,
 .seo-product-directory-card {
   color: var(--text);
   text-decoration: none;
@@ -4186,16 +4172,6 @@ textarea,
   border-radius: 14px;
   background: var(--panel);
   transition: border-color 160ms ease, transform 160ms ease;
-}
-
-.seo-discovery-links a {
-  padding: 15px 17px;
-  font-weight: 750;
-}
-
-.seo-discovery-links a:hover {
-  border-color: var(--purple);
-  transform: translateY(-1px);
 }
 
 .seo-product-directory-intro {
@@ -4376,11 +4352,6 @@ textarea,
 }
 
 @media (max-width: 760px) {
-  .seo-discovery-section,
-  .seo-discovery-links {
-    grid-template-columns: 1fr;
-  }
-
   .seo-product-directory-grid {
     grid-template-columns: 1fr;
   }
