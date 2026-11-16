@@ -306,6 +306,15 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.match(scheduledExcelResponse.headers.get("content-disposition"), /Lista-precios-KM-2099-08-01\.xlsx/);
   const scheduledExcelBuffer = Buffer.from(await scheduledExcelResponse.arrayBuffer());
   assert.equal(scheduledExcelBuffer.subarray(0, 2).toString(), "PK");
+  const scheduledWordUrl = `${baseUrl}/api/admin/price-updates/${scheduledBatch.id}/list.docx`;
+  assert.equal((await fetch(scheduledWordUrl)).status, 401);
+  const scheduledWordResponse = await fetch(scheduledWordUrl, { headers: { cookie: adminCookie } });
+  assert.equal(scheduledWordResponse.status, 200);
+  assert.equal(scheduledWordResponse.headers.get("content-type"), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  assert.match(scheduledWordResponse.headers.get("content-disposition"), /Lista-precios-KM-2099-08-01\.docx/);
+  assert.equal(scheduledWordResponse.headers.get("cache-control"), "no-store");
+  assert.equal(Buffer.from(await scheduledWordResponse.arrayBuffer()).subarray(0, 2).toString(), "PK");
+  assert.equal((await fetch(`${baseUrl}/api/admin/price-updates/999999/list.docx`, { headers: { cookie: adminCookie } })).status, 404);
   const publicImageResponse = await fetch(`${baseUrl}${images[0].url}`);
   assert.equal(publicImageResponse.status, 200);
   assert.equal(publicImageResponse.headers.get("content-type"), "image/png");
@@ -407,6 +416,7 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   })).status, 200);
 
   const customerCookie = await loginCookie(baseUrl, "cliente-api@example.com", "new-customer-password-456");
+  assert.equal((await fetch(scheduledWordUrl, { headers: { cookie: customerCookie } })).status, 403);
   const products = await getJson(`${baseUrl}/api/products`, customerCookie);
   assert.equal(products.products[0].basePriceCents, 100_000);
   assert.equal(products.products[0].finalPriceCents, 50_400);
@@ -414,6 +424,8 @@ test("HTTP API supports the initial B2B purchase flow", async (t) => {
   assert.equal(products.products[0].images.length, 2);
   assert.equal(products.products[0].images[0].url, images[0].url);
   const salesCookie = await salesLoginCookie(baseUrl, "vendedor-api@km-detail.com", "sales-portal-password-456");
+  assert.ok([401, 403].includes((await fetch(scheduledWordUrl, { headers: { cookie: salesCookie } })).status));
+  assert.equal((await fetch(`${baseUrl}/api/sales/price-lists/${scheduledBatch.id}/list.docx`, { headers: { cookie: salesCookie } })).status, 404);
   const sellerPriceLists = await getJson(`${baseUrl}/api/sales/price-lists`, salesCookie);
   assert.equal(sellerPriceLists.priceLists.some((batch) => batch.id === scheduledBatch.id), true);
   assert.equal(sellerPriceLists.priceLists.find((batch) => batch.id === scheduledBatch.id).items.length, 0);

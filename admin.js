@@ -1613,6 +1613,7 @@ function renderPriceUpdateHistory() {
         <div class="price-history-actions">
           <button class="ghost-button" type="button" data-price-list-batch="${batch.id}">Generar lista PDF</button>
           <button class="ghost-button" type="button" data-price-list-xlsx="${batch.id}">Descargar Excel</button>
+          <button class="ghost-button" type="button" data-price-list-docx="${batch.id}">Descargar Word con imágenes</button>
           <button class="ghost-button ${batch.sellerVisible ? "danger-soft" : ""}" type="button"
             data-price-list-visibility="${batch.id}" data-visible="${batch.sellerVisible ? "true" : "false"}">
             ${batch.sellerVisible ? "Ocultar a vendedores" : "Habilitar para vendedores"}
@@ -1639,6 +1640,34 @@ async function openScheduledPriceList(event) {
     } catch (error) {
       showAdminToast(error.message);
       visibilityButton.disabled = false;
+    }
+    return;
+  }
+  const wordButton = event.target.closest("[data-price-list-docx]");
+  if (wordButton) {
+    const originalText = wordButton.textContent;
+    wordButton.disabled = true;
+    wordButton.textContent = "Preparando Word...";
+    try {
+      const response = await fetch(`/api/admin/price-updates/${encodeURIComponent(wordButton.dataset.priceListDocx)}/list.docx`, { credentials: "same-origin" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "No pudimos generar la lista en Word.");
+      }
+      const blobUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = response.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] || "Lista-precios-KM.docx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      showAdminToast("Lista de precios descargada en Word");
+    } catch (error) {
+      showAdminToast(error.message);
+    } finally {
+      wordButton.disabled = false;
+      wordButton.textContent = originalText;
     }
     return;
   }

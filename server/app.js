@@ -115,6 +115,7 @@ import { isServerRenderedSeoPath, renderProductDirectoryPage, renderSeoLandingPa
 import { listSecurityEvents, recordSecurityEvent, summarizeSecurityEvents } from "./services/security-event-service.js";
 import { getAdminOperationDashboard } from "./services/admin-report-service.js";
 import { createCustomerPriceList, createScheduledPriceList } from "./services/price-list-service.js";
+import { createScheduledPriceListWord } from "./services/price-list-word-service.js";
 import {
   applyDuePriceUpdates,
   createSellerPriceListShare,
@@ -1319,12 +1320,14 @@ export function createApp({
         applyDuePriceUpdates(db);
         return sendJson(response, 200, { batches: listPriceUpdateBatches(db) });
       }
-      match = url.pathname.match(/^\/api\/admin\/price-updates\/(\d+)\/list\.xlsx$/);
+      match = url.pathname.match(/^\/api\/admin\/price-updates\/(\d+)\/list\.(xlsx|docx)$/);
       if (request.method === "GET" && match) {
         applyDuePriceUpdates(db);
         const batch = getPriceUpdateBatch(db, Number(match[1]));
         if (!batch) return sendJson(response, 404, { error: "No encontramos la actualizacion de precios." });
-        const priceList = await createScheduledPriceList(batch);
+        const priceList = match[2] === "docx"
+          ? await createScheduledPriceListWord(batch, { uploadsPath })
+          : await createScheduledPriceList(batch);
         response.writeHead(200, {
           "content-type": priceList.contentType,
           "content-disposition": `attachment; filename="${priceList.filename}"`,
